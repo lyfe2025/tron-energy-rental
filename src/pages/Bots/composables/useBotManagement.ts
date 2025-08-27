@@ -1,4 +1,5 @@
 import { botApi } from '@/api/bots'
+import { envLog } from '@/utils/env'
 import { Activity, AlertTriangle, Bot as BotIcon, Zap } from 'lucide-vue-next'
 import { toast } from 'sonner'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -174,12 +175,14 @@ export function useBotManagement() {
   const loadBots = async () => {
     try {
       isLoading.value = true
+      envLog.debug('开始加载机器人列表...')
       const response = await botApi.getBots()
       bots.value = response.data
+      envLog.debug(`成功加载 ${response.data.length} 个机器人`)
       updateStats()
       updatePagination()
     } catch (error) {
-      console.error('加载机器人列表失败:', error)
+      envLog.error('加载机器人列表失败:', error)
       toast.error('加载机器人列表失败')
     } finally {
       isLoading.value = false

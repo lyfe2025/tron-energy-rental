@@ -239,8 +239,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { X, Edit, Zap, Loader2 } from 'lucide-vue-next'
+import { Edit, Loader2, X, Zap } from 'lucide-vue-next'
+import { computed } from 'vue'
 import type { Bot, BotForm, BotModalMode } from '../types/bot.types'
 
 interface Props {
