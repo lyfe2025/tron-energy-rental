@@ -65,9 +65,18 @@ router.get('/overview', authenticateToken, requireAdmin, async (req: Request, re
         AND created_at < CURRENT_DATE - INTERVAL '${days} days'
     `);
     
+    // 计算用户增长率
+    const previousUsersStats = await query(`
+      SELECT COUNT(*) as prev_users
+      FROM users 
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${days * 2} days' 
+        AND created_at < CURRENT_DATE - INTERVAL '${days} days'
+    `);
+    
     const stats = overviewStats.rows[0];
     const today = todayStats.rows[0];
     const previous = previousPeriodStats.rows[0];
+    const previousUsers = previousUsersStats.rows[0];
     
     // 计算增长率
     const orderGrowthRate = previous.prev_orders > 0 
@@ -78,10 +87,25 @@ router.get('/overview', authenticateToken, requireAdmin, async (req: Request, re
       ? ((stats.recent_revenue - previous.prev_revenue) / previous.prev_revenue * 100).toFixed(2)
       : '0';
     
+    const userGrowthRate = previousUsers.prev_users > 0 
+      ? ((stats.new_users - previousUsers.prev_users) / previousUsers.prev_users * 100).toFixed(2)
+      : '0';
+    
     res.status(200).json({
       success: true,
       message: '总览统计数据获取成功',
       data: {
+        // 前端期望的扁平化数据结构
+        total_orders: parseInt(stats.total_orders),
+        total_revenue: parseFloat(stats.total_revenue),
+        active_users: parseInt(stats.active_users),
+        online_bots: parseInt(stats.active_bots),
+        orders_change: parseFloat(orderGrowthRate),
+        revenue_change: parseFloat(revenueGrowthRate),
+        users_change: parseFloat(userGrowthRate),
+        bots_change: 0,  // 机器人变化率暂时设为0，因为没有历史数据对比
+        
+        // 保留详细数据结构以供其他用途
         overview: {
           users: {
             total: parseInt(stats.total_users),
@@ -824,6 +848,93 @@ router.get('/export', authenticateToken, requireAdmin, async (req: Request, res:
     res.status(500).json({
       success: false,
       message: '服务器内部错误'
+    });
+  }
+});
+
+/**
+ * 获取机器人状态统计
+ * GET /api/statistics/bot-status
+ * 权限：管理员
+ */
+router.get('/bot-status', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    // 获取机器人状态统计
+    const botStatusStats = await query(`
+      SELECT 
+        status,
+        COUNT(*) as count
+      FROM bots 
+      GROUP BY status
+      ORDER BY count DESC
+    `);
+
+    // 计算总数和百分比
+    const totalBots = botStatusStats.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    
+    // 构建图表数据
+    const chartData = botStatusStats.rows.map(row => ({
+      status: row.status,
+      count: parseInt(row.count),
+      percentage: totalBots > 0 ? ((parseInt(row.count) / totalBots) * 100).toFixed(1) : '0'
+    }));
+
+    // 构建状态统计对象
+    const statusCounts = {
+      online: 0,
+      offline: 0,
+      error: 0,
+      maintenance: 0
+    };
+
+    // 填充状态统计
+    botStatusStats.rows.forEach(row => {
+      const status = row.status.toLowerCase();
+      const count = parseInt(row.count);
+      
+      switch (status) {
+        case 'active':
+        case 'online':
+          statusCounts.online = count;
+          break;
+        case 'inactive':
+        case 'offline':
+          statusCounts.offline = count;
+          break;
+        case 'error':
+        case 'failed':
+          statusCounts.error = count;
+          break;
+        case 'maintenance':
+          statusCounts.maintenance = count;
+          break;
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: '机器人状态统计获取成功',
+      data: {
+        online: statusCounts.online,
+        offline: statusCounts.offline,
+        error: statusCounts.error,
+        maintenance: statusCounts.maintenance,
+        chart_data: chartData
+      }
+    });
+    
+  } catch (error) {
+    console.error('获取机器人状态统计错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      data: {
+        online: 0,
+        offline: 0,
+        error: 0,
+        maintenance: 0,
+        chart_data: []
+      }
     });
   }
 });

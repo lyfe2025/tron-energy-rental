@@ -8,7 +8,26 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+BOLD='\033[1m'
+UNDERLINE='\033[4m'
 NC='\033[0m' # No Color
+
+# 特殊字符和图标
+CHECK_MARK='✓'
+CROSS_MARK='✗'
+ARROW='➤'
+STAR='★'
+GEAR='⚙️'
+ROCKET='🚀'
+STOP='🛑'
+REFRESH='🔄'
+EYE='👁️'
+TRASH='🗑️'
+HELP='❓'
+EXIT='🚪'
 
 # 项目根目录
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,10 +59,10 @@ check_service_status() {
     
     if lsof -i :$port >/dev/null 2>&1; then
         local pid=$(lsof -ti :$port)
-        echo -e "${GREEN}✓ $service_name 正在运行 (端口: $port, PID: $pid)${NC}"
+        echo -e "${GREEN}${CHECK_MARK} $service_name 正在运行 (端口: $port, PID: $pid)${NC}"
         return 0
     else
-        echo -e "${RED}✗ $service_name 未运行 (端口: $port)${NC}"
+        echo -e "${RED}${CROSS_MARK} $service_name 未运行 (端口: $port)${NC}"
         return 1
     fi
 }
@@ -55,10 +74,10 @@ stop_service_on_port() {
     
     if lsof -i :$port >/dev/null 2>&1; then
         local pids=$(lsof -ti :$port)
-        echo -e "${YELLOW}正在停止 $service_name (端口: $port)...${NC}"
+        echo -e "${GREEN}${STOP} 正在停止 $service_name (端口: $port)...${NC}"
         
         for pid in $pids; do
-            echo -e "${BLUE}停止进程 PID: $pid${NC}"
+            echo -e "${GREEN}${ARROW} 停止进程 PID: $pid${NC}"
             kill -TERM $pid 2>/dev/null
             
             # 等待进程结束
@@ -70,129 +89,133 @@ stop_service_on_port() {
             
             # 如果进程仍在运行，强制杀死
             if kill -0 $pid 2>/dev/null; then
-                echo -e "${YELLOW}强制停止进程 PID: $pid${NC}"
+                echo -e "${GREEN}${ARROW} 强制停止进程 PID: $pid${NC}"
                 kill -KILL $pid 2>/dev/null
             fi
         done
         
-        echo -e "${GREEN}✓ $service_name 已停止${NC}"
+        echo -e "${GREEN}${CHECK_MARK} $service_name 已停止${NC}"
     else
-        echo -e "${BLUE}ℹ $service_name 未在运行${NC}"
+        echo -e "${GREEN}${ARROW} $service_name 未在运行${NC}"
     fi
 }
 
 # 启动后端服务
 start_backend() {
-    echo -e "${BLUE}正在启动后端服务...${NC}"
+    echo -e "${GREEN}${ROCKET} 正在启动后端服务...${NC}"
     
     if check_service_status $BACKEND_PORT "后端服务"; then
-        echo -e "${YELLOW}后端服务已在运行${NC}"
+        echo -e "${GREEN}${ARROW} 后端服务已在运行${NC}"
         return 0
     fi
     
     # 检查依赖
     if [ ! -d "node_modules" ]; then
-        echo -e "${YELLOW}正在安装依赖...${NC}"
+        echo -e "${GREEN}${ARROW} 正在安装依赖...${NC}"
         pnpm install
     fi
     
     # 启动后端服务
-    echo -e "${BLUE}启动后端服务 (端口: $BACKEND_PORT)${NC}"
+    echo -e "${GREEN}${ARROW} 启动后端服务 (端口: $BACKEND_PORT)${NC}"
     nohup pnpm run dev:api > "$BACKEND_LOG" 2>&1 &
     
     # 等待服务启动
     local count=0
     while [ $count -lt 30 ]; do
         if check_service_status $BACKEND_PORT "后端服务" >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ 后端服务启动成功${NC}"
+            echo -e "${GREEN}${CHECK_MARK} 后端服务启动成功${NC}"
             return 0
         fi
         sleep 1
         count=$((count + 1))
     done
     
-    echo -e "${RED}✗ 后端服务启动超时${NC}"
+    echo -e "${RED}${CROSS_MARK} 后端服务启动超时${NC}"
     return 1
 }
 
 # 启动前端服务
 start_frontend() {
-    echo -e "${BLUE}正在启动前端服务...${NC}"
+    echo -e "${GREEN}${ROCKET} 正在启动前端服务...${NC}"
     
     if check_service_status $FRONTEND_PORT "前端服务"; then
-        echo -e "${YELLOW}前端服务已在运行${NC}"
+        echo -e "${GREEN}${ARROW} 前端服务已在运行${NC}"
         return 0
     fi
     
     # 检查依赖
     if [ ! -d "node_modules" ]; then
-        echo -e "${YELLOW}正在安装依赖...${NC}"
+        echo -e "${GREEN}${ARROW} 正在安装依赖...${NC}"
         pnpm install
     fi
     
     # 启动前端服务
-    echo -e "${BLUE}启动前端服务 (端口: $FRONTEND_PORT)${NC}"
+    echo -e "${GREEN}${ARROW} 启动前端服务 (端口: $FRONTEND_PORT)${NC}"
     nohup pnpm run dev:frontend > "$FRONTEND_LOG" 2>&1 &
     
     # 等待服务启动
     local count=0
     while [ $count -lt 30 ]; do
         if check_service_status $FRONTEND_PORT "前端服务" >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ 前端服务启动成功${NC}"
+            echo -e "${GREEN}${CHECK_MARK} 前端服务启动成功${NC}"
             return 0
         fi
         sleep 1
         count=$((count + 1))
     done
     
-    echo -e "${RED}✗ 前端服务启动超时${NC}"
+    echo -e "${RED}${CROSS_MARK} 前端服务启动超时${NC}"
     return 1
 }
 
 # 启动所有服务
 start_all() {
-    echo -e "${BLUE}正在启动所有服务...${NC}"
+    echo -e "\n${GREEN}${ROCKET} 正在启动所有服务...${NC}"
+    echo -e "${GREEN}${ARROW} 请稍候...${NC}\n"
     
     start_backend
     if [ $? -eq 0 ]; then
         start_frontend
         if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ 所有服务启动成功${NC}"
+            echo -e "\n${GREEN}${CHECK_MARK} 所有服务启动成功！${NC}"
             show_all_urls
         else
-            echo -e "${RED}✗ 前端服务启动失败${NC}"
+            echo -e "\n${RED}${CROSS_MARK} 前端服务启动失败${NC}"
             return 1
         fi
     else
-        echo -e "${RED}✗ 后端服务启动失败${NC}"
+        echo -e "\n${RED}${CROSS_MARK} 后端服务启动失败${NC}"
         return 1
     fi
 }
 
 # 停止所有服务
 stop_all() {
-    echo -e "${BLUE}正在停止所有服务...${NC}"
+    echo -e "\n${GREEN}${STOP} 正在停止所有服务...${NC}"
+    echo -e "${GREEN}${ARROW} 请稍候...${NC}\n"
     
-    echo -e "${YELLOW}检查并停止后端服务 (端口: $BACKEND_PORT)${NC}"
+    echo -e "${YELLOW}${ARROW} 检查并停止后端服务 (端口: $BACKEND_PORT)${NC}"
     stop_service_on_port $BACKEND_PORT "后端服务"
     
-    echo -e "${YELLOW}检查并停止前端服务 (端口: $FRONTEND_PORT)${NC}"
+    echo -e "${YELLOW}${ARROW} 检查并停止前端服务 (端口: $FRONTEND_PORT)${NC}"
     stop_service_on_port $FRONTEND_PORT "前端服务"
     
-    echo -e "${GREEN}✓ 所有服务已停止${NC}"
+    echo -e "\n${GREEN}${CHECK_MARK} 所有服务已停止${NC}"
 }
 
 # 重启所有服务
 restart_all() {
-    echo -e "${BLUE}正在重启所有服务...${NC}"
+    echo -e "\n${GREEN}${REFRESH} 正在重启所有服务...${NC}"
+    echo -e "${GREEN}${ARROW} 请稍候...${NC}\n"
     
-    echo -e "${YELLOW}第一步: 停止所有服务${NC}"
+    echo -e "${YELLOW}${ARROW} 第一步: 停止所有服务${NC}"
     stop_all
     
-    echo -e "${YELLOW}第二步: 等待进程完全释放端口${NC}"
+    echo -e "${YELLOW}${ARROW} 第二步: 等待进程完全释放端口${NC}"
+    echo -e "${GREEN}⏳ 等待中...${NC}"
     sleep 2
     
-    echo -e "${YELLOW}第三步: 重新启动所有服务${NC}"
+    echo -e "${YELLOW}${ARROW} 第三步: 重新启动所有服务${NC}"
     start_all
 }
 
@@ -240,12 +263,14 @@ show_backend_url() {
         protocol="https"
     fi
     
-    echo -e "\n${GREEN}=== 后端服务访问地址 ===${NC}"
-    echo -e "本地访问: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}${NC}"
+    echo -e "\n${GREEN}=== 后端API服务 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} API接口: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 健康检查: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/health${NC} (直接访问)"
+    echo -e "  ${GREEN}${ARROW}${NC} 健康检查: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api/health${NC} (API路径)"
     if [ "$address" != "localhost" ]; then
-        echo -e "网络访问: ${YELLOW}${protocol}://${address}:${BACKEND_PORT}${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 网络API: ${YELLOW}${protocol}://${address}:${BACKEND_PORT}/api${NC}"
     fi
-    echo -e "API文档: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 注意: 直接访问根路径会返回API错误，请使用具体接口路径"
 }
 
 # 显示前端访问地址
@@ -258,11 +283,12 @@ show_frontend_url() {
         protocol="https"
     fi
     
-    echo -e "\n${GREEN}=== 前端服务访问地址 ===${NC}"
-    echo -e "本地访问: ${YELLOW}${protocol}://localhost:${FRONTEND_PORT}${NC}"
+    echo -e "\n${GREEN}=== 前端应用服务 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 用户界面: ${YELLOW}${protocol}://localhost:${FRONTEND_PORT}${NC}"
     if [ "$address" != "localhost" ]; then
-        echo -e "网络访问: ${YELLOW}${protocol}://${address}:${FRONTEND_PORT}${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 网络访问: ${YELLOW}${protocol}://${address}:${FRONTEND_PORT}${NC}"
     fi
+    echo -e "  ${GREEN}${ARROW}${NC} 说明: 这是Vue.js前端应用，提供完整的用户界面"
 }
 
 # 显示所有服务访问地址（简洁版）
@@ -275,29 +301,32 @@ show_all_urls() {
         protocol="https"
     fi
     
-    echo -e "\n${GREEN}=== 服务访问地址 ===${NC}"
-    echo -e "后端: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}${NC}"
-    echo -e "前端: ${YELLOW}${protocol}://localhost:${FRONTEND_PORT}${NC}"
-    echo -e "API文档: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api${NC}"
+    echo -e "\n${GREEN}${STAR} === 服务访问地址 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端应用: ${YELLOW}${protocol}://localhost:${FRONTEND_PORT}${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端API: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 健康检查: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/health${NC} (直接访问)"
+    echo -e "  ${GREEN}${ARROW}${NC} 健康检查: ${YELLOW}${protocol}://localhost:${BACKEND_PORT}/api/health${NC} (API路径)"
     
     # 如果不是localhost，显示网络访问地址
     if [ "$address" != "localhost" ]; then
-        echo -e "\n${BLUE}网络访问地址:${NC}"
-        echo -e "后端: ${YELLOW}${protocol}://${address}:${BACKEND_PORT}${NC}"
-        echo -e "前端: ${YELLOW}${protocol}://${address}:${FRONTEND_PORT}${NC}"
+        echo -e "\n${BLUE}${STAR} 网络访问地址:${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 前端应用: ${YELLOW}${protocol}://${address}:${FRONTEND_PORT}${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 后端API: ${YELLOW}${protocol}://${address}:${BACKEND_PORT}/api${NC}"
     fi
+    
+    echo -e "\n${GREEN}${ARROW}${NC} 提示: 前端应用是用户界面，后端API提供数据服务"
 }
 
 # 显示服务状态
 show_status() {
-    echo -e "\n${BLUE}=== 服务状态 ===${NC}"
+    echo -e "\n${GREEN}${EYE} === 服务状态 ===${NC}"
     check_service_status $BACKEND_PORT "后端服务"
     check_service_status $FRONTEND_PORT "前端服务"
     
-    echo -e "\n${BLUE}=== 端口信息 ===${NC}"
-    echo -e "后端端口: ${YELLOW}$BACKEND_PORT${NC}"
-    echo -e "前端端口: ${YELLOW}$FRONTEND_PORT${NC}"
-    echo -e "环境: ${YELLOW}$NODE_ENV${NC}"
+    echo -e "\n${GREEN}${GEAR} === 端口信息 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端端口: ${YELLOW}$BACKEND_PORT${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端端口: ${YELLOW}$FRONTEND_PORT${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 环境: ${YELLOW}$NODE_ENV${NC}"
     
     # 如果服务正在运行，显示访问地址
     if lsof -i :$BACKEND_PORT >/dev/null 2>&1; then
@@ -308,21 +337,21 @@ show_status() {
         show_frontend_url
     fi
     
-    echo -e "\n${BLUE}=== 日志文件 ===${NC}"
-    echo -e "后端日志: ${YELLOW}$BACKEND_LOG${NC}"
-    echo -e "前端日志: ${YELLOW}$FRONTEND_LOG${NC}"
+    echo -e "\n${GREEN}${GEAR} === 日志文件 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端日志: ${YELLOW}$BACKEND_LOG${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端日志: ${YELLOW}$FRONTEND_LOG${NC}"
 }
 
 # 显示日志
 show_logs() {
-    echo -e "\n${BLUE}=== 选择要查看的日志 ===${NC}"
-    echo "1) 后端日志"
-    echo "2) 前端日志"
-    echo "3) 实时后端日志"
-    echo "4) 实时前端日志"
-    echo "0) 返回主菜单"
-    
-    read -p "请选择: " log_choice
+    echo -e "\n${GREEN}${GEAR} === 选择要查看的日志 ===${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 1) 后端日志"
+    echo -e "  ${GREEN}${ARROW}${NC} 2) 前端日志"
+    echo -e "  ${GREEN}${ARROW}${NC} 3) 实时后端日志"
+    echo -e "  ${GREEN}${ARROW}${NC} 4) 实时前端日志"
+    echo -e "  ${GREEN}${ARROW}${NC} 0) 返回主菜单"
+    echo ""
+    read -p "  请选择: " log_choice
     
     case $log_choice in
         1)
@@ -368,58 +397,56 @@ show_logs() {
 
 # 清理日志
 clean_logs() {
-    echo -e "${YELLOW}正在清理日志文件...${NC}"
+    echo -e "\n${GREEN}${TRASH} 正在清理日志文件...${NC}"
     
     if [ -f "$BACKEND_LOG" ]; then
         rm "$BACKEND_LOG"
-        echo -e "${GREEN}✓ 后端日志已清理${NC}"
+        echo -e "${GREEN}${CHECK_MARK} 后端日志已清理${NC}"
     fi
     
     if [ -f "$FRONTEND_LOG" ]; then
         rm "$FRONTEND_LOG"
-        echo -e "${GREEN}✓ 前端日志已清理${NC}"
+        echo -e "${GREEN}${CHECK_MARK} 前端日志已清理${NC}"
     fi
     
-    echo -e "${GREEN}✓ 日志清理完成${NC}"
+    echo -e "\n${GREEN}${CHECK_MARK} 日志清理完成${NC}"
 }
 
 # 显示帮助信息
 show_help() {
-    echo -e "\n${BLUE}=== 使用说明 ===${NC}"
-    echo "此脚本用于管理项目的前后台服务"
+    echo -e "\n${GREEN}${HELP} === 使用说明 ===${NC}"
+    echo -e "${WHITE}此脚本用于管理项目的前后台服务${NC}"
     echo ""
-    echo "主要功能:"
-    echo "• 一键启动所有服务（前后台）"
-    echo "• 一键停止所有服务（前后台）"
-    echo "• 一键重启所有服务（前后台）"
-    echo "• 查看服务状态和日志"
-    echo "• 清理日志文件"
+    echo -e "${BOLD}主要功能:${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 一键启动所有服务（前后台）"
+    echo -e "  ${GREEN}${ARROW}${NC} 一键停止所有服务（前后台）"
+    echo -e "  ${GREEN}${ARROW}${NC} 一键重启所有服务（前后台）"
+    echo -e "  ${GREEN}${ARROW}${NC} 查看服务状态和日志"
+    echo -e "  ${GREEN}${ARROW}${NC} 清理日志文件"
     echo ""
-    echo "环境配置:"
-    echo "• 后端端口: $BACKEND_PORT (从 .env 读取)"
-    echo "• 前端端口: $FRONTEND_PORT (从 .env 读取)"
-    echo "• 环境: $NODE_ENV"
+    echo -e "${BOLD}环境配置:${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端端口: ${YELLOW}$BACKEND_PORT${NC} (从 .env 读取)"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端端口: ${YELLOW}$FRONTEND_PORT${NC} (从 .env 读取)"
+    echo -e "  ${GREEN}${ARROW}${NC} 环境: ${YELLOW}$NODE_ENV${NC}"
     echo ""
-    echo "日志文件:"
-    echo "• 后端: $BACKEND_LOG"
-    echo "• 前端: $FRONTEND_LOG"
+    echo -e "${BOLD}日志文件:${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端: ${YELLOW}$BACKEND_LOG${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端: ${YELLOW}$FRONTEND_LOG${NC}"
 }
 
 # 主菜单
 show_menu() {
     clear
-    echo -e "${BLUE}================================${NC}"
-    echo -e "${BLUE}      项目统一管理脚本${NC}"
-    echo -e "${BLUE}================================${NC}"
+    echo -e "${GREEN}${BOLD}                    🚀 项目统一管理脚本 🚀${NC}"
     echo ""
-    echo "1) 启动所有服务"
-    echo "2) 停止所有服务"
-    echo "3) 重启所有服务"
-    echo "4) 查看服务状态"
-    echo "5) 查看日志"
-    echo "6) 清理日志"
-    echo "7) 帮助信息"
-    echo "0) 退出"
+    echo -e "${BOLD}1)${NC} 启动所有服务"
+    echo -e "${BOLD}2)${NC} 停止所有服务"
+    echo -e "${BOLD}3)${NC} 重启所有服务"
+    echo -e "${BOLD}4)${NC} 查看服务状态"
+    echo -e "${BOLD}5)${NC} 查看日志"
+    echo -e "${BOLD}6)${NC} 清理日志"
+    echo -e "${BOLD}7)${NC} 帮助信息"
+    echo -e "${BOLD}0)${NC} 退出"
     echo ""
 }
 
@@ -427,7 +454,8 @@ show_menu() {
 main() {
     while true; do
         show_menu
-        read -p "请选择操作: " choice
+        echo -e "${YELLOW}${ARROW} 请选择操作: ${NC}"
+        read -p "   " choice
         
         case $choice in
             1)
@@ -452,7 +480,8 @@ main() {
                 show_help
                 ;;
             0)
-                echo -e "${GREEN}再见!${NC}"
+                echo -e "\n${GREEN}${EXIT} 再见! 感谢使用项目管理脚本${NC}"
+                echo -e "${CYAN}${STAR} 祝您开发愉快！${NC}\n"
                 exit 0
                 ;;
             *)

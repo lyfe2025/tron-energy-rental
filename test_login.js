@@ -1,4 +1,4 @@
-const http = require('http');
+import http from 'http';
 
 const data = JSON.stringify({
   email: 'admin@tronrental.com',

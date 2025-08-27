@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录错误测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        .test-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .login-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .login-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录错误处理测试</h1>
+    
+    <div class="test-container">
+        <h2>API错误测试</h2>
+        <p>测试后端API的错误响应</p>
+        
+        <button class="test-button" onclick="testWrongCredentials()">测试错误邮箱密码</button>
+        <button class="test-button" onclick="testEmptyFields()">测试空字段</button>
+        <button class="test-button" onclick="testInvalidEmail()">测试无效邮箱格式</button>
+        <button class="test-button" onclick="testServerConnection()">测试服务器连接</button>
+        
+        <div id="apiResults" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>前端错误显示测试</h2>
+        <p>模拟前端登录表单的错误处理</p>
+        
+        <div class="test-form">
+            <div class="form-group">
+                <label for="email">邮箱:</label>
+                <input type="email" id="email" placeholder="请输入邮箱">
+                <div id="emailError" class="error-message" style="display: none;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" placeholder="请输入密码">
+                <div id="passwordError" class="error-message" style="display: none;"></div>
+            </div>
+            
+            <div id="authError" class="error-message" style="display: none; background: #f8d7da; padding: 10px; border-radius: 4px; border-left: 4px solid #dc3545;">
+                <span id="authErrorMessage"></span>
+                <button onclick="clearAuthError()" style="float: right; background: none; border: none; color: #dc3545; cursor: pointer;">×</button>
+            </div>
+            
+            <button class="login-button" onclick="simulateLogin()">登录</button>
+        </div>
+        
+        <div>
+            <h3>测试场景:</h3>
+            <button class="test-button" onclick="fillWrongCredentials()">填入错误凭据</button>
+            <button class="test-button" onclick="fillEmptyEmail()">清空邮箱</button>
+            <button class="test-button" onclick="fillEmptyPassword()">清空密码</button>
+            <button class="test-button" onclick="fillInvalidEmail()">填入无效邮箱</button>
+        </div>
+    </div>
+    
+    <script>
+        // API测试函数
+        async function testAPI(endpoint, data, testName) {
+            const resultsDiv = document.getElementById('apiResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = `<strong>${testName}</strong><br>正在测试...`;
+            
+            try {
+                const response = await fetch(`http://localhost:3001${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <strong>${testName}</strong><br>
+                    状态码: ${response.status}<br>
+                    响应: ${JSON.stringify(result, null, 2)}
+                `;
+                resultsDiv.className = response.ok ? 'result success' : 'result error';
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <strong>${testName}</strong><br>
+                    错误: ${error.message}
+                `;
+                resultsDiv.className = 'result error';
+            }
+        }
+        
+        function testWrongCredentials() {
+            testAPI('/api/auth/login', {
+                email: 'wrong@example.com',
+                password: 'wrongpassword'
+            }, '错误邮箱密码测试');
+        }
+        
+        function testEmptyFields() {
+            testAPI('/api/auth/login', {
+                email: '',
+                password: ''
+            }, '空字段测试');
+        }
+        
+        function testInvalidEmail() {
+            testAPI('/api/auth/login', {
+                email: 'invalid-email',
+                password: 'admin123456'
+            }, '无效邮箱格式测试');
+        }
+        
+        function testServerConnection() {
+            testAPI('/api/auth/login', {
+                email: 'admin@example.com',
+                password: 'admin123456'
+            }, '正确凭据测试');
+        }
+        
+        // 前端模拟函数
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        function hideError(elementId) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.style.display = 'none';
+        }
+        
+        function showAuthError(message) {
+            const authErrorDiv = document.getElementById('authError');
+            const authErrorMessage = document.getElementById('authErrorMessage');
+            authErrorMessage.textContent = message;
+            authErrorDiv.style.display = 'block';
+        }
+        
+        function clearAuthError() {
+            document.getElementById('authError').style.display = 'none';
+        }
+        
+        function simulateLogin() {
+            // 清除之前的错误
+            hideError('emailError');
+            hideError('passwordError');
+            clearAuthError();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            let hasError = false;
+            
+            // 验证邮箱
+            if (!email.trim()) {
+                showError('emailError', '请输入邮箱地址');
+                hasError = true;
+            } else if (!validateEmail(email)) {
+                showError('emailError', '请输入有效的邮箱格式');
+                hasError = true;
+            }
+            
+            // 验证密码
+            if (!password) {
+                showError('passwordError', '请输入密码');
+                hasError = true;
+            } else if (password.length < 6) {
+                showError('passwordError', '密码长度至少6位字符');
+                hasError = true;
+            }
+            
+            if (hasError) {
+                return;
+            }
+            
+            // 模拟登录失败
+            if (email !== 'admin@example.com' || password !== 'admin123456') {
+                showAuthError('邮箱或密码错误');
+                return;
+            }
+            
+            alert('登录成功！');
+        }
+        
+        // 测试场景填充函数
+        function fillWrongCredentials() {
+            document.getElementById('email').value = 'wrong@example.com';
+            document.getElementById('password').value = 'wrongpassword';
+        }
+        
+        function fillEmptyEmail() {
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = 'admin123456';
+        }
+        
+        function fillEmptyPassword() {
+            document.getElementById('email').value = 'admin@example.com';
+            document.getElementById('password').value = '';
+        }
+        
+        function fillInvalidEmail() {
+            document.getElementById('email').value = 'invalid-email';
+            document.getElementById('password').value = 'admin123456';
+        }
+        
+        // 输入框事件监听
+        document.getElementById('email').addEventListener('input', function() {
+            hideError('emailError');
+        });
+        
+        document.getElementById('password').addEventListener('input', function() {
+            hideError('passwordError');
+        });
+    </script>
+</body>
+</html>

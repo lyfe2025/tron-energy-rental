@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .test-form {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录API测试</h1>
+    
+    <div class="test-section">
+        <h2>问题分析</h2>
+        <p>页面被刷新的根本原因：</p>
+        <ol>
+            <li><strong>登录请求返回401状态码</strong>：这是不正常的，因为用户还没有认证</li>
+            <li><strong>API响应拦截器触发</strong>：401状态码触发了window.location跳转</li>
+            <li><strong>页面刷新</strong>：window.location导致真正的页面刷新</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>API测试</h2>
+        <p>测试登录API的响应，确认是否返回了错误的401状态码</p>
+        
+        <div class="test-form">
+            <div class="form-group">
+                <label for="apiUrl">API地址：</label>
+                <input type="text" id="apiUrl" value="http://localhost:3001/api/auth/login" />
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱：</label>
+                <input type="email" id="email" placeholder="输入测试邮箱" />
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码：</label>
+                <input type="password" id="password" placeholder="输入测试密码" />
+            </div>
+            
+            <button onclick="testLoginAPI()">测试登录API</button>
+        </div>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>修复方案</h2>
+        
+        <div class="info">
+            <h3>✅ 已修复：移除window.location</h3>
+            <p>在API响应拦截器中完全移除了window.location的使用，改为触发自定义事件</p>
+        </div>
+        
+        <div class="info">
+            <h3>✅ 已修复：全局事件处理</h3>
+            <p>在App.vue中添加了全局的token过期事件监听器，使用Vue Router进行跳转</p>
+        </div>
+        
+        <div class="info">
+            <h3>⚠️ 需要检查：后端API逻辑</h3>
+            <p>登录请求不应该返回401状态码，需要检查后端API的实现</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>调试步骤</h2>
+        
+        <ol>
+            <li><strong>运行API测试</strong>：使用上面的表单测试登录API</li>
+            <li><strong>检查响应状态码</strong>：确认是否返回401</li>
+            <li><strong>检查后端日志</strong>：查看后端API的处理逻辑</li>
+            <li><strong>验证修复效果</strong>：确认页面不再刷新</li>
+        </ol>
+    </div>
+
+    <script>
+        async function testLoginAPI() {
+            const apiUrl = document.getElementById('apiUrl').value
+            const email = document.getElementById('email').value
+            const password = document.getElementById('password').value
+            const resultDiv = document.getElementById('result')
+            
+            if (!email || !password) {
+                resultDiv.textContent = '请输入邮箱和密码'
+                resultDiv.className = 'result error'
+                return
+            }
+            
+            try {
+                resultDiv.textContent = '正在测试API...'
+                resultDiv.className = 'result info'
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                })
+                
+                const data = await response.json()
+                
+                const result = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: data
+                }
+                
+                resultDiv.textContent = JSON.stringify(result, null, 2)
+                
+                if (response.status === 401) {
+                    resultDiv.className = 'result error'
+                    console.error('❌ 登录API返回401状态码，这是不正常的！')
+                } else if (response.status === 200) {
+                    resultDiv.className = 'result success'
+                    console.log('✅ 登录API响应正常')
+                } else {
+                    resultDiv.className = 'result info'
+                }
+                
+            } catch (error) {
+                resultDiv.textContent = `请求失败: ${error.message}`
+                resultDiv.className = 'result error'
+                console.error('API请求失败:', error)
+            }
+        }
+        
+        // 页面加载完成后的提示
+        console.log('🔍 登录API测试页面已加载');
+        console.log('请使用上面的表单测试登录API，确认是否返回401状态码');
+    </script>
+</body>
+</html>

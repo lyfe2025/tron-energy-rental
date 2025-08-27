@@ -2,20 +2,20 @@
  * This is a API server
  */
 
-import express, { type Request, type Response, type NextFunction }  from 'express';
 import cors from 'cors';
-import path from 'path';
 import dotenv from 'dotenv';
+import express, { type NextFunction, type Request, type Response } from 'express';
+import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.ts';
-import testRoutes from './routes/test.ts';
-import ordersRoutes from './routes/orders.ts';
-import usersRoutes from './routes/users.ts';
 import botsRoutes from './routes/bots.ts';
 import energyPackagesRoutes from './routes/energy-packages.ts';
+import ordersRoutes from './routes/orders.ts';
+import priceConfigsRoutes from './routes/price-configs.ts';
 import statisticsRoutes from './routes/statistics.ts';
 import systemConfigsRoutes from './routes/system-configs.ts';
-import priceConfigsRoutes from './routes/price-configs.ts';
+import testRoutes from './routes/test.ts';
+import usersRoutes from './routes/users.ts';
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +44,42 @@ app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/price-configs', priceConfigsRoutes);
 
 /**
- * health
+ * API root
+ */
+app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
+  res.status(200).json({
+    success: true,
+    message: 'API Server is running',
+    version: '1.0.0',
+    endpoints: [
+      '/api/auth',
+      '/api/test', 
+      '/api/orders',
+      '/api/users',
+      '/api/bots',
+      '/api/energy-packages',
+      '/api/statistics',
+      '/api/system-configs',
+      '/api/price-configs',
+      '/api/health'
+    ]
+  });
+});
+
+/**
+ * health check - direct access
+ */
+app.use('/health', (req: Request, res: Response, next: NextFunction): void => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+/**
+ * health check - API path
  */
 app.use('/api/health', (req: Request, res: Response, next: NextFunction): void => {
   res.status(200).json({

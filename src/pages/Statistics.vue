@@ -606,37 +606,73 @@ const loadStatistics = async () => {
     
     const response = await statisticsAPI.getOverview()
     
-    if (response.data.success) {
+    if (response?.data?.success && response?.data?.data) {
       const data = response.data.data
       
-      // 更新核心指标 - 使用默认值避免类型错误
-      coreMetrics.value[0].value = formatNumber(data.total_orders || 0)
-      coreMetrics.value[0].change = (data as any).orders_change ? `${(data as any).orders_change > 0 ? '+' : ''}${(data as any).orders_change}%` : null
-      coreMetrics.value[0].changeDirection = ((data as any).orders_change || 0) >= 0 ? 'up' : 'down'
+      // 更新核心指标 - 添加数组边界检查和完善的空值处理
+      if (coreMetrics.value[0]) {
+        coreMetrics.value[0].value = formatNumber(Number(data.total_orders) || 0)
+        coreMetrics.value[0].change = (data as any).orders_change ? `${(data as any).orders_change > 0 ? '+' : ''}${(data as any).orders_change}%` : null
+        coreMetrics.value[0].changeDirection = ((data as any).orders_change || 0) >= 0 ? 'up' : 'down'
+      }
       
-      coreMetrics.value[1].value = formatCurrency(data.total_revenue || 0) + ' TRX'
-      coreMetrics.value[1].change = (data as any).revenue_change ? `${(data as any).revenue_change > 0 ? '+' : ''}${(data as any).revenue_change}%` : null
-      coreMetrics.value[1].changeDirection = ((data as any).revenue_change || 0) >= 0 ? 'up' : 'down'
+      if (coreMetrics.value[1]) {
+        coreMetrics.value[1].value = formatCurrency(Number(data.total_revenue) || 0) + ' TRX'
+        coreMetrics.value[1].change = (data as any).revenue_change ? `${(data as any).revenue_change > 0 ? '+' : ''}${(data as any).revenue_change}%` : null
+        coreMetrics.value[1].changeDirection = ((data as any).revenue_change || 0) >= 0 ? 'up' : 'down'
+      }
       
-      coreMetrics.value[2].value = formatNumber((data as any).active_users || 0)
-      coreMetrics.value[2].change = (data as any).users_change ? `${(data as any).users_change > 0 ? '+' : ''}${(data as any).users_change}%` : null
-      coreMetrics.value[2].changeDirection = ((data as any).users_change || 0) >= 0 ? 'up' : 'down'
+      if (coreMetrics.value[2]) {
+        coreMetrics.value[2].value = formatNumber(Number((data as any).active_users) || 0)
+        coreMetrics.value[2].change = (data as any).users_change ? `${(data as any).users_change > 0 ? '+' : ''}${(data as any).users_change}%` : null
+        coreMetrics.value[2].changeDirection = ((data as any).users_change || 0) >= 0 ? 'up' : 'down'
+      }
       
-      coreMetrics.value[3].value = formatNumber((data as any).online_bots || 0)
-      coreMetrics.value[3].change = (data as any).bots_change ? `${(data as any).bots_change > 0 ? '+' : ''}${(data as any).bots_change}%` : null
-      coreMetrics.value[3].changeDirection = ((data as any).bots_change || 0) >= 0 ? 'up' : 'down'
+      if (coreMetrics.value[3]) {
+        coreMetrics.value[3].value = formatNumber(Number((data as any).online_bots) || 0)
+        coreMetrics.value[3].change = (data as any).bots_change ? `${(data as any).bots_change > 0 ? '+' : ''}${(data as any).bots_change}%` : null
+        coreMetrics.value[3].changeDirection = ((data as any).bots_change || 0) >= 0 ? 'up' : 'down'
+      }
       
       // 更新用户分析 - 使用默认值避免类型错误
       Object.assign(userAnalysis, {
-        newUsers: (data as any).new_users || 0,
-        activeUsers: (data as any).active_users || 0,
-        payingUsers: (data as any).paying_users || 0,
-        conversionRate: (data as any).conversion_rate || 0,
-        retentionRate: (data as any).retention_rate || 0
+        newUsers: Number((data as any).new_users) || 0,
+        activeUsers: Number((data as any).active_users) || 0,
+        payingUsers: Number((data as any).paying_users) || 0,
+        conversionRate: Number((data as any).conversion_rate) || 0,
+        retentionRate: Number((data as any).retention_rate) || 0
+      })
+    } else {
+      console.warn('统计数据响应格式异常:', response)
+      // 设置默认值
+      coreMetrics.value.forEach(metric => {
+        metric.value = '0'
+        metric.change = null
+        metric.changeDirection = 'up'
+      })
+      Object.assign(userAnalysis, {
+        newUsers: 0,
+        activeUsers: 0,
+        payingUsers: 0,
+        conversionRate: 0,
+        retentionRate: 0
       })
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
+    // 设置默认值，避免页面崩溃
+    coreMetrics.value.forEach(metric => {
+      metric.value = '0'
+      metric.change = null
+      metric.changeDirection = 'up'
+    })
+    Object.assign(userAnalysis, {
+      newUsers: 0,
+      activeUsers: 0,
+      payingUsers: 0,
+      conversionRate: 0,
+      retentionRate: 0
+    })
   } finally {
     isLoading.value = false
   }
@@ -691,21 +727,42 @@ const loadBotStatus = async () => {
     
     const response = await statisticsAPI.getBotStatus()
     
-    if (response.data.success) {
+    if (response?.data?.success && response?.data?.data) {
       const data = response.data.data
-      botStatusData.value = data.chart_data || []
+      // 添加完善的空值检查
+      botStatusData.value = Array.isArray(data.chart_data) ? data.chart_data : []
       
-      // 更新状态统计
-      botStatusStats.value[0].count = data.online || 0
-      botStatusStats.value[1].count = data.offline || 0
-      botStatusStats.value[2].count = data.error || 0
-      botStatusStats.value[3].count = data.maintenance || 0
+      // 更新状态统计 - 添加数组边界检查
+      if (botStatusStats.value[0]) {
+        botStatusStats.value[0].count = Number(data.online) || 0
+      }
+      if (botStatusStats.value[1]) {
+        botStatusStats.value[1].count = Number(data.offline) || 0
+      }
+      if (botStatusStats.value[2]) {
+        botStatusStats.value[2].count = Number(data.error) || 0
+      }
+      if (botStatusStats.value[3]) {
+        botStatusStats.value[3].count = Number(data.maintenance) || 0
+      }
       
       await nextTick()
       renderBotStatusChart()
+    } else {
+      console.warn('机器人状态数据响应格式异常:', response)
+      // 设置默认值
+      botStatusData.value = []
+      botStatusStats.value.forEach(stat => {
+        stat.count = 0
+      })
     }
   } catch (error) {
     console.error('加载机器人状态失败:', error)
+    // 设置默认值，避免页面崩溃
+    botStatusData.value = []
+    botStatusStats.value.forEach(stat => {
+      stat.count = 0
+    })
   } finally {
     isLoadingBotStatus.value = false
   }

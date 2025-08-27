@@ -20,7 +20,10 @@
     "migrate:status": "tsx api/scripts/migrate.ts status",
     "migrate:rollback": "tsx api/scripts/migrate.ts rollback",
     "db:create": "tsx api/scripts/create-database.ts",
-    "db:setup": "npm run db:create && npm run migrate"
+    "db:setup": "npm run db:create && npm run migrate",
+    "comments:apply": "tsx scripts/apply-chinese-comments.ts",
+    "comments:verify": "tsx scripts/verify-comments.ts",
+    "comments:setup": "npm run comments:apply && npm run comments:verify"
   },
   "dependencies": {
     "axios": "^1.6.2",

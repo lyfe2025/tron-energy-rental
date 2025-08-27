@@ -897,16 +897,31 @@ const loadSettings = async () => {
   try {
     const response = await settingsAPI.getSettings()
     
-    if (response.data.success) {
+    if (response?.data?.success && response?.data?.data) {
       const data = response.data.data
-      Object.assign(settings.basic, data.basic || {})
-      Object.assign(settings.business, data.business || {})
-      Object.assign(settings.security, data.security || {})
-      Object.assign(settings.features, data.features || {})
-      Object.assign(settings.notifications, data.notifications || {})
+      // 添加完善的空值检查，确保每个配置对象都存在
+      if (data.basic && typeof data.basic === 'object') {
+        Object.assign(settings.basic, data.basic)
+      }
+      if (data.business && typeof data.business === 'object') {
+        Object.assign(settings.business, data.business)
+      }
+      if (data.security && typeof data.security === 'object') {
+        Object.assign(settings.security, data.security)
+      }
+      if (data.features && typeof data.features === 'object') {
+        Object.assign(settings.features, data.features)
+      }
+      if (data.notifications && typeof data.notifications === 'object') {
+        Object.assign(settings.notifications, data.notifications)
+      }
+    } else {
+      console.warn('设置数据响应格式异常:', response)
+      // 保持默认值，不进行任何修改
     }
   } catch (error) {
     console.error('加载设置失败:', error)
+    // 保持默认值，避免页面崩溃
   }
 }
 

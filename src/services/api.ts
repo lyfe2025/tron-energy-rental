@@ -61,10 +61,18 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token过期或无效，清除本地存储并跳转到登录页
+      // Token过期或无效，清除本地存储
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_user')
-      window.location.href = '/login'
+      
+      // 触发自定义事件，让应用知道需要处理认证问题
+      // 完全避免使用window.location，防止页面刷新
+      window.dispatchEvent(new CustomEvent('auth:token-expired', {
+        detail: { 
+          status: error.response.status,
+          message: error.response.data?.message || 'Token已过期'
+        }
+      }))
     }
     return Promise.reject(error)
   }

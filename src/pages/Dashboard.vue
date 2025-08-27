@@ -337,28 +337,39 @@ const getStatusText = (status: string) => {
 const loadStatistics = async () => {
   try {
     const response = await statisticsAPI.getOverview()
-    if (response.data.success && response.data.data) {
+    if (response?.data?.success && response?.data?.data) {
       const data = response.data.data
       
-      // 更新统计数据
-      stats.value[0].value = data.total_orders || 0
-      stats.value[0].change = data.orders_change || 0
-      stats.value[0].trend = (data.orders_change || 0) >= 0 ? 'up' : 'down'
+      // 更新统计数据 - 添加完善的空值检查
+      if (stats.value[0]) {
+        stats.value[0].value = Number(data.total_orders) || 0
+        stats.value[0].change = Number(data.orders_change) || 0
+        stats.value[0].trend = (Number(data.orders_change) || 0) >= 0 ? 'up' : 'down'
+      }
       
-      stats.value[1].value = data.total_revenue || 0
-      stats.value[1].change = data.revenue_change || 0
-      stats.value[1].trend = (data.revenue_change || 0) >= 0 ? 'up' : 'down'
+      if (stats.value[1]) {
+        stats.value[1].value = Number(data.total_revenue) || 0
+        stats.value[1].change = Number(data.revenue_change) || 0
+        stats.value[1].trend = (Number(data.revenue_change) || 0) >= 0 ? 'up' : 'down'
+      }
       
-      stats.value[2].value = data.active_users || 0
-      stats.value[2].change = data.users_change || 0
-      stats.value[2].trend = (data.users_change || 0) >= 0 ? 'up' : 'down'
+      if (stats.value[2]) {
+        stats.value[2].value = Number(data.active_users) || 0
+        stats.value[2].change = Number(data.users_change) || 0
+        stats.value[2].trend = (Number(data.users_change) || 0) >= 0 ? 'up' : 'down'
+      }
       
-      stats.value[3].value = data.online_bots || 0
-      stats.value[3].change = data.bots_change || 0
-      stats.value[3].trend = (data.bots_change || 0) >= 0 ? 'up' : 'down'
+      if (stats.value[3]) {
+        stats.value[3].value = Number(data.online_bots) || 0
+        stats.value[3].change = Number(data.bots_change) || 0
+        stats.value[3].trend = (Number(data.bots_change) || 0) >= 0 ? 'up' : 'down'
+      }
+    } else {
+      console.warn('统计数据响应格式异常:', response)
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
+    // 保持默认值，不影响页面显示
   }
 }
 
