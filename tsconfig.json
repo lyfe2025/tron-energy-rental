@@ -8,6 +8,11 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": false,
     "baseUrl": "./",
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
     "paths": {
       "@/*": [
         "./src/*"
@@ -15,7 +20,8 @@
     },
     "types": [
       "node",
-      "express"
+      "express",
+      "vite/client"
     ]
   },
   "include": [

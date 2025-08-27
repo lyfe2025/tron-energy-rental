@@ -102,7 +102,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
     
     // 检查是否已存在相同的配置
     let duplicateQuery = 'SELECT id FROM price_configs WHERE config_type = $1';
-    let duplicateParams = [config_type];
+    const duplicateParams = [config_type];
     
     if (target_id) {
       duplicateQuery += ' AND target_id = $2';
@@ -181,8 +181,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const offset = (Number(page) - 1) * Number(limit);
     
     // 构建查询条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (config_type) {

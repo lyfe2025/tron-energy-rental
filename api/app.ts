@@ -7,15 +7,15 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import authRoutes from './routes/auth.js';
-import testRoutes from './routes/test.js';
-import ordersRoutes from './routes/orders.js';
-import priceTemplatesRoutes from './routes/price-templates.js';
-import priceConfigsRoutes from './routes/price-configs.js';
-import priceHistoryRoutes from './routes/price-history.js';
-import robotPricingRoutes from './routes/robot-pricing.js';
-import agentPricingRoutes from './routes/agent-pricing.js';
-import priceSearchRoutes from './routes/price-search.js';
+import authRoutes from './routes/auth.ts';
+import testRoutes from './routes/test.ts';
+import ordersRoutes from './routes/orders.ts';
+import usersRoutes from './routes/users.ts';
+import botsRoutes from './routes/bots.ts';
+import energyPackagesRoutes from './routes/energy-packages.ts';
+import statisticsRoutes from './routes/statistics.ts';
+import systemConfigsRoutes from './routes/system-configs.ts';
+import priceConfigsRoutes from './routes/price-configs.ts';
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url);
@@ -31,18 +31,17 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-/**
- * API Routes
- */// API路由
+// API 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/orders', ordersRoutes);
-app.use('/api/price-templates', priceTemplatesRoutes);
+
+app.use('/api/users', usersRoutes);
+app.use('/api/bots', botsRoutes);
+app.use('/api/energy-packages', energyPackagesRoutes);
+app.use('/api/statistics', statisticsRoutes);
+app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/price-configs', priceConfigsRoutes);
-app.use('/api/price-history', priceHistoryRoutes);
-app.use('/api/robot-pricing', robotPricingRoutes);
-app.use('/api/agent-pricing', agentPricingRoutes);
-app.use('/api/price-search', priceSearchRoutes);
 
 /**
  * health

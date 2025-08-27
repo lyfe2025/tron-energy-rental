@@ -27,8 +27,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const offset = (Number(page) - 1) * Number(limit);
     
     // 构建查询条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (bot_id) {
@@ -173,8 +173,8 @@ router.get('/bot/:botId', authenticateToken, async (req: Request, res: Response)
     const bot = botResult.rows[0];
     
     // 构建查询条件
-    let whereConditions = ['pc.bot_id = $1'];
-    let queryParams = [botId];
+    const whereConditions = ['pc.bot_id = $1'];
+    const queryParams = [botId];
     let paramIndex = 2;
     
     if (package_id) {

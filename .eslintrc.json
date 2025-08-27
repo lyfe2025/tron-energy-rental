@@ -1,0 +1,68 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    // TypeScript 相关规则
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    
+    // 导入相关规则
+    "import/no-unresolved": "off",
+    "import/extensions": "off",
+    
+    // 代码质量规则
+    "no-console": "warn",
+    "no-debugger": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    
+    // 错误处理规则
+    "no-throw-literal": "error",
+    "prefer-promise-reject-errors": "error",
+    
+    // 安全规则
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error"
+  },
+  "overrides": [
+    {
+      "files": ["api/**/*.ts"],
+      "rules": {
+        // API 相关特定规则
+        "no-console": "off", // 允许在 API 中使用 console
+        "@typescript-eslint/no-explicit-any": "off" // API 中允许 any 类型
+      }
+    },
+    {
+      "files": ["src/**/*.ts", "src/**/*.vue"],
+      "rules": {
+        // 前端相关特定规则
+        "no-console": "warn" // 前端中警告 console 使用
+      }
+    }
+  ]
+}

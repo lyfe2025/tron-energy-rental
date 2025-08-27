@@ -28,8 +28,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const offset = (Number(page) - 1) * Number(limit);
     
     // 构建查询条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (entity_type) {
@@ -258,8 +258,8 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response): Pro
         timeGrouping = "DATE_TRUNC('day', changed_at)";
     }
     
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (entity_type) {
@@ -369,8 +369,8 @@ router.get('/statistics', authenticateToken, async (req: Request, res: Response)
         timeGrouping = "DATE_TRUNC('day', changed_at)";
     }
     
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (entity_type) {
@@ -545,8 +545,8 @@ router.get('/trends', authenticateToken, async (req: Request, res: Response): Pr
       return;
     }
     
-    let whereConditions = [`changed_at >= CURRENT_DATE - INTERVAL '${daysCount} days'`];
-    let queryParams = [];
+    const whereConditions = [`changed_at >= CURRENT_DATE - INTERVAL '${daysCount} days'`];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (entity_type) {

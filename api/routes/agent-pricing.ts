@@ -28,8 +28,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const offset = (Number(page) - 1) * Number(limit);
     
     // 构建查询条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (agent_id) {
@@ -189,8 +189,8 @@ router.get('/agent/:agentId', authenticateToken, async (req: Request, res: Respo
     const agent = agentResult.rows[0];
     
     // 构建查询条件
-    let whereConditions = ['pc.agent_id = $1'];
-    let queryParams = [agentId];
+    const whereConditions = ['pc.agent_id = $1'];
+    const queryParams = [agentId];
     let paramIndex = 2;
     
     if (package_id) {
@@ -763,7 +763,7 @@ router.get('/levels', authenticateToken, async (req: Request, res: Response): Pr
     
     // 获取所有代理商等级的统计信息
     let whereCondition = '';
-    let queryParams = [];
+    const queryParams = [];
     
     if (package_id) {
       whereCondition = 'WHERE pc.package_id = $1';

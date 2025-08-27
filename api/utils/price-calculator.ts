@@ -325,8 +325,8 @@ export class PriceCalculator {
     limit: number = 50
   ): Promise<PriceHistoryRecord[]> {
     try {
-      let whereConditions = [];
-      let queryParams = [];
+      const whereConditions = [];
+      const queryParams = [];
       let paramIndex = 1;
       
       if (entityType) {
@@ -419,8 +419,8 @@ export class PriceCalculator {
     endDate?: string
   ): Promise<any> {
     try {
-      let whereConditions = [];
-      let queryParams = [];
+      const whereConditions = [];
+      const queryParams = [];
       let paramIndex = 1;
       
       if (entityType) {
