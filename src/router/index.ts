@@ -30,7 +30,7 @@ const router = createRouter({
         {
           path: 'orders',
           name: 'orders',
-          component: () => import('@/pages/Orders.vue')
+          component: () => import('@/pages/Orders/index.vue')
         },
         {
           path: 'pricing',
@@ -45,7 +45,7 @@ const router = createRouter({
         {
           path: 'bots',
           name: 'bots',
-          component: () => import('@/pages/Bots.vue')
+          component: () => import('@/pages/Bots/index.vue')
         },
         {
           path: 'energy',

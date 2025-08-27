@@ -7,13 +7,15 @@ import dotenv from 'dotenv';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import agentPricingRoutes from './routes/agent-pricing/index.ts';
 import authRoutes from './routes/auth.ts';
 import botsRoutes from './routes/bots.ts';
-import energyPackagesRoutes from './routes/energy-packages.ts';
+import energyPackagesRoutes from './routes/energy-packages/index.ts';
 import ordersRoutes from './routes/orders.ts';
 import priceConfigsRoutes from './routes/price-configs.ts';
-import statisticsRoutes from './routes/statistics.ts';
-import systemConfigsRoutes from './routes/system-configs.ts';
+import robotPricingRoutes from './routes/robot-pricing/index.ts';
+import statisticsRoutes from './routes/statistics/index.ts';
+import systemConfigsRoutes from './routes/system-configs/index.ts';
 import testRoutes from './routes/test.ts';
 import usersRoutes from './routes/users.ts';
 
@@ -39,6 +41,8 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bots', botsRoutes);
 app.use('/api/energy-packages', energyPackagesRoutes);
+app.use('/api/agent-pricing', agentPricingRoutes);
+app.use('/api/robot-pricing', robotPricingRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/price-configs', priceConfigsRoutes);
@@ -58,6 +62,8 @@ app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
       '/api/users',
       '/api/bots',
       '/api/energy-packages',
+      '/api/agent-pricing',
+      '/api/robot-pricing',
       '/api/statistics',
       '/api/system-configs',
       '/api/price-configs',
