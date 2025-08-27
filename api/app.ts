@@ -10,6 +10,12 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import testRoutes from './routes/test.js';
 import ordersRoutes from './routes/orders.js';
+import priceTemplatesRoutes from './routes/price-templates.js';
+import priceConfigsRoutes from './routes/price-configs.js';
+import priceHistoryRoutes from './routes/price-history.js';
+import robotPricingRoutes from './routes/robot-pricing.js';
+import agentPricingRoutes from './routes/agent-pricing.js';
+import priceSearchRoutes from './routes/price-search.js';
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url);
@@ -27,10 +33,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /**
  * API Routes
- */
+ */// API路由
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/price-templates', priceTemplatesRoutes);
+app.use('/api/price-configs', priceConfigsRoutes);
+app.use('/api/price-history', priceHistoryRoutes);
+app.use('/api/robot-pricing', robotPricingRoutes);
+app.use('/api/agent-pricing', agentPricingRoutes);
+app.use('/api/price-search', priceSearchRoutes);
 
 /**
  * health
