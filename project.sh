@@ -127,25 +127,25 @@ main() {
         
         case $choice in
             1)
-                start_all_services
+                start_all_services || true
                 ;;
             2)
-                stop_all_services
+                stop_all_services || true
                 ;;
             3)
-                restart_all_services
+                restart_all_services || true
                 ;;
             4)
-                show_service_status
+                show_service_status || true
                 ;;
             5)
-                manage_logs
+                manage_logs || true
                 ;;
             6)
-                manage_database
+                manage_database || true
                 ;;
             7)
-                show_help
+                show_help || true
                 ;;
             0)
                 echo -e "\n${GREEN}${EXIT} 再见! 感谢使用项目管理脚本${NC}"

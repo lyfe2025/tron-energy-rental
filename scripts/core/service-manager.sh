@@ -274,11 +274,14 @@ restart_all_services() {
     start_all_services
 }
 
-# 显示服务状态
+# 显示服务状态信息
+# 此函数会检查并显示所有服务的运行状态，不会因为服务未运行而退出脚本
 show_service_status() {
     echo -e "\n${GREEN}${EYE} === 服务状态 ===${NC}"
-    check_service_status $BACKEND_PORT "后端服务"
-    check_service_status $FRONTEND_PORT "前端服务"
+    
+    # 使用 || true 防止因服务未运行而触发 set -e 导致脚本退出
+    check_service_status $BACKEND_PORT "后端服务" || true
+    check_service_status $FRONTEND_PORT "前端服务" || true
     
     echo -e "\n${GREEN}${GEAR} === 端口信息 ===${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 后端端口: ${YELLOW}$BACKEND_PORT${NC}"
@@ -287,10 +290,13 @@ show_service_status() {
     
     # 如果服务正在运行，显示访问地址
     if lsof -i :$BACKEND_PORT >/dev/null 2>&1 || lsof -i :$FRONTEND_PORT >/dev/null 2>&1; then
-        show_all_urls
+        show_all_urls || true
     fi
     
     echo -e "\n${GREEN}${GEAR} === 日志文件 ===${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 后端日志: ${YELLOW}$BACKEND_LOG${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 前端日志: ${YELLOW}$FRONTEND_LOG${NC}"
+    
+    # 确保函数总是返回成功状态，避免因为子函数的返回值影响脚本执行
+    return 0
 }

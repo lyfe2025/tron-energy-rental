@@ -22,16 +22,16 @@ show_logs_menu() {
     
     case $log_choice in
         1)
-            show_backend_log
+            show_backend_log || true
             ;;
         2)
-            show_frontend_log
+            show_frontend_log || true
             ;;
         3)
-            show_backend_log_live
+            show_backend_log_live || true
             ;;
         4)
-            show_frontend_log_live
+            show_frontend_log_live || true
             ;;
         0)
             return
@@ -161,13 +161,13 @@ manage_logs() {
         
         case $choice in
             1)
-                show_logs_menu
+                show_logs_menu || true
                 ;;
             2)
-                clean_logs
+                clean_logs || true
                 ;;
             3)
-                show_log_stats
+                show_log_stats || true
                 ;;
             0)
                 return

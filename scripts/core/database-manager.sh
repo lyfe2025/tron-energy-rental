@@ -393,19 +393,19 @@ manage_database() {
         
         case $backup_choice in
             1)
-                backup_database
+                backup_database || true
                 ;;
             2)
-                list_backups
+                list_backups || true
                 ;;
             3)
-                verify_backup
+                verify_backup || true
                 ;;
             4)
-                restore_database
+                restore_database || true
                 ;;
             5)
-                test_db_connection
+                test_db_connection || true
                 ;;
             0)
                 return

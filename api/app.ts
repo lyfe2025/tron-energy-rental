@@ -13,6 +13,7 @@ import botsRoutes from './routes/bots.ts';
 import energyPackagesRoutes from './routes/energy-packages/index.ts';
 import ordersRoutes from './routes/orders.ts';
 import priceConfigsRoutes from './routes/price-configs.ts';
+import priceSearchRoutes from './routes/price-search/index.ts';
 import robotPricingRoutes from './routes/robot-pricing/index.ts';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
@@ -46,6 +47,7 @@ app.use('/api/robot-pricing', robotPricingRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/price-configs', priceConfigsRoutes);
+app.use('/api/price-search', priceSearchRoutes);
 
 /**
  * API root
@@ -67,6 +69,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
       '/api/statistics',
       '/api/system-configs',
       '/api/price-configs',
+      '/api/price-search',
       '/api/health'
     ]
   });
