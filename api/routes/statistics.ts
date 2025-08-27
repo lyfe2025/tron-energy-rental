@@ -158,28 +158,28 @@ router.get('/orders', authenticateToken, requireAdmin, async (req: Request, res:
     // 获取时间序列订单统计
     const timeSeriesStats = await query(`
       SELECT 
-        TO_CHAR(created_at, '${dateFormat}') as period,
+        TO_CHAR(o.created_at, '${dateFormat}') as period,
         COUNT(*) as total_orders,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
-        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_orders,
-        COALESCE(SUM(CASE WHEN status = 'completed' THEN price END), 0) as revenue
-      FROM orders 
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY TO_CHAR(created_at, '${dateFormat}')
+        COUNT(CASE WHEN o.status = 'completed' THEN 1 END) as completed_orders,
+        COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pending_orders,
+        COUNT(CASE WHEN o.status = 'failed' THEN 1 END) as failed_orders,
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as revenue
+      FROM orders o
+      WHERE o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY TO_CHAR(o.created_at, '${dateFormat}')
       ORDER BY period
     `);
     
     // 获取按状态分组的统计
     const statusStats = await query(`
       SELECT 
-        status,
+        o.status,
         COUNT(*) as count,
-        COALESCE(SUM(price), 0) as total_amount,
-        COALESCE(AVG(price), 0) as avg_amount
-      FROM orders 
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY status
+        COALESCE(SUM(o.price), 0) as total_amount,
+        COALESCE(AVG(o.price), 0) as avg_amount
+      FROM orders o
+      WHERE o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY o.status
       ORDER BY count DESC
     `);
     
@@ -203,15 +203,18 @@ router.get('/orders', authenticateToken, requireAdmin, async (req: Request, res:
     // 获取按用户分组的统计（Top用户）
     const topUsersStats = await query(`
       SELECT 
+        u.id,
         u.telegram_id,
         u.username,
         COUNT(o.id) as order_count,
-        COALESCE(SUM(o.price), 0) as total_spent,
-        COALESCE(AVG(o.price), 0) as avg_order_value
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      WHERE o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as total_spent,
+        COALESCE(AVG(CASE WHEN o.status = 'completed' THEN o.price END), 0) as avg_order_value,
+        MAX(o.created_at) as last_order_date
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id 
+        AND o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
       GROUP BY u.id, u.telegram_id, u.username
+      HAVING COUNT(o.id) > 0
       ORDER BY total_spent DESC
       LIMIT 10
     `);
@@ -267,34 +270,37 @@ router.get('/revenue', authenticateToken, requireAdmin, async (req: Request, res
     // 获取时间序列收入统计
     const revenueTimeSeries = await query(`
       SELECT 
-        TO_CHAR(created_at, '${dateFormat}') as period,
-        COALESCE(SUM(CASE WHEN status = 'completed' THEN price END), 0) as revenue,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
-        COALESCE(AVG(CASE WHEN status = 'completed' THEN price END), 0) as avg_order_value
-      FROM orders 
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY TO_CHAR(created_at, '${dateFormat}')
+        TO_CHAR(o.created_at, '${dateFormat}') as period,
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as revenue,
+        COUNT(CASE WHEN o.status = 'completed' THEN 1 END) as completed_orders,
+        COALESCE(AVG(CASE WHEN o.status = 'completed' THEN o.price END), 0) as avg_order_value
+      FROM orders o
+      WHERE o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY TO_CHAR(o.created_at, '${dateFormat}')
       ORDER BY period
     `);
     
     // 获取收入来源分析（按能量包）
     const revenueByPackage = await query(`
       SELECT 
+        ep.id,
         ep.name as package_name,
+        ep.price as package_price,
         ep.energy_amount,
-        COALESCE(SUM(o.price), 0) as total_revenue,
         COUNT(o.id) as order_count,
-        ROUND((COALESCE(SUM(o.price), 0) * 100.0 / (
-          SELECT COALESCE(SUM(price), 1) 
-          FROM orders 
-          WHERE status = 'completed' 
-            AND created_at >= CURRENT_DATE - INTERVAL '${days} days'
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as total_revenue,
+        COALESCE(AVG(CASE WHEN o.status = 'completed' THEN o.price END), 0) as avg_revenue_per_order,
+        ROUND((COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) * 100.0 / (
+          SELECT COALESCE(SUM(o2.price), 1) 
+          FROM orders o2
+          WHERE o2.status = 'completed' 
+            AND o2.created_at >= CURRENT_DATE - INTERVAL '${days} days'
         )), 2) as revenue_percentage
-      FROM orders o
-      JOIN energy_packages ep ON o.package_id = ep.id
-      WHERE o.status = 'completed' 
+      FROM energy_packages ep
+      LEFT JOIN orders o ON ep.id = o.package_id 
         AND o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY ep.id, ep.name, ep.energy_amount
+        AND o.status = 'completed'
+      GROUP BY ep.id, ep.name, ep.price, ep.energy_amount
       ORDER BY total_revenue DESC
     `);
     
@@ -375,11 +381,11 @@ router.get('/users', authenticateToken, requireAdmin, async (req: Request, res: 
     // 获取用户注册趋势
     const registrationTrend = await query(`
       SELECT 
-        DATE(created_at) as date,
+        DATE(u.created_at) as date,
         COUNT(*) as new_users
-      FROM users 
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY DATE(created_at)
+      FROM users u
+      WHERE u.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY DATE(u.created_at)
       ORDER BY date
     `);
     
@@ -455,7 +461,7 @@ router.get('/users', authenticateToken, requireAdmin, async (req: Request, res: 
         WHERE o.created_at IS NOT NULL
       )
       SELECT 
-        cohort_week,
+        uc.cohort_week,
         COUNT(DISTINCT uc.id) as cohort_size,
         COUNT(DISTINCT CASE WHEN ua.activity_week = uc.cohort_week THEN ua.id END) as week_0,
         COUNT(DISTINCT CASE WHEN ua.activity_week = uc.cohort_week + INTERVAL '1 week' THEN ua.id END) as week_1,
@@ -463,8 +469,8 @@ router.get('/users', authenticateToken, requireAdmin, async (req: Request, res: 
         COUNT(DISTINCT CASE WHEN ua.activity_week = uc.cohort_week + INTERVAL '3 weeks' THEN ua.id END) as week_3
       FROM user_cohorts uc
       LEFT JOIN user_activities ua ON uc.id = ua.id
-      GROUP BY cohort_week
-      ORDER BY cohort_week
+      GROUP BY uc.cohort_week
+      ORDER BY uc.cohort_week
     `);
     
     // 获取用户地理分布（如果有相关数据）
@@ -593,9 +599,9 @@ router.get('/bots', authenticateToken, requireAdmin, async (req: Request, res: R
       SELECT 
         'system' as error_type,
         COUNT(*) as error_count
-      FROM orders 
-      WHERE status = 'failed' 
-        AND created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      FROM orders o
+      WHERE o.status = 'failed' 
+        AND o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
     `);
     
     res.status(200).json({
@@ -738,13 +744,13 @@ router.get('/export', authenticateToken, requireAdmin, async (req: Request, res:
       case 'revenue':
         data = await query(`
           SELECT 
-            DATE(created_at) as date,
+            DATE(o.created_at) as date,
             COUNT(*) as total_orders,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
-            COALESCE(SUM(CASE WHEN status = 'completed' THEN price END), 0) as daily_revenue
-          FROM orders 
-          WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days'
-          GROUP BY DATE(created_at)
+            COUNT(CASE WHEN o.status = 'completed' THEN 1 END) as completed_orders,
+            COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as daily_revenue
+          FROM orders o
+          WHERE o.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+          GROUP BY DATE(o.created_at)
           ORDER BY date
         `);
         break;

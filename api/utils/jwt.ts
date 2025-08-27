@@ -37,14 +37,37 @@ export const generateToken = (payload: JWTPayload): string => {
  * @returns 解析后的用户信息或null
  */
 export const verifyToken = (token: string): JWTPayload | null => {
+  // 预检查token格式
+  if (!token || typeof token !== 'string') {
+    console.warn('JWT验证失败: token为空或类型错误');
+    return null;
+  }
+  
+  const trimmedToken = token.trim();
+  if (!trimmedToken) {
+    console.warn('JWT验证失败: token为空字符串');
+    return null;
+  }
+  
+  // 基本格式检查：JWT应该包含两个点分隔符
+  const parts = trimmedToken.split('.');
+  if (parts.length !== 3) {
+    console.warn('JWT验证失败: token格式不正确，应包含3个部分');
+    return null;
+  }
+  
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(trimmedToken, JWT_SECRET, {
       issuer: 'tron-energy-rental',
       audience: 'tron-energy-rental-users'
     }) as JWTPayload;
     return decoded;
   } catch (error) {
-    console.error('JWT验证失败:', error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      console.warn('JWT验证失败:', error.message);
+    } else {
+      console.error('JWT验证失败:', error);
+    }
     return null;
   }
 };
@@ -55,17 +78,26 @@ export const verifyToken = (token: string): JWTPayload | null => {
  * @returns token字符串或null
  */
 export const extractTokenFromHeader = (authHeader: string | undefined): string | null => {
-  if (!authHeader) {
+  if (!authHeader || typeof authHeader !== 'string') {
+    return null;
+  }
+  
+  // 去除首尾空格
+  const trimmedHeader = authHeader.trim();
+  
+  if (!trimmedHeader) {
     return null;
   }
   
   // 支持 "Bearer token" 格式
-  if (authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
+  if (trimmedHeader.startsWith('Bearer ')) {
+    const token = trimmedHeader.substring(7).trim();
+    // 检查token是否为空或只包含空格
+    return token || null;
   }
   
-  // 直接返回token
-  return authHeader;
+  // 直接返回token（去除空格）
+  return trimmedHeader || null;
 };
 
 /**

@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 登录
-  const login = async (credentials: { username: string; password: string }) => {
+  const login = async (credentials: { email: string; password: string }) => {
     try {
       isLoading.value = true
       error.value = null

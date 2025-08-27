@@ -14,31 +14,31 @@
 
         <!-- 登录表单 -->
         <form @submit.prevent="handleLogin" class="space-y-6">
-          <!-- 用户名输入 -->
+          <!-- 邮箱输入 -->
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
-              用户名
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+              邮箱
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User class="h-5 w-5 text-gray-400" />
               </div>
               <input
-                id="username"
-                v-model="form.username"
-                type="text"
+                id="email"
+                v-model="form.email"
+                type="email"
                 required
                 class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                 :class="{
-                  'border-red-300 focus:ring-red-500': errors.username,
-                  'border-gray-300': !errors.username
+                  'border-red-300 focus:ring-red-500': errors.email,
+                  'border-gray-300': !errors.email
                 }"
-                placeholder="请输入用户名"
+                placeholder="请输入邮箱"
                 :disabled="isLoading"
               />
             </div>
-            <p v-if="errors.username" class="mt-1 text-sm text-red-600">
-              {{ errors.username }}
+            <p v-if="errors.email" class="mt-1 text-sm text-red-600">
+              {{ errors.email }}
             </p>
           </div>
 
@@ -149,22 +149,22 @@ const isLoading = ref(false)
 
 // 表单数据
 const form = reactive({
-  username: '',
+  email: '',
   password: '',
   remember: false
 })
 
 // 表单验证错误
 const errors = reactive({
-  username: '',
+  email: '',
   password: ''
 })
 
 // 计算属性
 const isFormValid = computed(() => {
-  return form.username.trim().length > 0 && 
+  return form.email.trim().length > 0 && 
          form.password.length > 0 && 
-         !errors.username && 
+         !errors.email && 
          !errors.password
 })
 
@@ -173,17 +173,17 @@ const authError = computed(() => authStore.error)
 // 表单验证
 const validateForm = () => {
   // 清除之前的错误
-  errors.username = ''
+  errors.email = ''
   errors.password = ''
   
   let isValid = true
   
-  // 验证用户名
-  if (!form.username.trim()) {
-    errors.username = '请输入用户名'
+  // 验证邮箱
+  if (!form.email.trim()) {
+    errors.email = '请输入邮箱'
     isValid = false
-  } else if (form.username.trim().length < 3) {
-    errors.username = '用户名至少3个字符'
+  } else if (form.email.trim().length < 3) {
+    errors.email = '邮箱至少3个字符'
     isValid = false
   }
   
@@ -213,7 +213,7 @@ const handleLogin = async () => {
     isLoading.value = true
     
     const result = await authStore.login({
-      username: form.username.trim(),
+      email: form.email.trim(),
       password: form.password
     })
     

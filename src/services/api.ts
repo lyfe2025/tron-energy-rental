@@ -94,8 +94,8 @@ export interface PaginatedResponse<T> {
 // 认证相关API
 export const authAPI = {
   // 管理员登录
-  login: (credentials: { username: string; password: string }) => 
-    apiClient.post<ApiResponse<{ token: string; user: User }>>('/api/auth/admin/login', credentials),
+  login: (credentials: { email: string; password: string }) => 
+    apiClient.post<ApiResponse<{ token: string; user: User }>>('/api/auth/login', credentials),
   
   // 验证token
   verifyToken: () => 
