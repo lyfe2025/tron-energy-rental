@@ -395,6 +395,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ordersAPI } from '@/services/api'
+import { toast } from 'sonner'
 import {
   Search,
   RefreshCw,
@@ -548,6 +549,7 @@ const loadOrders = async () => {
       updateOrderStats()
     }
   } catch (error) {
+    toast.error('加载订单数据失败')
     console.error('加载订单失败:', error)
   } finally {
     isLoading.value = false
@@ -630,9 +632,11 @@ const updateOrderStatus = async () => {
       // 更新统计数据
       updateOrderStats()
       
+      toast.success('订单状态更新成功')
       closeStatusModal()
     }
   } catch (error) {
+    toast.error('更新订单状态失败')
     console.error('更新订单状态失败:', error)
   } finally {
     isUpdating.value = false

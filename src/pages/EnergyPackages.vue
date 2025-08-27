@@ -730,6 +730,7 @@ import {
   Zap
 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { toast } from 'sonner'
 
 // 响应式数据
 const isLoading = ref(false)
@@ -1033,9 +1034,13 @@ const togglePackageStatus = async (pkg: EnergyPackage) => {
     if (response.data.success) {
       pkg.status = newStatus
       updatePackageStats()
+      toast.success(`能量包状态已更新为${newStatus === 'active' ? '启用' : '禁用'}`)
+    } else {
+      toast.error(response.data.message || '更新能量包状态失败')
     }
   } catch (error) {
     console.error('更新能量包状态失败:', error)
+    toast.error('更新能量包状态失败，请稍后重试')
   }
   
   showPackageMenu.value = ''
@@ -1057,10 +1062,13 @@ const duplicatePackage = async (pkg: EnergyPackage) => {
     
     if (response.data.success) {
       await loadPackages()
-      alert('能量包复制成功！')
+      toast.success('能量包复制成功！')
+    } else {
+      toast.error(response.data.message || '复制能量包失败')
     }
   } catch (error) {
     console.error('复制能量包失败:', error)
+    toast.error('复制能量包失败，请稍后重试')
   }
   
   showPackageMenu.value = ''
@@ -1082,10 +1090,13 @@ const deletePackage = async (pkg: EnergyPackage) => {
     
     if (response.data.success) {
       await loadPackages()
-      alert('能量包删除成功！')
+      toast.success('能量包删除成功！')
+    } else {
+      toast.error(response.data.message || '删除能量包失败')
     }
   } catch (error) {
     console.error('删除能量包失败:', error)
+    toast.error('删除能量包失败，请稍后重试')
   }
   
   showPackageMenu.value = ''
@@ -1118,8 +1129,10 @@ const batchEnable = async () => {
     
     await loadPackages()
     clearSelection()
+    toast.success(`成功启用 ${selectedPackages.value.length} 个能量包`)
   } catch (error) {
     console.error('批量启用失败:', error)
+    toast.error('批量启用失败，请稍后重试')
   }
 }
 
@@ -1137,8 +1150,10 @@ const batchDisable = async () => {
     
     await loadPackages()
     clearSelection()
+    toast.success(`成功禁用 ${selectedPackages.value.length} 个能量包`)
   } catch (error) {
     console.error('批量禁用失败:', error)
+    toast.error('批量禁用失败，请稍后重试')
   }
 }
 
@@ -1156,8 +1171,10 @@ const batchDelete = async () => {
     
     await loadPackages()
     clearSelection()
+    toast.success(`成功删除 ${selectedPackages.value.length} 个能量包`)
   } catch (error) {
     console.error('批量删除失败:', error)
+    toast.error('批量删除失败，请稍后重试')
   }
 }
 

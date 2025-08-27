@@ -646,6 +646,7 @@ import {
   X
 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { toast } from 'sonner'
 
 // 响应式数据
 const isLoading = ref(false)
@@ -818,6 +819,7 @@ const loadUsers = async () => {
       updateUserStats()
     }
   } catch (error) {
+    toast.error('加载用户数据失败')
     console.error('加载用户数据失败:', error)
   } finally {
     isLoading.value = false
@@ -921,10 +923,12 @@ const saveUser = async () => {
     }
     
     if (response.data.success) {
+      toast.success(modalMode.value === 'edit' ? '用户更新成功' : '用户创建成功')
       await loadUsers()
       closeUserModal()
     }
   } catch (error) {
+    toast.error(modalMode.value === 'edit' ? '用户更新失败' : '用户创建失败')
     console.error('保存用户失败:', error)
   } finally {
     isSaving.value = false
@@ -939,8 +943,10 @@ const toggleUserStatus = async (user: any) => {
     if (response.data.success) {
       user.status = newStatus
       updateUserStats()
+      toast.success(`用户状态已更新为${newStatus === 'active' ? '启用' : '停用'}`)
     }
   } catch (error) {
+    toast.error('更新用户状态失败')
     console.error('更新用户状态失败:', error)
   }
   
@@ -956,9 +962,10 @@ const resetPassword = async (user: any) => {
     const response = await usersAPI.resetPassword(user.id)
     
     if (response.data.success) {
-      alert(`密码重置成功，新密码：${response.data.data.new_password}`)
+      toast.success(`密码重置成功，新密码：${response.data.data.new_password}`)
     }
   } catch (error) {
+    toast.error('重置密码失败')
     console.error('重置密码失败:', error)
   }
   
@@ -997,8 +1004,10 @@ const banUser = async (user: any) => {
     if (response.data.success) {
       user.status = 'banned'
       updateUserStats()
+      toast.success('用户已封禁')
     }
   } catch (error) {
+    toast.error('封禁用户失败')
     console.error('封禁用户失败:', error)
   }
   
@@ -1030,9 +1039,11 @@ const batchActivate = async () => {
       )
     )
     
+    toast.success(`成功启用 ${selectedUsers.value.length} 个用户`)
     await loadUsers()
     clearSelection()
   } catch (error) {
+    toast.error('批量启用失败')
     console.error('批量启用失败:', error)
   }
 }
@@ -1049,9 +1060,11 @@ const batchDeactivate = async () => {
       )
     )
     
+    toast.success(`成功停用 ${selectedUsers.value.length} 个用户`)
     await loadUsers()
     clearSelection()
   } catch (error) {
+    toast.error('批量停用失败')
     console.error('批量停用失败:', error)
   }
 }

@@ -677,6 +677,7 @@ import {
   Zap
 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { toast } from 'sonner'
 
 // 响应式数据
 const isLoading = ref(false)
@@ -865,6 +866,7 @@ const loadBots = async () => {
       updateBotStats()
     }
   } catch (error) {
+    toast.error('加载机器人数据失败')
     console.error('加载机器人数据失败:', error)
   } finally {
     isLoading.value = false
@@ -970,10 +972,12 @@ const saveBot = async () => {
     }
     
     if (response.data.success) {
+      toast.success(modalMode.value === 'edit' ? '机器人更新成功' : '机器人创建成功')
       await loadBots()
       closeBotModal()
     }
   } catch (error) {
+    toast.error(modalMode.value === 'edit' ? '机器人更新失败' : '机器人创建失败')
     console.error('保存机器人失败:', error)
   } finally {
     isSaving.value = false
@@ -988,8 +992,10 @@ const toggleBotStatus = async (bot: Bot) => {
     if (response.data.success) {
       bot.status = newStatus
       updateBotStats()
+      toast.success(`机器人已${newStatus === 'active' ? '启用' : '停用'}`)
     }
   } catch (error) {
+    toast.error('更新机器人状态失败')
     console.error('更新机器人状态失败:', error)
   }
   
@@ -1001,13 +1007,13 @@ const testBot = async (bot: any) => {
     const response = await botsAPI.testBot(bot.id)
     
     if (response.data.success) {
-      alert('机器人连接测试成功！')
+      toast.success('机器人连接测试成功！')
     } else {
-      alert(`机器人连接测试失败：${response.data.message}`)
+      toast.error(`机器人连接测试失败：${response.data.message}`)
     }
   } catch (error) {
+    toast.error('机器人连接测试失败，请检查网络连接')
     console.error('测试机器人失败:', error)
-    alert('机器人连接测试失败，请检查网络连接')
   }
   
   showBotMenu.value = ''
@@ -1043,10 +1049,11 @@ const resetBot = async (bot: any) => {
     const response = await botsAPI.resetBot(bot.id)
     
     if (response.data.success) {
-      alert('机器人重置成功！')
+      toast.success('机器人重置成功！')
       await loadBots()
     }
   } catch (error) {
+    toast.error('重置机器人失败')
     console.error('重置机器人失败:', error)
   }
   
@@ -1078,9 +1085,11 @@ const batchStart = async () => {
       )
     )
     
+    toast.success(`成功启动 ${selectedBots.value.length} 个机器人`)
     await loadBots()
     clearSelection()
   } catch (error) {
+    toast.error('批量启动失败')
     console.error('批量启动失败:', error)
   }
 }
@@ -1097,9 +1106,11 @@ const batchStop = async () => {
       )
     )
     
+    toast.success(`成功停止 ${selectedBots.value.length} 个机器人`)
     await loadBots()
     clearSelection()
   } catch (error) {
+    toast.error('批量停止失败')
     console.error('批量停止失败:', error)
   }
 }
@@ -1117,9 +1128,10 @@ const batchTest = async () => {
     const successCount = results.filter(r => r.status === 'fulfilled').length
     const failCount = results.length - successCount
     
-    alert(`批量测试完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+    toast.success(`批量测试完成：成功 ${successCount} 个，失败 ${failCount} 个`)
     clearSelection()
   } catch (error) {
+    toast.error('批量测试失败')
     console.error('批量测试失败:', error)
   }
 }
