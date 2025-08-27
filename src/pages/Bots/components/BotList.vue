@@ -104,33 +104,33 @@
                     <MoreVertical class="w-4 h-4" />
                   </button>
                   <div
-                    v-if="showBotMenu === bot.id"
+                    v-if="props.showBotMenu === bot.id"
                     class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
                   >
                     <div class="py-1">
                       <button
-                        @click="$emit('test-connection', bot); showBotMenu = null"
+                        @click="$emit('test-connection', bot); $emit('close-menu')"
                         class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         <Wifi class="w-4 h-4 mr-2 inline" />
                         测试连接
                       </button>
                       <button
-                        @click="$emit('recharge', bot); showBotMenu = null"
+                        @click="$emit('recharge', bot); $emit('close-menu')"
                         class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         <CreditCard class="w-4 h-4 mr-2 inline" />
                         充值余额
                       </button>
                       <button
-                        @click="$emit('view-logs', bot); showBotMenu = null"
+                        @click="$emit('view-logs', bot); $emit('close-menu')"
                         class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         <FileText class="w-4 h-4 mr-2 inline" />
                         查看日志
                       </button>
                       <button
-                        @click="$emit('reset', bot); showBotMenu = null"
+                        @click="$emit('reset', bot); $emit('close-menu')"
                         class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <RotateCcw class="w-4 h-4 mr-2 inline" />
@@ -193,54 +193,54 @@
               <MoreVertical class="w-5 h-5" />
             </button>
             <div
-              v-if="showBotMenu === bot.id"
+              v-if="props.showBotMenu === bot.id"
               class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
             >
               <div class="py-1">
                 <button
-                  @click="$emit('view', bot); showBotMenu = null"
+                  @click="$emit('view', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Eye class="w-4 h-4 mr-2 inline" />
                   查看详情
                 </button>
                 <button
-                  @click="$emit('edit', bot); showBotMenu = null"
+                  @click="$emit('edit', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Edit class="w-4 h-4 mr-2 inline" />
                   编辑
                 </button>
                 <button
-                  @click="$emit('toggle-status', bot); showBotMenu = null"
+                  @click="$emit('toggle-status', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Power class="w-4 h-4 mr-2 inline" />
                   {{ bot.status === 'active' ? '停用' : '启用' }}
                 </button>
                 <button
-                  @click="$emit('test-connection', bot); showBotMenu = null"
+                  @click="$emit('test-connection', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Wifi class="w-4 h-4 mr-2 inline" />
                   测试连接
                 </button>
                 <button
-                  @click="$emit('recharge', bot); showBotMenu = null"
+                  @click="$emit('recharge', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <CreditCard class="w-4 h-4 mr-2 inline" />
                   充值余额
                 </button>
                 <button
-                  @click="$emit('view-logs', bot); showBotMenu = null"
+                  @click="$emit('view-logs', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <FileText class="w-4 h-4 mr-2 inline" />
                   查看日志
                 </button>
                 <button
-                  @click="$emit('reset', bot); showBotMenu = null"
+                  @click="$emit('reset', bot); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
                   <RotateCcw class="w-4 h-4 mr-2 inline" />
@@ -301,32 +301,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import {
-  Bot,
-  MoreVertical,
-  Eye,
-  Edit,
-  Power,
-  Wifi,
-  CreditCard,
-  FileText,
-  RotateCcw,
-  Plus
-} from 'lucide-vue-next'
-import type { Bot as BotType } from '../types/bot.types'
+    Bot,
+    CreditCard,
+    Edit,
+    Eye,
+    FileText,
+    MoreVertical,
+    Plus,
+    Power,
+    RotateCcw,
+    Wifi
+} from 'lucide-vue-next';
+import { computed } from 'vue';
+import type { Bot as BotType } from '../types/bot.types';
 
 const props = defineProps<{
   bots: BotType[]
-  isLoading: boolean
+  loading: boolean
   selectedBots: string[]
   showBotMenu: string | null
+  currentPage: number
   pageSize: number
   filteredBots: BotType[]
   paginatedBots: BotType[]
   getStatusText: (status: string) => string
   getStatusColor: (status: string) => string
-  getTypeColor: (type: string) => string
   formatDateTime: (dateString: string | undefined) => string
   formatCurrency: (amount: number) => string
   formatAddress: (address: string) => string
@@ -349,14 +349,17 @@ const emit = defineEmits<{
   (e: 'view-logs', bot: BotType): void
   (e: 'reset', bot: BotType): void
   (e: 'page-change', page: number): void
+  (e: 'toggle-menu', botId: string): void
+  (e: 'close-menu'): void
 }>()
-
-const showBotMenu = ref<string | null>(null)
 
 const selectedBots = computed({
   get: () => props.selectedBots,
   set: (value) => emit('update:selectedBots', value)
 })
+
+const currentPage = computed(() => props.pagination.currentPage)
+const totalPages = computed(() => props.pagination.totalPages)
 
 const toggleSelectAll = (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -368,6 +371,6 @@ const toggleSelectAll = (event: Event) => {
 }
 
 const toggleBotMenu = (botId: string) => {
-  showBotMenu.value = showBotMenu.value === botId ? null : botId
+  emit('toggle-menu', botId)
 }
 </script>

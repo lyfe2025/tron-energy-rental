@@ -39,7 +39,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
         <select
-          :value="filters.timeRange"
+          :value="getTimeRangeValue()"
           class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           @change="handleTimeRangeChange"
         >
@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import { Search } from 'lucide-vue-next'
-import type { OrderFilters } from '../types/order.types'
+import type { OrderFilters, OrderStatus } from '../types/order.types'
 
 interface Props {
   searchQuery: string
@@ -83,15 +83,53 @@ const handleSearchInput = (event: Event) => {
 // 处理状态变更
 const handleStatusChange = (event: Event) => {
   const target = event.target as HTMLSelectElement
-  const newFilters = { ...props.filters, status: target.value }
+  const status = target.value as OrderStatus | ''
+  const newFilters: OrderFilters = { ...props.filters, status }
   emit('update:filters', newFilters)
   emit('filter')
+}
+
+// 获取时间范围值（简化处理）
+const getTimeRangeValue = () => {
+  // 这里可以根据dateRange计算出对应的时间范围值
+  // 暂时返回空字符串
+  return ''
 }
 
 // 处理时间范围变更
 const handleTimeRangeChange = (event: Event) => {
   const target = event.target as HTMLSelectElement
-  const newFilters = { ...props.filters, timeRange: target.value }
+  const timeRange = target.value
+  
+  // 根据时间范围设置dateRange
+  let dateRange = { start: '', end: '' }
+  const now = new Date()
+  
+  switch (timeRange) {
+    case 'today':
+      dateRange.start = now.toISOString().split('T')[0]
+      dateRange.end = now.toISOString().split('T')[0]
+      break
+    case 'week':
+      const weekStart = new Date(now.setDate(now.getDate() - now.getDay()))
+      dateRange.start = weekStart.toISOString().split('T')[0]
+      dateRange.end = new Date().toISOString().split('T')[0]
+      break
+    case 'month':
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      dateRange.start = monthStart.toISOString().split('T')[0]
+      dateRange.end = new Date().toISOString().split('T')[0]
+      break
+    case 'quarter':
+      const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+      dateRange.start = quarterStart.toISOString().split('T')[0]
+      dateRange.end = new Date().toISOString().split('T')[0]
+      break
+    default:
+      dateRange = { start: '', end: '' }
+  }
+  
+  const newFilters = { ...props.filters, dateRange }
   emit('update:filters', newFilters)
   emit('filter')
 }

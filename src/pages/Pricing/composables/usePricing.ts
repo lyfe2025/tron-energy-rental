@@ -380,7 +380,7 @@ export function usePricing() {
     }
 
     const basePrice = template.basePrice
-    let subtotal = input.amount * basePrice
+    const subtotal = input.amount * basePrice
     const discounts: any[] = []
     const fees: any[] = []
 
@@ -392,7 +392,7 @@ export function usePricing() {
 
       switch (rule.type) {
         case 'volume':
-          if (rule.condition.operator === 'gte' && input.amount >= rule.condition.value) {
+          if (rule.condition.operator === 'gte' && typeof rule.condition.value === 'number' && input.amount >= rule.condition.value) {
             shouldApply = true
           }
           break

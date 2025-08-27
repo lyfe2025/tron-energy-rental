@@ -22,10 +22,10 @@
 </template>
 
 <script setup lang="ts">
-import type { BotStats } from '../types/bot.types'
+import type { BotStatCard } from '../types/bot.types'
 
 interface Props {
-  botStats: BotStats[]
+  botStats: BotStatCard[]
 }
 
 defineProps<Props>()

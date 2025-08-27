@@ -46,6 +46,8 @@
       :page-size="pagination.pageSize"
       :filtered-bots="filteredBots"
       :paginated-bots="paginatedBots"
+      :show-bot-menu="showBotMenu"
+      :format-date-time="formatDateTime"
       :get-status-text="getStatusText"
       :get-status-color="getStatusColor"
       :format-address="formatAddress"
@@ -72,19 +74,20 @@
     <!-- Bot Modal -->
     <BotModal
       :show="showBotModal"
-      :mode="botModalMode"
+      :mode="modalMode"
       :bot="selectedBot"
       :form="botForm"
       :is-saving="isSaving"
       :format-address="formatAddress"
       :format-type="formatType"
-      :get-status-text="getStatusText"
+      :format-status="formatStatus"
+      :get-type-color="getTypeColor"
       :format-currency="formatCurrency"
       :get-status-color="getStatusColor"
       @close="showBotModal = false"
       @edit="editBot"
-      @test-connection="testBotConnection"
-      @submit="saveBotForm"
+      @test-connection="testConnection"
+      @submit="saveBot"
     />
   </div>
 </template>
@@ -106,7 +109,7 @@ const {
   selectedBots,
   showBotMenu,
   showBotModal,
-  botModalMode,
+  modalMode,
   selectedBot,
   filters,
   pagination,
@@ -118,11 +121,14 @@ const {
   paginatedBots,
   
   // 格式化函数
+  formatDateTime,
   formatCurrency,
   formatAddress,
   formatType,
   getStatusText,
   getStatusColor,
+  formatStatus,
+  getTypeColor,
   
   // 机器人操作
   viewBot,
@@ -132,8 +138,6 @@ const {
   toggleBotStatus,
   testConnection,
   rechargeBalance,
-  testBotConnection,
-  saveBotForm,
   refreshData,
   
   // 批量操作

@@ -42,7 +42,7 @@ export class EnergyPackagesController {
 
       const result = await this.service.getEnergyPackages(queryParams);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包列表获取成功',
         data: result
@@ -51,7 +51,7 @@ export class EnergyPackagesController {
       res.status(200).json(response);
     } catch (error) {
       console.error('获取能量包列表错误:', error);
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '服务器内部错误',
         error: error instanceof Error ? error.message : '未知错误'
@@ -68,12 +68,12 @@ export class EnergyPackagesController {
       const id = Number(req.params.id);
       const packageWithStats = await this.service.getPackageWithStats(id);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包信息获取成功',
         data: {
-          package: packageWithStats.package || packageWithStats,
-          stats: packageWithStats.stats
+          package: (packageWithStats as any).package || packageWithStats,
+          stats: (packageWithStats as any).stats
         }
       };
 
@@ -81,7 +81,7 @@ export class EnergyPackagesController {
     } catch (error) {
       console.error('获取能量包详情错误:', error);
       const statusCode = error instanceof Error && error.message.includes('不存在') ? 404 : 500;
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '服务器内部错误',
         error: error instanceof Error ? error.message : '未知错误'
@@ -98,7 +98,7 @@ export class EnergyPackagesController {
       const packageData: CreateEnergyPackageRequest = req.body;
       const newPackage = await this.service.createPackage(packageData);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包创建成功',
         data: { package: newPackage }
@@ -108,7 +108,7 @@ export class EnergyPackagesController {
     } catch (error) {
       console.error('创建能量包错误:', error);
       const statusCode = error instanceof Error && error.message.includes('已存在') ? 400 : 500;
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '创建能量包失败',
         error: error instanceof Error ? error.message : '未知错误'
@@ -126,7 +126,7 @@ export class EnergyPackagesController {
       const updateData: UpdateEnergyPackageRequest = req.body;
       const updatedPackage = await this.service.updatePackage(id, updateData);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包信息更新成功',
         data: { package: updatedPackage }
@@ -145,7 +145,7 @@ export class EnergyPackagesController {
         }
       }
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '更新能量包失败',
         error: error instanceof Error ? error.message : '未知错误'
@@ -163,7 +163,7 @@ export class EnergyPackagesController {
       const statusData: UpdatePackageStatusRequest = req.body;
       const updatedPackage = await this.service.updatePackageStatus(id, statusData);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: `能量包已${statusData.is_active ? '启用' : '禁用'}`,
         data: { package: updatedPackage }
@@ -173,7 +173,7 @@ export class EnergyPackagesController {
     } catch (error) {
       console.error('更新能量包状态错误:', error);
       const statusCode = error instanceof Error && error.message.includes('不存在') ? 404 : 400;
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '更新状态失败',
         error: error instanceof Error ? error.message : '未知错误'
@@ -190,7 +190,7 @@ export class EnergyPackagesController {
       const batchData: BatchPriceUpdateRequest = req.body;
       const result = await this.service.batchUpdatePrices(batchData);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: `批量价格更新完成，成功更新${result.summary.success}个能量包`,
         data: result
@@ -199,7 +199,7 @@ export class EnergyPackagesController {
       res.status(200).json(response);
     } catch (error) {
       console.error('批量更新能量包价格错误:', error);
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '批量更新失败',
         error: error instanceof Error ? error.message : '未知错误'
@@ -216,7 +216,7 @@ export class EnergyPackagesController {
       const id = Number(req.params.id);
       await this.service.deletePackage(id);
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包删除成功'
       };
@@ -234,7 +234,7 @@ export class EnergyPackagesController {
         }
       }
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '删除失败',
         error: error instanceof Error ? error.message : '未知错误'
@@ -250,7 +250,7 @@ export class EnergyPackagesController {
     try {
       const overview = await this.service.getPackageOverview();
 
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: true,
         message: '能量包统计信息获取成功',
         data: overview
@@ -259,7 +259,7 @@ export class EnergyPackagesController {
       res.status(200).json(response);
     } catch (error) {
       console.error('获取能量包统计错误:', error);
-      const response: ApiResponse = {
+      const response: ApiResponse<any> = {
         success: false,
         message: '获取统计信息失败',
         error: error instanceof Error ? error.message : '未知错误'

@@ -40,17 +40,18 @@
 
       <!-- 订单统计 -->
       <div class="mb-8">
-        <OrderStats :stats="state.stats" />
+        <OrderStats :orders="state.orders" />
       </div>
 
       <!-- 搜索和过滤 -->
       <div class="mb-6">
         <OrderSearch
+          :search-query="state.filters.search"
           :filters="state.filters"
-          :has-filters="hasFilters"
-          @search="debouncedSearch"
-          @update-filters="updateFilters"
-          @clear-filters="clearFilters"
+          @update:search-query="(value) => debouncedSearch(value)"
+          @update:filters="updateFilters"
+          @search="refreshOrders"
+          @filter="refreshOrders"
         />
       </div>
 

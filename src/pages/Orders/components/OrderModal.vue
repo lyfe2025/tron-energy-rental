@@ -213,7 +213,7 @@ interface Emits {
   'update-status': [data: { orderId: string; status: string; txHash?: string; errorMessage?: string }]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 // 状态更新相关
@@ -269,7 +269,7 @@ const handleUpdateStatus = () => {
     txHash?: string
     errorMessage?: string
   } = {
-    orderId: selectedOrder.value?.id || '',
+    orderId: props.selectedOrder?.id || '',
     status: newStatus.value
   }
   

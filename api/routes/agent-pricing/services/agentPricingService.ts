@@ -378,23 +378,39 @@ export class AgentPricingService {
   }
 
   /**
-   * 为配置列表计算价格
+   * 为配置列表计算价格（优化版本 - 解决N+1查询问题）
    */
   private async calculatePricesForConfigs(
     configs: AgentPricingWithDetails[], 
     agentId?: string, 
     agent?: any
   ): Promise<AgentPricingWithDetails[]> {
-    return Promise.all(
-      configs.map(async (config) => {
-        try {
-          const calculatedPrice = await PriceCalculator.calculatePrice(
-            config.package_id,
-            1, // 数量为1
-            null, // 无机器人
-            agentId || config.agent_id
-          );
+    if (configs.length === 0) {
+      return configs;
+    }
 
+    try {
+      // 准备批量计算输入
+      const batchInputs = configs.map(config => ({
+        packageId: config.package_id,
+        quantity: 1,
+        botId: null,
+        agentId: agentId || config.agent_id,
+        type: 'energy' as const,
+        amount: 1000 // 默认能量数量
+      }));
+
+      // 批量计算价格
+      const calculatedPrices = await PriceCalculator.batchCalculate(batchInputs, {
+        validateInput: false, // 批量计算时跳过输入验证以提高性能
+        includeHistory: false // 批量计算时不保存历史记录
+      });
+
+      // 将计算结果映射回配置
+      return configs.map((config, index) => {
+        const calculatedPrice = calculatedPrices[index];
+        
+        if (calculatedPrice && calculatedPrice.finalPrice !== undefined) {
           // 计算代理商佣金
           const commissionRate = agent?.commission_rate || config.commission_rate || 0;
           const commission = calculatedPrice.finalPrice * (commissionRate / 100);
@@ -408,8 +424,9 @@ export class AgentPricingService {
             discount_applied: calculatedPrice.discount > 0,
             price_breakdown: calculatedPrice
           };
-        } catch (error) {
-          console.error(`计算价格失败 - 配置ID: ${config.id}`, error);
+        } else {
+          // 如果批量计算失败，使用原价格
+          console.warn(`批量计算价格失败 - 配置ID: ${config.id}`);
           return {
             ...config,
             calculated_price: config.price || 0,
@@ -419,8 +436,48 @@ export class AgentPricingService {
             price_breakdown: null
           };
         }
-      })
-    );
+      });
+    } catch (error) {
+      console.error('批量价格计算失败，回退到单个计算:', error);
+      
+      // 如果批量计算失败，回退到原来的单个计算方式
+      return Promise.all(
+        configs.map(async (config) => {
+          try {
+            const calculatedPrice = await PriceCalculator.calculatePrice(
+              config.package_id,
+              1,
+              null,
+              agentId || config.agent_id
+            );
+
+            // 计算代理商佣金
+            const commissionRate = agent?.commission_rate || config.commission_rate || 0;
+            const commission = calculatedPrice.finalPrice * (commissionRate / 100);
+            const agentPrice = calculatedPrice.finalPrice - commission;
+
+            return {
+              ...config,
+              calculated_price: calculatedPrice.finalPrice,
+              agent_price: agentPrice,
+              commission_amount: commission,
+              discount_applied: calculatedPrice.discount > 0,
+              price_breakdown: calculatedPrice
+            };
+          } catch (error) {
+            console.error(`计算价格失败 - 配置ID: ${config.id}`, error);
+            return {
+              ...config,
+              calculated_price: config.price || 0,
+              agent_price: config.price || 0,
+              commission_amount: 0,
+              discount_applied: false,
+              price_breakdown: null
+            };
+          }
+        })
+      );
+    }
   }
 
   /**

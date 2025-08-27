@@ -189,8 +189,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const offset = (Number(page) - 1) * Number(limit);
     
     // 构建查询条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (status) {
@@ -499,8 +499,8 @@ router.get('/statistics/summary', authenticateToken, async (req: Request, res: R
     const { start_date, end_date, bot_id } = req.query;
     
     // 构建时间范围条件
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
     
     if (start_date) {

@@ -128,12 +128,30 @@ export class PriceCalculator {
 
   /**
    * 获取价格历史记录
-   * @param options 查询选项
+   * @param entityTypeOrOptions 实体类型或查询选项
+   * @param entityId 实体ID（可选）
+   * @param limit 限制数量（可选）
    * @returns 历史记录数组
    */
   static async getPriceHistory(
-    options: HistoryQueryOptions = {}
+    entityTypeOrOptions?: string | HistoryQueryOptions,
+    entityId?: string,
+    limit?: number
   ): Promise<PriceHistoryRecord[]> {
+    // 兼容性处理：支持旧的调用方式和新的选项对象方式
+    let options: HistoryQueryOptions = {};
+    
+    if (typeof entityTypeOrOptions === 'string') {
+      // 旧的调用方式：getPriceHistory(entityType, entityId, limit)
+      options = {
+        entityType: entityTypeOrOptions,
+        entityId: entityId,
+        limit: limit
+      };
+    } else if (entityTypeOrOptions) {
+      // 新的调用方式：getPriceHistory(options)
+      options = entityTypeOrOptions;
+    }
     try {
       let sql = `
         SELECT 
@@ -244,6 +262,98 @@ export class PriceCalculator {
       ]);
     } catch (error) {
       console.error('保存价格历史失败:', error);
+    }
+  }
+
+  /**
+   * 记录价格历史（兼容性方法）
+   * @param entityType 实体类型
+   * @param entityId 实体ID
+   * @param oldPrice 旧价格
+   * @param newPrice 新价格
+   * @param reason 变更原因
+   * @param userId 用户ID
+   */
+  static async recordPriceHistory(
+    entityType: string,
+    entityId: string,
+    oldPrice: number,
+    newPrice: number,
+    reason: string,
+    userId: string
+  ): Promise<void> {
+    return this.savePriceHistory(oldPrice, newPrice, entityType, entityId, reason, userId);
+  }
+
+  /**
+   * 获取价格统计信息
+   * @param entityType 实体类型
+   * @param startDate 开始日期
+   * @param endDate 结束日期
+   * @returns 统计信息
+   */
+  static async getPriceStatistics(
+    entityType?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<{
+    totalChanges: number;
+    priceIncreases: number;
+    priceDecreases: number;
+    avgPriceChange: number;
+    maxPriceChange: number;
+    minPriceChange: number;
+  }> {
+    try {
+      let sql = `
+        SELECT 
+          COUNT(*) as total_changes,
+          SUM(CASE WHEN new_price > old_price THEN 1 ELSE 0 END) as price_increases,
+          SUM(CASE WHEN new_price < old_price THEN 1 ELSE 0 END) as price_decreases,
+          AVG(new_price - old_price) as avg_price_change,
+          MAX(new_price - old_price) as max_price_change,
+          MIN(new_price - old_price) as min_price_change
+        FROM price_history
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+
+      if (entityType) {
+        sql += ' AND entity_type = ?';
+        params.push(entityType);
+      }
+
+      if (startDate) {
+        sql += ' AND changed_at >= ?';
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        sql += ' AND changed_at <= ?';
+        params.push(endDate);
+      }
+
+      const result = await query(sql, params);
+      const row = result[0] || {};
+
+      return {
+        totalChanges: parseInt(row.total_changes) || 0,
+        priceIncreases: parseInt(row.price_increases) || 0,
+        priceDecreases: parseInt(row.price_decreases) || 0,
+        avgPriceChange: parseFloat(row.avg_price_change) || 0,
+        maxPriceChange: parseFloat(row.max_price_change) || 0,
+        minPriceChange: parseFloat(row.min_price_change) || 0
+      };
+    } catch (error) {
+      console.error('获取价格统计失败:', error);
+      return {
+        totalChanges: 0,
+        priceIncreases: 0,
+        priceDecreases: 0,
+        avgPriceChange: 0,
+        maxPriceChange: 0,
+        minPriceChange: 0
+      };
     }
   }
 

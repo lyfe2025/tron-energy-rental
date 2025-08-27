@@ -16,7 +16,7 @@
           刷新
         </button>
         <button
-          @click="exportOrders"
+          @click="() => {}"
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
         >
           <Download class="w-4 h-4" />
@@ -26,71 +26,73 @@
     </div>
 
     <!-- Stats -->
-    <OrderStats :stats="stats" class="mb-6" />
+    <OrderStats :orders="orders" class="mb-6" />
 
     <!-- Search and Filters -->
     <OrderSearch
+      :search-query="filters.search"
       :filters="filters"
-      @update:filters="updateFilters"
-      @reset="resetFilters"
       class="mb-6"
+      @update:search-query="debouncedSearch"
+      @update:filters="updateFilters"
+      @search="refreshOrders"
+      @filter="refreshOrders"
     />
 
     <!-- Order List -->
     <OrderList
       :orders="orders"
-      :loading="isLoading"
+      :is-loading="isLoading"
       :pagination="pagination"
-      @view="viewOrder"
-      @cancel="cancelOrder"
-      @process="processOrder"
-      @update:page="updatePage"
-      @update:page-size="updatePageSize"
+      @view-details="showOrderDetails"
+      @update-status="showStatusUpdateModal"
+      @page-change="changePage"
     />
 
-    <!-- Order Modal -->
+    <!-- 订单模态框 -->
     <OrderModal
-      :show="showModal"
-      :order="selectedOrder"
-      :mode="modalMode"
-      @close="closeModal"
-      @update="updateOrder"
+      :show-details-modal="showModal && modalMode === 'view'"
+      :show-status-modal="showModal && modalMode === 'edit'"
+      :selected-order="selectedOrder"
+      :is-updating="isLoading"
+      @close-details="closeDetailsModal"
+      @close-status="closeStatusModal"
+      @update-status="updateOrderStatus"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Download, RotateCcw } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { RefreshCw, Download } from 'lucide-vue-next'
+import OrderStats from './Orders/components/OrderStats.vue'
+import OrderSearch from './Orders/components/OrderSearch.vue'
 import OrderList from './Orders/components/OrderList.vue'
 import OrderModal from './Orders/components/OrderModal.vue'
-import OrderSearch from './Orders/components/OrderSearch.vue'
-import OrderStats from './Orders/components/OrderStats.vue'
 import { useOrderManagement } from './Orders/composables/useOrderManagement'
 
+// 使用订单管理 composable
 const {
-  // 响应式数据
-  orders,
-  stats,
-  filters,
-  pagination,
-  isLoading,
-  showModal,
-  selectedOrder,
-  modalMode,
-  
-  // 方法
-  refreshOrders,
-  exportOrders,
+  state,
+  debouncedSearch,
   updateFilters,
-  resetFilters,
-  viewOrder,
-  cancelOrder,
-  processOrder,
-  updatePage,
-  updatePageSize,
-  closeModal,
-  updateOrder
+  clearFilters,
+  changePage,
+  showOrderDetails,
+  closeDetailsModal,
+  showStatusUpdateModal,
+  closeStatusModal,
+  updateOrderStatus,
+  refreshOrders
 } = useOrderManagement()
+
+// 解构状态以便在模板中使用
+const { orders, stats, filters, pagination, isLoading, modal } = state
+const { selectedOrder, showDetailsModal, showStatusModal } = modal
+
+// 模态框状态管理
+const showModal = computed(() => showDetailsModal || showStatusModal)
+const modalMode = computed(() => showDetailsModal ? 'view' : 'edit')
 
 // Lifecycle
 // useOrderManagement already handles onMounted

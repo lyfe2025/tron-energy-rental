@@ -26,35 +26,38 @@
     </div>
 
     <!-- Stats -->
-    <OrderStats :stats="stats" class="mb-6" />
+    <OrderStats :orders="orders" class="mb-6" />
 
     <!-- Search and Filters -->
     <OrderSearch
+      :search-query="filters.search"
       :filters="filters"
+      @update:search-query="debouncedSearch"
       @update:filters="updateFilters"
-      @reset="resetFilters"
+      @search="refreshOrders"
+      @filter="refreshOrders"
       class="mb-6"
     />
 
     <!-- Order List -->
     <OrderList
       :orders="orders"
-      :loading="isLoading"
+      :is-loading="isLoading"
       :pagination="pagination"
-      @view="viewOrder"
-      @cancel="cancelOrder"
-      @process="processOrder"
-      @update:page="updatePage"
-      @update:page-size="updatePageSize"
+      @view-details="showOrderDetails"
+      @update-status="showStatusUpdateModal"
+      @page-change="changePage"
     />
 
     <!-- Order Modal -->
     <OrderModal
-      :show="showModal"
-      :order="selectedOrder"
-      :mode="modalMode"
-      @close="closeModal"
-      @update="updateOrder"
+      :show-details-modal="state.modal.showDetailsModal"
+      :show-status-modal="state.modal.showStatusModal"
+      :selected-order="state.modal.selectedOrder"
+      :is-updating="state.modal.isUpdating"
+      @close-details="closeDetailsModal"
+      @close-status="closeStatusModal"
+      @update-status="updateOrderStatus"
     />
   </div>
 </template>
@@ -67,30 +70,28 @@ import OrderList from './Orders/components/OrderList.vue'
 import OrderModal from './Orders/components/OrderModal.vue'
 import { useOrderManagement } from './Orders/composables/useOrderManagement'
 
+// 使用订单管理 composable
 const {
-  // 响应式数据
-  orders,
-  stats,
-  filters,
-  pagination,
-  isLoading,
-  showModal,
-  selectedOrder,
-  modalMode,
-  
-  // 方法
-  refreshOrders,
-  exportOrders,
+  state,
+  debouncedSearch,
   updateFilters,
-  resetFilters,
-  viewOrder,
-  cancelOrder,
-  processOrder,
-  updatePage,
-  updatePageSize,
-  closeModal,
-  updateOrder
+  clearFilters,
+  changePage,
+  showOrderDetails,
+  closeDetailsModal,
+  showStatusUpdateModal,
+  closeStatusModal,
+  updateOrderStatus,
+  refreshOrders
 } = useOrderManagement()
+
+// 解构状态以便在模板中使用
+const { orders, stats, filters, pagination, isLoading } = state
+
+// 导出订单功能（暂时为空实现）
+const exportOrders = () => {
+  // TODO: 实现导出功能
+}
 
 // Lifecycle
 // useOrderManagement already handles onMounted

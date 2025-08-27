@@ -11,13 +11,15 @@ export const botApi = {
         name: '能量机器人-001',
         address: 'TRX7n2oDdZhiFrRFUegbqtEeMLNLy2Rhyx',
         private_key: '***',
-        type: 'energy',
+        type: 'energy' as const,
         description: '专门处理能量租赁的机器人',
         min_order_amount: 10,
         max_order_amount: 1000,
         is_active: true,
-        status: 'active',
+        status: 'active' as const,
         balance: 1250.50,
+        trx_balance: 1250.50,
+        energy_balance: 5000,
         created_at: '2024-01-15T10:30:00Z',
         updated_at: '2024-01-20T15:45:00Z'
       },
@@ -26,13 +28,15 @@ export const botApi = {
         name: '带宽机器人-001',
         address: 'TRX8m3pEeZjgGsRGVfhcqtFfNMOLz3Sizy',
         private_key: '***',
-        type: 'bandwidth',
+        type: 'bandwidth' as const,
         description: '专门处理带宽租赁的机器人',
         min_order_amount: 5,
         max_order_amount: 500,
         is_active: false,
-        status: 'inactive',
+        status: 'inactive' as const,
         balance: 850.25,
+        trx_balance: 850.25,
+        energy_balance: 3000,
         created_at: '2024-01-10T08:20:00Z',
         updated_at: '2024-01-18T12:30:00Z'
       }
@@ -59,6 +63,8 @@ export const botApi = {
       ...botData,
       status: botData.is_active ? 'active' : 'inactive',
       balance: 0,
+      trx_balance: 0,
+      energy_balance: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -80,6 +86,8 @@ export const botApi = {
       is_active: botData.is_active || false,
       status: botData.is_active ? 'active' : 'inactive',
       balance: 0,
+      trx_balance: 0,
+      energy_balance: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }

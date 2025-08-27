@@ -315,7 +315,7 @@ export class SystemConfigsValidation {
    */
   static async checkConfigAccess(configKey: string, userRole?: string): Promise<{ canAccess: boolean; config?: any }> {
     try {
-      let sqlQuery = `
+      const sqlQuery = `
         SELECT id, config_key, is_public, is_editable
         FROM system_configs 
         WHERE config_key = $1

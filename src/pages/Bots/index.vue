@@ -42,6 +42,7 @@
       :bots="bots"
       :selected-bots="selectedBots"
       :loading="isLoading"
+      :show-bot-menu="showBotMenu"
       :current-page="pagination.currentPage"
       :page-size="pagination.pageSize"
       :filtered-bots="filteredBots"
@@ -51,13 +52,20 @@
       :format-address="formatAddress"
       :format-type="formatType"
       :format-currency="formatCurrency"
+      :format-date-time="formatDateTime"
       :pagination="pagination"
+      @update:selectedBots="selectedBots = $event"
       @view="viewBot"
       @edit="editBot"
-      @toggle="toggleBotStatus"
+      @toggle-status="toggleBotStatus"
       @recharge="rechargeBalance"
       @test-connection="testConnection"
-      @add-bot="createBot"
+      @view-logs="viewLogs"
+      @reset="resetBot"
+      @create="createBot"
+      @page-change="pagination.currentPage = $event"
+      @toggle-menu="showBotMenu = showBotMenu === $event ? null : $event"
+      @close-menu="showBotMenu = null"
     />
 
     <!-- Batch Actions -->
@@ -72,30 +80,31 @@
     <!-- Bot Modal -->
     <BotModal
       :show="showBotModal"
-      :mode="botModalMode"
+      :mode="modalMode"
       :bot="selectedBot"
       :form="botForm"
       :is-saving="isSaving"
       :format-address="formatAddress"
       :format-type="formatType"
-      :get-status-text="getStatusText"
+      :format-status="formatStatus"
       :format-currency="formatCurrency"
       :get-status-color="getStatusColor"
+      :get-type-color="getTypeColor"
       @close="showBotModal = false"
       @edit="editBot"
-      @test-connection="testBotConnection"
-      @submit="saveBotForm"
+      @test-connection="testConnection"
+      @submit="saveBot"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { RotateCcw, Plus } from 'lucide-vue-next'
-import BotStats from './components/BotStats.vue'
-import BotSearch from './components/BotSearch.vue'
-import BotList from './components/BotList.vue'
+import { Plus, RotateCcw } from 'lucide-vue-next'
 import BotActions from './components/BotActions.vue'
+import BotList from './components/BotList.vue'
 import BotModal from './components/BotModal.vue'
+import BotSearch from './components/BotSearch.vue'
+import BotStats from './components/BotStats.vue'
 import { useBotManagement } from './composables/useBotManagement'
 
 const {
@@ -118,11 +127,14 @@ const {
   paginatedBots,
   
   // 格式化函数
+  formatDateTime,
   formatCurrency,
   formatAddress,
   formatType,
   getStatusText,
   getStatusColor,
+  formatStatus,
+  getTypeColor,
   
   // 机器人操作
   viewBot,
@@ -132,6 +144,9 @@ const {
   toggleBotStatus,
   testConnection,
   rechargeBalance,
+  viewLogs,
+  resetBot,
+  refreshData,
   
   // 批量操作
   batchStart,

@@ -1,55 +1,69 @@
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
-import Inspector from 'unplugin-vue-dev-locator/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import traeBadgePlugin from 'vite-plugin-trae-solo-badge'
 import VueDevTools from 'vite-plugin-vue-devtools'
 
-// Vue DevTools 开关配置
-const enableDevTools = process.env.VITE_VUE_DEVTOOLS !== 'false'
-
 // https://vite.dev/config/
-export default defineConfig({
-  build: {
-    sourcemap: 'hidden',
-  },
-  plugins: [
-    vue(),
-    // 条件启用 Vue DevTools
-    // enableDevTools && VueDevTools(), // 临时禁用
-    // Inspector(), // 临时禁用以解决启动问题
-    traeBadgePlugin({
-      variant: 'dark',
-      position: 'bottom-right',
-      prodOnly: true,
-      clickable: true,
-      clickUrl: 'https://www.trae.ai/solo?showJoin=1',
-      autoTheme: true,
-      autoThemeTarget: '#app',
-    }),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'), // ✅ 定义 @ = src
+// 根据 Vue 官方文档的推荐配置，支持环境变量控制
+export default defineConfig(({ mode }) => {
+  // 加载环境变量
+  const env = loadEnv(mode, process.cwd(), '')
+  
+  // 检查是否启用 Vue DevTools
+  const enableDevTools = mode === 'development' && env.VITE_VUE_DEVTOOLS !== 'false'
+  
+  return {
+    build: {
+      sourcemap: mode === 'development' ? true : 'hidden',
     },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3002',
-        changeOrigin: true,
-        secure: false,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
+    plugins: [
+      vue({
+        // 官方推荐的 Vue 配置，支持 DevTools
+        template: {
+          compilerOptions: {
+            // 开发模式下保留组件名称和调试信息
+            isCustomElement: () => false,
+          }
+        }
+      }),
+      // 根据环境变量控制 Vue DevTools 启用状态
+      ...(enableDevTools ? [VueDevTools({
+        launchEditor: 'code'
+      })] : []),
+      traeBadgePlugin({
+        variant: 'dark',
+        position: 'bottom-right',
+        prodOnly: true,
+        clickable: true,
+        clickUrl: 'https://www.trae.ai/solo?showJoin=1',
+        autoTheme: true,
+        autoThemeTarget: '#app',
+      }),
+    ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'), // ✅ 定义 @ = src
+      },
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3002',
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req) => {
+              console.log('Sending Request to the Target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req) => {
+              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            });
+          },
+        }
       }
     }
   }

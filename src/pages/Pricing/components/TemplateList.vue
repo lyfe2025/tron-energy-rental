@@ -21,7 +21,7 @@
         <div class="flex items-center space-x-4">
           <select
             :value="filters.type"
-            @change="updateFilters({ type: ($event.target as HTMLSelectElement).value })"
+            @change="handleTypeChange"
             class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">全部类型</option>
@@ -32,7 +32,7 @@
 
           <select
             :value="filters.status"
-            @change="updateFilters({ status: ($event.target as HTMLSelectElement).value })"
+            @change="handleStatusChange"
             class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">全部状态</option>
@@ -200,13 +200,35 @@ const updateFilters = (newFilters: Partial<PricingFilters>) => {
   emit('updateFilters', newFilters)
 }
 
+const handleTypeChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const value = target.value
+  // 类型安全检查
+  if (value === 'all' || value === 'energy' || value === 'bandwidth' || value === 'mixed') {
+    emit('updateFilters', { type: value })
+  }
+}
+
+const handleStatusChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const value = target.value
+  // 类型安全检查
+  if (value === 'all' || value === 'active' || value === 'inactive' || value === 'draft') {
+    emit('updateFilters', { status: value })
+  }
+}
+
 const handleSortChange = (event: Event) => {
   const target = event.target as HTMLSelectElement
   const [sortBy, sortOrder] = target.value.split('-')
-  emit('updateFilters', { 
-    sortBy: sortBy as PricingFilters['sortBy'], 
-    sortOrder: sortOrder as PricingFilters['sortOrder'] 
-  })
+  // 类型安全检查
+  if ((sortBy === 'name' || sortBy === 'price' || sortBy === 'usage' || sortBy === 'updated') &&
+      (sortOrder === 'asc' || sortOrder === 'desc')) {
+    emit('updateFilters', { 
+      sortBy: sortBy, 
+      sortOrder: sortOrder 
+    })
+  }
 }
 
 // 辅助函数

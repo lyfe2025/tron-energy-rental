@@ -11,6 +11,7 @@ export interface User {
   balance: number
   last_login?: string
   login_count?: number
+  remark?: string
   created_at: string
   updated_at: string
 }

@@ -251,9 +251,10 @@ interface Props {
   isSaving: boolean
   formatAddress: (address?: string) => string
   formatType: (type?: string) => string
-  getStatusText: (status?: string) => string
+  formatStatus: (status?: string) => string
   formatCurrency: (amount?: number) => string
   getStatusColor: (status?: string) => string
+  getTypeColor: (type?: string) => string
 }
 
 interface Emits {
@@ -263,11 +264,10 @@ interface Emits {
   submit: []
 }
 
-defineProps<Props>()
-defineEmits<Emits>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 const modalTitle = computed(() => {
-  const props = defineProps<Props>()
   switch (props.mode) {
     case 'create':
       return '添加机器人'
@@ -281,7 +281,6 @@ const modalTitle = computed(() => {
 })
 
 const handleSubmit = () => {
-  const emits = defineEmits<Emits>()
-  emits('submit')
+  emit('submit')
 }
 </script>

@@ -101,7 +101,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const newConfig = await this.service.createConfig(configData, userId);
+      const newConfig = await this.service.createConfig(configData, Number(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -140,7 +140,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const updatedConfig = await this.service.updateConfig(key, updateData, userId);
+      const updatedConfig = await this.service.updateConfig(key, updateData, Number(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -189,7 +189,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const result = await this.service.batchUpdateConfigs(batchData, userId);
+      const result = await this.service.batchUpdateConfigs(batchData, Number(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -227,7 +227,7 @@ export class SystemConfigsController {
         return;
       }
 
-      await this.service.deleteConfig(key, userId, change_reason);
+      await this.service.deleteConfig(key, Number(userId), change_reason);
 
       const response: ApiResponse = {
         success: true,
@@ -274,7 +274,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const resetConfig = await this.service.resetConfigToDefault(key, userId, resetData);
+      const resetConfig = await this.service.resetConfigToDefault(key, Number(userId), resetData);
 
       const response: ApiResponse = {
         success: true,

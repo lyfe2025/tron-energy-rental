@@ -30,13 +30,9 @@
         :search-query="searchParams.query"
         :status-filter="searchParams.status"
         :role-filter="searchParams.role"
-        :date-range="searchParams.dateRange"
-        :selected-count="selectedCount"
-        @search="handleSearch"
-        @status-filter="handleStatusFilter"
-        @role-filter="handleRoleFilter"
-        @date-range-filter="handleDateRangeFilter"
-        @clear-filters="clearFilters"
+        @update:search-query="handleSearch"
+        @update:status-filter="handleStatusFilter"
+        @update:role-filter="handleRoleFilter"
         @export="batchExport"
         class="mb-6"
       />
@@ -44,6 +40,7 @@
       <!-- 批量操作 -->
       <UserActions
         v-if="selectedCount > 0"
+        :is-loading="isLoading"
         :selected-count="selectedCount"
         @batch-activate="batchActivate"
         @batch-deactivate="batchDeactivate"
@@ -56,26 +53,35 @@
 
       <!-- 用户列表 -->
       <UserList
-        :users="paginatedUsers"
+        :users="users"
         :is-loading="isLoading"
+        :paginated-users="paginatedUsers"
         :selected-users="selectedUsers"
         :select-all="selectAll"
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        :total-users="filteredUsers.length"
         :show-user-menu="showUserMenu"
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total-users="totalUsers"
+        :total-pages="totalPages"
+        :format-date-time="formatDateTime"
+        :format-date="formatDate"
+        :format-currency="formatCurrency"
+        :get-role-text="getRoleText"
+        :get-role-color="getRoleColor"
+        :get-status-text="getStatusText"
+        :get-status-color="getStatusColor"
         @toggle-select-all="toggleSelectAll"
         @toggle-user-select="toggleUserSelect"
-        @page-change="handlePageChange"
         @view-user="viewUser"
         @edit-user="editUser"
         @toggle-user-status="toggleUserStatus"
-        @delete-user="deleteUser"
+        @toggle-user-menu="toggleUserMenu"
         @reset-password="resetPassword"
         @adjust-balance="adjustBalance"
         @view-user-orders="viewUserOrders"
         @ban-user="banUser"
-        @toggle-user-menu="toggleUserMenu"
+        @page-change="handlePageChange"
+        @create-user="createUser"
       />
     </div>
 
@@ -85,6 +91,7 @@
       :mode="modalMode"
       :user="currentUser"
       :is-submitting="isSubmitting"
+      :format-date-time="formatDateTime"
       @close="closeModal"
       @save="saveUser"
     />
@@ -105,9 +112,12 @@ import { useUserManagement } from './composables/useUserManagement'
 const {
   // 状态
   isLoading,
+  users,
   userStats,
   searchParams,
   currentPage,
+  pageSize,
+  totalUsers,
   totalPages,
   selectedUsers,
   selectAll,
@@ -121,6 +131,15 @@ const {
   filteredUsers,
   paginatedUsers,
   selectedCount,
+  
+  // 工具函数
+  formatDateTime,
+  formatDate,
+  formatCurrency,
+  getRoleText,
+  getRoleColor,
+  getStatusText,
+  getStatusColor,
   
   // 数据加载
   loadUsers,

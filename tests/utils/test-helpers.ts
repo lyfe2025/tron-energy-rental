@@ -1,7 +1,8 @@
 /**
  * 测试辅助工具函数
  */
-import { mount, VueWrapper } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils';
+import { mount } from '@vue/test-utils'
 import { vi } from 'vitest'
 import type { Component } from 'vue'
 

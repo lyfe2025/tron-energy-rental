@@ -9,11 +9,13 @@ export interface Bot {
   status: 'online' | 'offline' | 'error' | 'maintenance' | 'active' | 'inactive'
   description?: string
   balance: number
+  trx_balance: number
   energy_balance: number
   today_orders?: number
   total_orders?: number
   min_order_amount?: number
   max_order_amount?: number
+  is_active?: boolean
   last_activity?: string
   created_at?: string
   updated_at?: string
@@ -31,6 +33,13 @@ export interface BotForm {
 }
 
 export interface BotStats {
+  total: number
+  active: number
+  inactive: number
+  totalBalance: number
+}
+
+export interface BotStatCard {
   label: string
   value: number
   icon: any
