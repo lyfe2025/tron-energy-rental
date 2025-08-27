@@ -1,4 +1,4 @@
-import { createClient } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,7 +12,7 @@ const redisConfig = {
 };
 
 // 创建Redis客户端
-const redisClient = createClient({
+const redisClient: RedisClientType = createClient({
   socket: {
     host: redisConfig.host,
     port: redisConfig.port,
@@ -70,13 +70,13 @@ export const redisOperations = {
   // 检查键是否存在
   exists: async (key: string): Promise<boolean> => {
     const result = await redisClient.exists(key);
-    return result === 1;
+    return Boolean(result);
   },
 
   // 设置过期时间
   expire: async (key: string, seconds: number): Promise<boolean> => {
     const result = await redisClient.expire(key, seconds);
-    return result === 1;
+    return Boolean(result);
   },
 
   // 获取剩余过期时间
