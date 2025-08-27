@@ -73,63 +73,55 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
       return;
     }
     
-    // 验证用户是否存在
-    const userResult = await query('SELECT id, status FROM users WHERE id = $1', [user_id]);
-    if (userResult.rows.length === 0) {
+    // 批量验证用户、机器人和能量包（解决N+1查询问题）
+    const validationQuery = `
+      SELECT 
+        u.id as user_id, u.status as user_status,
+        b.id as bot_id, b.status as bot_status,
+        ep.id as package_id, ep.is_active, ep.energy_amount, ep.price, ep.duration_hours
+      FROM users u
+      CROSS JOIN bots b
+      CROSS JOIN energy_packages ep
+      WHERE u.id = $1 AND b.id = $2 AND ep.id = $3
+    `;
+
+    const validationResult = await query(validationQuery, [user_id, bot_id, package_id]);
+
+    if (validationResult.rows.length === 0) {
       res.status(404).json({
         success: false,
-        message: '用户不存在'
+        message: '用户、机器人或能量包不存在'
       });
       return;
     }
-    
-    if (userResult.rows[0].status !== 'active') {
+
+    const { user_status, bot_status, is_active, energy_amount, price, duration_hours: packageDuration } = validationResult.rows[0];
+
+    // 验证状态
+    if (user_status !== 'active') {
       res.status(400).json({
         success: false,
         message: '用户状态异常，无法创建订单'
       });
       return;
     }
-    
-    // 验证机器人是否存在且可用
-    const botResult = await query('SELECT id, status FROM bots WHERE id = $1', [bot_id]);
-    if (botResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '机器人不存在'
-      });
-      return;
-    }
-    
-    if (botResult.rows[0].status !== 'active') {
+
+    if (bot_status !== 'active') {
       res.status(400).json({
         success: false,
         message: '机器人状态异常，无法创建订单'
       });
       return;
     }
-    
-    // 验证能量包是否存在且可用
-    const packageResult = await query('SELECT id, is_active FROM energy_packages WHERE id = $1', [package_id]);
-    if (packageResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '能量包不存在'
-      });
-      return;
-    }
-    
-    if (!packageResult.rows[0].is_active) {
+
+    if (!is_active) {
       res.status(400).json({
         success: false,
         message: '能量包状态异常，无法创建订单'
       });
       return;
     }
-    
-    // 获取能量包信息计算价格
-    const packageInfo = await query('SELECT energy_amount, price, duration_hours FROM energy_packages WHERE id = $1', [package_id]);
-    const { energy_amount, price, duration_hours: packageDuration } = packageInfo.rows[0];
+    // energy_amount, price, packageDuration 已从上面的验证查询中获取
     
     // 生成订单号
     const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;

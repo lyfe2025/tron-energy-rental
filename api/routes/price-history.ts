@@ -163,18 +163,19 @@ router.get('/:entityType/:entityId', authenticateToken, async (req: Request, res
       Number(limit)
     );
     
-    // 获取实体名称
-    let entityName = '';
-    if (entityType === 'bot') {
-      const botResult = await query('SELECT bot_name FROM bots WHERE id = $1', [entityId]);
-      entityName = botResult.rows[0]?.bot_name || '未知机器人';
-    } else if (entityType === 'agent') {
-      const agentResult = await query('SELECT agent_name FROM agents WHERE id = $1', [entityId]);
-      entityName = agentResult.rows[0]?.agent_name || '未知代理商';
-    } else if (entityType === 'package') {
-      const packageResult = await query('SELECT package_name FROM energy_packages WHERE id = $1', [entityId]);
-      entityName = packageResult.rows[0]?.package_name || '未知能量包';
-    }
+    // 获取实体名称（使用UNION查询避免N+1问题）
+    const entityNameQuery = `
+      SELECT 
+        CASE 
+          WHEN $1 = 'bot' THEN (SELECT bot_name FROM bots WHERE id = $2)
+          WHEN $1 = 'agent' THEN (SELECT agent_name FROM agents WHERE id = $2)
+          WHEN $1 = 'package' THEN (SELECT package_name FROM energy_packages WHERE id = $2)
+          ELSE '未知实体'
+        END as entity_name
+    `;
+    
+    const entityNameResult = await query(entityNameQuery, [entityType, entityId]);
+    const entityName = entityNameResult.rows[0]?.entity_name || `未知${entityType === 'bot' ? '机器人' : entityType === 'agent' ? '代理商' : '能量包'}`;
     
     // 计算价格趋势
     const priceChanges = history.map(record => {
