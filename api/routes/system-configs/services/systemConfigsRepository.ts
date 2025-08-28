@@ -7,15 +7,15 @@
 
 import { query } from '../../../config/database.js';
 import type {
-    BatchConfigItem,
-    ConfigCategoryStats,
-    CreateSystemConfigRequest,
-    PaginatedConfigHistory,
-    PaginatedSystemConfigs,
-    QueryBuilderParams,
-    SystemConfig,
-    SystemConfigQuery,
-    UpdateSystemConfigRequest
+  BatchConfigItem,
+  ConfigCategoryStats,
+  CreateSystemConfigRequest,
+  PaginatedConfigHistory,
+  PaginatedSystemConfigs,
+  QueryBuilderParams,
+  SystemConfig,
+  SystemConfigQuery,
+  UpdateSystemConfigRequest
 } from '../types/systemConfigs.types.js';
 
 export class SystemConfigsRepository {

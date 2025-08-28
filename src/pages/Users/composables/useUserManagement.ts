@@ -70,6 +70,11 @@ export function useUserManagement() {
 
   // 计算属性
   const filteredUsers = computed(() => {
+    // 安全检查：确保 users.value 是数组
+    if (!Array.isArray(users.value)) {
+      return []
+    }
+    
     let result = users.value
 
     // 搜索过滤
@@ -106,13 +111,21 @@ export function useUserManagement() {
   })
 
   const totalPages = computed(() => {
-    return Math.ceil(filteredUsers.value.length / pageSize.value)
+    const filtered = filteredUsers.value
+    if (!Array.isArray(filtered)) {
+      return 0
+    }
+    return Math.ceil(filtered.length / pageSize.value)
   })
 
   const paginatedUsers = computed(() => {
+    const filtered = filteredUsers.value
+    if (!Array.isArray(filtered)) {
+      return []
+    }
     const start = (currentPage.value - 1) * pageSize.value
     const end = start + pageSize.value
-    return filteredUsers.value.slice(start, end)
+    return filtered.slice(start, end)
   })
 
   const selectedCount = computed(() => selectedUsers.value.length)
@@ -180,6 +193,7 @@ export function useUserManagement() {
     const roleMap: Record<string, string> = {
       user: '普通用户',
       vip: 'VIP用户',
+      agent: '代理商',
       admin: '管理员'
     }
     return roleMap[role] || role
@@ -189,6 +203,7 @@ export function useUserManagement() {
     const colorMap: Record<string, string> = {
       user: 'bg-gray-100 text-gray-800',
       vip: 'bg-yellow-100 text-yellow-800',
+      agent: 'bg-blue-100 text-blue-800',
       admin: 'bg-red-100 text-red-800'
     }
     return colorMap[role] || 'bg-gray-100 text-gray-800'
@@ -226,12 +241,25 @@ export function useUserManagement() {
         dateTo: searchParams.dateRange.end || undefined
       }
       
+      console.debug('Loading users with params:', params)
       const response = await userService.getUserList(params)
-      users.value = response.users
-      totalUsers.value = response.total
+      console.debug('User service response:', response)
+      
+      // 确保返回的数据结构正确
+      if (response && typeof response === 'object') {
+        users.value = Array.isArray(response.users) ? response.users : []
+        totalUsers.value = typeof response.total === 'number' ? response.total : 0
+        console.debug('Users loaded:', users.value.length, 'Total:', totalUsers.value)
+      } else {
+        console.debug('Invalid response structure:', response)
+        users.value = []
+        totalUsers.value = 0
+      }
     } catch (error) {
       console.error('加载用户列表失败:', error)
-      // 这里可以添加错误提示
+      // 确保在错误情况下也有正确的初始值
+      users.value = []
+      totalUsers.value = 0
     } finally {
       isLoading.value = false
     }
@@ -240,9 +268,22 @@ export function useUserManagement() {
   const loadUserStats = async () => {
     try {
       const stats = await userService.getUserStats()
-      rawUserStats.value = stats
+      // 确保返回的数据结构正确
+      if (stats && typeof stats === 'object') {
+        rawUserStats.value = {
+          totalUsers: stats.totalUsers || 0,
+          activeUsers: stats.activeUsers || 0,
+          inactiveUsers: stats.inactiveUsers || 0,
+          bannedUsers: stats.bannedUsers || 0,
+          newUsersToday: stats.newUsersToday || 0,
+          newUsersThisMonth: stats.newUsersThisMonth || 0,
+          totalBalance: stats.totalBalance || 0,
+          averageBalance: stats.averageBalance || 0
+        }
+      }
     } catch (error) {
       console.error('加载用户统计失败:', error)
+      // 保持默认值，避免页面崩溃
     }
   }
 
@@ -354,7 +395,13 @@ export function useUserManagement() {
           status: formData.status,
           balance: formData.balance,
           password: formData.password,
-          remark: formData.remark
+          remark: formData.remark,
+          // 根据角色设置login_type
+          login_type: formData.role === 'admin' ? 'admin' : 'telegram',
+          // 如果是telegram用户，生成一个临时的telegram_id
+          telegram_id: formData.role !== 'admin' ? Math.floor(Math.random() * 1000000000) : undefined,
+          first_name: formData.username,
+          last_name: ''
         }
         await userService.createUser(createParams)
       } else if (modalMode.value === 'edit') {

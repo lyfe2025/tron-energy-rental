@@ -58,6 +58,11 @@ export function useEnergyPackages() {
 
   // 计算属性
   const filteredPackages = computed(() => {
+    // 确保packages.value是数组
+    if (!Array.isArray(packages.value)) {
+      return []
+    }
+    
     let filtered = packages.value
 
     // 搜索过滤
@@ -139,17 +144,28 @@ export function useEnergyPackages() {
   const loadPackages = async () => {
     try {
       isLoading.value = true
-      const response: { data: PaginatedResponse<EnergyPackage> } = await energyPackagesAPI.getEnergyPackages()
-      packages.value = response.data.data.items
+      const response = await energyPackagesAPI.getEnergyPackages()
+      // 根据实际API响应结构解析数据
+      if (response.data && response.data.data && response.data.data.items) {
+        packages.value = response.data.data.items
+      } else {
+        packages.value = []
+      }
       updatePackageStats()
     } catch (error) {
       console.error('加载能量包失败:', error)
+      packages.value = [] // 确保在错误时packages是空数组
     } finally {
       isLoading.value = false
     }
   }
 
   const updatePackageStats = () => {
+    // 确保packages.value是数组
+    if (!Array.isArray(packages.value)) {
+      packages.value = []
+    }
+    
     const stats = packages.value.reduce(
       (acc, pkg) => {
         acc.total++

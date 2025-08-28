@@ -78,7 +78,6 @@
             :settings="settings.basic"
             :is-saving="isSaving"
             @update:settings="updateBasicSettings"
-            @save="saveCurrentTab"
           />
 
           <!-- Security Settings -->
@@ -87,7 +86,6 @@
             :settings="settings.security"
             :is-saving="isSaving"
             @update:settings="updateSecuritySettings"
-            @save="saveCurrentTab"
           />
 
           <!-- Notification Settings -->
@@ -96,7 +94,6 @@
             :settings="settings.notifications"
             :is-saving="isSaving"
             @update:settings="updateNotificationSettings"
-            @save="saveCurrentTab"
           />
 
           <!-- Pricing Settings -->
@@ -105,7 +102,6 @@
             :settings="settings.pricing"
             :is-saving="isSaving"
             @update:settings="updatePricingSettings"
-            @save="saveCurrentTab"
           />
 
           <!-- Advanced Settings -->
@@ -114,7 +110,6 @@
             :settings="settings.advanced"
             :is-saving="isSaving"
             @update:settings="updateAdvancedSettings"
-            @save="saveCurrentTab"
           />
         </div>
       </div>
@@ -132,20 +127,20 @@
 </template>
 
 <script setup lang="ts">
+import { AlertTriangle, Download, RotateCcw, Save } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { RotateCcw, Download, Save, AlertTriangle } from 'lucide-vue-next'
+import AdvancedSettings from './Settings/components/AdvancedSettings.vue'
 import BasicSettings from './Settings/components/BasicSettings.vue'
-import SecuritySettings from './Settings/components/SecuritySettings.vue'
 import NotificationSettings from './Settings/components/NotificationSettings.vue'
 import PricingSettings from './Settings/components/PricingSettings.vue'
-import AdvancedSettings from './Settings/components/AdvancedSettings.vue'
+import SecuritySettings from './Settings/components/SecuritySettings.vue'
 import { useSettings } from './Settings/composables/useSettings'
-import type { 
-  BasicSettings as BasicSettingsType,
-  SecuritySettings as SecuritySettingsType,
-  NotificationSettings as NotificationSettingsType,
-  PricingSettings as PricingSettingsType,
-  AdvancedSettings as AdvancedSettingsType
+import type {
+    AdvancedSettings as AdvancedSettingsType,
+    BasicSettings as BasicSettingsType,
+    NotificationSettings as NotificationSettingsType,
+    PricingSettings as PricingSettingsType,
+    SecuritySettings as SecuritySettingsType
 } from './Settings/types/settings.types'
 
 const fileInput = ref<HTMLInputElement>()
@@ -170,34 +165,42 @@ const {
   saveAllSettings,
   resetToDefaults,
   switchTab,
+  updateSetting,
   exportSettings,
   importSettings
 } = useSettings()
 
-// 保存当前标签页设置
-const saveCurrentTab = () => {
-  saveSettings(activeTab.value)
-}
+
 
 // 更新各个设置模块
 const updateBasicSettings = (newSettings: BasicSettingsType) => {
-  settings.value.basic = { ...newSettings }
+  Object.keys(newSettings).forEach(key => {
+    updateSetting(key, (newSettings as any)[key])
+  })
 }
 
 const updateSecuritySettings = (newSettings: SecuritySettingsType) => {
-  settings.value.security = { ...newSettings }
+  Object.keys(newSettings).forEach(key => {
+    updateSetting(key, (newSettings as any)[key])
+  })
 }
 
 const updateNotificationSettings = (newSettings: NotificationSettingsType) => {
-  settings.value.notifications = { ...newSettings }
+  Object.keys(newSettings).forEach(key => {
+    updateSetting(key, (newSettings as any)[key])
+  })
 }
 
 const updatePricingSettings = (newSettings: PricingSettingsType) => {
-  settings.value.pricing = { ...newSettings }
+  Object.keys(newSettings).forEach(key => {
+    updateSetting(key, (newSettings as any)[key])
+  })
 }
 
 const updateAdvancedSettings = (newSettings: AdvancedSettingsType) => {
-  settings.value.advanced = { ...newSettings }
+  Object.keys(newSettings).forEach(key => {
+    updateSetting(key, (newSettings as any)[key])
+  })
 }
 
 // 文件导入处理

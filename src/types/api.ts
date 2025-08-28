@@ -3,6 +3,7 @@
 // 用户相关类型
 export interface User {
   id: string
+  telegram_id?: number
   username: string
   email: string
   first_name?: string
@@ -11,6 +12,8 @@ export interface User {
   role: 'admin' | 'agent' | 'user'
   status: 'active' | 'inactive' | 'banned'
   balance: number
+  usdt_balance: number
+  trx_balance: number
   last_login?: string
   login_count?: number
   created_at: string

@@ -1,31 +1,31 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import type {
-  AgentPricing,
-  Bot,
-  BotPricing,
-  CreateBotData,
-  CreateEnergyPackageData,
-  CreatePriceTemplateData,
-  CreateUserData,
-  EnergyPackage,
-  OperationLog,
-  Order,
-  OrderStats,
-  PriceTemplate,
-  RevenueStats,
-  StatisticsParams,
-  SystemConfig,
-  SystemSettings,
-  UpdateAgentPricingData,
-  UpdateBotData,
-  UpdateBotPricingData,
-  UpdateEnergyPackageData,
-  UpdateOrderStatusData,
-  UpdatePriceTemplateData,
-  UpdateSettingsData,
-  UpdateUserData,
-  User,
-  UserActivityStats
+    AgentPricing,
+    Bot,
+    BotPricing,
+    CreateBotData,
+    CreateEnergyPackageData,
+    CreatePriceTemplateData,
+    CreateUserData,
+    EnergyPackage,
+    OperationLog,
+    Order,
+    OrderStats,
+    PriceTemplate,
+    RevenueStats,
+    StatisticsParams,
+    SystemConfig,
+    SystemSettings,
+    UpdateAgentPricingData,
+    UpdateBotData,
+    UpdateBotPricingData,
+    UpdateEnergyPackageData,
+    UpdateOrderStatusData,
+    UpdatePriceTemplateData,
+    UpdateSettingsData,
+    UpdateUserData,
+    User,
+    UserActivityStats
 } from '../types/api'
 
 // API基础配置
@@ -294,8 +294,34 @@ export const statisticsAPI = {
 // 系统配置API
 export const systemConfigsAPI = {
   // 获取系统配置列表
-  getConfigs: (params?: { category?: string; is_public?: boolean }) => 
+  getConfigs: (params?: { category?: string; is_public?: boolean; limit?: number }) => 
     apiClient.get<ApiResponse<SystemConfig[]>>('/api/system-configs', { params }),
+  
+  // 获取所有必要的配置（用于设置页面）
+  getAllSettingsConfigs: async () => {
+    const categories = ['system', 'security', 'notification', 'pricing'];
+    const promises = categories.map(category => 
+      apiClient.get<ApiResponse<SystemConfig[]>>('/api/system-configs', { 
+        params: { category, limit: 100 } 
+      })
+    );
+    
+    const responses = await Promise.all(promises);
+    const allConfigs: SystemConfig[] = [];
+    
+    responses.forEach(response => {
+      if (response.data.success && response.data.data && response.data.data.configs) {
+        allConfigs.push(...response.data.data.configs);
+      }
+    });
+    
+    return {
+      data: {
+        success: true,
+        data: { configs: allConfigs }
+      }
+    };
+  },
   
   // 获取配置详情
   getConfig: (key: string) => 
@@ -306,8 +332,11 @@ export const systemConfigsAPI = {
     apiClient.put<ApiResponse<SystemConfig>>(`/api/system-configs/${key}`, { config_value: value }),
   
   // 批量更新配置
-  updateConfigs: (configs: Array<{ config_key: string; config_value: string | number | boolean }>) => 
-    apiClient.put<ApiResponse<SystemConfig[]>>('/api/system-configs/batch', { configs }),
+  updateConfigs: (configs: Array<{ config_key: string; config_value: string | number | boolean }>, changeReason?: string) => 
+    apiClient.put<ApiResponse<SystemConfig[]>>('/api/system-configs/batch/update', { 
+      configs, 
+      change_reason: changeReason || '系统设置更新'
+    }),
 }
 
 // 价格管理API

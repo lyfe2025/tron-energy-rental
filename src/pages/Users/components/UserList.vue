@@ -23,13 +23,19 @@
                 用户信息
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Telegram ID
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 角色
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状态
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                余额
+                USDT余额
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                TRX余额
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 注册时间
@@ -68,6 +74,9 @@
                   </div>
                 </div>
               </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ user.telegram_id || '-' }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span 
                   :class="[
@@ -89,7 +98,10 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCurrency(user.balance) }} TRX
+                {{ formatCurrency(user.usdt_balance || 0) }} USDT
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ formatCurrency(user.trx_balance || 0) }} TRX
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatDateTime(user.created_at) }}
@@ -216,12 +228,20 @@
           
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
+              <span class="text-gray-500">Telegram ID:</span>
+              <span class="ml-1 font-medium">{{ user.telegram_id || '-' }}</span>
+            </div>
+            <div>
               <span class="text-gray-500">角色:</span>
               <span class="ml-1 font-medium">{{ getRoleText(user.role) }}</span>
             </div>
             <div>
-              <span class="text-gray-500">余额:</span>
-              <span class="ml-1 font-medium">{{ formatCurrency(user.balance) }} TRX</span>
+              <span class="text-gray-500">USDT余额:</span>
+              <span class="ml-1 font-medium">{{ formatCurrency(user.usdt_balance || 0) }} USDT</span>
+            </div>
+            <div>
+              <span class="text-gray-500">TRX余额:</span>
+              <span class="ml-1 font-medium">{{ formatCurrency(user.trx_balance || 0) }} TRX</span>
             </div>
             <div>
               <span class="text-gray-500">注册:</span>

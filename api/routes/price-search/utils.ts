@@ -9,8 +9,14 @@ export interface SearchFilters {
   status?: string;
   min_price?: number;
   max_price?: number;
+  price_min?: number;
+  price_max?: number;
   min_discount?: number;
   max_discount?: number;
+  discount_min?: number;
+  discount_max?: number;
+  date_from?: string;
+  date_to?: string;
   agent_level?: string;
   package_type?: string;
   search?: string;
@@ -37,18 +43,21 @@ export interface ComparisonResult {
 }
 
 export interface TrendStatistics {
-  entity_id: number;
-  entity_type: string;
-  period_start: string;
-  period_end: string;
+  entity_id?: number;
+  entity_type?: string;
+  period_start?: string;
+  period_end?: string;
   avg_price: number;
   min_price: number;
   max_price: number;
-  price_change: number;
+  price_change?: number;
   price_change_percentage: number;
-  volatility: number;
+  volatility?: number;
+  price_volatility?: number;
   trend_direction: 'up' | 'down' | 'stable';
-  data_points: number;
+  data_points?: number;
+  total_periods: number;
+  total_price_changes?: number;
 }
 
 export interface FilterOption {
@@ -58,10 +67,13 @@ export interface FilterOption {
 }
 
 export interface PriceRange {
-  min: number;
-  max: number;
-  avg: number;
+  min?: number;
+  max?: number;
+  min_value?: number;
+  max_value?: number;
+  avg?: number;
   count: number;
+  label: string;
 }
 
 // 工具函数

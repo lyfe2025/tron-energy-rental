@@ -69,7 +69,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     const usersQuery = `
       SELECT 
         id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, balance, total_orders,
+        role, status, login_type, tron_address, balance, usdt_balance, trx_balance, total_orders,
         total_energy_used, referral_code, referred_by, last_login_at,
         created_at, updated_at
       FROM users 
@@ -132,7 +132,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
     const userResult = await query(
       `SELECT 
         id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, balance, total_orders,
+        role, status, login_type, tron_address, balance, usdt_balance, trx_balance, total_orders,
         total_energy_used, referral_code, referred_by, last_login_at,
         created_at, updated_at
        FROM users 
@@ -272,7 +272,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING 
         id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, referral_code, created_at`,
+        role, status, login_type, tron_address, usdt_balance, trx_balance, referral_code, created_at`,
       [
         telegram_id, username, first_name, last_name, email, phone,
         passwordHash, role, login_type, 'active', tron_address, referral_code

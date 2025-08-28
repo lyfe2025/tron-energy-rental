@@ -251,16 +251,7 @@
     <div v-if="paginatedPackages.length === 0" class="text-center py-12">
       <Package class="mx-auto h-12 w-12 text-gray-400" />
       <h3 class="mt-2 text-sm font-medium text-gray-900">暂无能量包</h3>
-      <p class="mt-1 text-sm text-gray-500">开始创建您的第一个能量包</p>
-      <div class="mt-6">
-        <button
-          @click="$emit('create')"
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus class="-ml-1 mr-2 h-5 w-5" />
-          添加能量包
-        </button>
-      </div>
+      <p class="mt-1 text-sm text-gray-500">请使用上方的搜索栏添加能量包</p>
     </div>
 
     <!-- 分页 -->
@@ -362,7 +353,6 @@ interface Emits {
   'duplicate': [pkg: EnergyPackage]
   'view-stats': [pkg: EnergyPackage]
   'delete': [pkg: EnergyPackage]
-  'create': []
 }
 
 const props = defineProps<Props>()

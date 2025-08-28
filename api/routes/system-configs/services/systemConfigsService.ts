@@ -178,7 +178,7 @@ export class SystemConfigsService {
    */
   async batchUpdateConfigs(
     batchData: BatchUpdateRequest, 
-    userId: number
+    userId: string
   ): Promise<BatchOperationResult> {
     // 验证批量更新请求
     const validation = SystemConfigsValidation.validateBatchUpdateRequest(batchData);

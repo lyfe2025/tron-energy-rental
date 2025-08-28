@@ -77,6 +77,22 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
+              Telegram ID
+            </label>
+            <input
+              v-model.number="formData.telegram_id"
+              type="number"
+              :readonly="mode === 'view'"
+              :class="[
+                'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
+                mode === 'view' ? 'bg-gray-50 text-gray-500' : 'border-gray-300'
+              ]"
+              placeholder="请输入Telegram ID"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
               角色 <span v-if="mode !== 'view'" class="text-red-500">*</span>
             </label>
             <select
@@ -90,7 +106,7 @@
             >
               <option value="">请选择角色</option>
               <option value="user">普通用户</option>
-              <option value="vip">VIP用户</option>
+              <option value="agent">代理商</option>
               <option value="admin">管理员</option>
             </select>
           </div>
@@ -115,10 +131,28 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              余额 (TRX)
+              USDT余额
             </label>
             <input
-              v-model.number="formData.balance"
+              v-model.number="formData.usdt_balance"
+              type="number"
+              step="0.01"
+              min="0"
+              :readonly="mode === 'view'"
+              :class="[
+                'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
+                mode === 'view' ? 'bg-gray-50 text-gray-500' : 'border-gray-300'
+              ]"
+              placeholder="0.00"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              TRX余额
+            </label>
+            <input
+              v-model.number="formData.trx_balance"
               type="number"
               step="0.01"
               min="0"
@@ -269,7 +303,7 @@ interface Props {
 
 interface Emits {
   'close': []
-  'submit': [formData: UserFormData]
+  'save': [formData: UserFormData]
 }
 
 const props = defineProps<Props>()
@@ -278,12 +312,15 @@ const emit = defineEmits<Emits>()
 // 表单数据
 const formData = ref<UserFormData>({
   id: '',
+  telegram_id: undefined,
   username: '',
   email: '',
   phone: '',
   role: '',
   status: 'active',
   balance: 0,
+  usdt_balance: 0,
+  trx_balance: 0,
   password: '',
   confirmPassword: '',
   remark: '',
@@ -299,12 +336,15 @@ watch(
     if (newUser) {
       formData.value = {
         id: newUser.id,
+        telegram_id: newUser.telegram_id,
         username: newUser.username,
         email: newUser.email,
         phone: newUser.phone || '',
         role: newUser.role,
         status: newUser.status,
         balance: newUser.balance,
+        usdt_balance: newUser.usdt_balance || 0,
+        trx_balance: newUser.trx_balance || 0,
         password: '',
         confirmPassword: '',
         remark: newUser.remark || '',
@@ -316,12 +356,15 @@ watch(
       // 重置表单
       formData.value = {
         id: '',
+        telegram_id: undefined,
         username: '',
         email: '',
         phone: '',
         role: '',
         status: 'active',
         balance: 0,
+        usdt_balance: 0,
+        trx_balance: 0,
         password: '',
         confirmPassword: '',
         remark: '',
@@ -342,7 +385,7 @@ const handleSubmit = () => {
     return
   }
   
-  emit('submit', formData.value)
+  emit('save', formData.value)
 }
 </script>
 

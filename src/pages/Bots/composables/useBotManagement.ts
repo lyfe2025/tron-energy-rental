@@ -1,9 +1,8 @@
-import { botApi } from '@/api/bots'
-import { envLog } from '@/utils/env'
-import { Activity, AlertTriangle, Bot as BotIcon, Zap } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { toast } from 'sonner'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import type { Bot, BotFilters, BotForm, BotModalMode, BotPagination, BotStatCard } from '../types/bot.types'
+import { botApi } from '@/api/bots'
+import type { Bot, BotForm, BotStats, BotStatCard, BotFilters, BotPagination, BotModalMode } from '../types/bot.types'
+import { Activity, Bot as BotIcon, Zap, AlertTriangle } from 'lucide-vue-next'
 
 export function useBotManagement() {
   // 响应式数据
@@ -157,32 +156,30 @@ export function useBotManagement() {
     }
     return colorMap[status] || 'text-gray-600 bg-gray-50'
   }
-
-  const formatStatus = (status?: string) => {
-    return getStatusText(status || '')
+  
+  const formatStatus = (status: string) => {
+    return getStatusText(status)
   }
-
-  const getTypeColor = (type?: string) => {
+  
+  const getTypeColor = (type: string) => {
     const colorMap: Record<string, string> = {
       energy: 'text-blue-600 bg-blue-50',
       bandwidth: 'text-purple-600 bg-purple-50',
       mixed: 'text-green-600 bg-green-50'
     }
-    return colorMap[type || ''] || 'text-gray-600 bg-gray-50'
+    return colorMap[type] || 'text-gray-600 bg-gray-50'
   }
   
   // 数据加载
   const loadBots = async () => {
     try {
       isLoading.value = true
-      envLog.debug('开始加载机器人列表...')
       const response = await botApi.getBots()
       bots.value = response.data
-      envLog.debug(`成功加载 ${response.data.length} 个机器人`)
       updateStats()
       updatePagination()
     } catch (error) {
-      envLog.error('加载机器人列表失败:', error)
+      console.error('加载机器人列表失败:', error)
       toast.error('加载机器人列表失败')
     } finally {
       isLoading.value = false
@@ -294,37 +291,13 @@ export function useBotManagement() {
   }
   
   const rechargeBalance = async (bot: Bot) => {
-    try {
-      const amount = prompt(`为机器人 ${bot.name} 充值金额:`)
-      if (amount && !isNaN(Number(amount))) {
-        // 这里应该调用实际的充值API
-        // await botApi.rechargeBot(bot.id, Number(amount))
-        toast.success(`机器人 ${bot.name} 充值 ${amount} 元成功`)
-        await loadBots()
-      } else if (amount !== null) {
-        toast.error('请输入有效的金额')
-      }
-    } catch (error) {
-      console.error('充值失败:', error)
-      toast.error('充值失败')
-    }
+    // 这里应该打开充值对话框
+    toast.info('充值功能开发中')
   }
   
   const viewLogs = async (bot: Bot) => {
-    try {
-      // 这里应该获取机器人日志并显示在弹窗中
-      // 目前显示模拟日志
-      const logs = [
-        `[${new Date().toLocaleString()}] 机器人 ${bot.name} 启动`,
-        `[${new Date().toLocaleString()}] 余额检查: ${bot.balance} 元`,
-        `[${new Date().toLocaleString()}] 能量余额: ${bot.energy_balance}`,
-        `[${new Date().toLocaleString()}] 状态正常`
-      ]
-      alert(`机器人 ${bot.name} 日志:\n\n${logs.join('\n')}`)
-    } catch (error) {
-      console.error('获取日志失败:', error)
-      toast.error('获取日志失败')
-    }
+    // 这里应该打开日志查看页面
+    toast.info('日志查看功能开发中')
   }
   
   const resetBot = async (bot: Bot) => {
@@ -444,9 +417,9 @@ export function useBotManagement() {
     formatCurrency,
     formatAddress,
     formatType,
+    formatStatus,
     getStatusText,
     getStatusColor,
-    formatStatus,
     getTypeColor,
     
     // 数据操作

@@ -1,6 +1,7 @@
 // 用户基础信息接口
 export interface User {
   id: string
+  telegram_id?: number
   username: string
   email: string
   first_name?: string
@@ -9,6 +10,8 @@ export interface User {
   role: UserRole
   status: UserStatus
   balance: number
+  usdt_balance: number
+  trx_balance: number
   last_login?: string
   login_count?: number
   remark?: string
@@ -25,12 +28,15 @@ export type UserStatus = 'active' | 'inactive' | 'banned';
 // 用户表单数据接口
 export interface UserFormData {
   id: string
+  telegram_id?: number
   username: string
   email: string
   phone: string
   role: string
   status: UserStatus
   balance: number
+  usdt_balance: number
+  trx_balance: number
   password: string
   confirmPassword: string
   remark: string
@@ -111,6 +117,10 @@ export interface CreateUserParams {
   balance: number
   password: string
   remark?: string
+  login_type?: 'admin' | 'telegram'
+  telegram_id?: number
+  first_name?: string
+  last_name?: string
 }
 
 // 用户更新参数接口

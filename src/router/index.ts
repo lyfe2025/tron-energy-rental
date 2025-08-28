@@ -40,7 +40,7 @@ const router = createRouter({
         {
           path: 'users',
           name: 'users',
-          component: () => import('@/pages/Users.vue')
+          component: () => import('@/pages/Users/index.vue')
         },
         {
           path: 'bots',

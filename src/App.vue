@@ -1,8 +1,11 @@
 <template>
   <router-view />
+  <!-- 全局通知组件 -->
+  <Toast />
 </template>
 
 <script setup lang="ts">
+import Toast from '@/components/Toast.vue'
 import { useAuthStore } from '@/stores/auth'
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'

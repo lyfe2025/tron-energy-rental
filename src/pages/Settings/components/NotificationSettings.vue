@@ -163,17 +163,7 @@
       </div>
     </div>
 
-    <!-- 保存按钮 -->
-    <div class="flex justify-end pt-6 border-t border-gray-200">
-      <button
-        @click="saveSettings"
-        :disabled="isSaving"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-      >
-        <span v-if="isSaving">保存中...</span>
-        <span v-else>保存通知设置</span>
-      </button>
-    </div>
+
   </div>
 </template>
 
@@ -188,7 +178,6 @@ interface Props {
 
 interface Emits {
   (e: 'update:settings', settings: NotificationSettings): void
-  (e: 'save'): void
 }
 
 const props = defineProps<Props>()
@@ -200,10 +189,7 @@ const localSettings = computed({
   set: (value) => emit('update:settings', value)
 })
 
-// 保存设置
-const saveSettings = () => {
-  emit('save')
-}
+
 
 // 发送测试通知
 const sendTestEmail = () => {

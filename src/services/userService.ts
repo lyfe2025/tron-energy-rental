@@ -21,57 +21,102 @@ export const userService = {
    * 获取用户列表
    */
   async getUserList(params: UserListParams): Promise<UserListResponse> {
-    const response = await usersAPI.getUsers({
+    console.debug('userService.getUserList called with params:', params)
+    
+    const apiParams = {
       page: params.page,
       limit: params.pageSize,
       search: params.search,
-      status: params.status
-    })
-    
-    return {
-      users: response.data.data.items,
-      total: response.data.data.total,
-      page: response.data.data.page,
-      pageSize: response.data.data.limit,
-      totalPages: response.data.data.totalPages
+      status: params.status,
+      role: params.role,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo
     }
+    
+    console.debug('Calling usersAPI.getUsers with:', apiParams)
+    const response = await usersAPI.getUsers(apiParams)
+    console.debug('usersAPI.getUsers response:', response)
+    
+    // API返回的数据结构是 {data: {items: [], total, page, limit, totalPages}}
+    const responseData = response.data.data
+    console.debug('Response data:', responseData)
+    
+    const result = {
+      users: responseData.items || [],
+      total: responseData.total || 0,
+      page: responseData.page || 1,
+      pageSize: responseData.limit || 10,
+      totalPages: responseData.totalPages || 1
+    }
+    
+    console.debug('userService.getUserList returning:', result)
+    return result
   },
 
   /**
    * 获取用户统计数据
    */
   async getUserStats(): Promise<UserStats> {
-    // 这里可能需要调用统计 API 或者从用户列表中计算
-    // 暂时返回模拟数据，实际应该从 API 获取
-    const response = await usersAPI.getUsers({ limit: 1000 })
-    const users = response.data.data.items
-    
-    const totalUsers = users.length
-    const activeUsers = users.filter(u => u.status === 'active').length
-    const inactiveUsers = users.filter(u => u.status === 'inactive').length
-    const bannedUsers = users.filter(u => u.status === 'banned').length
-    
-    // 计算今日新用户（简化实现）
-    const today = new Date().toISOString().split('T')[0]
-    const newUsersToday = users.filter(u => u.created_at.startsWith(today)).length
-    
-    // 计算本月新用户
-    const thisMonth = new Date().toISOString().substring(0, 7)
-    const newUsersThisMonth = users.filter(u => u.created_at.startsWith(thisMonth)).length
-    
-    // 计算余额统计
-    const totalBalance = users.reduce((sum, u) => sum + (u.balance || 0), 0)
-    const averageBalance = totalUsers > 0 ? totalBalance / totalUsers : 0
-    
-    return {
-      totalUsers,
-      activeUsers,
-      inactiveUsers,
-      bannedUsers,
-      newUsersToday,
-      newUsersThisMonth,
-      totalBalance,
-      averageBalance
+    try {
+      // 这里可能需要调用统计 API 或者从用户列表中计算
+      // 暂时返回模拟数据，实际应该从 API 获取
+      const response = await usersAPI.getUsers({ limit: 1000 })
+      const users = response?.data?.data?.items
+      
+      // 安全检查：确保 users 是数组
+      if (!Array.isArray(users)) {
+        return {
+          totalUsers: 0,
+          activeUsers: 0,
+          inactiveUsers: 0,
+          bannedUsers: 0,
+          newUsersToday: 0,
+          newUsersThisMonth: 0,
+          totalBalance: 0,
+          averageBalance: 0
+        }
+      }
+      
+      const totalUsers = users.length
+      const activeUsers = users.filter(u => u.status === 'active').length
+      const inactiveUsers = users.filter(u => u.status === 'inactive').length
+      const bannedUsers = users.filter(u => u.status === 'banned').length
+      
+      // 计算今日新用户（简化实现）
+      const today = new Date().toISOString().split('T')[0]
+      const newUsersToday = users.filter(u => u.created_at && u.created_at.startsWith(today)).length
+      
+      // 计算本月新用户
+      const thisMonth = new Date().toISOString().substring(0, 7)
+      const newUsersThisMonth = users.filter(u => u.created_at && u.created_at.startsWith(thisMonth)).length
+      
+      // 计算余额统计
+      const totalBalance = users.reduce((sum, u) => sum + (u.balance || 0), 0)
+      const averageBalance = totalUsers > 0 ? totalBalance / totalUsers : 0
+      
+      return {
+        totalUsers,
+        activeUsers,
+        inactiveUsers,
+        bannedUsers,
+        newUsersToday,
+        newUsersThisMonth,
+        totalBalance,
+        averageBalance
+      }
+    } catch (error) {
+      console.error('获取用户统计数据失败:', error)
+      // 返回默认值，避免页面崩溃
+      return {
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        bannedUsers: 0,
+        newUsersToday: 0,
+        newUsersThisMonth: 0,
+        totalBalance: 0,
+        averageBalance: 0
+      }
     }
   },
 
