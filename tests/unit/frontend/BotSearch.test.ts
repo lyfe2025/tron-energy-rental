@@ -191,7 +191,7 @@ describe('BotSearch.vue', () => {
     await resetButton.trigger('click')
 
     expect(wrapper.emitted('update:filters')).toBeTruthy()
-    const emittedEvents = wrapper.emitted('update:filters') as any[]
+    const emittedEvents = wrapper.emitted('update:filters') as unknown[][]
     expect(emittedEvents[0][0]).toEqual({
       searchQuery: '',
       statusFilter: '',

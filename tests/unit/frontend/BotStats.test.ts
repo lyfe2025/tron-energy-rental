@@ -112,7 +112,6 @@ describe('BotStats.vue', () => {
 
     // 检查第二个卡片（change为null）
     const secondCard = wrapper.findAll('.bg-white.rounded-lg.shadow-sm')[1]
-    const changeElements = secondCard.findAll('[class*="change"]')
     
     // 变化元素应该不存在或者为空
     expect(secondCard.find('.text-sm.mt-1').exists()).toBe(false)

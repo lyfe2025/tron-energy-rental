@@ -240,7 +240,7 @@ export function setupApiMocks() {
   })
 
   // Mock成功的POST请求
-  mockAxios.post.mockImplementation((url: string, data: any) => {
+  mockAxios.post.mockImplementation((url: string, data: unknown) => {
     if (url.includes('/users')) {
       return Promise.resolve({ data: mockApiResponses.users.create })
     }
@@ -248,7 +248,7 @@ export function setupApiMocks() {
   })
 
   // Mock成功的PUT请求
-  mockAxios.put.mockImplementation((url: string, data: any) => {
+  mockAxios.put.mockImplementation((url: string, data: unknown) => {
     return Promise.resolve({ data: { success: true, data: { id: 1, ...data } } })
   })
 
@@ -268,6 +268,6 @@ export function resetApiMocks() {
 }
 
 // Mock特定API错误
-export function mockApiError(method: 'get' | 'post' | 'put' | 'delete', error: any) {
+export function mockApiError(method: 'get' | 'post' | 'put' | 'delete', error: unknown) {
   mockAxios[method].mockRejectedValueOnce(error)
 }

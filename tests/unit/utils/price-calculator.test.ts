@@ -106,7 +106,7 @@ describe('PriceCalculator', () => {
 
     it('应该检测无效输入', async () => {
       const input: CalculationInput = {
-        type: 'invalid' as any,
+        type: 'invalid' as 'energy' | 'bandwidth',
         quantity: -1,
         amount: -100
       }
@@ -301,7 +301,7 @@ describe('PriceValidator', () => {
 
     it('应该检测无效的资源类型', async () => {
       const input: CalculationInput = {
-        type: 'invalid' as any,
+        type: 'invalid' as 'energy' | 'bandwidth',
         quantity: 1,
         amount: 65000
       }

@@ -49,17 +49,20 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:3002',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
           configure: (proxy) => {
             proxy.on('error', (err) => {
+              // eslint-disable-next-line no-console
               console.log('proxy error', err);
             });
             proxy.on('proxyReq', (proxyReq, req) => {
+              // eslint-disable-next-line no-console
               console.log('Sending Request to the Target:', req.method, req.url);
             });
             proxy.on('proxyRes', (proxyRes, req) => {
+              // eslint-disable-next-line no-console
               console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           },

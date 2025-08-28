@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端认证测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #1976d2; }
+        input { padding: 8px; margin: 5px; width: 300px; }
+        .debug { background: #e3f2fd; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>前端认证测试</h1>
+    
+    <div class="debug">
+        <h3>当前状态</h3>
+        <p>localStorage admin_token: <span id="tokenStatus">检查中...</span></p>
+        <p>localStorage admin_user: <span id="userStatus">检查中...</span></p>
+    </div>
+    
+    <div>
+        <h3>1. 登录获取Token</h3>
+        <input type="text" id="email" placeholder="邮箱" value="admin@tronrental.com">
+        <input type="password" id="password" placeholder="密码" value="admin123456">
+        <button onclick="login()">登录</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+    
+    <div>
+        <h3>2. 测试机器人API调用</h3>
+        <button onclick="testBotsAPI()">测试机器人API</button>
+        <div id="botsResult" class="result"></div>
+    </div>
+    
+    <div>
+        <h3>3. 清除认证</h3>
+        <button onclick="clearAuth()">清除认证</button>
+        <div id="clearResult" class="result"></div>
+    </div>
+
+    <script>
+        // 检查当前状态
+        function checkStatus() {
+            const token = localStorage.getItem('admin_token');
+            const user = localStorage.getItem('admin_user');
+            
+            document.getElementById('tokenStatus').textContent = token ? `已设置 (${token.substring(0, 20)}...)` : '未设置';
+            document.getElementById('userStatus').textContent = user ? '已设置' : '未设置';
+        }
+        
+        // 页面加载时检查状态
+        checkStatus();
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const token = data.data.token;
+                    const user = data.data.user;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('admin_token', token);
+                    localStorage.setItem('admin_user', JSON.stringify(user));
+                    
+                    document.getElementById('loginResult').innerHTML = 
+                        `<div class="success">登录成功！Token已保存到localStorage</div>`;
+                    
+                    // 更新状态显示
+                    checkStatus();
+                } else {
+                    document.getElementById('loginResult').innerHTML = 
+                        `<div class="error">登录失败: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = 
+                    `<div class="error">请求错误: ${error.message}</div>`;
+            }
+        }
+        
+        async function testBotsAPI() {
+            const token = localStorage.getItem('admin_token');
+            
+            if (!token) {
+                document.getElementById('botsResult').innerHTML = 
+                    '<div class="error">请先登录获取Token</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/bots', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('botsResult').innerHTML = 
+                        `<div class="success">
+                            <h4>API调用成功！</h4>
+                            <p>状态码: ${response.status}</p>
+                            <p>机器人数量: ${data.data.bots.length}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>`;
+                } else {
+                    document.getElementById('botsResult').innerHTML = 
+                        `<div class="error">API调用失败: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('botsResult').innerHTML = 
+                    `<div class="error">请求错误: ${error.message}</div>`;
+            }
+        }
+        
+        function clearAuth() {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            
+            document.getElementById('clearResult').innerHTML = 
+                '<div class="success">认证信息已清除</div>';
+            
+            // 更新状态显示
+            checkStatus();
+        }
+    </script>
+</body>
+</html>

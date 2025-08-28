@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试保存按钮</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .button {
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #4338ca;
+        }
+        .button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 系统设置保存按钮测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试说明</h2>
+        <p>这个页面用于测试各个设置组件的保存按钮是否正常工作。</p>
+        <p>点击下面的按钮来模拟保存事件，查看控制台输出。</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔒 安全设置</h2>
+        <button class="button" onclick="testSave('security')">保存安全设置</button>
+        <button class="button" onclick="testSaveWithLoading('security')">保存安全设置（加载状态）</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔔 通知设置</h2>
+        <button class="button" onclick="testSave('notifications')">保存通知设置</button>
+        <button class="button" onclick="testSaveWithLoading('notifications')">保存通知设置（加载状态）</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>💰 定价设置</h2>
+        <button class="button" onclick="testSave('pricing')">保存定价设置</button>
+        <button class="button" onclick="testSaveWithLoading('pricing')">保存定价设置（加载状态）</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>⚙️ 高级设置</h2>
+        <button class="button" onclick="testSave('advanced')">保存高级设置</button>
+        <button class="button" onclick="testSaveWithLoading('advanced')">保存高级设置（加载状态）</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📝 事件日志</h2>
+        <div id="log" class="log">等待测试...</div>
+        <button class="button" onclick="clearLog()">清空日志</button>
+    </div>
+    
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function testSave(tabName) {
+            log(`🔍 测试保存 ${tabName} 设置`);
+            log(`📤 触发 save 事件`);
+            log(`✅ 事件应该被父组件捕获并调用 saveCurrentTab()`);
+            log(`💾 然后调用 saveSettings('${tabName}')`);
+            log('---');
+        }
+        
+        function testSaveWithLoading(tabName) {
+            log(`🔍 测试保存 ${tabName} 设置（加载状态）`);
+            log(`📤 触发 save 事件，按钮应该显示加载状态`);
+            log(`⏳ 模拟保存过程...`);
+            
+            // 模拟异步保存过程
+            setTimeout(() => {
+                log(`✅ ${tabName} 设置保存完成`);
+                log('---');
+            }, 2000);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '日志已清空\n';
+        }
+        
+        // 页面加载完成
+        log('🚀 测试页面已加载');
+        log('💡 点击上面的按钮来测试保存功能');
+        log('📱 同时打开浏览器控制台查看详细信息');
+        log('---');
+    </script>
+</body>
+</html>

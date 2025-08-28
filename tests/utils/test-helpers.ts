@@ -4,15 +4,15 @@
 import type { VueWrapper } from '@vue/test-utils';
 import { mount } from '@vue/test-utils'
 import { vi } from 'vitest'
-import type { Component } from 'vue'
+import type { Component, ComponentPublicInstance } from 'vue'
 
 /**
  * 创建Vue组件的测试包装器
  */
 export function createWrapper<T extends Component>(
   component: T,
-  options: any = {}
-): VueWrapper<any> {
+  options: Record<string, unknown> = {}
+): VueWrapper<ComponentPublicInstance> {
   const defaultOptions = {
     global: {
       stubs: {
@@ -50,10 +50,10 @@ export function createWrapper<T extends Component>(
 /**
  * 模拟API响应
  */
-export function mockApiResponse(data: any, status = 200, ok = true) {
+export function mockApiResponse(data: unknown, responseStatus = 200, ok = true) {
   return Promise.resolve({
     ok,
-    status,
+    status: responseStatus,
     json: () => Promise.resolve(data),
     text: () => Promise.resolve(JSON.stringify(data)),
   } as Response)
@@ -62,8 +62,13 @@ export function mockApiResponse(data: any, status = 200, ok = true) {
 /**
  * 模拟API错误响应
  */
-export function mockApiError(message: string, status = 500) {
-  return Promise.reject(new Error(message))
+export function mockApiError(status: number, message: string) {
+  return {
+    response: {
+      status,
+      data: { error: message }
+    }
+  }
 }
 
 /**
@@ -76,7 +81,7 @@ export function flushPromises(): Promise<void> {
 /**
  * 创建模拟的用户数据
  */
-export function createMockUser(overrides: any = {}) {
+export function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     username: 'testuser',
@@ -92,7 +97,7 @@ export function createMockUser(overrides: any = {}) {
 /**
  * 创建模拟的机器人数据
  */
-export function createMockBot(overrides: any = {}) {
+export function createMockBot(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     name: 'Test Bot',
@@ -112,7 +117,7 @@ export function createMockBot(overrides: any = {}) {
 /**
  * 创建模拟的能量包数据
  */
-export function createMockEnergyPackage(overrides: any = {}) {
+export function createMockEnergyPackage(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     name: 'Test Energy Package',
@@ -131,7 +136,7 @@ export function createMockEnergyPackage(overrides: any = {}) {
 /**
  * 创建模拟的订单数据
  */
-export function createMockOrder(overrides: any = {}) {
+export function createMockOrder(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     user_id: 1,
@@ -150,7 +155,7 @@ export function createMockOrder(overrides: any = {}) {
 /**
  * 模拟Pinia store
  */
-export function createMockStore(initialState: any = {}) {
+export function createMockStore(initialState: Record<string, unknown> = {}) {
   return {
     ...initialState,
     $patch: vi.fn(),
@@ -183,28 +188,25 @@ export function mockLocalStorage() {
 /**
  * 模拟网络请求
  */
-export function mockFetch(response: any, options: { status?: number; ok?: boolean } = {}) {
-  const { status = 200, ok = true } = options
-  
+export function mockFetch(response: unknown) {
+  const { status, ...rest } = response as { status: number }
   global.fetch = vi.fn().mockResolvedValue({
-    ok,
+    ok: true,
     status,
-    json: () => Promise.resolve(response),
-    text: () => Promise.resolve(JSON.stringify(response)),
-  } as Response)
-  
-  return global.fetch
+    json: () => Promise.resolve(rest)
+  })
 }
 
 /**
  * 测试异步错误
  */
-export async function expectAsyncError(fn: () => Promise<any>, expectedMessage?: string) {
+export async function expectAsyncError(fn: () => Promise<unknown>, expectedMessage?: string) {
   try {
     await fn()
     throw new Error('Expected function to throw an error')
   } catch (error) {
     if (expectedMessage && error instanceof Error) {
+      // eslint-disable-next-line no-undef
       expect(error.message).toContain(expectedMessage)
     }
     return error
