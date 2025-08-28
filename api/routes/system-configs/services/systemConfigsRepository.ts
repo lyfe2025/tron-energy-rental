@@ -101,7 +101,7 @@ export class SystemConfigsRepository {
   /**
    * 创建新配置
    */
-  async createConfig(configData: CreateSystemConfigRequest, userId: number): Promise<SystemConfig> {
+  async createConfig(configData: CreateSystemConfigRequest, userId: string): Promise<SystemConfig> {
     const {
       config_key,
       config_value,
@@ -143,7 +143,7 @@ export class SystemConfigsRepository {
   async updateConfig(
     configKey: string, 
     updateData: UpdateSystemConfigRequest, 
-    userId: number
+    userId: string
   ): Promise<SystemConfig> {
     const updateFields = [];
     const updateValues = [];
@@ -201,7 +201,7 @@ export class SystemConfigsRepository {
   /**
    * 重置配置为默认值
    */
-  async resetConfigToDefault(configKey: string, userId: number): Promise<SystemConfig> {
+  async resetConfigToDefault(configKey: string, userId: string): Promise<SystemConfig> {
     const result = await query(
       `UPDATE system_configs 
        SET config_value = default_value, updated_by = $1, updated_at = CURRENT_TIMESTAMP
@@ -229,7 +229,7 @@ export class SystemConfigsRepository {
    */
   async batchUpdateConfigs(
     configs: BatchConfigItem[], 
-    userId: number, 
+    userId: string, 
     changeReason?: string
   ): Promise<SystemConfig[]> {
     const results = [];
@@ -312,7 +312,7 @@ export class SystemConfigsRepository {
     oldValue: string,
     newValue: string,
     changeReason: string,
-    userId: number
+    userId: string
   ): Promise<void> {
     await query(
       `INSERT INTO system_config_history 

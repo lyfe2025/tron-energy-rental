@@ -11,6 +11,7 @@ import {
     batchUpdateConfigs,
     createConfig,
     deleteConfig,
+    getAllSettingsConfigs,
     getConfigByKey,
     getConfigCategories,
     getConfigHistory,
@@ -30,6 +31,7 @@ import {
     validateConfigEditable,
     validateConfigExists,
     validateConfigKey,
+    validateConfigKeyQuery,
     validateCreateRequest,
     validatePaginationParams,
     validateSearchParams,
@@ -52,6 +54,15 @@ router.get('/',
   logConfigOperation('获取配置列表'),
   rateLimit(50, 60000),
   getConfigs
+);
+
+// 获取所有设置相关的配置（用于设置页面）
+router.get('/all-settings', 
+  authenticateToken,
+  setCacheHeaders(300),
+  logConfigOperation('获取所有设置配置'),
+  rateLimit(20, 60000),
+  getAllSettingsConfigs
 );
 
 // 获取配置分类列表
@@ -87,9 +98,9 @@ router.put('/batch/update',
 );
 
 // 获取单个配置
-router.get('/:key', 
+router.get('/get', 
   authenticateToken,
-  validateConfigKey,
+  validateConfigKeyQuery,
   validateConfigAccess,
   setCacheHeaders(300),
   logConfigOperation('获取单个配置'),
@@ -107,10 +118,10 @@ router.post('/',
 );
 
 // 更新配置
-router.put('/:key', 
+router.put('/update', 
   authenticateToken,
   requireAdmin,
-  validateConfigKey,
+  validateConfigKeyQuery,
   validateConfigEditable,
   validateUpdateRequest,
   logConfigOperation('更新配置'),
@@ -118,30 +129,30 @@ router.put('/:key',
 );
 
 // 删除配置
-router.delete('/:key', 
+router.delete('/delete', 
   authenticateToken,
   requireAdmin,
-  validateConfigKey,
+  validateConfigKeyQuery,
   validateConfigEditable,
   logConfigOperation('删除配置'),
   deleteConfig
 );
 
 // 重置配置为默认值
-router.post('/:key/reset', 
+router.post('/reset', 
   authenticateToken,
   requireAdmin,
-  validateConfigKey,
+  validateConfigKeyQuery,
   validateConfigEditable,
   logConfigOperation('重置配置'),
   resetConfig
 );
 
 // 获取配置历史记录
-router.get('/:key/history', 
+router.get('/history', 
   authenticateToken,
   requireAdmin,
-  validateConfigKey,
+  validateConfigKeyQuery,
   validateConfigExists,
   validatePaginationParams,
   setCacheHeaders(60),

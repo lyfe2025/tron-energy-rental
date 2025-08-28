@@ -1,492 +1,346 @@
-import { Activity, DollarSign, FileText, TrendingUp } from 'lucide-vue-next'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { api } from '@/utils/api'
+import { toast } from 'sonner'
+import { computed, onMounted, reactive } from 'vue'
 import type {
-    PriceCalculation,
-    PriceCalculatorInput,
-    PriceTemplate,
-    PricingFilters,
-    PricingState,
-    TemplateForm
+  PriceHistory,
+  PriceTemplate,
+  PricingMode,
+  PricingStrategy
 } from '../types/pricing.types'
 
 export function usePricing() {
   // 状态管理
-  const state = reactive<PricingState>({
-    templates: [],
-    priceHistory: [],
-    stats: {
-      totalTemplates: 0,
-      activeTemplates: 0,
-      averagePrice: 0,
-      priceChangeToday: 0
-    },
-    filters: {
-      type: 'all',
-      status: 'all',
-      searchQuery: '',
-      sortBy: 'updated',
-      sortOrder: 'desc'
-    },
+  const state = reactive({
+    strategies: [] as PricingStrategy[],
+    pricingModes: [] as PricingMode[],
+    templates: [] as PriceTemplate[],
+    priceHistory: [] as PriceHistory[],
     isLoading: false,
-    isSaving: false,
-    showTemplateModal: false,
-    selectedTemplate: null,
-    modalMode: 'create'
+    isSaving: false
   })
 
-  // 表单数据
-  const templateForm = ref<TemplateForm>({
-    name: '',
-    description: '',
-    type: 'energy',
-    basePrice: 0,
-    currency: 'TRX',
-    rules: []
+  // 筛选和分页状态
+  const filters = reactive({
+    strategies: {
+      type: 'all' as 'all' | 'energy_flash' | 'transaction_package',
+      status: 'all' as 'all' | 'active' | 'inactive',
+      searchQuery: '',
+      page: 1,
+      limit: 10
+    },
+    templates: {
+      type: 'all' as 'all' | 'energy_flash' | 'transaction_package',
+      searchQuery: '',
+      page: 1,
+      limit: 10
+    },
+    history: {
+      dateRange: null as { start: string; end: string } | null,
+      page: 1,
+      limit: 20
+    }
   })
 
   // 计算属性
-  const priceStats = computed(() => [
-    {
-      label: '模板总数',
-      value: state.stats.totalTemplates.toString(),
-      icon: FileText,
-      iconColor: 'text-blue-600',
-      bgColor: 'bg-blue-100'
-    },
-    {
-      label: '活跃模板',
-      value: state.stats.activeTemplates.toString(),
-      icon: Activity,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-100'
-    },
-    {
-      label: '平均价格',
-      value: `${state.stats.averagePrice.toFixed(3)} TRX`,
-      icon: DollarSign,
-      iconColor: 'text-purple-600',
-      bgColor: 'bg-purple-100'
-    },
-    {
-      label: '今日变化',
-      value: `${state.stats.priceChangeToday > 0 ? '+' : ''}${state.stats.priceChangeToday.toFixed(1)}%`,
-      change: state.stats.priceChangeToday > 0 ? '上涨' : '下跌',
-      changeColor: state.stats.priceChangeToday > 0 ? 'text-green-600' : 'text-red-600',
-      icon: TrendingUp,
-      iconColor: 'text-orange-600',
-      bgColor: 'bg-orange-100'
-    }
-  ])
+  const strategies = computed(() => state.strategies)
+  const pricingModes = computed(() => state.pricingModes)
+  const templates = computed(() => state.templates)
+  const priceHistory = computed(() => state.priceHistory)
+  const isLoading = computed(() => state.isLoading)
 
-  const filteredTemplates = computed(() => {
-    let templates = state.templates
-
-    // 类型筛选
-    if (state.filters.type !== 'all') {
-      templates = templates.filter(t => t.type === state.filters.type)
-    }
-
-    // 状态筛选
-    if (state.filters.status !== 'all') {
-      templates = templates.filter(t => t.status === state.filters.status)
-    }
-
-    // 搜索筛选
-    if (state.filters.searchQuery) {
-      const query = state.filters.searchQuery.toLowerCase()
-      templates = templates.filter(t => 
-        t.name.toLowerCase().includes(query) ||
-        t.description.toLowerCase().includes(query)
-      )
-    }
-
-    // 排序
-    templates.sort((a, b) => {
-      const { sortBy, sortOrder } = state.filters
-      let comparison = 0
-
-      switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name)
-          break
-        case 'price':
-          comparison = a.basePrice - b.basePrice
-          break
-        case 'usage':
-          comparison = a.usageCount - b.usageCount
-          break
-        case 'updated':
-          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-          break
-      }
-
-      return sortOrder === 'asc' ? comparison : -comparison
-    })
-
-    return templates
-  })
-
-  // 方法
-  const loadTemplates = async () => {
-    state.isLoading = true
+  // API 调用方法
+  const loadStrategies = async () => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 生成模拟数据
-      state.templates = generateMockTemplates()
-      state.priceHistory = generateMockHistory()
-      updateStats()
-      
-      console.log('Templates loaded successfully')
+      state.isLoading = true
+      const params = {
+        page: filters.strategies.page,
+        limit: filters.strategies.limit,
+        type: filters.strategies.type !== 'all' ? filters.strategies.type : undefined,
+        is_active: filters.strategies.status !== 'all' ? filters.strategies.status === 'active' : undefined,
+        search: filters.strategies.searchQuery || undefined
+      }
+      const response = await api.get('/pricing-strategies', { params })
+      const data = response.data.data
+      state.strategies = Array.isArray(data) ? data : []
     } catch (error) {
-      console.error('Failed to load templates:', error)
+      console.error('Failed to load strategies:', error)
+      toast.error('加载价格策略失败')
     } finally {
       state.isLoading = false
     }
   }
 
-  const generateMockTemplates = (): PriceTemplate[] => {
-    return [
-      {
-        id: '1',
-        name: '标准能量包',
-        description: '适用于日常能量租赁的标准定价模板',
-        type: 'energy',
-        basePrice: 0.1,
-        currency: 'TRX',
-        rules: [
-          {
-            id: 'r1',
-            type: 'volume',
-            condition: { operator: 'gte', value: 1000, unit: 'energy' },
-            action: { type: 'multiply', value: 0.95 },
-            description: '大于1000能量享受5%折扣',
-            enabled: true
-          }
-        ],
-        status: 'active',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-15T10:30:00Z',
-        usageCount: 1245
-      },
-      {
-        id: '2',
-        name: '高级带宽包',
-        description: '适用于高频交易的带宽租赁模板',
-        type: 'bandwidth',
-        basePrice: 0.05,
-        currency: 'TRX',
-        rules: [],
-        status: 'active',
-        createdAt: '2024-01-05T00:00:00Z',
-        updatedAt: '2024-01-14T15:20:00Z',
-        usageCount: 892
-      },
-      {
-        id: '3',
-        name: '紧急处理模板',
-        description: '用于紧急订单的加急定价模板',
-        type: 'mixed',
-        basePrice: 0.15,
-        currency: 'TRX',
-        rules: [
-          {
-            id: 'r2',
-            type: 'emergency',
-            condition: { operator: 'eq', value: 1 },
-            action: { type: 'multiply', value: 1.5 },
-            description: '紧急订单加价50%',
-            enabled: true
-          }
-        ],
-        status: 'inactive',
-        createdAt: '2024-01-10T00:00:00Z',
-        updatedAt: '2024-01-12T09:15:00Z',
-        usageCount: 234
-      }
-    ]
-  }
-
-  const generateMockHistory = () => {
-    return [
-      {
-        id: 'h1',
-        templateId: '1',
-        templateName: '标准能量包',
-        oldPrice: 0.12,
-        newPrice: 0.1,
-        changeReason: '市场价格调整',
-        changedBy: 'admin',
-        changedAt: '2024-01-15T10:30:00Z'
-      }
-    ]
-  }
-
-  const updateStats = () => {
-    state.stats.totalTemplates = state.templates.length
-    state.stats.activeTemplates = state.templates.filter(t => t.status === 'active').length
-    state.stats.averagePrice = state.templates.reduce((sum, t) => sum + t.basePrice, 0) / state.templates.length
-    state.stats.priceChangeToday = Math.random() > 0.5 ? 2.5 : -1.2 // 模拟数据
-  }
-
-  const refreshPricing = () => {
-    loadTemplates()
-  }
-
-  const updateFilters = (newFilters: Partial<PricingFilters>) => {
-    state.filters = { ...state.filters, ...newFilters }
-  }
-
-  // 模板管理
-  const showCreateTemplateModal = () => {
-    state.modalMode = 'create'
-    state.selectedTemplate = null
-    resetTemplateForm()
-    state.showTemplateModal = true
-  }
-
-  const showEditTemplateModal = (template: PriceTemplate) => {
-    state.modalMode = 'edit'
-    state.selectedTemplate = template
-    loadTemplateToForm(template)
-    state.showTemplateModal = true
-  }
-
-  const showViewTemplateModal = (template: PriceTemplate) => {
-    state.modalMode = 'view'
-    state.selectedTemplate = template
-    loadTemplateToForm(template)
-    state.showTemplateModal = true
-  }
-
-  const closeTemplateModal = () => {
-    state.showTemplateModal = false
-    state.selectedTemplate = null
-    resetTemplateForm()
-  }
-
-  const resetTemplateForm = () => {
-    templateForm.value = {
-      name: '',
-      description: '',
-      type: 'energy',
-      basePrice: 0,
-      currency: 'TRX',
-      rules: []
-    }
-  }
-
-  const loadTemplateToForm = (template: PriceTemplate) => {
-    templateForm.value = {
-      name: template.name,
-      description: template.description,
-      type: template.type,
-      basePrice: template.basePrice,
-      currency: template.currency,
-      rules: [...template.rules]
-    }
-  }
-
-  const saveTemplate = async () => {
-    state.isSaving = true
+  const loadPricingModes = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      if (state.modalMode === 'create') {
-        // 创建新模板
-        const newTemplate: PriceTemplate = {
-          id: Date.now().toString(),
-          ...templateForm.value,
-          status: 'draft',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          usageCount: 0
-        }
-        state.templates.push(newTemplate)
-      } else if (state.modalMode === 'edit' && state.selectedTemplate) {
-        // 更新模板
-        const index = state.templates.findIndex(t => t.id === state.selectedTemplate!.id)
-        if (index !== -1) {
-          state.templates[index] = {
-            ...state.selectedTemplate,
-            ...templateForm.value,
-            updatedAt: new Date().toISOString()
-          }
-        }
+      const response = await api.get('/pricing-modes')
+      const data = response.data.data
+      state.pricingModes = Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error('Failed to load pricing modes:', error)
+      toast.error('加载定价模式失败')
+    }
+  }
+
+  const loadTemplates = async () => {
+    try {
+      state.isLoading = true
+      const params = {
+        page: filters.templates.page,
+        limit: filters.templates.limit,
+        type: filters.templates.type !== 'all' ? filters.templates.type : undefined,
+        search: filters.templates.searchQuery || undefined
+      }
+      const response = await api.get('/price-templates', { params })
+      const data = response.data.data
+      state.templates = Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error('Failed to load templates:', error)
+      toast.error('加载价格模板失败')
+    } finally {
+      state.isLoading = false
+    }
+  }
+
+  const loadPriceHistory = async () => {
+    try {
+      state.isLoading = true
+      const params = {
+        page: filters.history.page,
+        limit: filters.history.limit,
+        start_date: filters.history.dateRange?.start,
+        end_date: filters.history.dateRange?.end
+      }
+      const response = await api.get('/price-history', { params })
+      const data = response.data.data
+      state.priceHistory = Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error('Failed to load price history:', error)
+      toast.error('加载价格历史失败')
+    } finally {
+      state.isLoading = false
+    }
+  }
+
+  const refreshData = async () => {
+    await Promise.all([
+      loadStrategies(),
+      loadPricingModes(),
+      loadTemplates(),
+      loadPriceHistory()
+    ])
+  }
+
+  // 策略管理方法
+  const showEditStrategy = (strategy: PricingStrategy) => {
+    console.log('编辑策略:', strategy)
+    // 这里可以打开编辑模态框
+  }
+
+  const showViewStrategy = (strategy: PricingStrategy) => {
+    console.log('查看策略:', strategy)
+    // 这里可以打开查看模态框
+  }
+
+  const deleteStrategy = async (strategyId: string) => {
+    try {
+      await api.delete(`/pricing-strategies/${strategyId}`)
+      toast.success('删除策略成功')
+      await loadStrategies()
+    } catch (error) {
+      console.error('Failed to delete strategy:', error)
+      toast.error('删除策略失败')
+    }
+  }
+
+  const toggleStrategyStatus = async (strategyId: string) => {
+    try {
+      // 确保 strategies 是数组
+      if (!Array.isArray(state.strategies)) {
+        console.error('state.strategies is not an array:', state.strategies)
+        toast.error('策略数据异常，请刷新页面重试')
+        return
       }
       
-      updateStats()
-      closeTemplateModal()
-      console.log('Template saved successfully')
+      const strategy = state.strategies.find(s => s.id === strategyId)
+      if (!strategy) return
+      
+      await api.put(`/pricing-strategies/${strategyId}`, {
+        ...strategy,
+        status: strategy.status === 'active' ? 'inactive' : 'active'
+      })
+      toast.success('更新策略状态成功')
+      await loadStrategies()
     } catch (error) {
-      console.error('Failed to save template:', error)
-    } finally {
-      state.isSaving = false
+      console.error('Failed to toggle strategy status:', error)
+      toast.error('更新策略状态失败')
     }
+  }
+
+  const duplicateStrategy = async (strategy: PricingStrategy) => {
+    try {
+      await api.post('/pricing-strategies', {
+        ...strategy,
+        name: `${strategy.name} (副本)`,
+        is_active: false
+      })
+      toast.success('复制策略成功')
+      await loadStrategies()
+    } catch (error) {
+      console.error('Failed to duplicate strategy:', error)
+      toast.error('复制策略失败')
+    }
+  }
+
+  // 模式管理方法
+  const updatePricingMode = async (modeId: string, config: any) => {
+    try {
+      await api.put(`/pricing-modes/${modeId}`, { config })
+      toast.success('更新定价模式成功')
+      await loadPricingModes()
+    } catch (error) {
+      console.error('Failed to update pricing mode:', error)
+      toast.error('更新定价模式失败')
+    }
+  }
+
+  // 模板管理方法
+  const showEditTemplate = (template: PriceTemplate) => {
+    console.log('编辑模板:', template)
+    // 这里可以打开编辑模态框
+  }
+
+  const showViewTemplate = (template: PriceTemplate) => {
+    console.log('查看模板:', template)
+    // 这里可以打开查看模态框
   }
 
   const deleteTemplate = async (templateId: string) => {
-    if (confirm('确定要删除这个定价模板吗？')) {
-      try {
-        state.templates = state.templates.filter(t => t.id !== templateId)
-        updateStats()
-        console.log('Template deleted successfully')
-      } catch (error) {
-        console.error('Failed to delete template:', error)
-      }
+    try {
+      await api.delete(`/price-templates/${templateId}`)
+      toast.success('删除模板成功')
+      await loadTemplates()
+    } catch (error) {
+      console.error('Failed to delete template:', error)
+      toast.error('删除模板失败')
     }
   }
 
   const toggleTemplateStatus = async (templateId: string) => {
-    const template = state.templates.find(t => t.id === templateId)
-    if (template) {
-      template.status = template.status === 'active' ? 'inactive' : 'active'
-      template.updatedAt = new Date().toISOString()
-      updateStats()
+    try {
+      // 确保 templates 是数组
+      if (!Array.isArray(state.templates)) {
+        console.error('state.templates is not an array:', state.templates)
+        toast.error('模板数据异常，请刷新页面重试')
+        return
+      }
+      
+      const template = state.templates.find(t => t.id === templateId)
+      if (!template) return
+      
+      await api.put(`/price-templates/${templateId}`, {
+        ...template,
+        status: template.status === 'active' ? 'inactive' : 'active'
+      })
+      toast.success('更新模板状态成功')
+      await loadTemplates()
+    } catch (error) {
+      console.error('Failed to toggle template status:', error)
+      toast.error('更新模板状态失败')
     }
   }
 
-  const duplicateTemplate = (template: PriceTemplate) => {
-    const newTemplate: PriceTemplate = {
-      ...template,
-      id: Date.now().toString(),
-      name: `${template.name} (副本)`,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      usageCount: 0
+  const duplicateTemplate = async (template: PriceTemplate) => {
+    try {
+      await api.post('/price-templates', {
+        name: `${template.name} (副本)`,
+        description: template.description,
+        is_default: false
+      })
+      toast.success('复制模板成功')
+      await loadTemplates()
+    } catch (error) {
+      console.error('Failed to duplicate template:', error)
+      toast.error('复制模板失败')
     }
-    state.templates.push(newTemplate)
-    updateStats()
   }
 
-  // 价格计算
-  const calculatePrice = (input: PriceCalculatorInput): PriceCalculation => {
-    const template = input.templateId ? 
-      state.templates.find(t => t.id === input.templateId) : 
-      state.templates.find(t => t.type === input.type && t.status === 'active')
-
-    if (!template) {
-      return {
-        baseAmount: input.amount,
-        basePrice: 0.1, // 默认价格
-        subtotal: input.amount * 0.1,
-        discounts: [],
-        fees: [],
-        total: input.amount * 0.1,
-        currency: 'TRX'
-      }
-    }
-
-    const basePrice = template.basePrice
-    const subtotal = input.amount * basePrice
-    const discounts: any[] = []
-    const fees: any[] = []
-
-    // 应用规则
-    template.rules.forEach(rule => {
-      if (!rule.enabled) return
-
-      let shouldApply = false
-
-      switch (rule.type) {
-        case 'volume':
-          if (rule.condition.operator === 'gte' && typeof rule.condition.value === 'number' && input.amount >= rule.condition.value) {
-            shouldApply = true
-          }
-          break
-        case 'user_level':
-          // 根据用户等级应用规则
-          break
-        case 'emergency':
-          if (input.isEmergency) {
-            shouldApply = true
-          }
-          break
-      }
-
-      if (shouldApply) {
-        const adjustment = {
-          id: rule.id,
-          name: rule.description,
-          type: rule.action.value < 1 ? 'discount' : 'fee',
-          amount: 0,
-          description: rule.description
-        }
-
-        if (rule.action.type === 'multiply') {
-          if (rule.action.value < 1) {
-            adjustment.amount = subtotal * (1 - rule.action.value)
-            discounts.push(adjustment)
-          } else {
-            adjustment.amount = subtotal * (rule.action.value - 1)
-            fees.push(adjustment)
-          }
-        }
-      }
-    })
-
-    const totalDiscounts = discounts.reduce((sum, d) => sum + d.amount, 0)
-    const totalFees = fees.reduce((sum, f) => sum + f.amount, 0)
-    const total = subtotal - totalDiscounts + totalFees
-
-    return {
-      baseAmount: input.amount,
-      basePrice,
-      subtotal,
-      discounts,
-      fees,
-      total,
-      currency: template.currency
+  // 历史管理方法
+  const loadPriceHistoryByFilters = async (filters: any) => {
+    try {
+      state.isLoading = true
+      const params = new URLSearchParams()
+      
+      if (filters.startDate) params.append('start_date', filters.startDate)
+      if (filters.endDate) params.append('end_date', filters.endDate)
+      if (filters.type) params.append('type', filters.type)
+      if (filters.page) params.append('page', filters.page.toString())
+      if (filters.limit) params.append('limit', filters.limit.toString())
+      
+      const response = await api.get(`/price-history?${params.toString()}`)
+      const data = response.data.data
+      state.priceHistory = Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error('Failed to load price history:', error)
+      toast.error('加载价格历史失败')
+    } finally {
+      state.isLoading = false
     }
   }
 
   // 格式化函数
-  const formatCurrency = (value: number, currency: string = 'TRX') => {
-    return `${value.toFixed(6)} ${currency}`
+  const formatCurrency = (amount: number, currency = 'TRX') => {
+    return `${amount.toLocaleString()} ${currency}`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN')
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('zh-CN')
+  }
+
+  const formatNumber = (num: number) => {
+    return num.toLocaleString()
   }
 
   // 生命周期
   onMounted(() => {
-    loadTemplates()
+    refreshData()
   })
 
   return {
-    // 响应式数据
+    // 状态
+    strategies: computed(() => state.strategies),
+    pricingModes: computed(() => state.pricingModes),
     templates: computed(() => state.templates),
     priceHistory: computed(() => state.priceHistory),
-    stats: computed(() => state.stats),
-    filters: computed(() => state.filters),
     isLoading: computed(() => state.isLoading),
-    isSaving: computed(() => state.isSaving),
-    showTemplateModal: computed(() => state.showTemplateModal),
-    selectedTemplate: computed(() => state.selectedTemplate),
-    modalMode: computed(() => state.modalMode),
-    templateForm,
-    
-    // 计算属性
-    priceStats,
-    filteredTemplates,
     
     // 方法
+    loadStrategies,
+    loadPricingModes,
     loadTemplates,
-    refreshPricing,
-    updateFilters,
-    showCreateTemplateModal,
-    showEditTemplateModal,
-    showViewTemplateModal,
-    closeTemplateModal,
-    saveTemplate,
+    loadPriceHistory,
+    loadPriceHistoryByFilters,
+    refreshData,
+    
+    // 策略管理
+    showEditStrategy,
+    showViewStrategy,
+    deleteStrategy,
+    toggleStrategyStatus,
+    duplicateStrategy,
+    
+    // 模式管理
+    updatePricingMode,
+    
+    // 模板管理
+    showEditTemplate,
+    showViewTemplate,
     deleteTemplate,
     toggleTemplateStatus,
     duplicateTemplate,
-    calculatePrice,
+    
+    // 格式化函数
     formatCurrency,
-    formatDate
+    formatDate,
+    formatNumber
   }
 }

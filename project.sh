@@ -2,7 +2,7 @@
 
 # 项目统一管理脚本 - 主入口
 # 支持前后台服务的启动、停止、重启、日志管理、数据库备份等操作
-# 版本: 2.0 (模块化重构版)
+# 版本: 2.1 (安全增强版)
 
 set -e  # 遇到错误立即退出
 
@@ -61,25 +61,25 @@ show_help() {
     echo -e "  ${GREEN}${ARROW}${NC} 数据库恢复和验证"
     echo ""
     echo -e "${BOLD}环境配置:${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 后端端口: ${YELLOW}$BACKEND_PORT${NC} (从 .env 读取)"
-    echo -e "  ${GREEN}${ARROW}${NC} 前端端口: ${YELLOW}$FRONTEND_PORT${NC} (从 .env 读取)"
-    echo -e "  ${GREEN}${ARROW}${NC} 环境: ${YELLOW}$NODE_ENV${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 后端端口: ${YELLOW}${BACKEND_PORT:-3001}${NC} (从 .env 读取)"
+    echo -e "  ${GREEN}${ARROW}${NC} 前端端口: ${YELLOW}${FRONTEND_PORT:-5173}${NC} (从 .env 读取)"
+    echo -e "  ${GREEN}${ARROW}${NC} 环境: ${YELLOW}${NODE_ENV:-development}${NC}"
     echo ""
     echo -e "${BOLD}模块化架构:${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 工具函数: ${YELLOW}scripts/utils.sh${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 服务管理: ${YELLOW}scripts/service-manager.sh${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 日志管理: ${YELLOW}scripts/log-manager.sh${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 数据库管理: ${YELLOW}scripts/database-manager.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 工具函数: ${YELLOW}scripts/core/utils.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 服务管理: ${YELLOW}scripts/core/service-manager.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 日志管理: ${YELLOW}scripts/core/log-manager.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 数据库管理: ${YELLOW}scripts/core/database-manager.sh${NC}"
     echo ""
     echo -e "${BOLD}独立脚本:${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 独立备份: ${YELLOW}scripts/backup-database.sh${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 独立恢复: ${YELLOW}scripts/restore-database.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 独立备份: ${YELLOW}scripts/database/backup-database.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 独立恢复: ${YELLOW}scripts/database/restore-database.sh${NC}"
     echo ""
     echo -e "${BOLD}日志和备份:${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 日志目录: ${YELLOW}$LOG_DIR${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 备份目录: ${YELLOW}$BACKUP_DIR${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 日志目录: ${YELLOW}${LOG_DIR:-logs}${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 备份目录: ${YELLOW}${BACKUP_DIR:-backups}${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 配置来源: ${YELLOW}.env 环境变量${NC}"
-    echo -e "  ${GREEN}${ARROW}${NC} 备份格式: PostgreSQL SQL 转储文件（未压缩）"
+    echo -e "  ${GREEN}${ARROW}${NC} 备份格式: PostgreSQL SQL 转储文件"
     echo ""
     echo -e "${BOLD}安全特性:${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 进程识别: 仅停止项目相关的Node.js进程"

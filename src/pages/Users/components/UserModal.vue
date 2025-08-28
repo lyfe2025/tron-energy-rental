@@ -93,10 +93,10 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              角色 <span v-if="mode !== 'view'" class="text-red-500">*</span>
+              类型 <span v-if="mode !== 'view'" class="text-red-500">*</span>
             </label>
             <select
-              v-model="formData.role"
+              v-model="formData.type"
               :disabled="mode === 'view'"
               :class="[
                 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
@@ -104,10 +104,10 @@
               ]"
               required
             >
-              <option value="">请选择角色</option>
-              <option value="user">普通用户</option>
-              <option value="agent">代理商</option>
-              <option value="admin">管理员</option>
+              <option value="">请选择类型</option>
+              <option value="normal">普通用户</option>
+              <option value="premium">高级用户</option>
+              <option value="vip">VIP用户</option>
             </select>
           </div>
           
@@ -316,7 +316,7 @@ const formData = ref<UserFormData>({
   username: '',
   email: '',
   phone: '',
-  role: '',
+  type: '',
   status: 'active',
   balance: 0,
   usdt_balance: 0,
@@ -340,11 +340,11 @@ watch(
         username: newUser.username,
         email: newUser.email,
         phone: newUser.phone || '',
-        role: newUser.role,
+        type: newUser.type,
         status: newUser.status,
-        balance: newUser.balance,
-        usdt_balance: newUser.usdt_balance || 0,
-        trx_balance: newUser.trx_balance || 0,
+        balance: Number(newUser.balance) || 0,
+        usdt_balance: Number(newUser.usdt_balance) || 0,
+        trx_balance: Number(newUser.trx_balance) || 0,
         password: '',
         confirmPassword: '',
         remark: newUser.remark || '',
@@ -360,7 +360,7 @@ watch(
         username: '',
         email: '',
         phone: '',
-        role: '',
+        type: '',
         status: 'active',
         balance: 0,
         usdt_balance: 0,

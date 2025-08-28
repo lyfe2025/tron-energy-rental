@@ -40,7 +40,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     // 非管理员只能查看自己的数据
     if (req.user?.role !== 'admin') {
       whereConditions.push(`user_id = $${paramIndex}`);
-      queryParams.push(req.user?.userId);
+      queryParams.push(String(req.user?.userId));
       paramIndex++;
     }
 
@@ -107,7 +107,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
     // 非管理员只能查看自己的数据
     if (req.user?.role !== 'admin') {
       query += ' AND user_id = $2';
-      queryParams.push(req.user?.userId);
+      queryParams.push(String(req.user?.userId));
     }
 
     const result = await pool.query(query, queryParams);
@@ -165,9 +165,9 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       [
         name,
         description,
-        req.user?.userId,
-        req.user?.userId,
-        req.user?.userId
+        String(req.user?.userId),
+        String(req.user?.userId),
+        String(req.user?.userId)
       ]
     );
 
@@ -218,7 +218,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     const currentItem = existingItem.rows[0];
 
     // 检查权限：非管理员只能编辑自己的数据
-    if (req.user?.role !== 'admin' && currentItem.user_id !== req.user?.userId) {
+    if (req.user?.role !== 'admin' && currentItem.user_id !== String(req.user?.userId)) {
       return res.status(403).json({
         success: false,
         message: '无权编辑此项目'
@@ -250,7 +250,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     }
 
     updateFields.push(`updated_by = $${paramIndex}`, `updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(req.user?.userId);
+    updateValues.push(String(req.user?.userId));
     paramIndex++;
 
     updateValues.push(id); // WHERE 条件的参数
@@ -307,7 +307,7 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     const currentItem = existingItem.rows[0];
 
     // 检查权限：非管理员只能删除自己的数据
-    if (req.user?.role !== 'admin' && currentItem.user_id !== req.user?.userId) {
+    if (req.user?.role !== 'admin' && currentItem.user_id !== Number(req.user?.userId)) {
       return res.status(403).json({
         success: false,
         message: '无权删除此项目'
@@ -382,7 +382,7 @@ router.put('/batch/update', authenticateToken, requireAdmin, async (req: Request
              SET name = $1, description = $2, updated_by = $3, updated_at = CURRENT_TIMESTAMP
              WHERE id = $4
              RETURNING *`,
-            [name, description, req.user?.userId, id]
+            [name, description, Number(req.user?.userId), id]
           );
 
           results.push(result.rows[0]);

@@ -495,8 +495,9 @@ export class PriceValidator {
    */
   private async checkAgentAvailability(agentId: string): Promise<boolean> {
     try {
+      // 注意：旧的代理商定价表已移除，如需要请根据新架构实现
       const result = await query(
-        'SELECT status FROM agent_pricing WHERE id = ?',
+        'SELECT status FROM agents WHERE id = ?',
         [agentId]
       );
       

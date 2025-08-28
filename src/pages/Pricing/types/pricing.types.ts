@@ -8,6 +8,84 @@ export interface PriceStats {
   bgColor: string
 }
 
+// 价格策略相关类型
+export interface PricingStrategy {
+  id: string
+  name: string
+  description: string
+  resourceType: 'energy' | 'bandwidth' | 'mixed'
+  priority: number
+  status: 'active' | 'inactive' | 'draft'
+  effectiveFrom: string
+  effectiveTo?: string
+  conditions: StrategyCondition[]
+  actions: StrategyAction[]
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  usageCount: number
+}
+
+export interface StrategyCondition {
+  id: string
+  type: 'amount_range' | 'user_level' | 'time_range' | 'emergency' | 'custom'
+  operator: 'gte' | 'lte' | 'eq' | 'between' | 'in'
+  value: any
+  unit?: string
+  description: string
+}
+
+export interface StrategyAction {
+  id: string
+  type: 'price_multiply' | 'price_add' | 'price_set' | 'discount' | 'fee'
+  value: number
+  unit?: string
+  description: string
+}
+
+// 定价模式相关类型
+export interface PricingMode {
+  id: string
+  name: string
+  description: string
+  type: 'fixed' | 'dynamic' | 'tiered' | 'auction'
+  config: PricingModeConfig
+  isEnabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PricingModeConfig {
+  basePrice?: number
+  currency?: string
+  tiers?: PricingTier[]
+  dynamicFactors?: DynamicFactor[]
+  auctionSettings?: AuctionSettings
+}
+
+export interface PricingTier {
+  id: string
+  minAmount: number
+  maxAmount?: number
+  price: number
+  description: string
+}
+
+export interface DynamicFactor {
+  id: string
+  name: string
+  type: 'supply_demand' | 'time_based' | 'market_price' | 'custom'
+  weight: number
+  config: any
+}
+
+export interface AuctionSettings {
+  startPrice: number
+  reservePrice?: number
+  duration: number
+  bidIncrement: number
+}
+
 export interface PriceTemplate {
   id: string
   name: string
@@ -59,13 +137,19 @@ export interface PriceAdjustment {
 
 export interface PriceHistory {
   id: string
-  templateId: string
-  templateName: string
-  oldPrice: number
-  newPrice: number
-  changeReason: string
-  changedBy: string
-  changedAt: string
+  resourceType: 'energy' | 'bandwidth' | 'mixed'
+  action: 'purchase' | 'rental' | 'refund' | 'adjustment'
+  amount: number
+  price: number
+  currency: string
+  strategyId?: string
+  strategyName?: string
+  modeId?: string
+  modeName?: string
+  userId: string
+  userName?: string
+  createdAt: string
+  metadata?: any
 }
 
 export interface PricingFilters {
@@ -77,9 +161,15 @@ export interface PricingFilters {
 }
 
 export interface PricingState {
+  strategies: PricingStrategy[]
+  pricingModes: PricingMode[]
   templates: PriceTemplate[]
   priceHistory: PriceHistory[]
   stats: {
+    totalStrategies: number
+    activeStrategies: number
+    totalModes: number
+    enabledModes: number
     totalTemplates: number
     activeTemplates: number
     averagePrice: number
@@ -88,9 +178,6 @@ export interface PricingState {
   filters: PricingFilters
   isLoading: boolean
   isSaving: boolean
-  showTemplateModal: boolean
-  selectedTemplate: PriceTemplate | null
-  modalMode: 'create' | 'edit' | 'view'
 }
 
 export interface TemplateForm {
@@ -103,9 +190,10 @@ export interface TemplateForm {
 }
 
 export interface PriceCalculatorInput {
-  type: 'energy' | 'bandwidth'
+  resourceType: 'energy' | 'bandwidth'
   amount: number
   userLevel: 'regular' | 'premium' | 'vip'
   isEmergency: boolean
-  templateId?: string
+  strategyId?: string
+  pricingModeId?: string
 }

@@ -1,48 +1,117 @@
-// 用户基础信息接口
-export interface User {
+// Telegram用户基础信息接口（对应telegram_users表）
+export interface TelegramUser {
   id: string
-  telegram_id?: number
-  username: string
-  email: string
-  first_name?: string
-  last_name?: string
-  phone?: string
-  role: UserRole
-  status: UserStatus
-  balance: number
-  usdt_balance: number
-  trx_balance: number
-  last_login?: string
+  telegram_id: number
+  username?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  phone?: string | null
+  status: TelegramUserStatus
+  balance: string | number
+  usdt_balance: string | number
+  trx_balance: string | number
+  last_login_at?: string | null
+  last_login?: string | null
   login_count?: number
   remark?: string
+  agent_id?: string | null
   created_at: string
   updated_at: string
 }
 
-// 用户角色类型
-export type UserRole = 'admin' | 'agent' | 'user';
+// 代理商信息接口（对应agents表）
+export interface Agent {
+  id: string
+  name: string
+  email: string
+  phone?: string | null
+  status: AgentStatus
+  commission_rate: number
+  balance: string | number
+  total_commission: string | number
+  total_orders: number
+  created_at: string
+  updated_at: string
+}
 
-// 用户状态类型
-export type UserStatus = 'active' | 'inactive' | 'banned';
+// 管理员信息接口（对应admins表）
+export interface Admin {
+  id: string
+  username: string
+  email: string
+  phone?: string | null
+  status: AdminStatus
+  last_login_at?: string | null
+  last_login?: string | null
+  login_count?: number
+  created_at: string
+  updated_at: string
+}
+
+// 统一用户接口（用于前端显示）
+export interface User {
+  id: string
+  type: 'telegram_user' | 'agent' | 'admin'
+  username?: string | null
+  email?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  phone?: string | null
+  status: UserStatus
+  balance?: string | number
+  usdt_balance?: string | number
+  trx_balance?: string | number
+  last_login_at?: string | null
+  last_login?: string | null
+  login_count?: number
+  remark?: string
+  created_at: string
+  updated_at: string
+  // 扩展字段
+  telegram_id?: number
+  agent_id?: string | null
+  commission_rate?: number
+  total_commission?: string | number
+  total_orders?: number
+}
+
+// Telegram用户状态类型
+export type TelegramUserStatus = 'active' | 'inactive' | 'banned';
+
+// 代理商状态类型
+export type AgentStatus = 'pending' | 'active' | 'inactive' | 'rejected';
+
+// 管理员状态类型
+export type AdminStatus = 'active' | 'inactive';
+
+// 统一用户状态类型
+export type UserStatus = TelegramUserStatus | AgentStatus | AdminStatus;
+
+// 用户角色类型（保持向后兼容）
+export type UserRole = 'telegram_user' | 'agent' | 'admin';
 
 // 用户表单数据接口
 export interface UserFormData {
   id: string
+  type: 'telegram_user' | 'agent' | 'admin' | ''
   telegram_id?: number
-  username: string
-  email: string
-  phone: string
-  role: string
+  username?: string
+  email?: string
+  first_name?: string
+  last_name?: string
+  phone?: string
   status: UserStatus
-  balance: number
-  usdt_balance: number
-  trx_balance: number
-  password: string
-  confirmPassword: string
-  remark: string
+  balance?: number
+  usdt_balance?: number
+  trx_balance?: number
+  password?: string
+  confirmPassword?: string
+  remark?: string
+  agent_id?: string
+  commission_rate?: number
   created_at: string
   updated_at: string
-  last_login: string
+  last_login?: string
 }
 
 // 用户统计数据接口
@@ -61,7 +130,7 @@ export interface UserStats {
 export interface UserSearchParams {
   query: string
   status: UserStatus | ''
-  role: UserRole | ''
+  type: UserRole | ''
   dateRange: {
     start: string
     end: string
@@ -74,7 +143,7 @@ export interface UserListParams {
   pageSize: number
   search?: string
   status?: UserStatus
-  role?: UserRole
+  type?: UserRole
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   dateFrom?: string
@@ -103,36 +172,46 @@ export type BatchOperationType =
   | 'deactivate'
   | 'delete'
   | 'export'
-  | 'roleChange'
+  | 'typeChange'
   | 'resetPassword'
   | 'sendNotification'
 
 // 用户创建参数接口
 export interface CreateUserParams {
-  username: string
-  email: string
-  phone?: string
-  role: UserRole
-  status: UserStatus
-  balance: number
-  password: string
-  remark?: string
-  login_type?: 'admin' | 'telegram'
-  telegram_id?: number
+  type: UserRole | ''
+  role: 'admin' | 'agent' | 'user'
+  username?: string
+  email?: string
   first_name?: string
   last_name?: string
+  phone?: string
+  status: UserStatus
+  balance?: number
+  password?: string
+  remark?: string
+  // Telegram用户特有字段
+  telegram_id?: number
+  agent_id?: string
+  // 代理商特有字段
+  name?: string
+  commission_rate?: number
 }
 
 // 用户更新参数接口
 export interface UpdateUserParams {
   username?: string
   email?: string
+  first_name?: string
+  last_name?: string
   phone?: string
-  role?: UserRole
-  status?: UserStatus
+  status?: 'active' | 'inactive' | 'banned'
   balance?: number
   password?: string
   remark?: string
+  // 代理商特有字段
+  name?: string
+  commission_rate?: number
+  agent_id?: string
 }
 
 // 密码重置参数接口
@@ -157,7 +236,7 @@ export interface ExportUsersParams {
   filters?: UserSearchParams
   search?: string
   status?: UserStatus
-  role?: UserRole
+  type?: UserRole
 }
 
 // 用户模态框模式类型

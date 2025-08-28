@@ -101,7 +101,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const newConfig = await this.service.createConfig(configData, Number(userId));
+      const newConfig = await this.service.createConfig(configData, String(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -140,7 +140,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const updatedConfig = await this.service.updateConfig(key, updateData, Number(userId));
+      const updatedConfig = await this.service.updateConfig(key, updateData, String(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -189,7 +189,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const result = await this.service.batchUpdateConfigs(batchData, userId);
+      const result = await this.service.batchUpdateConfigs(batchData, String(userId));
 
       const response: ApiResponse = {
         success: true,
@@ -227,7 +227,7 @@ export class SystemConfigsController {
         return;
       }
 
-      await this.service.deleteConfig(key, Number(userId), change_reason);
+      await this.service.deleteConfig(key, String(userId), change_reason);
 
       const response: ApiResponse = {
         success: true,
@@ -274,7 +274,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const resetConfig = await this.service.resetConfigToDefault(key, Number(userId), resetData);
+      const resetConfig = await this.service.resetConfigToDefault(key, String(userId), resetData);
 
       const response: ApiResponse = {
         success: true,
@@ -415,6 +415,45 @@ export class SystemConfigsController {
       res.status(500).json(response);
     }
   }
+
+  /**
+   * 获取所有设置相关的配置（用于设置页面）
+   */
+  async getAllSettingsConfigs(req: Request, res: Response): Promise<void> {
+    try {
+      const categories = ['system', 'security', 'notification', 'pricing', 'cache', 'logging', 'api', 'features'];
+      const allConfigs: any[] = [];
+      
+      // 获取所有分类的配置
+      for (const category of categories) {
+        const queryParams: SystemConfigQuery = {
+          page: 1,
+          limit: 100,
+          category: category
+        };
+        
+        const result = await this.service.getSystemConfigs(queryParams, req.user?.role);
+        if (result.configs) {
+          allConfigs.push(...result.configs);
+        }
+      }
+
+      const response: ApiResponse = {
+        success: true,
+        data: allConfigs
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error('获取所有设置配置失败:', error);
+      const response: ApiResponse = {
+        success: false,
+        message: '获取所有设置配置失败',
+        error: error instanceof Error ? error.message : '未知错误'
+      };
+      res.status(500).json(response);
+    }
+  }
 }
 
 // 创建控制器实例
@@ -432,3 +471,4 @@ export const getConfigHistory = controller.getConfigHistory.bind(controller);
 export const getConfigCategories = controller.getConfigCategories.bind(controller);
 export const getConfigStats = controller.getConfigStats.bind(controller);
 export const validateConfigValue = controller.validateConfigValue.bind(controller);
+export const getAllSettingsConfigs = controller.getAllSettingsConfigs.bind(controller);

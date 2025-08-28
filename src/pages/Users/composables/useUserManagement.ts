@@ -1,17 +1,17 @@
-import { ref, computed, reactive } from 'vue'
-import { Users, UserCheck, UserX, Shield } from 'lucide-vue-next'
-import type {
-  User,
-  UserStats,
-  UserSearchParams,
-  UserListParams,
-  UserFormData,
-  UserModalMode,
-  BatchOperationParams,
-  CreateUserParams,
-  UpdateUserParams
-} from '../types/user.types'
 import { userService } from '@/services/userService'
+import { Shield, UserCheck, Users, UserX } from 'lucide-vue-next'
+import { computed, reactive, ref } from 'vue'
+import type {
+    BatchOperationParams,
+    CreateUserParams,
+    UpdateUserParams,
+    User,
+    UserFormData,
+    UserListParams,
+    UserModalMode,
+    UserSearchParams,
+    UserStats
+} from '../types/user.types'
 
 // 统计卡片接口
 interface StatCard {
@@ -43,7 +43,7 @@ export function useUserManagement() {
   const searchParams = reactive<UserSearchParams>({
     query: '',
     status: '',
-    role: '',
+    type: '',
     dateRange: {
       start: '',
       end: ''
@@ -92,9 +92,9 @@ export function useUserManagement() {
       result = result.filter(user => user.status === searchParams.status)
     }
 
-    // 角色过滤
-    if (searchParams.role) {
-      result = result.filter(user => user.role === searchParams.role)
+    // 类型过滤
+    if (searchParams.type) {
+      result = result.filter(user => user.type === searchParams.type)
     }
 
     // 日期范围过滤
@@ -189,24 +189,26 @@ export function useUserManagement() {
     }).format(amount)
   }
 
-  const getRoleText = (role: string): string => {
-    const roleMap: Record<string, string> = {
-      user: '普通用户',
+  const getTypeText = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      normal: '普通用户',
       vip: 'VIP用户',
+      premium: '套餐用户',
       agent: '代理商',
       admin: '管理员'
     }
-    return roleMap[role] || role
+    return typeMap[type] || type
   }
 
-  const getRoleColor = (role: string): string => {
+  const getTypeColor = (type: string): string => {
     const colorMap: Record<string, string> = {
-      user: 'bg-gray-100 text-gray-800',
+      normal: 'bg-gray-100 text-gray-800',
       vip: 'bg-yellow-100 text-yellow-800',
+      premium: 'bg-purple-100 text-purple-800',
       agent: 'bg-blue-100 text-blue-800',
       admin: 'bg-red-100 text-red-800'
     }
-    return colorMap[role] || 'bg-gray-100 text-gray-800'
+    return colorMap[type] || 'bg-gray-100 text-gray-800'
   }
 
   const getStatusText = (status: string): string => {
@@ -236,7 +238,7 @@ export function useUserManagement() {
         pageSize: pageSize.value,
         search: searchParams.query || undefined,
         status: searchParams.status || undefined,
-        role: searchParams.role || undefined,
+        type: searchParams.type || undefined,
         dateFrom: searchParams.dateRange.start || undefined,
         dateTo: searchParams.dateRange.end || undefined
       }
@@ -300,8 +302,8 @@ export function useUserManagement() {
     loadUsers()
   }
 
-  const handleRoleFilter = (role: string) => {
-    searchParams.role = role as any
+  const handleTypeFilter = (type: string) => {
+    searchParams.type = type as any
     currentPage.value = 1
     loadUsers()
   }
@@ -316,7 +318,7 @@ export function useUserManagement() {
   const clearFilters = () => {
     searchParams.query = ''
     searchParams.status = ''
-    searchParams.role = ''
+    searchParams.type = ''
     searchParams.dateRange.start = ''
     searchParams.dateRange.end = ''
     currentPage.value = 1
@@ -388,20 +390,21 @@ export function useUserManagement() {
       
       if (modalMode.value === 'create') {
         const createParams: CreateUserParams = {
+          type: formData.type as any,
+          role: formData.type as any,
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
-          role: formData.role as any,
           status: formData.status,
           balance: formData.balance,
           password: formData.password,
           remark: formData.remark,
-          // 根据角色设置login_type
-          login_type: formData.role === 'admin' ? 'admin' : 'telegram',
-          // 如果是telegram用户，生成一个临时的telegram_id
-          telegram_id: formData.role !== 'admin' ? Math.floor(Math.random() * 1000000000) : undefined,
-          first_name: formData.username,
-          last_name: ''
+          // 根据类型设置特有字段
+          telegram_id: formData.type === 'telegram_user' ? Math.floor(Math.random() * 1000000000) : undefined,
+          first_name: formData.type === 'telegram_user' ? formData.first_name || formData.username : undefined,
+          last_name: formData.type === 'telegram_user' ? formData.last_name || '' : undefined,
+          agent_id: formData.type === 'agent' ? formData.agent_id : undefined,
+          commission_rate: formData.type === 'agent' ? formData.commission_rate : undefined
         }
         await userService.createUser(createParams)
       } else if (modalMode.value === 'edit') {
@@ -409,10 +412,13 @@ export function useUserManagement() {
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
-          role: formData.role as any,
-          status: formData.status,
+          status: formData.status as any,
           balance: formData.balance,
-          remark: formData.remark
+          remark: formData.remark,
+          // 根据类型更新特有字段
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          commission_rate: formData.commission_rate
         }
         if (formData.password) {
           updateParams.password = formData.password
@@ -505,7 +511,7 @@ export function useUserManagement() {
       const params = {
         userIds: selectedUsers.value,
         format: 'excel' as const,
-        fields: ['username', 'email', 'phone', 'role', 'status', 'balance', 'created_at']
+        fields: ['username', 'email', 'phone', 'type', 'status', 'balance', 'created_at']
       }
       await userService.exportUsers(params)
     } catch (error) {
@@ -513,19 +519,19 @@ export function useUserManagement() {
     }
   }
 
-  const batchRoleChange = async (role: string) => {
+  const batchTypeChange = async (type: string) => {
     try {
       const params: BatchOperationParams = {
         userIds: selectedUsers.value,
-        operation: 'roleChange',
-        data: { role }
+        operation: 'typeChange',
+        data: { type }
       }
       await userService.batchOperation(params)
       clearSelection()
       await loadUsers()
       await loadUserStats()
     } catch (error) {
-      console.error('批量角色变更失败:', error)
+      console.error('批量类型变更失败:', error)
     }
   }
 
@@ -595,8 +601,8 @@ export function useUserManagement() {
     formatDateTime,
     formatDate,
     formatCurrency,
-    getRoleText,
-    getRoleColor,
+    getTypeText,
+    getTypeColor,
     getStatusText,
     getStatusColor,
     
@@ -607,7 +613,7 @@ export function useUserManagement() {
     // 搜索筛选
     handleSearch,
     handleStatusFilter,
-    handleRoleFilter,
+    handleTypeFilter,
     handleDateRangeFilter,
     clearFilters,
     
@@ -636,7 +642,7 @@ export function useUserManagement() {
     batchDeactivate,
     batchDelete,
     batchExport,
-    batchRoleChange,
+    batchTypeChange,
     
     // 其他
     toggleUserMenu,

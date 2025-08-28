@@ -2,54 +2,60 @@
  * 用户管理服务
  * 封装用户相关的 API 调用
  */
-import { usersAPI, statisticsAPI } from './api'
 import type {
-  User,
-  UserStats,
-  UserListParams,
-  UserListResponse,
-  CreateUserParams,
-  UpdateUserParams,
-  BatchOperationParams,
-  ResetPasswordParams,
-  ExportUsersParams
+    BatchOperationParams,
+    CreateUserParams,
+    ExportUsersParams,
+    ResetPasswordParams,
+    UpdateUserParams,
+    UserListParams,
+    UserListResponse,
+    UserStats
 } from '../pages/Users/types/user.types'
-import type { ApiResponse, PaginatedResponse } from './api'
+import type { User } from '../types/api'
+import { usersAPI } from './api'
 
 export const userService = {
   /**
    * 获取用户列表
    */
   async getUserList(params: UserListParams): Promise<UserListResponse> {
-    console.debug('userService.getUserList called with params:', params)
-    
     const apiParams = {
       page: params.page,
       limit: params.pageSize,
       search: params.search,
       status: params.status,
-      role: params.role,
+      type: params.type,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo
     }
     
-    console.debug('Calling usersAPI.getUsers with:', apiParams)
     const response = await usersAPI.getUsers(apiParams)
-    console.debug('usersAPI.getUsers response:', response)
     
-    // API返回的数据结构是 {data: {items: [], total, page, limit, totalPages}}
+    // 后端API返回的数据结构是 {data: {users: [], pagination: {total, totalPages}}}
     const responseData = response.data.data
-    console.debug('Response data:', responseData)
     
+    // 处理用户数据，确保字段映射正确
+    const processedUsers = (responseData.users || []).map(user => ({
+      ...user,
+      // 确保 type 字段存在，根据 role 字段推断
+      type: (user.role === 'admin' ? 'admin' : user.role === 'agent' ? 'agent' : 'telegram_user') as 'telegram_user' | 'agent' | 'admin',
+      // 确保 last_login 字段存在
+      last_login: user.last_login || null,
+      // 确保数值字段是数字类型
+      balance: String(parseFloat(String(user.balance)) || 0),
+      usdt_balance: String(parseFloat(String(user.usdt_balance)) || 0),
+      trx_balance: String(parseFloat(String(user.trx_balance)) || 0)
+    }))
+
     const result = {
-      users: responseData.items || [],
-      total: responseData.total || 0,
-      page: responseData.page || 1,
-      pageSize: responseData.limit || 10,
-      totalPages: responseData.totalPages || 1
+      users: processedUsers,
+      total: responseData.pagination?.total || 0,
+      page: responseData.pagination?.page || 1,
+      pageSize: responseData.pagination?.limit || 10,
+      totalPages: responseData.pagination?.totalPages || 1
     }
     
-    console.debug('userService.getUserList returning:', result)
     return result
   },
 
@@ -61,7 +67,7 @@ export const userService = {
       // 这里可能需要调用统计 API 或者从用户列表中计算
       // 暂时返回模拟数据，实际应该从 API 获取
       const response = await usersAPI.getUsers({ limit: 1000 })
-      const users = response?.data?.data?.items
+      const users = response?.data?.data?.users
       
       // 安全检查：确保 users 是数组
       if (!Array.isArray(users)) {
@@ -90,8 +96,8 @@ export const userService = {
       const thisMonth = new Date().toISOString().substring(0, 7)
       const newUsersThisMonth = users.filter(u => u.created_at && u.created_at.startsWith(thisMonth)).length
       
-      // 计算余额统计
-      const totalBalance = users.reduce((sum, u) => sum + (u.balance || 0), 0)
+      // 计算余额统计，确保数值类型正确
+      const totalBalance = users.reduce((sum, u) => sum + (parseFloat(String(u.usdt_balance)) || 0), 0)
       const averageBalance = totalUsers > 0 ? totalBalance / totalUsers : 0
       
       return {
@@ -105,7 +111,6 @@ export const userService = {
         averageBalance
       }
     } catch (error) {
-      console.error('获取用户统计数据失败:', error)
       // 返回默认值，避免页面崩溃
       return {
         totalUsers: 0,
@@ -132,7 +137,19 @@ export const userService = {
    * 创建用户
    */
   async createUser(params: CreateUserParams): Promise<User> {
-    const response = await usersAPI.createUser(params)
+    // 转换 CreateUserParams 为 CreateUserData 格式
+    const createData = {
+      username: params.username || params.email || '',
+      email: params.email || '',
+      password: params.password || '',
+      first_name: params.first_name,
+      last_name: params.last_name,
+      phone: params.phone,
+      role: params.role,
+      balance: params.balance,
+      status: (params.status === 'pending' ? 'inactive' : params.status) as 'active' | 'inactive' | 'banned'
+    }
+    const response = await usersAPI.createUser(createData)
     return response.data.data
   },
 
@@ -213,21 +230,21 @@ export const userService = {
       pageSize: 10000, // 导出所有数据
       search: params.search,
       status: params.status,
-      role: params.role
+      type: params.type
     })
     
     // 转换为 CSV 格式
-    const headers = ['ID', '用户名', '邮箱', '手机', '角色', '状态', '余额', '创建时间']
+    const headers = ['ID', '用户名', '邮箱', '手机', '类型', '状态', '余额', '创建时间']
     const csvContent = [
       headers.join(','),
       ...response.users.map(user => [
         user.id,
-        user.username,
-        user.email,
+        user.username || user.first_name || '',
+        user.email || '',
         user.phone || '',
-        user.role,
+        user.type,
         user.status,
-        user.balance,
+        user.balance || 0,
         user.created_at
       ].join(','))
     ].join('\n')

@@ -1,5 +1,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { debounce } from 'lodash-es'
+import { ordersAPI } from '@/services/api'
 import type {
   Order,
   OrderStats,
@@ -17,12 +18,17 @@ export function useOrderManagement() {
   const state = reactive<OrderManagementState>({
     orders: [],
     stats: {
+      total: 0,
       pending: 0,
+      paid: 0,
       processing: 0,
+      active: 0,
       completed: 0,
       failed: 0,
       cancelled: 0,
-      total: 0
+      expired: 0,
+      totalRevenue: 0,
+      averageOrderValue: 0
     },
     filters: {
       search: '',
@@ -85,25 +91,42 @@ export function useOrderManagement() {
         queryParams.append('end_date', params?.end_date || state.filters.dateRange.end)
       }
 
-      const response = await fetch(`/api/orders?${queryParams.toString()}`)
+      const response = await ordersAPI.getOrders({
+        page: params?.page || state.pagination.page,
+        limit: params?.limit || state.pagination.limit,
+        search: params?.search || state.filters.search || undefined,
+        status: params?.status || state.filters.status || undefined,
+        start_date: params?.start_date || state.filters.dateRange.start || undefined,
+        end_date: params?.end_date || state.filters.dateRange.end || undefined
+      })
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // 处理API响应数据结构
+      if (response.data.success && response.data.data) {
+        const data = response.data.data
+        state.orders = data.orders || []
+        state.pagination = {
+          page: data.pagination?.page || 1,
+          limit: data.pagination?.limit || 10,
+          total: data.pagination?.total || 0
+        }
+        state.stats = data.stats || null
+      } else {
+        // API调用成功但数据为空
+        state.orders = []
+        state.pagination = {
+          page: 1,
+          limit: 10,
+          total: 0
+        }
+        state.stats = null
       }
-      
-      const data: OrderListResponse = await response.json()
-      
-      state.orders = data.orders
-      state.pagination = {
-        page: data.pagination.page,
-        limit: data.pagination.limit,
-        total: data.pagination.total
-      }
-      state.stats = data.stats
       
     } catch (error) {
       console.error('获取订单列表失败:', error)
       state.error = error instanceof Error ? error.message : '获取订单列表失败'
+      // 确保在错误情况下也有默认值
+      state.orders = []
+      state.stats = null
     } finally {
       state.isLoading = false
     }
@@ -113,30 +136,18 @@ export function useOrderManagement() {
     try {
       state.modal.isUpdating = true
       
-      const response = await fetch(`/api/orders/${data.orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: data.status,
-          tx_hash: data.txHash,
-          error_message: data.errorMessage
-        })
+      await ordersAPI.updateOrderStatus(data.orderId, {
+        status: data.status,
+        payment_tx_hash: data.payment_tx_hash,
       })
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
       // 更新本地状态
-      const orderIndex = state.orders.findIndex(order => order.id === data.orderId)
+      const orderIndex = state.orders.findIndex(order => order.id === parseInt(data.orderId))
       if (orderIndex !== -1) {
         state.orders[orderIndex] = {
           ...state.orders[orderIndex],
           status: data.status,
-          tx_hash: data.txHash || state.orders[orderIndex].tx_hash,
-          error_message: data.errorMessage || state.orders[orderIndex].error_message,
+          payment_tx_hash: data.payment_tx_hash || state.orders[orderIndex].payment_tx_hash,
           updated_at: new Date().toISOString()
         }
       }

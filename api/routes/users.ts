@@ -1,6 +1,7 @@
 /**
  * 用户管理API路由
- * 处理用户的增删改查、状态管理等功能
+ * 处理Telegram用户的增删改查、状态管理等功能
+ * 基于新的telegram_users表结构
  */
 import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
@@ -19,7 +20,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     const { 
       page = 1, 
       limit = 20, 
-      role, 
+      type, 
       status, 
       search,
       login_type 
@@ -32,9 +33,9 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     const queryParams = [];
     let paramIndex = 1;
     
-    if (role) {
-      whereConditions.push(`role = $${paramIndex}`);
-      queryParams.push(role);
+    if (type) {
+      whereConditions.push(`user_type = $${paramIndex}`);
+      queryParams.push(type);
       paramIndex++;
     }
     
@@ -68,11 +69,11 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     // 查询用户列表
     const usersQuery = `
       SELECT 
-        id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, balance, usdt_balance, trx_balance, total_orders,
-        total_energy_used, referral_code, referred_by, last_login_at,
-        created_at, updated_at
-      FROM users 
+        telegram_id, username, first_name, last_name, 
+        user_type as role, status, tron_address, balance, usdt_balance, trx_balance, 
+        total_orders, total_energy_used, referral_code, referred_by, 
+        last_login_at, created_at, updated_at
+      FROM telegram_users 
       ${whereClause}
       ORDER BY created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -83,7 +84,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     const usersResult = await query(usersQuery, queryParams);
     
     // 查询总数
-    const countQuery = `SELECT COUNT(*) as total FROM users ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM telegram_users ${whereClause}`;
     const countResult = await query(countQuery, queryParams.slice(0, -2));
     const total = parseInt(countResult.rows[0].total);
     
@@ -112,32 +113,33 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
 
 /**
  * 获取单个用户详情
- * GET /api/users/:id
+ * GET /api/users/:telegram_id
  * 权限：管理员或用户本人
  */
-router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.get('/:telegram_id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { telegram_id } = req.params;
     const currentUser = req.user;
     
-    // 检查权限：管理员或用户本人
-    if (currentUser?.role !== 'admin' && currentUser?.userId !== id) {
+    // 检查权限：仅管理员可以查看用户信息
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+    if (!isAdmin) {
       res.status(403).json({
         success: false,
-        message: '权限不足，只能查看自己的信息'
+        message: '权限不足，仅管理员可以查看用户信息'
       });
       return;
     }
     
     const userResult = await query(
       `SELECT 
-        id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, balance, usdt_balance, trx_balance, total_orders,
-        total_energy_used, referral_code, referred_by, last_login_at,
-        created_at, updated_at
-       FROM users 
-       WHERE id = $1`,
-      [id]
+        telegram_id, username, first_name, last_name, 
+        user_type as role, status, tron_address, balance, usdt_balance, trx_balance, 
+        total_orders, total_energy_used, referral_code, referred_by, 
+        last_login_at, created_at, updated_at
+       FROM telegram_users 
+       WHERE telegram_id = $1`,
+      [telegram_id]
     );
     
     if (userResult.rows.length === 0) {
@@ -177,105 +179,63 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
       username,
       first_name,
       last_name,
-      email,
-      phone,
-      password,
-      role = 'user',
-      login_type = 'telegram',
+      type = 'normal',
+      status = 'active',
       tron_address,
       referral_code
     } = req.body;
     
     // 验证必填字段
-    if (login_type === 'admin' && (!email || !password)) {
+    if (!telegram_id) {
       res.status(400).json({
         success: false,
-        message: '管理员用户必须提供邮箱和密码'
+        message: 'telegram_id是必填字段'
       });
       return;
-    }
-    
-    if (login_type === 'telegram' && !telegram_id) {
-      res.status(400).json({
-        success: false,
-        message: 'Telegram用户必须提供telegram_id'
-      });
-      return;
-    }
-    
-    // 检查邮箱是否已存在
-    if (email) {
-      const existingEmail = await query(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
-      
-      if (existingEmail.rows.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: '该邮箱已被注册'
-        });
-        return;
-      }
     }
     
     // 检查telegram_id是否已存在
-    if (telegram_id) {
-      const existingTelegram = await query(
-        'SELECT id FROM users WHERE telegram_id = $1',
-        [telegram_id]
-      );
-      
-      if (existingTelegram.rows.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: '该Telegram ID已被注册'
-        });
-        return;
-      }
+    const existingTelegram = await query(
+      'SELECT telegram_id FROM telegram_users WHERE telegram_id = $1',
+      [telegram_id]
+    );
+    
+    if (existingTelegram.rows.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Telegram ID已存在'
+      });
+      return;
     }
     
     // 检查推荐码是否已存在
     if (referral_code) {
       const existingReferral = await query(
-        'SELECT id FROM users WHERE referral_code = $1',
+        'SELECT referral_code FROM telegram_users WHERE referral_code = $1',
         [referral_code]
       );
       
       if (existingReferral.rows.length > 0) {
         res.status(400).json({
           success: false,
-          message: '该推荐码已被使用'
+          message: '推荐码已存在'
         });
         return;
       }
-    }
-    
-    // 加密密码（如果提供）
-    let passwordHash = null;
-    if (password) {
-      if (password.length < 6) {
-        res.status(400).json({
-          success: false,
-          message: '密码长度至少6位'
-        });
-        return;
-      }
-      passwordHash = await bcrypt.hash(password, 10);
     }
     
     // 创建用户
     const newUser = await query(
-      `INSERT INTO users (
-        telegram_id, username, first_name, last_name, email, phone,
-        password_hash, role, login_type, status, tron_address, referral_code
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO telegram_users (
+        telegram_id, username, first_name, last_name,
+        user_type, status, tron_address, referral_code
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING 
-        id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, usdt_balance, trx_balance, referral_code, created_at`,
+        telegram_id, username, first_name, last_name,
+        user_type as role, status, tron_address, referral_code, created_at`,
       [
-        telegram_id, username, first_name, last_name, email, phone,
-        passwordHash, role, login_type, 'active', tron_address, referral_code
+        telegram_id, username, first_name, last_name,
+        type, status, tron_address, referral_code
       ]
     );
     
@@ -298,19 +258,20 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
 
 /**
  * 更新用户信息
- * PUT /api/users/:id
+ * PUT /api/users/:telegram_id
  * 权限：管理员或用户本人
  */
-router.put('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.put('/:telegram_id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { telegram_id } = req.params;
     const currentUser = req.user;
     
-    // 检查权限：管理员或用户本人
-    if (currentUser?.role !== 'admin' && currentUser?.userId !== id) {
+    // 检查权限：仅管理员可以修改用户信息
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+    if (!isAdmin) {
       res.status(403).json({
         success: false,
-        message: '权限不足，只能修改自己的信息'
+        message: '权限不足，仅管理员可以修改用户信息'
       });
       return;
     }
@@ -319,16 +280,16 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
       username,
       first_name,
       last_name,
-      email,
-      phone,
+      type,
+      status,
       tron_address,
-      password
+      referral_code
     } = req.body;
     
     // 检查用户是否存在
     const existingUser = await query(
-      'SELECT id, role, login_type FROM users WHERE id = $1',
-      [id]
+      'SELECT telegram_id, user_type as role FROM telegram_users WHERE telegram_id = $1',
+      [telegram_id]
     );
     
     if (existingUser.rows.length === 0) {
@@ -341,20 +302,13 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
     
     const user = existingUser.rows[0];
     
-    // 检查邮箱是否被其他用户使用
-    if (email) {
-      const emailCheck = await query(
-        'SELECT id FROM users WHERE email = $1 AND id != $2',
-        [email, id]
-      );
-      
-      if (emailCheck.rows.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: '该邮箱已被其他用户使用'
-        });
-        return;
-      }
+    // 非管理员不能修改类型和状态
+    if (!isAdmin && (type || status)) {
+      res.status(403).json({
+        success: false,
+        message: '权限不足，无法修改用户类型或状态'
+      });
+      return;
     }
     
     // 构建更新字段
@@ -380,15 +334,15 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
       paramIndex++;
     }
     
-    if (email !== undefined) {
-      updateFields.push(`email = $${paramIndex}`);
-      updateValues.push(email);
+    if (type !== undefined && isAdmin) {
+      updateFields.push(`user_type = $${paramIndex}`);
+      updateValues.push(type);
       paramIndex++;
     }
-    
-    if (phone !== undefined) {
-      updateFields.push(`phone = $${paramIndex}`);
-      updateValues.push(phone);
+
+    if (status !== undefined && isAdmin) {
+      updateFields.push(`status = $${paramIndex}`);
+      updateValues.push(status);
       paramIndex++;
     }
     
@@ -398,19 +352,9 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
       paramIndex++;
     }
     
-    // 处理密码更新
-    if (password) {
-      if (password.length < 6) {
-        res.status(400).json({
-          success: false,
-          message: '密码长度至少6位'
-        });
-        return;
-      }
-      
-      const passwordHash = await bcrypt.hash(password, 10);
-      updateFields.push(`password_hash = $${paramIndex}`);
-      updateValues.push(passwordHash);
+    if (referral_code !== undefined) {
+      updateFields.push(`referral_code = $${paramIndex}`);
+      updateValues.push(referral_code);
       paramIndex++;
     }
     
@@ -424,16 +368,16 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
     
     // 添加更新时间
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(id);
+    updateValues.push(telegram_id);
     
     // 执行更新
     const updateQuery = `
-      UPDATE users 
+      UPDATE telegram_users 
       SET ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
+      WHERE telegram_id = $${paramIndex}
       RETURNING 
-        id, telegram_id, username, first_name, last_name, email, phone,
-        role, status, login_type, tron_address, updated_at
+        telegram_id, username, first_name, last_name,
+        user_type as role, status, tron_address, referral_code, updated_at
     `;
     
     const updatedUser = await query(updateQuery, updateValues);
@@ -457,12 +401,12 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response): Promi
 
 /**
  * 更新用户状态
- * PATCH /api/users/:id/status
+ * PATCH /api/users/:telegram_id/status
  * 权限：管理员
  */
-router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:telegram_id/status', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { telegram_id } = req.params;
     const { status } = req.body;
     
     // 验证状态值
@@ -477,8 +421,8 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
     
     // 检查用户是否存在
     const existingUser = await query(
-      'SELECT id, status FROM users WHERE id = $1',
-      [id]
+      'SELECT telegram_id, status FROM telegram_users WHERE telegram_id = $1',
+      [telegram_id]
     );
     
     if (existingUser.rows.length === 0) {
@@ -491,11 +435,11 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
     
     // 更新状态
     const updatedUser = await query(
-      `UPDATE users 
+      `UPDATE telegram_users 
        SET status = $1, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2 
-       RETURNING id, status, updated_at`,
-      [status, id]
+       WHERE telegram_id = $2 
+       RETURNING telegram_id, status, updated_at`,
+      [status, telegram_id]
     );
     
     res.status(200).json({
@@ -517,17 +461,17 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
 
 /**
  * 删除用户
- * DELETE /api/users/:id
+ * DELETE /api/users/:telegram_id
  * 权限：管理员
  */
-router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:telegram_id', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { telegram_id } = req.params;
     
     // 检查用户是否存在
     const existingUser = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [id]
+      'SELECT telegram_id, user_type as role FROM telegram_users WHERE telegram_id = $1',
+      [telegram_id]
     );
     
     if (existingUser.rows.length === 0) {
@@ -549,8 +493,8 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res:
     
     // 检查用户是否有关联的订单
     const orderCheck = await query(
-      'SELECT COUNT(*) as count FROM orders WHERE user_id = $1',
-      [id]
+      'SELECT COUNT(*) as count FROM orders WHERE telegram_id = $1',
+      [telegram_id]
     );
     
     if (parseInt(orderCheck.rows[0].count) > 0) {
@@ -562,7 +506,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res:
     }
     
     // 删除用户
-    await query('DELETE FROM users WHERE id = $1', [id]);
+    await query('DELETE FROM telegram_users WHERE telegram_id = $1', [telegram_id]);
     
     res.status(200).json({
       success: true,
@@ -592,14 +536,12 @@ router.get('/stats/overview', authenticateToken, requireAdmin, async (req: Reque
         COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
         COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
         COUNT(CASE WHEN status = 'banned' THEN 1 END) as banned_users,
-        COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users,
-        COUNT(CASE WHEN role = 'agent' THEN 1 END) as agent_users,
-        COUNT(CASE WHEN role = 'user' THEN 1 END) as regular_users,
-        COUNT(CASE WHEN login_type = 'telegram' THEN 1 END) as telegram_users,
-        COUNT(CASE WHEN login_type = 'admin' THEN 1 END) as admin_login_users,
+        COUNT(CASE WHEN user_type = 'admin' THEN 1 END) as admin_users,
+        COUNT(CASE WHEN user_type = 'agent' THEN 1 END) as agent_users,
+        COUNT(CASE WHEN user_type = 'normal' THEN 1 END) as regular_users,
         COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_users_week,
         COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_users_month
-      FROM users
+      FROM telegram_users
     `);
     
     res.status(200).json({

@@ -5,19 +5,19 @@
  * 协调数据访问层和验证层，实现完整的业务流程
  */
 
-import { query } from '../../../config/database.js';
+import { getClient, query } from '../../../config/database.js';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 import type {
-    BatchOperationResult,
-    BatchUpdateRequest,
-    ConfigCategoryStats,
-    CreateSystemConfigRequest,
-    PaginatedConfigHistory,
-    PaginatedSystemConfigs,
-    ResetConfigRequest,
-    SystemConfig,
-    SystemConfigQuery,
-    UpdateSystemConfigRequest
+  BatchOperationResult,
+  BatchUpdateRequest,
+  ConfigCategoryStats,
+  CreateSystemConfigRequest,
+  PaginatedConfigHistory,
+  PaginatedSystemConfigs,
+  ResetConfigRequest,
+  SystemConfig,
+  SystemConfigQuery,
+  UpdateSystemConfigRequest
 } from '../types/systemConfigs.types.js';
 import { SystemConfigsRepository } from './systemConfigsRepository.js';
 
@@ -82,7 +82,7 @@ export class SystemConfigsService {
   /**
    * 创建配置
    */
-  async createConfig(configData: CreateSystemConfigRequest, userId: number): Promise<SystemConfig> {
+  async createConfig(configData: CreateSystemConfigRequest, userId: string): Promise<SystemConfig> {
     // 验证请求数据
     const validation = SystemConfigsValidation.validateCreateRequest(configData);
     if (!validation.valid) {
@@ -104,7 +104,7 @@ export class SystemConfigsService {
   async updateConfig(
     configKey: string, 
     updateData: UpdateSystemConfigRequest, 
-    userId: number
+    userId: string
   ): Promise<SystemConfig> {
     // 验证配置键格式
     const keyValidation = SystemConfigsValidation.validateConfigKey(configKey);
@@ -189,13 +189,20 @@ export class SystemConfigsService {
     const results = [];
     const errors = [];
 
-    const client = await query('BEGIN');
+    const client = await getClient();
     try {
+      await client.query('BEGIN');
+      
       for (const config of batchData.configs) {
         try {
+          console.log(`🔍 处理配置: ${config.config_key}`);
+          
           // 检查配置是否存在且可编辑
           const editableCheck = await SystemConfigsValidation.checkConfigEditable(config.config_key);
+          console.log(`📊 可编辑检查结果:`, editableCheck);
+          
           if (!editableCheck.exists) {
+            console.log(`❌ 配置不存在: ${config.config_key}`);
             errors.push({ config_key: config.config_key, error: '配置不存在' });
             continue;
           }
@@ -252,14 +259,15 @@ export class SystemConfigsService {
         }
       }
 
-      await query('COMMIT');
-
+      await client.query('COMMIT');
+      client.release();
       return {
         updated: results,
         errors: errors
       };
     } catch (error) {
-      await query('ROLLBACK');
+      await client.query('ROLLBACK');
+      client.release();
       throw error;
     }
   }
@@ -267,7 +275,7 @@ export class SystemConfigsService {
   /**
    * 删除配置
    */
-  async deleteConfig(configKey: string, userId: number, changeReason?: string): Promise<void> {
+  async deleteConfig(configKey: string, userId: string, changeReason?: string): Promise<void> {
     // 验证配置键格式
     const keyValidation = SystemConfigsValidation.validateConfigKey(configKey);
     if (!keyValidation.valid) {
@@ -316,7 +324,7 @@ export class SystemConfigsService {
    */
   async resetConfigToDefault(
     configKey: string, 
-    userId: number, 
+    userId: string, 
     resetData: ResetConfigRequest
   ): Promise<SystemConfig> {
     // 验证配置键格式

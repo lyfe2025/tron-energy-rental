@@ -43,26 +43,30 @@ export const envConfig = {
 
 // 环境特定的日志函数
 export const envLog = {
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (envConfig.showDebugInfo) {
+      // eslint-disable-next-line no-console
       console.log('[DEBUG]', ...args)
     }
   },
   
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (envConfig.enableConsoleLog) {
+      // eslint-disable-next-line no-console
       console.info('[INFO]', ...args)
     }
   },
   
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (envConfig.enableConsoleLog) {
+      // eslint-disable-next-line no-console
       console.warn('[WARN]', ...args)
     }
   },
   
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     // 错误日志在所有环境下都显示
+    // eslint-disable-next-line no-console
     console.error('[ERROR]', ...args)
   }
 }
@@ -83,7 +87,10 @@ export const getEnvInfo = () => ({
 
 // 开发环境下在控制台显示环境信息
 if (isDevelopment()) {
+  // eslint-disable-next-line no-console
   console.group('🚀 环境信息')
+  // eslint-disable-next-line no-console
   console.table(getEnvInfo())
+  // eslint-disable-next-line no-console
   console.groupEnd()
 }

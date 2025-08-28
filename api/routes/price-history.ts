@@ -509,7 +509,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
       old_price,
       new_price,
       change_reason,
-      req.user?.userId || ''
+      String(req.user?.userId || '')
     );
     
     res.status(201).json({

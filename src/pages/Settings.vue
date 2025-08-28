@@ -78,6 +78,7 @@
             :settings="settings.basic"
             :is-saving="isSaving"
             @update:settings="updateBasicSettings"
+            @save="saveBasicSettings"
           />
 
           <!-- Security Settings -->
@@ -86,6 +87,7 @@
             :settings="settings.security"
             :is-saving="isSaving"
             @update:settings="updateSecuritySettings"
+            @save="saveSecuritySettings"
           />
 
           <!-- Notification Settings -->
@@ -94,6 +96,7 @@
             :settings="settings.notifications"
             :is-saving="isSaving"
             @update:settings="updateNotificationSettings"
+            @save="saveNotificationSettings"
           />
 
           <!-- Pricing Settings -->
@@ -102,6 +105,7 @@
             :settings="settings.pricing"
             :is-saving="isSaving"
             @update:settings="updatePricingSettings"
+            @save="savePricingSettings"
           />
 
           <!-- Advanced Settings -->
@@ -110,6 +114,7 @@
             :settings="settings.advanced"
             :is-saving="isSaving"
             @update:settings="updateAdvancedSettings"
+            @save="saveAdvancedSettings"
           />
         </div>
       </div>
@@ -174,33 +179,73 @@ const {
 
 // 更新各个设置模块
 const updateBasicSettings = (newSettings: BasicSettingsType) => {
-  Object.keys(newSettings).forEach(key => {
-    updateSetting(key, (newSettings as any)[key])
-  })
+  // 使用 Object.assign 避免响应式循环
+  Object.assign(settings.value.basic, newSettings)
+}
+
+// 保存基础设置
+const saveBasicSettings = async () => {
+  try {
+    await saveSettings('basic')
+  } catch (error) {
+    console.error('保存基础设置失败:', error)
+  }
+}
+
+// 保存安全设置
+const saveSecuritySettings = async () => {
+  try {
+    await saveSettings('security')
+  } catch (error) {
+    console.error('保存安全设置失败:', error)
+  }
 }
 
 const updateSecuritySettings = (newSettings: SecuritySettingsType) => {
-  Object.keys(newSettings).forEach(key => {
-    updateSetting(key, (newSettings as any)[key])
-  })
+  // 使用 Object.assign 避免响应式循环
+  Object.assign(settings.value.security, newSettings)
 }
 
 const updateNotificationSettings = (newSettings: NotificationSettingsType) => {
-  Object.keys(newSettings).forEach(key => {
-    updateSetting(key, (newSettings as any)[key])
-  })
+  // 使用 Object.assign 避免响应式循环
+  Object.assign(settings.value.notifications, newSettings)
+}
+
+// 保存通知设置
+const saveNotificationSettings = async () => {
+  try {
+    await saveSettings('notifications')
+  } catch (error) {
+    console.error('保存通知设置失败:', error)
+  }
 }
 
 const updatePricingSettings = (newSettings: PricingSettingsType) => {
-  Object.keys(newSettings).forEach(key => {
-    updateSetting(key, (newSettings as any)[key])
-  })
+  // 使用 Object.assign 避免响应式循环
+  Object.assign(settings.value.pricing, newSettings)
+}
+
+// 保存定价设置
+const savePricingSettings = async () => {
+  try {
+    await saveSettings('pricing')
+  } catch (error) {
+    console.error('保存定价设置失败:', error)
+  }
 }
 
 const updateAdvancedSettings = (newSettings: AdvancedSettingsType) => {
-  Object.keys(newSettings).forEach(key => {
-    updateSetting(key, (newSettings as any)[key])
-  })
+  // 使用 Object.assign 避免响应式循环
+  Object.assign(settings.value.advanced, newSettings)
+}
+
+// 保存高级设置
+const saveAdvancedSettings = async () => {
+  try {
+    await saveSettings('advanced')
+  } catch (error) {
+    console.error('保存高级设置失败:', error)
+  }
 }
 
 // 文件导入处理

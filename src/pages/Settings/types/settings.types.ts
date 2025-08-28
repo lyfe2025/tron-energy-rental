@@ -18,8 +18,11 @@ export interface BasicSettings {
 export interface SecuritySettings {
   enableTwoFactor: boolean
   sessionTimeout: number
+  passwordMinLength: number
   maxLoginAttempts: number
+  loginLockoutMinutes: number
   passwordExpireDays: number
+  jwtExpireHours: number
   enableIpWhitelist: boolean
   ipWhitelist: string[]
   enableApiRateLimit: boolean
@@ -29,6 +32,7 @@ export interface SecuritySettings {
 export interface NotificationSettings {
   emailNotifications: boolean
   smsNotifications: boolean
+  telegramNotifications: boolean
   systemAlerts: boolean
   orderUpdates: boolean
   lowBalanceAlert: boolean
@@ -38,20 +42,21 @@ export interface NotificationSettings {
 }
 
 export interface AdvancedSettings {
-  enableMaintenanceMode: boolean
-  maintenanceMessage: string
-  enableDebugMode: boolean
+  enableQueryCache: boolean
+  redisTtlSeconds: number
+  enableFileLog: boolean
   logLevel: string
-  enableAutoBackup: boolean
-  backupRetentionDays: number
-  enableCacheOptimization: boolean
-  cacheExpireTime: number
+  logRetentionDays: number
+  enableCors: boolean
+  enableEnergyTrading: boolean
+  enableReferralSystem: boolean
+  enableUserRegistration: boolean
+  enableAgentApplication: boolean
 }
 
 export interface PricingSettings {
   energyBasePrice: number
   bandwidthBasePrice: number
-  discountRules: DiscountRule[]
   emergencyFeeMultiplier: number
   minimumOrderAmount: number
   maximumOrderAmount: number

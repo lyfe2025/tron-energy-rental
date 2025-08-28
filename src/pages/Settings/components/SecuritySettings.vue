@@ -36,6 +36,20 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
+            密码最小长度
+          </label>
+          <input
+            v-model.number="localSettings.passwordMinLength"
+            type="number"
+            min="6"
+            max="32"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">6-32个字符</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
             最大登录尝试次数
           </label>
           <input
@@ -50,6 +64,20 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
+            登录锁定时间(分钟)
+          </label>
+          <input
+            v-model.number="localSettings.loginLockoutMinutes"
+            type="number"
+            min="5"
+            max="120"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">登录失败后锁定时间</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
             密码过期天数
           </label>
           <input
@@ -60,6 +88,20 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           />
           <p class="text-xs text-gray-500 mt-1">30-365天之间，0表示永不过期</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            JWT令牌过期时间(小时)
+          </label>
+          <input
+            v-model.number="localSettings.jwtExpireHours"
+            type="number"
+            min="1"
+            max="168"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">1-168小时之间(最长7天)</p>
         </div>
       </div>
 
@@ -145,6 +187,23 @@
       </div>
     </div>
 
+    <!-- 保存按钮 -->
+    <div class="flex justify-end pt-6 border-t border-gray-200">
+      <button
+        @click="$emit('save')"
+        :disabled="isSaving"
+        class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        <svg v-if="isSaving" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        {{ isSaving ? '保存中...' : '保存安全设置' }}
+      </button>
+    </div>
 
   </div>
 </template>
@@ -160,6 +219,7 @@ interface Props {
 
 interface Emits {
   (e: 'update:settings', settings: SecuritySettings): void
+  (e: 'save'): void
 }
 
 const props = defineProps<Props>()

@@ -12,10 +12,12 @@ const JWT_SECRET: string = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN: StringValue = (process.env.JWT_EXPIRES_IN || '24h') as StringValue;
 
 export interface JWTPayload {
-  userId: string;
+  id: string;
+  userId: number;
   email: string;
   role: string;
   loginType: string;
+  telegram_id?: number;
 }
 
 /**
@@ -113,6 +115,7 @@ export const refreshToken = (oldToken: string): string | null => {
   
   // 生成新token（移除过期时间等JWT内置字段）
   const newPayload: JWTPayload = {
+    id: payload.id,
     userId: payload.userId,
     email: payload.email,
     role: payload.role,

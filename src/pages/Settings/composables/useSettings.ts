@@ -1,5 +1,5 @@
 import { Bell, DollarSign, Settings, Shield, Wrench } from 'lucide-vue-next'
-import { computed, onMounted, reactive, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, watch } from 'vue'
 import { useToast } from '../../../composables/useToast'
 import { systemConfigsAPI } from '../../../services/api'
 import type {
@@ -26,10 +26,13 @@ export function useSettings() {
         dateFormat: 'YYYY-MM-DD'
       },
       security: {
-        enableTwoFactor: true,
+        enableTwoFactor: false,
         sessionTimeout: 30,
+        passwordMinLength: 8,
         maxLoginAttempts: 5,
+        loginLockoutMinutes: 15,
         passwordExpireDays: 90,
+        jwtExpireHours: 24,
         enableIpWhitelist: false,
         ipWhitelist: [],
         enableApiRateLimit: true,
@@ -38,6 +41,7 @@ export function useSettings() {
       notifications: {
         emailNotifications: true,
         smsNotifications: false,
+        telegramNotifications: false,
         systemAlerts: true,
         orderUpdates: true,
         lowBalanceAlert: true,
@@ -46,19 +50,20 @@ export function useSettings() {
         monthlyReport: true
       },
       advanced: {
-        enableMaintenanceMode: false,
-        maintenanceMessage: '系统维护中，预计恢复时间：2小时',
-        enableDebugMode: false,
+        enableQueryCache: true,
+        redisTtlSeconds: 3600,
+        enableFileLog: true,
         logLevel: 'info',
-        enableAutoBackup: true,
-        backupRetentionDays: 30,
-        enableCacheOptimization: true,
-        cacheExpireTime: 3600
+        logRetentionDays: 30,
+        enableCors: true,
+        enableEnergyTrading: true,
+        enableReferralSystem: true,
+        enableUserRegistration: true,
+        enableAgentApplication: true
       },
       pricing: {
         energyBasePrice: 0.1,
         bandwidthBasePrice: 0.05,
-        discountRules: [],
         emergencyFeeMultiplier: 1.5,
         minimumOrderAmount: 10,
         maximumOrderAmount: 10000
@@ -104,8 +109,11 @@ export function useSettings() {
     // 安全设置
     'security.enable_two_factor': 'security.enableTwoFactor',
     'security.session_timeout': 'security.sessionTimeout',
+    'security.password_min_length': 'security.passwordMinLength',
     'security.max_login_attempts': 'security.maxLoginAttempts',
+    'security.login_lockout_minutes': 'security.loginLockoutMinutes',
     'security.password_expire_days': 'security.passwordExpireDays',
+    'security.jwt_expire_hours': 'security.jwtExpireHours',
     'security.enable_ip_whitelist': 'security.enableIpWhitelist',
     'security.ip_whitelist': 'security.ipWhitelist',
     'security.enable_api_rate_limit': 'security.enableApiRateLimit',
@@ -114,6 +122,7 @@ export function useSettings() {
     // 通知设置
     'notification.email_enabled': 'notifications.emailNotifications',
     'notification.sms_enabled': 'notifications.smsNotifications',
+    'notification.telegram_enabled': 'notifications.telegramNotifications',
     'notification.system_alerts': 'notifications.systemAlerts',
     'notification.order_updates': 'notifications.orderUpdates',
     'notification.low_balance_alert': 'notifications.lowBalanceAlert',
@@ -122,14 +131,16 @@ export function useSettings() {
     'notification.monthly_report': 'notifications.monthlyReport',
     
     // 高级设置
-    'system.maintenance_mode': 'advanced.enableMaintenanceMode',
-    'system.maintenance_message': 'advanced.maintenanceMessage',
-    'system.debug_mode': 'advanced.enableDebugMode',
-    'system.log_level': 'advanced.logLevel',
-    'system.auto_backup': 'advanced.enableAutoBackup',
-    'system.backup_retention_days': 'advanced.backupRetentionDays',
-    'system.cache_optimization': 'advanced.enableCacheOptimization',
-    'system.cache_expire_time': 'advanced.cacheExpireTime',
+    'cache.enable_query_cache': 'advanced.enableQueryCache',
+    'cache.redis_ttl_seconds': 'advanced.redisTtlSeconds',
+    'logging.enable_file_log': 'advanced.enableFileLog',
+    'logging.level': 'advanced.logLevel',
+    'logging.retention_days': 'advanced.logRetentionDays',
+    'api.enable_cors': 'advanced.enableCors',
+    'feature.energy_trading': 'advanced.enableEnergyTrading',
+    'feature.referral_system': 'advanced.enableReferralSystem',
+    'feature.user_registration': 'advanced.enableUserRegistration',
+    'feature.agent_application': 'advanced.enableAgentApplication',
     
     // 定价设置
     'pricing.energy_base_price': 'pricing.energyBasePrice',
@@ -182,8 +193,8 @@ export function useSettings() {
       // 从后端获取所有必要的系统配置
       const response = await systemConfigsAPI.getAllSettingsConfigs()
       
-      if (response.data.success && response.data.data && response.data.data.configs) {
-        const configs = response.data.data.configs
+      if (response.data.success && response.data.data) {
+        const configs = response.data.data
         
         // 将后端配置映射到前端设置结构
         configs.forEach((config: any) => {
@@ -454,16 +465,21 @@ export function useSettings() {
     reader.readAsText(file)
   }
 
-  // 监听设置变化
+  // 监听设置变化 - 修复响应式循环问题
+  let isUpdating = false
   watch(
     () => state.settings,
     (newSettings, oldSettings) => {
       // 避免在初始化时触发isDirty
-      if (oldSettings && JSON.stringify(newSettings) !== JSON.stringify(oldSettings)) {
-        state.isDirty = true
+      if (oldSettings && !isUpdating && JSON.stringify(newSettings) !== JSON.stringify(oldSettings)) {
+        isUpdating = true
+        nextTick(() => {
+          state.isDirty = true
+          isUpdating = false
+        })
       }
     },
-    { deep: true }
+    { deep: true, flush: 'post' }
   )
 
   // 生命周期

@@ -4,8 +4,24 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { query } from '../config/database.js';
-import { authenticateToken, requireAdmin, requireRole } from '../middleware/auth.js';
-import crypto from 'crypto';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { TelegramBotService } from '../services/telegram-bot.js';
+
+// Telegram机器人服务实例
+let telegramBotService: TelegramBotService | null = null;
+
+// 初始化Telegram机器人服务
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  try {
+    telegramBotService = new TelegramBotService();
+    telegramBotService.start();
+    console.log('✅ Telegram机器人服务已启动');
+  } catch (error) {
+    console.error('❌ Telegram机器人服务启动失败:', error);
+  }
+} else {
+  console.warn('⚠️ 未配置TELEGRAM_BOT_TOKEN，Telegram机器人服务未启动');
+}
 
 const router: Router = Router();
 
@@ -53,9 +69,12 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     // 查询机器人列表
     const botsQuery = `
       SELECT 
-        id, name, username, description, status, webhook_url,
-        settings, total_users, total_orders, created_at, updated_at
-      FROM bots 
+        id, bot_name as name, bot_username as username, description, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
+        webhook_url, config as settings, welcome_message, help_message, 
+        allowed_updates as commands, 0 as total_users, 0 as total_orders, 
+        created_at, updated_at
+      FROM telegram_bots 
       ${whereClause}
       ORDER BY created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -66,7 +85,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     const botsResult = await query(botsQuery, queryParams);
     
     // 查询总数
-    const countQuery = `SELECT COUNT(*) as total FROM bots ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM telegram_bots ${whereClause}`;
     const countResult = await query(countQuery, queryParams.slice(0, -2));
     const total = parseInt(countResult.rows[0].total);
     
@@ -104,9 +123,12 @@ router.get('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     
     const botResult = await query(
       `SELECT 
-        id, name, username, description, status, webhook_url,
-        settings, total_users, total_orders, created_at, updated_at
-       FROM bots 
+        id, bot_name as name, bot_username as username, description, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
+        webhook_url, config as settings, welcome_message, help_message, 
+        allowed_updates as commands, 0 as total_users, 0 as total_orders, 
+        created_at, updated_at
+       FROM telegram_bots 
        WHERE id = $1`,
       [id]
     );
@@ -182,7 +204,10 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
       token,
       description,
       webhook_url,
-      settings = {}
+      settings = {},
+      welcome_message = '欢迎使用TRON能量租赁服务！',
+      help_message = '如需帮助，请联系客服。',
+      commands = []
     } = req.body;
     
     // 验证必填字段
@@ -205,7 +230,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
     
     // 检查用户名是否已存在
     const existingBot = await query(
-      'SELECT id FROM bots WHERE username = $1',
+      'SELECT id FROM telegram_bots WHERE bot_username = $1',
       [username]
     );
     
@@ -219,7 +244,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
     
     // 检查Token是否已存在
     const existingToken = await query(
-      'SELECT id FROM bots WHERE token = $1',
+      'SELECT id FROM telegram_bots WHERE bot_token = $1',
       [token]
     );
     
@@ -233,13 +258,17 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
     
     // 创建机器人
     const newBot = await query(
-      `INSERT INTO bots (
-        name, username, token, description, webhook_url, settings, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO telegram_bots (
+        bot_name, bot_username, bot_token, description, webhook_url, config, 
+        welcome_message, help_message, allowed_updates, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING 
-        id, name, username, description, status, webhook_url,
-        settings, total_users, total_orders, created_at`,
-      [name, username, token, description, webhook_url, JSON.stringify(settings), 'active']
+        id, bot_name as name, bot_username as username, description, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
+        webhook_url, config as settings, welcome_message, help_message, 
+        allowed_updates as commands, 0 as total_users, 0 as total_orders, created_at`,
+      [name, username, token, description, webhook_url, JSON.stringify(settings), 
+       welcome_message, help_message, JSON.stringify(commands), true]
     );
     
     res.status(201).json({
@@ -273,12 +302,15 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
       token,
       description,
       webhook_url,
-      settings
+      settings,
+      welcome_message,
+      help_message,
+      commands
     } = req.body;
     
     // 检查机器人是否存在
     const existingBot = await query(
-      'SELECT id FROM bots WHERE id = $1',
+      'SELECT id FROM telegram_bots WHERE id = $1',
       [id]
     );
     
@@ -293,7 +325,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     // 检查用户名是否被其他机器人使用
     if (username) {
       const usernameCheck = await query(
-        'SELECT id FROM bots WHERE username = $1 AND id != $2',
+        'SELECT id FROM telegram_bots WHERE bot_username = $1 AND id != $2',
         [username, id]
       );
       
@@ -317,7 +349,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
       }
       
       const tokenCheck = await query(
-        'SELECT id FROM bots WHERE token = $1 AND id != $2',
+        'SELECT id FROM telegram_bots WHERE bot_token = $1 AND id != $2',
         [token, id]
       );
       
@@ -336,19 +368,19 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     let paramIndex = 1;
     
     if (name !== undefined) {
-      updateFields.push(`name = $${paramIndex}`);
+      updateFields.push(`bot_name = $${paramIndex}`);
       updateValues.push(name);
       paramIndex++;
     }
     
     if (username !== undefined) {
-      updateFields.push(`username = $${paramIndex}`);
+      updateFields.push(`bot_username = $${paramIndex}`);
       updateValues.push(username);
       paramIndex++;
     }
     
     if (token !== undefined) {
-      updateFields.push(`token = $${paramIndex}`);
+      updateFields.push(`bot_token = $${paramIndex}`);
       updateValues.push(token);
       paramIndex++;
     }
@@ -366,8 +398,26 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     }
     
     if (settings !== undefined) {
-      updateFields.push(`settings = $${paramIndex}`);
+      updateFields.push(`config = $${paramIndex}`);
       updateValues.push(JSON.stringify(settings));
+      paramIndex++;
+    }
+    
+    if (welcome_message !== undefined) {
+      updateFields.push(`welcome_message = $${paramIndex}`);
+      updateValues.push(welcome_message);
+      paramIndex++;
+    }
+    
+    if (help_message !== undefined) {
+      updateFields.push(`help_message = $${paramIndex}`);
+      updateValues.push(help_message);
+      paramIndex++;
+    }
+    
+    if (commands !== undefined) {
+      updateFields.push(`allowed_updates = $${paramIndex}`);
+      updateValues.push(JSON.stringify(commands));
       paramIndex++;
     }
     
@@ -385,12 +435,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     
     // 执行更新
     const updateQuery = `
-      UPDATE bots 
+      UPDATE telegram_bots 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING 
-        id, name, username, description, status, webhook_url,
-        settings, total_users, total_orders, updated_at
+        id, bot_name as name, bot_username as username, description, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
+        webhook_url, config as settings, welcome_message, help_message, 
+        allowed_updates as commands, 0 as total_users, 0 as total_orders, updated_at
     `;
     
     const updatedBot = await query(updateQuery, updateValues);
@@ -434,7 +486,7 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
     
     // 检查机器人是否存在
     const existingBot = await query(
-      'SELECT id, status FROM bots WHERE id = $1',
+      'SELECT id, CASE WHEN is_active THEN \'active\' ELSE \'inactive\' END as status FROM telegram_bots WHERE id = $1',
       [id]
     );
     
@@ -448,11 +500,11 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
     
     // 更新状态
     const updatedBot = await query(
-      `UPDATE bots 
-       SET status = $1, updated_at = CURRENT_TIMESTAMP 
+      `UPDATE telegram_bots 
+       SET is_active = $1, updated_at = CURRENT_TIMESTAMP 
        WHERE id = $2 
-       RETURNING id, status, updated_at`,
-      [status, id]
+       RETURNING id, CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, updated_at`,
+      [status === 'active', id]
     );
     
     res.status(200).json({
@@ -473,6 +525,93 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req: Request
 });
 
 /**
+ * 更新机器人欢迎语和菜单配置
+ * PUT /api/bots/:id/config
+ * 权限：管理员
+ */
+router.put('/:id/config', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { welcome_message, help_message, commands } = req.body;
+    
+    // 检查机器人是否存在
+    const existingBot = await query(
+      'SELECT id FROM telegram_bots WHERE id = $1',
+      [id]
+    );
+    
+    if (existingBot.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    // 构建更新字段
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+    
+    if (welcome_message !== undefined) {
+      updateFields.push(`welcome_message = $${paramIndex}`);
+      updateValues.push(welcome_message);
+      paramIndex++;
+    }
+    
+    if (help_message !== undefined) {
+      updateFields.push(`help_message = $${paramIndex}`);
+      updateValues.push(help_message);
+      paramIndex++;
+    }
+    
+    if (commands !== undefined) {
+      updateFields.push(`allowed_updates = $${paramIndex}`);
+      updateValues.push(JSON.stringify(commands));
+      paramIndex++;
+    }
+    
+    if (updateFields.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: '没有提供要更新的配置字段'
+      });
+      return;
+    }
+    
+    // 添加更新时间
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    updateValues.push(id);
+    
+    // 执行更新
+    const updateQuery = `
+      UPDATE telegram_bots 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING 
+        id, welcome_message, help_message, allowed_updates as commands, updated_at
+    `;
+    
+    const updatedBot = await query(updateQuery, updateValues);
+    
+    res.status(200).json({
+      success: true,
+      message: '机器人配置更新成功',
+      data: {
+        bot: updatedBot.rows[0]
+      }
+    });
+    
+  } catch (error) {
+    console.error('更新机器人配置错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+});
+
+/**
  * 删除机器人
  * DELETE /api/bots/:id
  * 权限：管理员
@@ -483,7 +622,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res:
     
     // 检查机器人是否存在
     const existingBot = await query(
-      'SELECT id FROM bots WHERE id = $1',
+      'SELECT id FROM telegram_bots WHERE id = $1',
       [id]
     );
     
@@ -524,7 +663,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res:
     }
     
     // 删除机器人
-    await query('DELETE FROM bots WHERE id = $1', [id]);
+    await query('DELETE FROM telegram_bots WHERE id = $1', [id]);
     
     res.status(200).json({
       success: true,

@@ -1,588 +1,577 @@
-/**
- * 订单管理API路由
- * 处理订单创建、查询、更新、统计等功能
- */
-import { Router, type Request, type Response } from 'express';
-import { query } from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { Router } from 'express';
+import { orderService } from '../services/order';
+import { authenticateToken } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
 
-const router: Router = Router();
-
-/**
- * 订单状态枚举
- */
-const ORDER_STATUS = {
-  PENDING: 'pending',
-  PROCESSING: 'processing', 
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled'
-} as const;
-
-/**
- * 价格计算函数
- * 根据机器人ID和能量包ID计算订单价格
- */
-async function calculateOrderPrice(botId: string, packageId: string, quantity: number = 1): Promise<{ price: number; unit_price: number }> {
-  try {
-    // 查询能量包信息
-    const packageResult = await query(
-      'SELECT price, energy_amount FROM energy_packages WHERE id = $1',
-      [packageId]
-    );
-    
-    if (packageResult.rows.length === 0) {
-      throw new Error('未找到对应的能量包');
-    }
-    
-    const packageInfo = packageResult.rows[0];
-    const unitPrice = parseFloat(packageInfo.price);
-    const totalPrice = unitPrice * quantity;
-    
-    return {
-      price: totalPrice,
-      unit_price: unitPrice
-    };
-  } catch (error) {
-    console.error('价格计算错误:', error);
-    throw new Error('价格计算失败');
-  }
+interface CreateOrderRequest {
+  userId: number;
+  packageId: number;
+  energyAmount: number;
+  durationHours: number;
+  priceTrx: number;
+  recipientAddress: string;
 }
+import { body, param, query } from 'express-validator';
+
+const router = Router();
 
 /**
- * 创建订单
+ * 创建新订单
  * POST /api/orders
  */
-router.post('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const {
-      user_id,
-      bot_id,
-      package_id,
-      target_address,
-      duration_hours,
-      notes
-    } = req.body;
-    
-    // 验证必填字段
-    if (!user_id || !bot_id || !package_id || !target_address) {
+router.post('/',
+  authenticateToken,
+  [
+    body('userId')
+      .isInt({ min: 1 })
+      .withMessage('Valid user ID is required'),
+    body('packageId')
+      .isInt({ min: 1 })
+      .withMessage('Valid package ID is required'),
+    body('energyAmount')
+      .isInt({ min: 1000 })
+      .withMessage('Energy amount must be at least 1000'),
+    body('durationHours')
+      .isInt({ min: 1, max: 168 })
+      .withMessage('Duration must be between 1 and 168 hours'),
+    body('priceTrx')
+      .isFloat({ min: 0.1 })
+      .withMessage('Price must be at least 0.1 TRX'),
+    body('recipientAddress')
+      .matches(/^T[A-Za-z1-9]{33}$/)
+      .withMessage('Invalid TRON address format')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderRequest: CreateOrderRequest = {
+        userId: req.body.userId,
+        packageId: req.body.packageId,
+        energyAmount: req.body.energyAmount,
+        durationHours: req.body.durationHours,
+        priceTrx: req.body.priceTrx,
+        recipientAddress: req.body.recipientAddress
+      };
+
+      const order = await orderService.createOrder(orderRequest);
+
+      res.status(201).json({
+        success: true,
+        data: order,
+        message: 'Order created successfully'
+      });
+    } catch (error) {
+      console.error('Create order error:', error);
       res.status(400).json({
         success: false,
-        message: '缺少必填字段：user_id, bot_id, package_id, target_address'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to create order'
       });
-      return;
     }
-    
-    // 批量验证用户、机器人和能量包（解决N+1查询问题）
-    const validationQuery = `
-      SELECT 
-        u.id as user_id, u.status as user_status,
-        b.id as bot_id, b.status as bot_status,
-        ep.id as package_id, ep.is_active, ep.energy_amount, ep.price, ep.duration_hours
-      FROM users u
-      CROSS JOIN bots b
-      CROSS JOIN energy_packages ep
-      WHERE u.id = $1 AND b.id = $2 AND ep.id = $3
-    `;
-
-    const validationResult = await query(validationQuery, [user_id, bot_id, package_id]);
-
-    if (validationResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '用户、机器人或能量包不存在'
-      });
-      return;
-    }
-
-    const { user_status, bot_status, is_active, energy_amount, price, duration_hours: packageDuration } = validationResult.rows[0];
-
-    // 验证状态
-    if (user_status !== 'active') {
-      res.status(400).json({
-        success: false,
-        message: '用户状态异常，无法创建订单'
-      });
-      return;
-    }
-
-    if (bot_status !== 'active') {
-      res.status(400).json({
-        success: false,
-        message: '机器人状态异常，无法创建订单'
-      });
-      return;
-    }
-
-    if (!is_active) {
-      res.status(400).json({
-        success: false,
-        message: '能量包状态异常，无法创建订单'
-      });
-      return;
-    }
-    // energy_amount, price, packageDuration 已从上面的验证查询中获取
-    
-    // 生成订单号
-    const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-    
-    // 创建订单
-    const orderResult = await query(
-      `INSERT INTO orders (
-        order_number, user_id, bot_id, package_id, 
-        energy_amount, price, target_address, 
-        status, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *`,
-      [
-        orderNumber, user_id, bot_id, package_id,
-        energy_amount, price, target_address,
-        ORDER_STATUS.PENDING, new Date(Date.now() + (duration_hours || packageDuration || 24) * 60 * 60 * 1000)
-      ]
-    );
-    
-    const order = orderResult.rows[0];
-    
-    res.status(201).json({
-      success: true,
-      message: '订单创建成功',
-      data: {
-        order
-      }
-    });
-    
-  } catch (error) {
-    console.error('创建订单错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
   }
-});
+);
 
 /**
- * 获取订单列表（支持搜索和筛选）
+ * 获取所有订单列表
  * GET /api/orders
  */
-router.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      user_id,
-      bot_id,
-      start_date,
-      end_date,
-      order_number,
-      target_address
-    } = req.query;
-    
-    const offset = (Number(page) - 1) * Number(limit);
-    
-    // 构建查询条件
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-    
-    if (status) {
-      whereConditions.push(`o.status = $${paramIndex}`);
-      queryParams.push(status);
-      paramIndex++;
-    }
-    
-    if (user_id) {
-      whereConditions.push(`o.user_id = $${paramIndex}`);
-      queryParams.push(user_id);
-      paramIndex++;
-    }
-    
-    if (bot_id) {
-      whereConditions.push(`o.bot_id = $${paramIndex}`);
-      queryParams.push(bot_id);
-      paramIndex++;
-    }
-    
-    if (start_date) {
-      whereConditions.push(`o.created_at >= $${paramIndex}`);
-      queryParams.push(start_date);
-      paramIndex++;
-    }
-    
-    if (end_date) {
-      whereConditions.push(`o.created_at <= $${paramIndex}`);
-      queryParams.push(end_date);
-      paramIndex++;
-    }
-    
-    if (order_number) {
-      whereConditions.push(`o.order_number ILIKE $${paramIndex}`);
-      queryParams.push(`%${order_number}%`);
-      paramIndex++;
-    }
-    
-    if (target_address) {
-      whereConditions.push(`o.target_address ILIKE $${paramIndex}`);
-      queryParams.push(`%${target_address}%`);
-      paramIndex++;
-    }
-    
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    
-    // 查询订单列表
-    const ordersQuery = `
-      SELECT 
-        o.*,
-        u.username as user_name,
-        u.email as user_email,
-        b.name as bot_name,
-        ep.name as package_name,
-        ep.energy_amount
-      FROM orders o
-      LEFT JOIN users u ON o.user_id = u.id
-      LEFT JOIN bots b ON o.bot_id = b.id
-      LEFT JOIN energy_packages ep ON o.package_id = ep.id
-      ${whereClause}
-      ORDER BY o.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    
-    queryParams.push(Number(limit), offset);
-    
-    const ordersResult = await query(ordersQuery, queryParams);
-    
-    // 查询总数
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM orders o
-      ${whereClause}
-    `;
-    
-    const countResult = await query(countQuery, queryParams.slice(0, -2));
-    const total = parseInt(countResult.rows[0].total);
-    
-    res.status(200).json({
-      success: true,
-      message: '获取订单列表成功',
-      data: {
-        orders: ordersResult.rows,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          pages: Math.ceil(total / Number(limit))
+router.get('/',
+  authenticateToken,
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('status')
+      .optional()
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .withMessage('Invalid status value'),
+    query('search')
+      .optional()
+      .isString()
+      .withMessage('Search must be a string')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+
+      // 构建搜索查询
+      const searchQuery: any = {};
+      if (status) searchQuery.status = status;
+      if (search) {
+        // 根据搜索内容判断是地址还是交易哈希
+        if (search.startsWith('T') && search.length === 34) {
+          // TRON地址格式
+          searchQuery.recipientAddress = search;
+        } else if (search.length === 64) {
+          // 交易哈希格式
+          searchQuery.txHash = search;
+        } else if (/^\d+$/.test(search)) {
+          // 数字，可能是用户ID
+          searchQuery.userId = parseInt(search);
         }
       }
-    });
-    
-  } catch (error) {
-    console.error('获取订单列表错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
+
+      const result = await orderService.searchOrders(searchQuery, limit, offset);
+
+      res.json({
+        success: true,
+        data: {
+          orders: result.orders,
+          pagination: {
+            page,
+            limit,
+            total: result.total,
+            totalPages: Math.ceil(result.total / limit)
+          }
+        },
+        message: 'Orders retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to retrieve orders'
+      });
+    }
   }
-});
+);
 
 /**
- * 获取单个订单详情
+ * 获取订单详情
  * GET /api/orders/:id
  */
-router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    
-    const orderResult = await query(
-      `SELECT 
-        o.*,
-        u.username as user_name,
-        u.email as user_email,
-        u.telegram_id,
-        b.name as bot_name,
-        b.username as bot_username,
-        ep.name as package_name,
-        ep.energy_amount,
-        ep.description as package_description
-      FROM orders o
-      LEFT JOIN users u ON o.user_id = u.id
-      LEFT JOIN bots b ON o.bot_id = b.id
-      LEFT JOIN energy_packages ep ON o.package_id = ep.id
-      WHERE o.id = $1`,
-      [id]
-    );
-    
-    if (orderResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '订单不存在'
-      });
-      return;
-    }
-    
-    res.status(200).json({
-      success: true,
-      message: '获取订单详情成功',
-      data: {
-        order: orderResult.rows[0]
+router.get('/:id',
+  authenticateToken,
+  [
+    param('id')
+      .isInt({ min: 1 })
+      .withMessage('Valid order ID is required')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await orderService.getOrderById(orderId);
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found',
+          message: 'The requested order does not exist'
+        });
       }
-    });
-    
-  } catch (error) {
-    console.error('获取订单详情错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
+
+      res.json({
+        success: true,
+        data: order,
+        message: 'Order retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get order error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to retrieve order'
+      });
+    }
   }
-});
+);
+
+/**
+ * 获取用户订单列表
+ * GET /api/orders/user/:userId
+ */
+router.get('/user/:userId',
+  authenticateToken,
+  [
+    param('userId')
+      .isInt({ min: 1 })
+      .withMessage('Valid user ID is required'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('offset')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Offset must be non-negative')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const orders = await orderService.getUserOrders(userId, limit, offset);
+
+      res.json({
+        success: true,
+        data: {
+          orders,
+          pagination: {
+            limit,
+            offset,
+            count: orders.length
+          }
+        },
+        message: 'User orders retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get user orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to retrieve user orders'
+      });
+    }
+  }
+);
 
 /**
  * 更新订单状态
  * PUT /api/orders/:id/status
  */
-router.put('/:id/status', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { status, notes } = req.body;
-    
-    // 验证状态值
-    const validStatuses = Object.values(ORDER_STATUS);
-    if (!validStatuses.includes(status)) {
+router.put('/:id/status',
+  authenticateToken,
+  [
+    param('id')
+      .isInt({ min: 1 })
+      .withMessage('Valid order ID is required'),
+    body('status')
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .withMessage('Invalid status value')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { status, ...additionalData } = req.body;
+
+      const order = await orderService.updateOrderStatus(orderId, status, additionalData);
+
+      res.json({
+        success: true,
+        data: order,
+        message: 'Order status updated successfully'
+      });
+    } catch (error) {
+      console.error('Update order status error:', error);
       res.status(400).json({
         success: false,
-        message: `无效的状态值，允许的状态: ${validStatuses.join(', ')}`
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to update order status'
       });
-      return;
     }
-    
-    // 检查订单是否存在
-    const orderResult = await query('SELECT id, status FROM orders WHERE id = $1', [id]);
-    if (orderResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '订单不存在'
-      });
-      return;
-    }
-    
-    const currentStatus = orderResult.rows[0].status;
-    
-    // 验证状态流转规则
-    const statusTransitions: Record<string, string[]> = {
-      [ORDER_STATUS.PENDING]: [ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED],
-      [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.COMPLETED, ORDER_STATUS.FAILED, ORDER_STATUS.CANCELLED],
-      [ORDER_STATUS.COMPLETED]: [], // 已完成的订单不能再变更
-      [ORDER_STATUS.FAILED]: [ORDER_STATUS.PROCESSING], // 失败的订单可以重新处理
-      [ORDER_STATUS.CANCELLED]: [] // 已取消的订单不能再变更
-    };
-    
-    if (!statusTransitions[currentStatus].includes(status)) {
-      res.status(400).json({
-        success: false,
-        message: `订单状态不能从 ${currentStatus} 变更为 ${status}`
-      });
-      return;
-    }
-    
-    // 更新订单状态
-    const updateFields = ['status = $2'];
-    const updateParams = [id, status];
-    let paramIndex = 3;
-    
-    if (notes) {
-      updateFields.push(`notes = $${paramIndex}`);
-      updateParams.push(notes);
-      paramIndex++;
-    }
-    
-    // 如果状态变为已完成，更新完成时间
-    if (status === ORDER_STATUS.COMPLETED) {
-      updateFields.push('completed_at = CURRENT_TIMESTAMP');
-    }
-    
-    const updateQuery = `
-      UPDATE orders 
-      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *
-    `;
-    
-    const updatedOrder = await query(updateQuery, updateParams);
-    
-    res.status(200).json({
-      success: true,
-      message: '订单状态更新成功',
-      data: {
-        order: updatedOrder.rows[0]
-      }
-    });
-    
-  } catch (error) {
-    console.error('更新订单状态错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
   }
-});
+);
 
 /**
  * 取消订单
- * PUT /api/orders/:id/cancel
+ * POST /api/orders/:id/cancel
  */
-router.put('/:id/cancel', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-    
-    // 检查订单是否存在
-    const orderResult = await query('SELECT id, status FROM orders WHERE id = $1', [id]);
-    if (orderResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '订单不存在'
+router.post('/:id/cancel',
+  authenticateToken,
+  [
+    param('id')
+      .isInt({ min: 1 })
+      .withMessage('Valid order ID is required'),
+    body('reason')
+      .optional()
+      .isString()
+      .isLength({ max: 500 })
+      .withMessage('Reason must be a string with max 500 characters')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      const order = await orderService.cancelOrder(orderId, reason);
+
+      res.json({
+        success: true,
+        data: order,
+        message: 'Order cancelled successfully'
       });
-      return;
-    }
-    
-    const currentStatus = orderResult.rows[0].status;
-    
-    // 只有待处理和处理中的订单可以取消
-    if (![ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING].includes(currentStatus)) {
+    } catch (error) {
+      console.error('Cancel order error:', error);
       res.status(400).json({
         success: false,
-        message: '只有待处理或处理中的订单可以取消'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to cancel order'
       });
-      return;
     }
-    
-    // 取消订单
-    const cancelledOrder = await query(
-      `UPDATE orders 
-       SET status = $2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
-       RETURNING *`,
-      [id, ORDER_STATUS.CANCELLED]
-    );
-    
-    res.status(200).json({
-      success: true,
-      message: '订单取消成功',
-      data: {
-        order: cancelledOrder.rows[0]
-      }
-    });
-    
-  } catch (error) {
-    console.error('取消订单错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
   }
-});
+);
 
 /**
- * 获取订单统计信息
- * GET /api/orders/statistics
+ * 处理支付确认
+ * POST /api/orders/:id/payment-confirmed
  */
-router.get('/statistics/summary', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { start_date, end_date, bot_id } = req.query;
-    
-    // 构建时间范围条件
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-    
-    if (start_date) {
-      whereConditions.push(`created_at >= $${paramIndex}`);
-      queryParams.push(start_date);
-      paramIndex++;
+router.post('/:id/payment-confirmed',
+  authenticateToken,
+  [
+    param('id')
+      .isInt({ min: 1 })
+      .withMessage('Valid order ID is required'),
+    body('txHash')
+      .isString()
+      .isLength({ min: 64, max: 64 })
+      .withMessage('Valid transaction hash is required'),
+    body('amount')
+      .isFloat({ min: 0 })
+      .withMessage('Valid amount is required')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { txHash, amount } = req.body;
+
+      await orderService.handlePaymentConfirmed(orderId, txHash, amount);
+
+      res.json({
+        success: true,
+        message: 'Payment confirmed and order processing started'
+      });
+    } catch (error) {
+      console.error('Handle payment confirmed error:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to process payment confirmation'
+      });
     }
-    
-    if (end_date) {
-      whereConditions.push(`created_at <= $${paramIndex}`);
-      queryParams.push(end_date);
-      paramIndex++;
-    }
-    
-    if (bot_id) {
-      whereConditions.push(`bot_id = $${paramIndex}`);
-      queryParams.push(bot_id);
-      paramIndex++;
-    }
-    
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    
-    // 获取订单统计
-    const statsQuery = `
-      SELECT 
-        COUNT(*) as total_orders,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
-        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_orders,
-        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
-        COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
-        COALESCE(SUM(price), 0) as total_amount,
-        COALESCE(SUM(CASE WHEN status = 'completed' THEN price ELSE 0 END), 0) as completed_amount,
-        COALESCE(AVG(price), 0) as average_order_value
-      FROM orders
-      ${whereClause}
-    `;
-    
-    const statsResult = await query(statsQuery, queryParams);
-    const stats = statsResult.rows[0];
-    
-    // 计算成功率
-    const totalOrders = parseInt(stats.total_orders);
-    const completedOrders = parseInt(stats.completed_orders);
-    const successRate = totalOrders > 0 ? (completedOrders / totalOrders * 100).toFixed(2) : '0.00';
-    
-    // 获取每日订单统计（最近30天）
-    const dailyStatsQuery = `
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as orders_count,
-        COALESCE(SUM(price), 0) as daily_amount
-      FROM orders
-      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
-      ${bot_id ? `AND bot_id = $${queryParams.length + 1}` : ''}
-      GROUP BY DATE(created_at)
-      ORDER BY date DESC
-      LIMIT 30
-    `;
-    
-    const dailyParams = bot_id ? [...queryParams, bot_id] : queryParams;
-    const dailyStatsResult = await query(dailyStatsQuery, dailyParams);
-    
-    res.status(200).json({
-      success: true,
-      message: '获取订单统计成功',
-      data: {
-        summary: {
-          total_orders: parseInt(stats.total_orders),
-          completed_orders: parseInt(stats.completed_orders),
-          failed_orders: parseInt(stats.failed_orders),
-          cancelled_orders: parseInt(stats.cancelled_orders),
-          pending_orders: parseInt(stats.pending_orders),
-          processing_orders: parseInt(stats.processing_orders),
-          total_amount: parseFloat(stats.total_amount),
-          completed_amount: parseFloat(stats.completed_amount),
-          average_order_value: parseFloat(stats.average_order_value),
-          success_rate: parseFloat(successRate)
-        },
-        daily_stats: dailyStatsResult.rows
-      }
-    });
-    
-  } catch (error) {
-    console.error('获取订单统计错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
   }
-});
+);
+
+/**
+ * 处理能量委托
+ * POST /api/orders/:id/process-delegation
+ */
+router.post('/:id/process-delegation',
+  authenticateToken,
+  [
+    param('id')
+      .isInt({ min: 1 })
+      .withMessage('Valid order ID is required')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+
+      await orderService.processEnergyDelegation(orderId);
+
+      res.json({
+        success: true,
+        message: 'Energy delegation processed successfully'
+      });
+    } catch (error) {
+      console.error('Process delegation error:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to process energy delegation'
+      });
+    }
+  }
+);
+
+/**
+ * 获取订单统计
+ * GET /api/orders/stats
+ */
+router.get('/stats',
+  authenticateToken,
+  [
+    query('days')
+      .optional()
+      .isInt({ min: 1, max: 365 })
+      .withMessage('Days must be between 1 and 365')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const stats = await orderService.getOrderStats(days);
+
+      res.json({
+        success: true,
+        data: {
+          ...stats,
+          period: `${days} days`
+        },
+        message: 'Order statistics retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get order stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to retrieve order statistics'
+      });
+    }
+  }
+);
+
+/**
+ * 搜索订单
+ * GET /api/orders/search
+ */
+router.get('/search',
+  authenticateToken,
+  [
+    query('userId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('User ID must be a positive integer'),
+    query('status')
+      .optional()
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .withMessage('Invalid status value'),
+    query('recipientAddress')
+      .optional()
+      .matches(/^T[A-Za-z1-9]{33}$/)
+      .withMessage('Invalid TRON address format'),
+    query('txHash')
+      .optional()
+      .isString()
+      .isLength({ min: 64, max: 64 })
+      .withMessage('Invalid transaction hash format'),
+    query('dateFrom')
+      .optional()
+      .isISO8601()
+      .withMessage('Invalid date format for dateFrom'),
+    query('dateTo')
+      .optional()
+      .isISO8601()
+      .withMessage('Invalid date format for dateTo'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('offset')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Offset must be non-negative')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const searchQuery = {
+        userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
+        status: req.query.status as any,
+        recipientAddress: req.query.recipientAddress as string,
+        txHash: req.query.txHash as string,
+        dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
+        dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined
+      };
+
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const result = await orderService.searchOrders(searchQuery, limit, offset);
+
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          pagination: {
+            limit,
+            offset,
+            total: result.total
+          }
+        },
+        message: 'Orders search completed successfully'
+      });
+    } catch (error) {
+      console.error('Search orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to search orders'
+      });
+    }
+  }
+);
+
+/**
+ * 获取活跃订单
+ * GET /api/orders/active
+ */
+router.get('/active',
+  authenticateToken,
+  [
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 500 })
+      .withMessage('Limit must be between 1 and 500')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const orders = await orderService.getActiveOrders(limit);
+
+      res.json({
+        success: true,
+        data: {
+          orders,
+          count: orders.length
+        },
+        message: 'Active orders retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get active orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to retrieve active orders'
+      });
+    }
+  }
+);
+
+/**
+ * 批量处理过期订单
+ * POST /api/orders/process-expired
+ */
+router.post('/process-expired',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const processedCount = await orderService.processExpiredOrders();
+
+      res.json({
+        success: true,
+        data: {
+          processedCount
+        },
+        message: `Processed ${processedCount} expired orders`
+      });
+    } catch (error) {
+      console.error('Process expired orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to process expired orders'
+      });
+    }
+  }
+);
 
 export default router;

@@ -53,6 +53,8 @@
       :format-address="formatAddress"
       :format-type="formatType"
       :format-currency="formatCurrency"
+      :format-username="formatUsername"
+      :format-token="formatToken"
       :pagination="pagination"
       @view="viewBot"
       @edit="editBot"
@@ -125,6 +127,8 @@ const {
   formatCurrency,
   formatAddress,
   formatType,
+  formatUsername,
+  formatToken,
   getStatusText,
   getStatusColor,
   formatStatus,

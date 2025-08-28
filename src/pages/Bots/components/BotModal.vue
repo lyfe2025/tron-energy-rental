@@ -25,14 +25,12 @@
               <p class="text-gray-900">{{ bot?.name || '-' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">TRON地址</label>
-              <p class="text-gray-900 font-mono text-sm break-all">{{ formatAddress(bot?.address) }}</p>
+              <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+              <p class="text-gray-900 font-mono text-sm break-all">{{ bot?.username || '-' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">机器人类型</label>
-              <span :class="getTypeColor(bot?.type)" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ formatType(bot?.type) }}
-              </span>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Token</label>
+              <p class="text-gray-900 font-mono text-sm break-all">{{ bot?.token ? bot.token.substring(0, 20) + '...' : '-' }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
@@ -42,25 +40,61 @@
             </div>
           </div>
 
-          <!-- Balance Info -->
+          <!-- Welcome Message -->
+          <div v-if="bot?.welcome_message">
+            <label class="block text-sm font-medium text-gray-700 mb-1">欢迎语</label>
+            <div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
+              {{ bot.welcome_message }}
+            </div>
+          </div>
+
+          <!-- Help Message -->
+          <div v-if="bot?.help_message">
+            <label class="block text-sm font-medium text-gray-700 mb-1">帮助信息</label>
+            <div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
+              {{ bot.help_message }}
+            </div>
+          </div>
+
+          <!-- Commands -->
+          <div v-if="bot?.commands && bot.commands.length > 0">
+            <label class="block text-sm font-medium text-gray-700 mb-2">机器人命令</label>
+            <div class="space-y-2">
+              <div v-for="command in (bot.commands as any[])" :key="command.command" class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                  <span class="text-sm font-medium text-gray-900">/{{ command.command }}</span>
+                  <p class="text-xs text-gray-600">{{ command.description }}</p>
+                </div>
+                <span :class="`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                  command.enabled 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`">
+                  {{ command.enabled ? '启用' : '禁用' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistics Info -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-900 mb-3">余额信息</h4>
+            <h4 class="text-sm font-medium text-gray-900 mb-3">统计信息</h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="text-center">
-                <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(bot?.trx_balance) }}</p>
-                <p class="text-sm text-gray-600">TRX余额</p>
+                <p class="text-2xl font-bold text-blue-600">{{ bot?.total_users || 0 }}</p>
+                <p class="text-sm text-gray-600">用户数</p>
               </div>
               <div class="text-center">
-                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(bot?.energy_balance) }}</p>
-                <p class="text-sm text-gray-600">能量余额</p>
+                <p class="text-2xl font-bold text-green-600">{{ bot?.total_orders || 0 }}</p>
+                <p class="text-sm text-gray-600">订单数</p>
               </div>
               <div class="text-center">
                 <p class="text-2xl font-bold text-orange-600">{{ bot?.today_orders || 0 }}</p>
                 <p class="text-sm text-gray-600">今日订单</p>
               </div>
               <div class="text-center">
-                <p class="text-2xl font-bold text-purple-600">{{ bot?.total_orders || 0 }}</p>
-                <p class="text-sm text-gray-600">总订单</p>
+                <p class="text-2xl font-bold text-purple-600">{{ bot?.balance || 0 }}</p>
+                <p class="text-sm text-gray-600">余额</p>
               </div>
             </div>
           </div>
@@ -107,53 +141,37 @@
             />
           </div>
 
-          <!-- TRON Address -->
+          <!-- Username -->
           <div>
-            <label for="address" class="block text-sm font-medium text-gray-700 mb-1">
-              TRON地址 <span class="text-red-500">*</span>
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+              用户名 <span class="text-red-500">*</span>
             </label>
             <input
-              id="address"
-              v-model="form.address"
+              id="username"
+              v-model="form.username"
               type="text"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="请输入TRON地址"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="请输入机器人用户名"
             />
           </div>
 
-          <!-- Private Key -->
+          <!-- Token -->
           <div>
-            <label for="private_key" class="block text-sm font-medium text-gray-700 mb-1">
-              私钥 <span class="text-red-500">*</span>
+            <label for="token" class="block text-sm font-medium text-gray-700 mb-1">
+              Token <span class="text-red-500">*</span>
             </label>
             <input
-              id="private_key"
-              v-model="form.private_key"
+              id="token"
+              v-model="form.token"
               type="password"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="请输入私钥"
+              placeholder="请输入机器人Token"
             />
           </div>
 
-          <!-- Bot Type -->
-          <div>
-            <label for="type" class="block text-sm font-medium text-gray-700 mb-1">
-              机器人类型 <span class="text-red-500">*</span>
-            </label>
-            <select
-              id="type"
-              v-model="form.type"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">请选择机器人类型</option>
-              <option value="energy">能量机器人</option>
-              <option value="bandwidth">带宽机器人</option>
-              <option value="mixed">混合机器人</option>
-            </select>
-          </div>
+
 
           <!-- Description -->
           <div>
@@ -169,50 +187,89 @@
             ></textarea>
           </div>
 
-          <!-- Order Amount Range -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="min_order_amount" class="block text-sm font-medium text-gray-700 mb-1">
-                最小订单金额 (TRX)
-              </label>
-              <input
-                id="min_order_amount"
-                v-model.number="form.min_order_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label for="max_order_amount" class="block text-sm font-medium text-gray-700 mb-1">
-                最大订单金额 (TRX)
-              </label>
-              <input
-                id="max_order_amount"
-                v-model.number="form.max_order_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
-            </div>
+          <!-- Welcome Message -->
+          <div>
+            <label for="welcome_message" class="block text-sm font-medium text-gray-700 mb-1">
+              欢迎语
+            </label>
+            <textarea
+              id="welcome_message"
+              v-model="form.welcome_message"
+              rows="4"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="请输入机器人欢迎语"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">用户首次使用 /start 命令时显示的消息</p>
           </div>
 
-          <!-- Enable Bot -->
-          <div class="flex items-center">
-            <input
-              id="is_active"
-              v-model="form.is_active"
-              type="checkbox"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            <label for="is_active" class="ml-2 text-sm font-medium text-gray-700">
-              启用机器人
+          <!-- Help Message -->
+          <div>
+            <label for="help_message" class="block text-sm font-medium text-gray-700 mb-1">
+              帮助信息
             </label>
+            <textarea
+              id="help_message"
+              v-model="form.help_message"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="请输入帮助信息"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">用户使用 /help 命令时显示的消息</p>
           </div>
+
+          <!-- Bot Commands -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              机器人命令配置
+            </label>
+            <div class="space-y-3">
+              <div v-for="(command, index) in form.commands" :key="index" class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                <div class="flex-1">
+                  <input
+                    v-model="command.command"
+                    type="text"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="命令名称"
+                  />
+                </div>
+                <div class="flex-2">
+                  <input
+                    v-model="command.description"
+                    type="text"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="命令描述"
+                  />
+                </div>
+                <div class="flex items-center">
+                  <input
+                    v-model="command.enabled"
+                    type="checkbox"
+                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label class="ml-1 text-xs text-gray-600">启用</label>
+                </div>
+                <button
+                  type="button"
+                  @click="removeCommand(index)"
+                  class="text-red-500 hover:text-red-700 text-sm"
+                >
+                  删除
+                </button>
+              </div>
+              <button
+                type="button"
+                @click="addCommand"
+                class="w-full px-3 py-2 text-sm text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                + 添加命令
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">配置机器人支持的命令和对应的按钮</p>
+          </div>
+
+
+
+
 
           <!-- Form Actions -->
           <div class="flex justify-end gap-3 pt-4 border-t">
@@ -239,9 +296,10 @@
 </template>
 
 <script setup lang="ts">
+import type { Bot } from '@/types/api'
 import { Edit, Loader2, X, Zap } from 'lucide-vue-next'
 import { computed } from 'vue'
-import type { Bot, BotForm, BotModalMode } from '../types/bot.types'
+import type { BotForm, BotModalMode } from '../types/bot.types'
 
 interface Props {
   show: boolean
@@ -249,12 +307,8 @@ interface Props {
   bot?: Bot | null
   form: BotForm
   isSaving: boolean
-  formatAddress: (address?: string) => string
-  formatType: (type?: string) => string
   formatStatus: (status?: string) => string
-  formatCurrency: (amount?: number) => string
   getStatusColor: (status?: string) => string
-  getTypeColor: (type?: string) => string
 }
 
 interface Emits {
@@ -262,6 +316,8 @@ interface Emits {
   edit: [bot: Bot]
   'test-connection': [bot: Bot]
   submit: []
+  'add-command': []
+  'remove-command': [index: number]
 }
 
 const props = defineProps<Props>()
@@ -282,5 +338,17 @@ const modalTitle = computed(() => {
 
 const handleSubmit = () => {
   emit('submit')
+}
+
+const addCommand = () => {
+  props.form.commands.push({
+    command: '',
+    description: '',
+    enabled: true
+  })
+}
+
+const removeCommand = (index: number) => {
+  props.form.commands.splice(index, 1)
 }
 </script>

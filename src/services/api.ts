@@ -3,7 +3,6 @@ import type {
     AgentPricing,
     Bot,
     BotPricing,
-    CreateBotData,
     CreateEnergyPackageData,
     CreatePriceTemplateData,
     CreateUserData,
@@ -17,7 +16,6 @@ import type {
     SystemConfig,
     SystemSettings,
     UpdateAgentPricingData,
-    UpdateBotData,
     UpdateBotPricingData,
     UpdateEnergyPackageData,
     UpdateOrderStatusData,
@@ -29,7 +27,14 @@ import type {
 } from '../types/api'
 
 // API基础配置
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001'
+// 在开发环境中使用相对路径以利用Vite代理，在生产环境中使用完整URL
+interface ImportMeta {
+  env: {
+    VITE_API_BASE_URL?: string;
+  };
+}
+
+const API_BASE_URL = (import.meta as ImportMeta).env?.VITE_API_BASE_URL || ''
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
@@ -78,6 +83,9 @@ apiClient.interceptors.response.use(
   }
 )
 
+// 导出apiClient实例
+export { apiClient }
+
 // API响应类型定义
 export interface ApiResponse<T = unknown> {
   success: boolean
@@ -90,11 +98,13 @@ export interface ApiResponse<T = unknown> {
 export interface PaginatedResponse<T> {
   success: boolean
   data: {
-    items: T[]
-    total: number
-    page: number
-    limit: number
-    totalPages: number
+    users: T[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
   }
   message?: string
 }
@@ -144,8 +154,8 @@ export const usersAPI = {
 // 订单管理API
 export const ordersAPI = {
   // 获取订单列表
-  getOrders: (params?: { page?: number; limit?: number; status?: string; user_id?: string }) => 
-    apiClient.get<PaginatedResponse<Order>>('/api/orders', { params }),
+  getOrders: (params?: { page?: number; limit?: number; status?: string; user_id?: string; search?: string; start_date?: string; end_date?: string }) => 
+    apiClient.get<ApiResponse<{ orders: Order[]; pagination: { page: number; limit: number; total: number; totalPages: number }; stats: OrderStats }>>('/api/orders', { params }),
   
   // 获取订单详情
   getOrder: (id: string) => 
@@ -153,7 +163,7 @@ export const ordersAPI = {
   
   // 更新订单状态
   updateOrderStatus: (id: string, data: UpdateOrderStatusData) => 
-    apiClient.patch<ApiResponse<Order>>(`/api/orders/${id}/status`, data),
+    apiClient.put<ApiResponse<Order>>(`/api/orders/${id}/status`, data),
   
   // 处理订单
   processOrder: (id: string) => 
@@ -163,28 +173,48 @@ export const ordersAPI = {
 // 机器人管理API
 export const botsAPI = {
   // 获取机器人列表
-  getBots: (params?: { page?: number; limit?: number; status?: string }) => 
-    apiClient.get<PaginatedResponse<Bot>>('/api/bots', { params }),
+  getBots: (params?: { page?: number; limit?: number; status?: string; search?: string }) => 
+    apiClient.get<ApiResponse<{ bots: Bot[]; pagination: unknown }>>('/api/bots', { params }),
   
   // 获取机器人详情
   getBot: (id: string) => 
-    apiClient.get<ApiResponse<Bot>>(`/api/bots/${id}`),
+    apiClient.get<ApiResponse<{ bot: Bot; stats?: unknown }>>(`/api/bots/${id}`),
   
   // 创建机器人
-  createBot: (data: CreateBotData) => 
-    apiClient.post<ApiResponse<Bot>>('/api/bots', data),
+  createBot: (data: {
+    name: string;
+    username: string;
+    token: string;
+    description?: string;
+    webhook_url?: string;
+    settings?: unknown;
+    welcome_message?: string;
+    help_message?: string;
+    commands?: unknown[];
+  }) => 
+    apiClient.post<ApiResponse<{ bot: Bot }>>('/api/bots', data),
   
   // 更新机器人
-  updateBot: (id: string, data: UpdateBotData) => 
-    apiClient.put<ApiResponse<Bot>>(`/api/bots/${id}`, data),
+  updateBot: (id: string, data: {
+    name?: string;
+    username?: string;
+    token?: string;
+    description?: string;
+    webhook_url?: string;
+    settings?: unknown;
+    welcome_message?: string;
+    help_message?: string;
+    commands?: unknown[];
+  }) => 
+    apiClient.put<ApiResponse<{ bot: Bot }>>(`/api/bots/${id}`, data),
   
   // 更新机器人状态
   updateBotStatus: (id: string, status: string) => 
-    apiClient.patch<ApiResponse<Bot>>(`/api/bots/${id}/status`, { status }),
+    apiClient.patch<ApiResponse<{ bot: Bot }>>(`/api/bots/${id}/status`, { status }),
   
   // 删除机器人
   deleteBot: (id: string) => 
-    apiClient.delete<ApiResponse<Bot>>(`/api/bots/${id}`),
+    apiClient.delete<ApiResponse<{ message: string }>>(`/api/bots/${id}`),
   
   // 测试机器人连接
   testBot: (id: string) => 
@@ -291,17 +321,25 @@ export const statisticsAPI = {
     apiClient.get<ApiResponse<Array<{ category: string; value: number; change: number; trend: 'up' | 'down' | 'stable' }>>>('/api/statistics/detail-data', { params }),
 }
 
+// 分页信息类型
+export interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 // 系统配置API
 export const systemConfigsAPI = {
   // 获取系统配置列表
   getConfigs: (params?: { category?: string; is_public?: boolean; limit?: number }) => 
-    apiClient.get<ApiResponse<SystemConfig[]>>('/api/system-configs', { params }),
+    apiClient.get<ApiResponse<{ configs: SystemConfig[]; pagination: PaginationInfo }>>('/api/system-configs', { params }),
   
   // 获取所有必要的配置（用于设置页面）
   getAllSettingsConfigs: async () => {
-    const categories = ['system', 'security', 'notification', 'pricing'];
+    const categories = ['system', 'security', 'notification', 'pricing', 'cache', 'logging', 'api', 'features'];
     const promises = categories.map(category => 
-      apiClient.get<ApiResponse<SystemConfig[]>>('/api/system-configs', { 
+      apiClient.get<ApiResponse<{ configs: SystemConfig[]; pagination: PaginationInfo }>>('/api/system-configs', { 
         params: { category, limit: 100 } 
       })
     );
@@ -310,7 +348,7 @@ export const systemConfigsAPI = {
     const allConfigs: SystemConfig[] = [];
     
     responses.forEach(response => {
-      if (response.data.success && response.data.data && response.data.data.configs) {
+      if (response.data.success && response.data.data?.configs) {
         allConfigs.push(...response.data.data.configs);
       }
     });
@@ -318,7 +356,7 @@ export const systemConfigsAPI = {
     return {
       data: {
         success: true,
-        data: { configs: allConfigs }
+        data: allConfigs
       }
     };
   },
@@ -333,7 +371,7 @@ export const systemConfigsAPI = {
   
   // 批量更新配置
   updateConfigs: (configs: Array<{ config_key: string; config_value: string | number | boolean }>, changeReason?: string) => 
-    apiClient.put<ApiResponse<SystemConfig[]>>('/api/system-configs/batch/update', { 
+    apiClient.put<ApiResponse<{ updated: SystemConfig[]; errors: Array<{ config_key: string; error: string }> }>>('/api/system-configs/batch/update', { 
       configs, 
       change_reason: changeReason || '系统设置更新'
     }),
@@ -354,19 +392,152 @@ export const pricingAPI = {
   deleteTemplate: (id: string) => 
     apiClient.delete<ApiResponse<{ message: string }>>(`/api/price-templates/${id}`),
   
-  // 机器人定价管理
-  getBotPricing: (params?: { page?: number; limit?: number; search?: string; status?: string }) => 
-    apiClient.get<PaginatedResponse<BotPricing>>('/api/robot-pricing', { params }),
+  // 注意：机器人定价和代理商价格管理相关的API已移除
+  // 如需重新实现，请根据新的架构设计相应的接口
+}
+
+// 能量池管理API
+export const energyPoolAPI = {
+  // 获取能量池统计信息
+  getStatistics: () => 
+    apiClient.get<ApiResponse<{
+      totalAccounts: number;
+      activeAccounts: number;
+      totalEnergy: number;
+      availableEnergy: number;
+      reservedEnergy: number;
+      averageCost: number;
+    }>>('/api/energy-pool/statistics'),
   
-  updateBotPricing: (id: string, data: UpdateBotPricingData) => 
-    apiClient.put<ApiResponse<BotPricing>>(`/api/robot-pricing/${id}`, data),
+  // 获取能量池账户列表
+  getAccounts: () => 
+    apiClient.get<ApiResponse<Array<{
+      id: string;
+      name: string;
+      tron_address: string;
+      private_key_encrypted: string;
+      total_energy: number;
+      available_energy: number;
+      reserved_energy: number;
+      cost_per_energy: number;
+      status: 'active' | 'inactive' | 'maintenance';
+      last_updated_at: string;
+      created_at: string;
+      updated_at: string;
+    }>>>('/api/energy-pool/accounts'),
   
-  // 代理商价格管理
-  getAgentPricing: (params?: { page?: number; limit?: number; search?: string; status?: string }) => 
-    apiClient.get<PaginatedResponse<AgentPricing>>('/api/agent-pricing', { params }),
+  // 获取特定能量池账户详情
+  getAccount: (id: string) => 
+    apiClient.get<ApiResponse<{
+      id: string;
+      name: string;
+      tron_address: string;
+      private_key_encrypted: string;
+      total_energy: number;
+      available_energy: number;
+      reserved_energy: number;
+      cost_per_energy: number;
+      status: 'active' | 'inactive' | 'maintenance';
+      last_updated_at: string;
+      created_at: string;
+      updated_at: string;
+    }>>(`/api/energy-pool/accounts/${id}`),
   
-  updateAgentPricing: (id: string, data: UpdateAgentPricingData) => 
-    apiClient.put<ApiResponse<AgentPricing>>(`/api/agent-pricing/${id}`, data),
+  // 刷新能量池状态
+  refreshStatus: () => 
+    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/refresh'),
+  
+  // 优化能量分配
+  optimizeAllocation: (requiredEnergy: number) => 
+    apiClient.post<ApiResponse<{
+      allocations: Array<{
+        poolAccountId: number;
+        energyAmount: number;
+        estimatedCost: number;
+      }>;
+      totalCost: number;
+      success: boolean;
+      message?: string;
+    }>>('/api/energy-pool/optimize', { requiredEnergy }),
+  
+  // 预留能量资源
+  reserveEnergy: (allocations: Array<{ poolAccountId: number; energyAmount: number }>) => 
+    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/reserve', { allocations }),
+  
+  // 释放预留的能量资源
+  releaseEnergy: (allocations: Array<{ poolAccountId: number; energyAmount: number }>) => 
+    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/release', { allocations }),
+  
+  // 确认能量使用
+  confirmUsage: (allocations: Array<{ poolAccountId: number; energyAmount: number }>) => 
+    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/confirm-usage', { allocations }),
+  
+  // 添加新的能量池账户
+  addAccount: (data: {
+    name: string;
+    tron_address: string;
+    private_key_encrypted: string;
+    total_energy: number;
+    available_energy?: number;
+    cost_per_energy?: number;
+    status?: 'active' | 'inactive' | 'maintenance';
+  }) => 
+    apiClient.post<ApiResponse<{ id: string }>>('/api/energy-pool/accounts', data),
+  
+  // 更新能量池账户
+  updateAccount: (id: string, data: Partial<{
+    name: string;
+    tron_address: string;
+    private_key_encrypted: string;
+    total_energy: number;
+    available_energy: number;
+    cost_per_energy: number;
+    status: 'active' | 'inactive' | 'maintenance';
+  }>) => 
+    apiClient.put<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}`, data),
+  
+
+  
+  // 获取今日消耗统计
+  getTodayConsumption: () => 
+    apiClient.get<ApiResponse<{
+      totalConsumption: number;
+      totalCost: number;
+      transactionCount: number;
+      byAccount: Array<{
+        pool_account_id: number;
+        account_name: string;
+        total_energy: number;
+        total_cost: number;
+        transaction_count: number;
+      }>;
+      byType: Array<{
+        transaction_type: string;
+        total_energy: number;
+        total_cost: number;
+        transaction_count: number;
+      }>;
+    }>>('/api/energy-pool/today-consumption'),
+  
+  // 启用账户
+  enableAccount: (id: string) => 
+    apiClient.put<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/enable`),
+  
+  // 停用账户
+  disableAccount: (id: string) => 
+    apiClient.put<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/disable`),
+  
+  // 批量启用账户
+  batchEnableAccounts: (accountIds: string[]) => 
+    apiClient.put<ApiResponse<{ successCount: number; failedCount: number; errors: Array<{ id: string; error: string }> }>>('/api/energy-pool/accounts/batch/enable', { accountIds }),
+  
+  // 批量停用账户
+  batchDisableAccounts: (accountIds: string[]) => 
+    apiClient.put<ApiResponse<{ successCount: number; failedCount: number; errors: Array<{ id: string; error: string }> }>>('/api/energy-pool/accounts/batch/disable', { accountIds }),
+  
+  // 删除账户
+  deleteAccount: (id: string) => 
+    apiClient.delete<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}`),
 }
 
 // 系统设置API

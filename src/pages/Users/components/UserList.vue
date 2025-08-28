@@ -26,7 +26,7 @@
                 Telegram ID
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                角色
+                类型
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状态
@@ -68,7 +68,7 @@
                     <User class="h-5 w-5 text-indigo-600" />
                   </div>
                   <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ user.username || user.email }}</div>
                     <div class="text-sm text-gray-500">{{ user.email }}</div>
                     <div v-if="user.phone" class="text-sm text-gray-500">{{ user.phone }}</div>
                   </div>
@@ -81,10 +81,10 @@
                 <span 
                   :class="[
                     'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                    getRoleColor(user.role)
+                    getTypeColor(user.type)
                   ]"
                 >
-                  {{ getRoleText(user.role) }}
+                  {{ getTypeText(user.type) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -98,10 +98,10 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCurrency(user.usdt_balance || 0) }} USDT
+                {{ formatCurrency(Number(user.usdt_balance) || 0) }} USDT
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCurrency(user.trx_balance || 0) }} TRX
+                {{ formatCurrency(Number(user.trx_balance) || 0) }} TRX
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatDateTime(user.created_at) }}
@@ -232,16 +232,16 @@
               <span class="ml-1 font-medium">{{ user.telegram_id || '-' }}</span>
             </div>
             <div>
-              <span class="text-gray-500">角色:</span>
-              <span class="ml-1 font-medium">{{ getRoleText(user.role) }}</span>
+              <span class="text-gray-500">类型:</span>
+              <span class="ml-1 font-medium">{{ getTypeText(user.type) }}</span>
             </div>
             <div>
               <span class="text-gray-500">USDT余额:</span>
-              <span class="ml-1 font-medium">{{ formatCurrency(user.usdt_balance || 0) }} USDT</span>
+              <span class="ml-1 font-medium">{{ formatCurrency(Number(user.usdt_balance) || 0) }} USDT</span>
             </div>
             <div>
               <span class="text-gray-500">TRX余额:</span>
-              <span class="ml-1 font-medium">{{ formatCurrency(user.trx_balance || 0) }} TRX</span>
+              <span class="ml-1 font-medium">{{ formatCurrency(Number(user.trx_balance) || 0) }} TRX</span>
             </div>
             <div>
               <span class="text-gray-500">注册:</span>
@@ -330,8 +330,8 @@ interface Props {
   formatDateTime: (date: string) => string
   formatDate: (date: string) => string
   formatCurrency: (amount: number) => string
-  getRoleText: (role: string) => string
-  getRoleColor: (role: string) => string
+  getTypeText: (type: string) => string
+  getTypeColor: (type: string) => string
   getStatusText: (status: string) => string
   getStatusColor: (status: string) => string
 }

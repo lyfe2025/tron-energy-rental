@@ -27,10 +27,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     
-    // 查询用户
+    // 查询管理员用户
     const userResult = await query(
-      'SELECT id, email, password_hash, role, login_type, status FROM users WHERE email = $1 AND login_type IN ($2, $3)',
-      [email, 'admin', 'both']
+      'SELECT id, username, email, password_hash, role, status FROM admins WHERE email = $1',
+      [email]
     );
     
     if (userResult.rows.length === 0) {
@@ -64,16 +64,17 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     
     // 更新最后登录时间
     await query(
-      'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+      'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
     
     // 生成JWT token
     const token = generateToken({
+      id: user.id.toString(),
       userId: user.id,
       email: user.email,
       role: user.role,
-      loginType: user.login_type
+      loginType: 'admin'
     });
     
     res.status(200).json({
@@ -83,9 +84,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         token,
         user: {
           id: user.id,
+          username: user.username,
           email: user.email,
           role: user.role,
-          loginType: user.login_type
+          loginType: 'admin'
         }
       }
     });
@@ -136,7 +138,7 @@ router.post('/register', authenticateToken, async (req: Request, res: Response):
     
     // 检查邮箱是否已存在
     const existingUser = await query(
-      'SELECT id FROM users WHERE email = $1',
+      'SELECT id FROM admins WHERE email = $1',
       [email]
     );
     
@@ -149,15 +151,15 @@ router.post('/register', authenticateToken, async (req: Request, res: Response):
     }
     
     // 加密密码
-    const saltRounds = 10;
+    const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
-    // 创建用户
+    // 创建管理员用户
     const newUser = await query(
-      `INSERT INTO users (email, password_hash, role, login_type, status) 
+      `INSERT INTO admins (username, email, password_hash, role, status) 
        VALUES ($1, $2, $3, $4, $5) 
-       RETURNING id, email, role, login_type, created_at`,
-      [email, passwordHash, role, 'admin', 'active']
+       RETURNING id, username, email, role, created_at`,
+      [email.split('@')[0], email, passwordHash, role, 'active']
     );
     
     res.status(201).json({

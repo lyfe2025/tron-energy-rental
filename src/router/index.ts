@@ -35,32 +35,56 @@ const router = createRouter({
         {
           path: 'pricing',
           name: 'pricing',
-          component: () => import('@/pages/Pricing.vue')
+          component: () => import('@/pages/Pricing.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
         },
         {
           path: 'users',
           name: 'users',
-          component: () => import('@/pages/Users/index.vue')
+          component: () => import('@/pages/Users/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'agents',
+          name: 'agents',
+          component: () => import('@/pages/Agents/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'admins',
+          name: 'admins',
+          component: () => import('@/pages/Admins/index.vue'),
+          meta: { roles: ['super_admin'] }
         },
         {
           path: 'bots',
           name: 'bots',
-          component: () => import('@/pages/Bots/index.vue')
+          component: () => import('@/pages/Bots/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
         },
         {
           path: 'energy',
           name: 'energy',
-          component: () => import('@/pages/EnergyPackages.vue')
+          component: () => import('@/pages/EnergyPackages.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'energy-pool',
+          name: 'energy-pool',
+          component: () => import('@/pages/EnergyPool.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
         },
         {
           path: 'statistics',
           name: 'statistics',
-          component: () => import('@/pages/Statistics.vue')
+          component: () => import('@/pages/Statistics.vue'),
+          meta: { roles: ['super_admin', 'admin', 'agent'] }
         },
         {
           path: 'settings',
           name: 'settings',
-          component: () => import('@/pages/Settings.vue')
+          component: () => import('@/pages/Settings.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
         }
       ]
     },
@@ -95,8 +119,18 @@ router.beforeEach(async (to, from, next) => {
           return
         }
       } catch (error) {
-        console.error('认证验证失败:', error)
         next('/login')
+        return
+      }
+    }
+    
+    // 检查角色权限
+    const requiredRoles = to.meta.roles as string[] | undefined
+    if (requiredRoles && requiredRoles.length > 0) {
+      const userRole = authStore.user?.role
+      if (!userRole || !requiredRoles.includes(userRole)) {
+        // 权限不足，跳转到仪表板或显示403页面
+        next('/dashboard')
         return
       }
     }

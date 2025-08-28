@@ -62,18 +62,25 @@
           >
             <div class="py-1">
               <button
-                @click="handleBatchRoleChange('user')"
+                @click="handleBatchTypeChange('telegram_user')"
                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <User class="h-4 w-4 mr-2 inline" />
-                设为普通用户
+                设为Telegram用户
               </button>
               <button
-                @click="handleBatchRoleChange('vip')"
+                @click="handleBatchTypeChange('agent')"
                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <Crown class="h-4 w-4 mr-2 inline" />
-                设为VIP用户
+                设为代理商
+              </button>
+              <button
+                @click="handleBatchTypeChange('admin')"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Key class="h-4 w-4 mr-2 inline" />
+                设为管理员
               </button>
               <button
                 @click="$emit('batch-reset-password')"
@@ -174,7 +181,7 @@ interface Emits {
   'batch-activate': []
   'batch-deactivate': []
   'batch-export': []
-  'batch-role-change': [role: string]
+  'batch-type-change': [type: string]
   'batch-reset-password': []
   'batch-send-notification': []
   'batch-delete': []
@@ -189,10 +196,10 @@ const showConfirmDialog = ref(false)
 const confirmMessage = ref('')
 const pendingAction = ref<string | null>(null)
 
-// 处理批量角色变更
-const handleBatchRoleChange = (role: string) => {
+// 处理批量类型变更
+const handleBatchTypeChange = (type: string) => {
   showMoreActions.value = false
-  emit('batch-role-change', role)
+  emit('batch-type-change', type)
 }
 
 // 显示确认对话框

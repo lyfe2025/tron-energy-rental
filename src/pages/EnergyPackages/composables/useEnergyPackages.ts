@@ -146,8 +146,8 @@ export function useEnergyPackages() {
       isLoading.value = true
       const response = await energyPackagesAPI.getEnergyPackages()
       // 根据实际API响应结构解析数据
-      if (response.data && response.data.data && response.data.data.items) {
-        packages.value = response.data.data.items
+      if (response.data && response.data.data && response.data.data.users) {
+        packages.value = response.data.data.users
       } else {
         packages.value = []
       }

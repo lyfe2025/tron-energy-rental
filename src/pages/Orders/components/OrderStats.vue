@@ -36,7 +36,9 @@ const props = defineProps<Props>()
 
 // 计算订单统计
 const orderStats = computed(() => {
-  const stats = props.orders.reduce((acc, order) => {
+  // 确保orders是一个数组
+  const orders = props.orders || []
+  const stats = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1
     return acc
   }, {} as Record<string, number>)

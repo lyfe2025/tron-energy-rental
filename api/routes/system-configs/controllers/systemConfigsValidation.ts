@@ -289,23 +289,30 @@ export class SystemConfigsValidation {
    */
   static async checkConfigEditable(configKey: string): Promise<{ exists: boolean; editable: boolean; config?: any }> {
     try {
+      console.log(`🔍 检查配置是否可编辑: ${configKey}`);
+      
       const result = await query(
         'SELECT id, is_editable, config_key FROM system_configs WHERE config_key = $1',
         [configKey]
       );
 
+      console.log(`📊 查询结果: 行数=${result.rows.length}, 配置键=${configKey}`);
+
       if (result.rows.length === 0) {
+        console.log(`❌ 配置不存在: ${configKey}`);
         return { exists: false, editable: false };
       }
 
       const config = result.rows[0];
+      console.log(`✅ 配置存在: ${configKey}, 可编辑=${config.is_editable}`);
+      
       return {
         exists: true,
         editable: config.is_editable,
         config
       };
     } catch (error) {
-      console.error('检查配置是否可编辑失败:', error);
+      console.error(`❌ 检查配置是否可编辑失败: ${configKey}`, error);
       return { exists: false, editable: false };
     }
   }

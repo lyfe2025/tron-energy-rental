@@ -7,7 +7,7 @@
         <input
           v-model="localFilters.searchQuery"
           type="text"
-          placeholder="搜索机器人名称或地址..."
+          placeholder="搜索机器人名称或用户名..."
           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
@@ -26,16 +26,8 @@
         <option value="maintenance">维护中</option>
       </select>
 
-      <!-- 类型筛选 -->
-      <select
-        v-model="localFilters.typeFilter"
-        class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      >
-        <option value="">全部类型</option>
-        <option value="energy">能量</option>
-        <option value="bandwidth">带宽</option>
-        <option value="mixed">混合</option>
-      </select>
+      <!-- 占位空间 -->
+      <div></div>
 
       <!-- 操作按钮 -->
       <div class="flex gap-2">

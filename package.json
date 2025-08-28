@@ -58,6 +58,7 @@
     "vue": "^3.4.15",
     "vue-router": "^4.2.5",
     "ws": "^8.16.0",
+    "zod": "^4.1.4",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

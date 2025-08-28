@@ -24,9 +24,9 @@ export class StatisticsService {
     const overviewStats = await query(`
       SELECT 
         -- 用户统计
-        (SELECT COUNT(*) FROM users) as total_users,
-        (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
-        (SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days') as new_users,
+        (SELECT COUNT(*) FROM telegram_users) as total_users,
+        (SELECT COUNT(*) FROM telegram_users WHERE status = 'active') as active_users,
+        (SELECT COUNT(*) FROM telegram_users WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days') as new_users,
         
         -- 订单统计
         (SELECT COUNT(*) FROM orders) as total_orders,
@@ -39,8 +39,8 @@ export class StatisticsService {
         (SELECT COALESCE(SUM(price), 0) FROM orders WHERE status = 'completed' AND created_at >= CURRENT_DATE - INTERVAL '${days} days') as recent_revenue,
         
         -- 机器人统计
-        (SELECT COUNT(*) FROM bots) as total_bots,
-        (SELECT COUNT(*) FROM bots WHERE status = 'active') as active_bots
+        (SELECT COUNT(*) FROM telegram_bots) as total_bots,
+        (SELECT COUNT(*) FROM telegram_bots WHERE is_active = true) as active_bots
     `);
 
     const stats = overviewStats.rows[0];
@@ -129,7 +129,7 @@ export class StatisticsService {
       SELECT 
         DATE(u.created_at) as date,
         COUNT(*) as new_users
-      FROM users u
+      FROM telegram_users u
       WHERE u.created_at >= CURRENT_DATE - INTERVAL '${days} days'
       GROUP BY DATE(u.created_at)
       ORDER BY date
@@ -154,11 +154,11 @@ export class StatisticsService {
     const botStats = await query(`
       SELECT 
         b.id,
-        b.name,
-        b.username,
-        b.status,
+        b.bot_name as name,
+        b.bot_username as username,
+        b.is_active as status,
         b.created_at
-      FROM bots b
+      FROM telegram_bots b
       ORDER BY b.created_at DESC
     `);
 
@@ -198,10 +198,10 @@ export class StatisticsService {
   async getBotStatusStats(): Promise<BotStatusStats> {
     const botStatusStats = await query(`
       SELECT 
-        status,
+        CASE WHEN is_active = true THEN 'active' ELSE 'inactive' END as status,
         COUNT(*) as count
-      FROM bots 
-      GROUP BY status
+      FROM telegram_bots 
+      GROUP BY is_active
       ORDER BY count DESC
     `);
 

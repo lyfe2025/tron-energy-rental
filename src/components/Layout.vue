@@ -135,8 +135,11 @@ import {
   ShoppingCart,
   DollarSign,
   Users,
+  UserCheck,
+  Shield,
   Bot,
   Battery,
+  Fuel,
   BarChart3,
   Settings,
   Menu,
@@ -157,49 +160,86 @@ const sidebarOpen = ref(false)
 // 计算属性
 const user = computed(() => authStore.user)
 
-// 导航菜单配置
-const navigation = [
+// 导航菜单配置（包含权限控制）
+const allNavigation = [
   {
     name: '仪表板',
     href: '/dashboard',
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
+    roles: ['super_admin', 'admin', 'agent'] // 所有角色都可访问
   },
   {
     name: '订单管理',
     href: '/orders',
-    icon: ShoppingCart
+    icon: ShoppingCart,
+    roles: ['super_admin', 'admin', 'agent']
   },
   {
     name: '价格配置',
     href: '/pricing',
-    icon: DollarSign
+    icon: DollarSign,
+    roles: ['super_admin', 'admin']
   },
   {
     name: '用户管理',
     href: '/users',
-    icon: Users
+    icon: Users,
+    roles: ['super_admin', 'admin']
+  },
+  {
+    name: '代理商管理',
+    href: '/agents',
+    icon: UserCheck,
+    roles: ['super_admin', 'admin']
+  },
+  {
+    name: '管理员管理',
+    href: '/admins',
+    icon: Shield,
+    roles: ['super_admin'] // 仅超级管理员可访问
   },
   {
     name: '机器人管理',
     href: '/bots',
-    icon: Bot
+    icon: Bot,
+    roles: ['super_admin', 'admin']
   },
   {
     name: '能量包管理',
     href: '/energy',
-    icon: Battery
+    icon: Battery,
+    roles: ['super_admin', 'admin']
+  },
+  {
+    name: '能量池管理',
+    href: '/energy-pool',
+    icon: Fuel,
+    roles: ['super_admin', 'admin']
   },
   {
     name: '统计分析',
     href: '/statistics',
-    icon: BarChart3
+    icon: BarChart3,
+    roles: ['super_admin', 'admin', 'agent']
   },
   {
     name: '系统设置',
     href: '/settings',
-    icon: Settings
+    icon: Settings,
+    roles: ['super_admin', 'admin']
   }
 ]
+
+// 基于用户角色过滤导航菜单
+const navigation = computed(() => {
+  const userRole = authStore.userRole
+  if (!userRole) return []
+  
+  return allNavigation.filter(item => {
+    if (!item.roles || item.roles.length === 0) return true
+    return item.roles.includes(userRole)
+  })
+})
 
 // 页面标题映射
 const pageTitleMap: Record<string, string> = {
@@ -207,8 +247,11 @@ const pageTitleMap: Record<string, string> = {
   '/orders': '订单管理',
   '/pricing': '价格配置',
   '/users': '用户管理',
+  '/agents': '代理商管理',
+  '/admins': '管理员管理',
   '/bots': '机器人管理',
   '/energy': '能量包管理',
+  '/energy-pool': '能量池管理',
   '/statistics': '统计分析',
   '/settings': '系统设置'
 }

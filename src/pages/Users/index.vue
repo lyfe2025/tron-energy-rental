@@ -29,10 +29,10 @@
       <UserSearch
         :search-query="searchParams.query"
         :status-filter="searchParams.status"
-        :role-filter="searchParams.role"
+        :type-filter="searchParams.type"
         @update:search-query="handleSearch"
         @update:status-filter="handleStatusFilter"
-        @update:role-filter="handleRoleFilter"
+        @update:type-filter="handleTypeFilter"
         @export="batchExport"
         class="mb-6"
       />
@@ -46,7 +46,7 @@
         @batch-deactivate="batchDeactivate"
         @batch-delete="batchDelete"
         @batch-export="batchExport"
-        @batch-role-change="batchRoleChange"
+        @batch-type-change="batchTypeChange"
         @clear-selection="clearSelection"
         class="mb-6"
       />
@@ -66,8 +66,8 @@
         :format-date-time="formatDateTime"
         :format-date="formatDate"
         :format-currency="formatCurrency"
-        :get-role-text="getRoleText"
-        :get-role-color="getRoleColor"
+        :get-type-text="getTypeText"
+        :get-type-color="getTypeColor"
         :get-status-text="getStatusText"
         :get-status-color="getStatusColor"
         @toggle-select-all="toggleSelectAll"
@@ -136,8 +136,8 @@ const {
   formatDateTime,
   formatDate,
   formatCurrency,
-  getRoleText,
-  getRoleColor,
+  getTypeText,
+  getTypeColor,
   getStatusText,
   getStatusColor,
   
@@ -148,7 +148,7 @@ const {
   // 搜索筛选
   handleSearch,
   handleStatusFilter,
-  handleRoleFilter,
+  handleTypeFilter,
   handleDateRangeFilter,
   clearFilters,
   
@@ -176,7 +176,7 @@ const {
   batchDeactivate,
   batchDelete,
   batchExport,
-  batchRoleChange,
+  batchTypeChange,
   
   // 其他
   toggleUserMenu,

@@ -368,7 +368,21 @@ const loadStatistics = async () => {
       console.warn('统计数据响应格式异常:', response)
     }
   } catch (error) {
-    console.error('加载统计数据失败:', error)
+    let errorMsg = '加载统计数据失败';
+    
+    if (error?.response?.data?.message) {
+      errorMsg = error.response.data.message;
+    } else if (typeof error === 'string') {
+      errorMsg = error;
+    } else if (error?.message && typeof error.message === 'string') {
+      errorMsg = error.message;
+    } else if (error instanceof Error) {
+      errorMsg = error.message;
+    } else {
+      errorMsg = '加载统计数据失败，请稍后重试';
+    }
+    
+    console.error('加载统计数据失败:', errorMsg, error);
     // 保持默认值，不影响页面显示
   }
 }
@@ -377,8 +391,8 @@ const loadStatistics = async () => {
 const loadRecentOrders = async () => {
   try {
     const response = await ordersAPI.getOrders({ page: 1, limit: 5 })
-    if (response.data.success && response.data.data?.items) {
-      recentOrders.value = response.data.data.items
+    if (response.data.success && response.data.data?.users) {
+      recentOrders.value = response.data.data.users
     }
   } catch (error) {
     console.error('加载最近订单失败:', error)

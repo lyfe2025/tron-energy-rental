@@ -25,6 +25,18 @@
       </div>
     </div>
 
+    <!-- 调试信息 -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+      <h3 class="text-lg font-medium text-yellow-800 mb-2">调试信息</h3>
+      <div class="text-sm text-yellow-700">
+        <p>加载状态: {{ isLoading ? '加载中...' : '已完成' }}</p>
+        <p>机器人数量: {{ bots.length }}</p>
+        <p>筛选后数量: {{ filteredBots.length }}</p>
+        <p>分页后数量: {{ paginatedBots.length }}</p>
+        <p>API基础URL: {{ apiBaseUrl }}</p>
+      </div>
+    </div>
+
     <!-- Stats -->
     <BotStats :bot-stats="botStats" class="mb-6" />
 
@@ -53,6 +65,10 @@
       :format-type="formatType"
       :format-currency="formatCurrency"
       :format-date-time="formatDateTime"
+      :format-username="formatUsername"
+      :format-token="formatToken"
+      :format-bot-status="formatStatus"
+      :format-date="formatDate"
       :pagination="pagination"
       @update:selectedBots="selectedBots = $event"
       @view="viewBot"
@@ -84,12 +100,8 @@
       :bot="selectedBot"
       :form="botForm"
       :is-saving="isSaving"
-      :format-address="formatAddress"
-      :format-type="formatType"
       :format-status="formatStatus"
-      :format-currency="formatCurrency"
       :get-status-color="getStatusColor"
-      :get-type-color="getTypeColor"
       @close="showBotModal = false"
       @edit="editBot"
       @test-connection="testConnection"
@@ -135,6 +147,9 @@ const {
   getStatusColor,
   formatStatus,
   getTypeColor,
+  formatUsername,
+  formatToken,
+  formatDate,
   
   // 机器人操作
   viewBot,
@@ -157,6 +172,9 @@ const {
   // 其他功能
   exportData
 } = useBotManagement()
+
+// 获取API基础URL用于调试
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
 // Lifecycle
 // useBotManagement already handles onMounted and onUnmounted

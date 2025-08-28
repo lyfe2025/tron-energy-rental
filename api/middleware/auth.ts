@@ -2,15 +2,17 @@
  * 认证中间件
  * 验证JWT token并保护API端点
  */
-import express, { type Request, type Response, type NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { verifyToken, extractTokenFromHeader } from '../utils/jwt.js';
 
 // JWT载荷接口定义
 interface JWTPayload {
-  userId: string;
+  id: string;
+  userId: number;
   email: string;
   role: string;
   loginType: string;
+  telegram_id?: number;
 }
 
 // 扩展Request接口以包含用户信息
@@ -83,9 +85,9 @@ export const requireRole = (roles: string | string[]) => {
 
 /**
  * 管理员权限中间件
- * 只允许管理员访问
+ * 允许管理员和超级管理员访问
  */
-export const requireAdmin = requireRole('admin');
+export const requireAdmin = requireRole(['admin', 'super_admin']);
 
 /**
  * 代理权限中间件

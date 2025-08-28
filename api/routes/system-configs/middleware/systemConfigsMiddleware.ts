@@ -9,6 +9,45 @@ import type { NextFunction, Request, Response } from 'express';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 
 /**
+ * 验证配置键查询参数
+ */
+export const validateConfigKeyQuery = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { key } = req.query;
+
+    if (!key || typeof key !== 'string') {
+      res.status(400).json({
+        success: false,
+        message: '配置键查询参数缺失'
+      });
+      return;
+    }
+
+    const validation = SystemConfigsValidation.validateConfigKey(key);
+    if (!validation.valid) {
+      res.status(400).json({
+        success: false,
+        message: validation.error
+      });
+      return;
+    }
+
+    // 将配置键添加到请求参数中，保持向后兼容
+    req.params = req.params || {};
+    req.params.key = key;
+
+    next();
+  } catch (error) {
+    console.error('验证配置键查询参数失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '验证配置键查询参数失败',
+      error: error instanceof Error ? error.message : '未知错误'
+    });
+  }
+};
+
+/**
  * 验证配置键参数
  */
 export const validateConfigKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -346,7 +385,8 @@ export const setCacheHeaders = (maxAge: number = 300) => {
  * 管理员权限验证中间件
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
-  if (req.user?.role !== 'admin') {
+  // 支持 admin 和 super_admin 角色
+  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
     res.status(403).json({
       success: false,
       message: '需要管理员权限'
@@ -401,3 +441,5 @@ declare global {
     }
   }
 }
+
+// 所有函数已经通过export关键字导出，无需重复导出

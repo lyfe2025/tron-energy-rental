@@ -18,16 +18,16 @@
               机器人信息
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              类型
+              用户名
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               状态
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              余额
+              Token
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              今日订单
+              用户数/订单数
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               操作
@@ -53,15 +53,12 @@
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900">{{ bot.name }}</div>
-                  <div class="text-sm text-gray-500">{{ formatAddress(bot.address) }}</div>
-                  <div v-if="bot.description" class="text-xs text-gray-400 mt-1">{{ bot.description }}</div>
+                  <div class="text-sm text-gray-500">{{ bot.description || '暂无描述' }}</div>
                 </div>
               </div>
             </td>
             <td class="px-6 py-4">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {{ formatType(bot.type) }}
-              </span>
+              <div class="text-sm text-gray-900">{{ formatUsername(bot.username) }}</div>
             </td>
             <td class="px-6 py-4">
               <span :class="getStatusColor(bot.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
@@ -69,11 +66,11 @@
               </span>
             </td>
             <td class="px-6 py-4">
-              <div class="text-sm text-gray-900">{{ formatCurrency(bot.balance) }}</div>
-              <div class="text-xs text-gray-500">能量: {{ bot.energy_balance }}</div>
+              <div class="text-sm text-gray-900">{{ formatToken(bot.token) }}</div>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-900">
-              {{ bot.today_orders || 0 }}
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-900">用户: {{ bot.total_users || 0 }}</div>
+              <div class="text-xs text-gray-500">订单: {{ bot.total_orders || 0 }}</div>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center space-x-2">
@@ -169,20 +166,17 @@
                   {{ getStatusText(bot.status) }}
                 </span>
               </div>
-              <p class="text-sm text-gray-500 truncate">{{ formatAddress(bot.address) }}</p>
+              <p class="text-sm text-gray-500 truncate">{{ formatUsername(bot.username) }}</p>
               <div class="mt-2 flex items-center justify-between text-sm">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {{ formatType(bot.type) }}
-                </span>
-                <span class="text-gray-900 font-medium">{{ formatCurrency(bot.balance) }}</span>
+                <span class="text-gray-900 font-medium">{{ formatToken(bot.token) }}</span>
               </div>
               <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                <span>能量: {{ bot.energy_balance }}</span>
-                <span>今日订单: {{ bot.today_orders || 0 }}</span>
+                <span>用户: {{ bot.total_users || 0 }}</span>
+                <span>订单: {{ bot.total_orders || 0 }}</span>
               </div>
-              <div v-if="bot.last_activity" class="mt-1 text-xs text-gray-400">
-                最后活动: {{ formatDateTime(bot.last_activity) }}
-              </div>
+                              <div v-if="bot.last_activity" class="mt-1 text-xs text-gray-400">
+                  最后活动: {{ formatDateTime(bot.last_activity) }}
+                </div>
             </div>
           </div>
           <div class="relative bot-menu">
@@ -301,6 +295,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Bot as BotType } from '@/types/api';
 import {
     Bot,
     CreditCard,
@@ -314,7 +309,6 @@ import {
     Wifi
 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import type { Bot as BotType } from '../types/bot.types';
 
 const props = defineProps<{
   bots: BotType[]
@@ -329,8 +323,8 @@ const props = defineProps<{
   getStatusColor: (status: string) => string
   formatDateTime: (dateString: string | undefined) => string
   formatCurrency: (amount: number) => string
-  formatAddress: (address: string) => string
-  formatType: (type: string) => string
+  formatUsername: (username: string) => string
+  formatToken: (token: string) => string
   pagination: {
     currentPage: number
     pageSize: number

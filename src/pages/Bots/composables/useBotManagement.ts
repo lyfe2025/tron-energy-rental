@@ -1,14 +1,15 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { botsAPI } from '@/services/api'
+import type { Bot } from '@/types/api'
+import { Activity, AlertTriangle, Bot as BotIcon, Zap } from 'lucide-vue-next'
 import { toast } from 'sonner'
-import { botApi } from '@/api/bots'
-import type { Bot, BotForm, BotStats, BotStatCard, BotFilters, BotPagination, BotModalMode } from '../types/bot.types'
-import { Activity, Bot as BotIcon, Zap, AlertTriangle } from 'lucide-vue-next'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import type { BotFilters, BotForm, BotModalMode, BotPagination, BotStatCard } from '../types/bot.types'
 
 export function useBotManagement() {
   // 响应式数据
   const isLoading = ref(false)
   const isSaving = ref(false)
-  const bots = ref<Bot[]>([])
+  const bots = ref<any[]>([])
   const selectedBots = ref<string[]>([])
   const showBotMenu = ref<string | null>(null)
   const showBotModal = ref(false)
@@ -31,10 +32,17 @@ export function useBotManagement() {
   // 表单数据
   const botForm = ref<BotForm>({
     name: '',
+    username: '',
+    token: '',
+    description: '',
+    webhook_url: '',
+    settings: {},
+    welcome_message: '',
+    help_message: '',
+    commands: [],
     address: '',
     private_key: '',
     type: 'energy',
-    description: '',
     min_order_amount: 0,
     max_order_amount: 0,
     is_active: true
@@ -85,12 +93,11 @@ export function useBotManagement() {
     return bots.value.filter(bot => {
       const matchesSearch = !filters.value.searchQuery || 
         bot.name.toLowerCase().includes(filters.value.searchQuery.toLowerCase()) ||
-        bot.address.toLowerCase().includes(filters.value.searchQuery.toLowerCase())
+        bot.username.toLowerCase().includes(filters.value.searchQuery.toLowerCase())
       
       const matchesStatus = !filters.value.statusFilter || bot.status === filters.value.statusFilter
-      const matchesType = !filters.value.typeFilter || bot.type === filters.value.typeFilter
       
-      return matchesSearch && matchesStatus && matchesType
+      return matchesSearch && matchesStatus
     })
   })
   
@@ -119,28 +126,21 @@ export function useBotManagement() {
     }).format(amount)
   }
   
-  const formatAddress = (address: string) => {
-    if (!address) return '-'
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  const formatToken = (token: string) => {
+    if (!token) return '-'
+    return `${token.slice(0, 8)}...${token.slice(-4)}`
   }
   
-  const formatType = (type: string) => {
-    const typeMap: Record<string, string> = {
-      energy: '能量',
-      bandwidth: '带宽',
-      mixed: '混合'
-    }
-    return typeMap[type] || type
+  const formatUsername = (username: string) => {
+    return username.startsWith('@') ? username : `@${username}`
   }
   
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      online: '在线',
-      offline: '离线',
-      error: '异常',
-      maintenance: '维护中',
       active: '活跃',
-      inactive: '非活跃'
+      inactive: '非活跃',
+      maintenance: '维护中',
+      error: '异常'
     }
     return statusMap[status] || status
   }
@@ -169,15 +169,45 @@ export function useBotManagement() {
     }
     return colorMap[type] || 'text-gray-600 bg-gray-50'
   }
+
+  const formatType = (type: string) => {
+    const typeMap: Record<string, string> = {
+      energy: '能量',
+      bandwidth: '带宽',
+      mixed: '混合'
+    }
+    return typeMap[type] || type
+  }
   
   // 数据加载
   const loadBots = async () => {
     try {
       isLoading.value = true
-      const response = await botApi.getBots()
-      bots.value = response.data
+      console.log('开始加载机器人列表...')
+      
+      const response = await botsAPI.getBots({
+        page: pagination.value.currentPage,
+        limit: pagination.value.pageSize,
+        status: filters.value.statusFilter || undefined,
+        search: filters.value.searchQuery || undefined
+      })
+      
+      console.log('API响应:', response)
+      console.log('响应数据:', response.data)
+      
+      if (response.data?.success && response.data?.data) {
+        bots.value = response.data.data.bots || []
+        console.log('设置机器人数据:', bots.value)
+        
+        const paginationData = response.data.data.pagination as any
+        pagination.value.totalPages = paginationData?.totalPages || Math.ceil((paginationData?.total || 0) / pagination.value.pageSize)
+      } else {
+        bots.value = []
+        pagination.value.totalPages = 0
+      }
       updateStats()
-      updatePagination()
+      
+      console.log('数据加载完成，机器人数量:', bots.value.length)
     } catch (error) {
       console.error('加载机器人列表失败:', error)
       toast.error('加载机器人列表失败')
@@ -188,13 +218,14 @@ export function useBotManagement() {
   
   const updateStats = () => {
     const total = bots.value.length
-    const online = bots.value.filter(bot => bot.status === 'online' || bot.status === 'active').length
     const active = bots.value.filter(bot => bot.status === 'active').length
+    const inactive = bots.value.filter(bot => bot.status === 'inactive').length
+    const maintenance = bots.value.filter(bot => bot.status === 'maintenance').length
     const error = bots.value.filter(bot => bot.status === 'error').length
     
     botStats.value[0].value = total
-    botStats.value[1].value = online
-    botStats.value[2].value = active
+    botStats.value[1].value = active
+    botStats.value[2].value = inactive
     botStats.value[3].value = error
   }
   
@@ -219,13 +250,14 @@ export function useBotManagement() {
     modalMode.value = 'edit'
     botForm.value = {
       name: bot.name,
-      address: bot.address,
-      private_key: bot.private_key || '',
-      type: bot.type,
+      username: bot.username,
+      token: bot.token || '',
       description: bot.description || '',
-      min_order_amount: bot.min_order_amount || 0,
-      max_order_amount: bot.max_order_amount || 0,
-      is_active: bot.status === 'active'
+      webhook_url: bot.webhook_url || '',
+      settings: bot.settings || {},
+      welcome_message: bot.welcome_message || '',
+      help_message: bot.help_message || '',
+      commands: bot.commands ? [...(bot.commands as any[])] : []
     }
     showBotModal.value = true
   }
@@ -235,13 +267,20 @@ export function useBotManagement() {
     modalMode.value = 'create'
     botForm.value = {
       name: '',
-      address: '',
-      private_key: '',
-      type: 'energy',
+      username: '',
+      token: '',
       description: '',
-      min_order_amount: 0,
-      max_order_amount: 0,
-      is_active: true
+      webhook_url: '',
+      settings: {},
+      welcome_message: '欢迎使用TRON能量租赁机器人！\n\n请选择您需要的服务：',
+      help_message: '发送 /start 查看主菜单\n发送 /help 获取帮助信息',
+      commands: [
+        { command: 'start', description: '开始使用机器人', enabled: true },
+        { command: 'energy_rent', description: '能量闪租', enabled: true },
+        { command: 'package_deal', description: '笔数套餐', enabled: true },
+        { command: 'apply_agent', description: '申请代理', enabled: true },
+        { command: 'help', description: '获取帮助信息', enabled: true }
+      ]
     }
     showBotModal.value = true
   }
@@ -251,10 +290,10 @@ export function useBotManagement() {
       isSaving.value = true
       
       if (modalMode.value === 'create') {
-        await botApi.createBot(botForm.value)
+        await botsAPI.createBot(botForm.value)
         toast.success('机器人创建成功')
       } else if (modalMode.value === 'edit' && selectedBot.value) {
-        await botApi.updateBot(selectedBot.value.id, botForm.value)
+        await botsAPI.updateBot(selectedBot.value.id, botForm.value)
         toast.success('机器人更新成功')
       }
       
@@ -271,7 +310,7 @@ export function useBotManagement() {
   const toggleBotStatus = async (bot: Bot) => {
     try {
       const newStatus = bot.status === 'active' ? 'inactive' : 'active'
-      await botApi.updateBotStatus(bot.id, newStatus)
+      await botsAPI.updateBotStatus(bot.id, newStatus)
       toast.success(`机器人已${newStatus === 'active' ? '启用' : '停用'}`)
       await loadBots()
     } catch (error) {
@@ -282,7 +321,7 @@ export function useBotManagement() {
   
   const testConnection = async (bot: Bot) => {
     try {
-      await botApi.testBotConnection(bot.id)
+      await botsAPI.testBot(bot.id)
       toast.success('连接测试成功')
     } catch (error) {
       console.error('连接测试失败:', error)
@@ -302,7 +341,7 @@ export function useBotManagement() {
   
   const resetBot = async (bot: Bot) => {
     try {
-      await botApi.resetBot(bot.id)
+      await botsAPI.resetBot(bot.id)
       toast.success('机器人重置成功')
       await loadBots()
     } catch (error) {
@@ -314,7 +353,10 @@ export function useBotManagement() {
   // 批量操作
   const batchStart = async () => {
     try {
-      await botApi.batchUpdateStatus(selectedBots.value, 'active')
+      const promises = selectedBots.value.map(botId => 
+        botsAPI.updateBotStatus(botId, 'active')
+      )
+      await Promise.all(promises)
       toast.success(`已启动 ${selectedBots.value.length} 个机器人`)
       selectedBots.value = []
       await loadBots()
@@ -326,7 +368,10 @@ export function useBotManagement() {
   
   const batchStop = async () => {
     try {
-      await botApi.batchUpdateStatus(selectedBots.value, 'inactive')
+      const promises = selectedBots.value.map(botId => 
+        botsAPI.updateBotStatus(botId, 'inactive')
+      )
+      await Promise.all(promises)
       toast.success(`已停止 ${selectedBots.value.length} 个机器人`)
       selectedBots.value = []
       await loadBots()
@@ -338,7 +383,10 @@ export function useBotManagement() {
   
   const batchTest = async () => {
     try {
-      await botApi.batchTestConnection(selectedBots.value)
+      const promises = selectedBots.value.map(botId => 
+        botsAPI.testBot(botId)
+      )
+      await Promise.all(promises)
       toast.success(`已测试 ${selectedBots.value.length} 个机器人连接`)
     } catch (error) {
       console.error('批量测试失败:', error)
@@ -415,12 +463,14 @@ export function useBotManagement() {
     formatDateTime,
     formatDate,
     formatCurrency,
-    formatAddress,
-    formatType,
+    formatToken,
+    formatUsername,
+    formatAddress: (address: string) => address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '-',
     formatStatus,
     getStatusText,
     getStatusColor,
     getTypeColor,
+    formatType,
     
     // 数据操作
     loadBots,

@@ -5,10 +5,11 @@
 
 // JWT载荷接口定义
 interface JWTPayload {
-  userId: string;
+  userId: number;
   email: string;
   role: string;
   loginType: string;
+  telegram_id?: number;
 }
 
 declare global {

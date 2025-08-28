@@ -21,7 +21,7 @@ GEAR='⚙️'
 
 # 获取项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # 默认备份目录
 DEFAULT_BACKUP_DIR="$PROJECT_DIR/backups"
@@ -175,10 +175,10 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     echo -e "\n${GREEN}${GEAR} === 备份内容摘要 ===${NC}"
     
     # 统计备份内容
-    local tables=$(grep -c "^CREATE TABLE" "$backup_file" 2>/dev/null || echo "0")
-    local copy_statements=$(grep -c "^COPY " "$backup_file" 2>/dev/null || echo "0")
-    local indexes=$(grep -c "CREATE.*INDEX" "$backup_file" 2>/dev/null || echo "0")
-    local sequences=$(grep -c "CREATE SEQUENCE" "$backup_file" 2>/dev/null || echo "0")
+    tables=$(grep -c "^CREATE TABLE" "$backup_file" 2>/dev/null || echo "0")
+    copy_statements=$(grep -c "^COPY " "$backup_file" 2>/dev/null || echo "0")
+    indexes=$(grep -c "CREATE.*INDEX" "$backup_file" 2>/dev/null || echo "0")
+    sequences=$(grep -c "CREATE SEQUENCE" "$backup_file" 2>/dev/null || echo "0")
     
     echo -e "${GREEN}${ARROW} 备份包含:${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 数据表: ${YELLOW}$tables${NC} 个"

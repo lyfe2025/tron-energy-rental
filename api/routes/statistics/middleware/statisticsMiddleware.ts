@@ -8,7 +8,8 @@ import type { NextFunction, Request, Response } from 'express';
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   try {
-    if (req.user?.role !== 'admin') {
+    const allowedRoles = ['admin', 'super_admin'];
+    if (!req.user?.role || !allowedRoles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
         message: '需要管理员权限'

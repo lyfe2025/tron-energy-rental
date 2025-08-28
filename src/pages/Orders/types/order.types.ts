@@ -1,28 +1,38 @@
-// 订单状态枚举
-export type OrderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+// 订单状态枚举 - 与后端保持一致
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
 
-// 订单接口
+// 订单接口 - 与后端数据结构匹配
 export interface Order {
-  id: string
-  user_id: string
-  user_address?: string
+  id: number
+  user_id: number
+  package_id: number
   energy_amount: number
-  amount: number
+  duration_hours: number
+  price_trx: number
+  recipient_address: string
   status: OrderStatus
-  tx_hash?: string
-  error_message?: string
+  payment_address?: string
+  payment_amount?: number
+  payment_tx_hash?: string
+  delegation_tx_hash?: string
+  expires_at?: string
   created_at: string
   updated_at: string
 }
 
-// 订单统计接口
+// 订单统计接口 - 与后端保持一致
 export interface OrderStats {
+  total: number
   pending: number
+  paid: number
   processing: number
+  active: number
   completed: number
   failed: number
   cancelled: number
-  total: number
+  expired: number
+  totalRevenue: number
+  averageOrderValue: number
 }
 
 // 订单搜索过滤器接口
@@ -56,8 +66,8 @@ export interface OrderQueryParams {
 export interface OrderStatusUpdateData {
   orderId: string
   status: OrderStatus
-  txHash?: string
-  errorMessage?: string
+  payment_tx_hash?: string
+  // 移除不存在的字段
 }
 
 // API 响应接口

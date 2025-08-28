@@ -27,14 +27,16 @@
         </select>
         
         <select
-          :value="roleFilter"
-          @change="$emit('update:roleFilter', ($event.target as HTMLSelectElement).value)"
+          :value="typeFilter"
+          @change="$emit('update:typeFilter', ($event.target as HTMLSelectElement).value)"
           class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="">所有角色</option>
-          <option value="admin">管理员</option>
+          <option value="">所有类型</option>
+          <option value="normal">普通用户</option>
+          <option value="vip">VIP用户</option>
+          <option value="premium">套餐用户</option>
           <option value="agent">代理商</option>
-          <option value="user">普通用户</option>
+          <option value="admin">管理员</option>
         </select>
         
         <button
@@ -55,13 +57,13 @@ import { Search, Download } from 'lucide-vue-next'
 interface Props {
   searchQuery: string
   statusFilter: string
-  roleFilter: string
+  typeFilter: string
 }
 
 interface Emits {
   'update:searchQuery': [value: string]
   'update:statusFilter': [value: string]
-  'update:roleFilter': [value: string]
+  'update:typeFilter': [value: string]
   'export': []
 }
 

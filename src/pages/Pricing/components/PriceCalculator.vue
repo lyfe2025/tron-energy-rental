@@ -20,10 +20,10 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">资源类型</label>
           <select
-            v-model="calculatorInput.type"
-            @change="calculatePrice"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
+          v-model="calculatorInput.resourceType"
+          @change="calculatePrice"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
             <option value="energy">能量</option>
             <option value="bandwidth">带宽</option>
           </select>
@@ -32,7 +32,7 @@
         <!-- 数量 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            数量 ({{ calculatorInput.type === 'energy' ? '能量单位' : '字节' }})
+            数量 ({{ calculatorInput.resourceType === 'energy' ? '能量单位' : '字节' }})
           </label>
           <input
             v-model.number="calculatorInput.amount"
@@ -58,21 +58,40 @@
           </select>
         </div>
 
-        <!-- 定价模板 -->
+        <!-- 价格策略 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">定价模板（可选）</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">价格策略（可选）</label>
           <select
-            v-model="calculatorInput.templateId"
+            v-model="calculatorInput.strategyId"
             @change="calculatePrice"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">自动选择</option>
             <option
-              v-for="template in availableTemplates"
-              :key="template.id"
-              :value="template.id"
+              v-for="strategy in availableStrategies"
+              :key="strategy.id"
+              :value="strategy.id"
             >
-              {{ template.name }} ({{ formatCurrency(template.basePrice, template.currency) }})
+              {{ strategy.name }} (优先级: {{ strategy.priority }})
+            </option>
+          </select>
+        </div>
+
+        <!-- 定价模式 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">定价模式</label>
+          <select
+            v-model="calculatorInput.pricingModeId"
+            @change="calculatePrice"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">请选择定价模式</option>
+            <option
+              v-for="mode in availablePricingModes"
+              :key="mode.id"
+              :value="mode.id"
+            >
+              {{ mode.name }} - {{ mode.description }}
             </option>
           </select>
         </div>
@@ -184,11 +203,13 @@ import { computed, ref, watch } from 'vue'
 import type {
     PriceCalculation,
     PriceCalculatorInput,
-    PriceTemplate
+    PricingStrategy,
+    PricingMode
 } from '../types/pricing.types'
 
 interface Props {
-  templates: PriceTemplate[]
+  strategies: PricingStrategy[]
+  pricingModes: PricingMode[]
   calculatePrice: (input: PriceCalculatorInput) => PriceCalculation
   formatCurrency: (value: number, currency: string) => string
   formatNumber: (value: number) => string
@@ -204,22 +225,28 @@ const emit = defineEmits<Emits>()
 
 // 计算器输入
 const calculatorInput = ref<PriceCalculatorInput>({
-  type: 'energy',
+  resourceType: 'energy',
   amount: 1000,
   userLevel: 'regular',
   isEmergency: false,
-  templateId: ''
+  strategyId: '',
+  pricingModeId: ''
 })
 
 // 计算结果
 const priceResult = ref<PriceCalculation | null>(null)
 
-// 可用模板
-const availableTemplates = computed(() => {
-  return props.templates.filter(t => 
-    t.status === 'active' && 
-    (t.type === calculatorInput.value.type || t.type === 'mixed')
-  )
+// 可用策略
+const availableStrategies = computed(() => {
+  return props.strategies.filter(s => 
+    s.status === 'active' && 
+    (s.resourceType === calculatorInput.value.resourceType || s.resourceType === 'mixed')
+  ).sort((a, b) => a.priority - b.priority)
+})
+
+// 可用定价模式
+const availablePricingModes = computed(() => {
+  return props.pricingModes.filter(m => m.isEnabled)
 })
 
 // 方法
@@ -233,11 +260,12 @@ const calculatePrice = () => {
 
 const resetCalculator = () => {
   calculatorInput.value = {
-    type: 'energy',
+    resourceType: 'energy',
     amount: 1000,
     userLevel: 'regular',
     isEmergency: false,
-    templateId: ''
+    strategyId: '',
+    pricingModeId: ''
   }
   priceResult.value = null
 }

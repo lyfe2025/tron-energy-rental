@@ -1,5 +1,12 @@
 // API 相关类型定义
 
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  data: T
+  message?: string
+  error?: string
+}
+
 // 用户相关类型
 export interface User {
   id: string
@@ -45,18 +52,26 @@ export interface UpdateUserData {
 
 // 订单相关类型
 export interface Order {
-  id: string
-  user_id: string
-  bot_id: string
+  id: number
+  user_id: number
+  package_id: number
   energy_amount: number
-  price: number
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  duration_hours: number
+  price_trx: number
+  recipient_address: string
+  status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
+  payment_address?: string
+  payment_amount?: number
+  payment_tx_hash?: string
+  delegation_tx_hash?: string
+  expires_at?: string
   created_at: string
   updated_at: string
 }
 
 export interface UpdateOrderStatusData {
   status: string
+  payment_tx_hash?: string
   note?: string
 }
 
@@ -65,17 +80,21 @@ export interface Bot {
   id: string
   name: string
   username: string
-  token: string
+  token?: string
   description?: string
-  status: 'active' | 'inactive' | 'maintenance'
+  status: 'active' | 'inactive' | 'maintenance' | 'error'
   webhook_url?: string
-  settings?: Record<string, any>
+  settings?: Record<string, unknown>
+  welcome_message?: string
+  help_message?: string
+  commands?: unknown[]
+  total_users?: number
+  total_orders?: number
   min_order_amount?: number
   max_order_amount?: number
   commission_rate?: number
   daily_limit?: number
   monthly_limit?: number
-  total_orders?: number
   success_rate?: number
   balance?: number
   energy_balance?: number
@@ -266,12 +285,17 @@ export interface StatisticsParams {
 }
 
 export interface OrderStats {
-  total_orders: number
-  pending_orders: number
-  completed_orders: number
-  failed_orders: number
-  total_revenue: number
-  average_order_value: number
+  total: number
+  pending: number
+  paid: number
+  processing: number
+  active: number
+  completed: number
+  failed: number
+  cancelled: number
+  expired: number
+  totalRevenue: number
+  averageOrderValue: number
 }
 
 export interface RevenueStats {
