@@ -3,3 +3,6 @@
 curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@tronrental.com","password":"admin123456"}' | jq .
 3.本项目完全没有用到supabase，一直使用的是本地的数据库，配置信息看根目录下的.env文件：psql postgresql://postgres:postgres@localhost:5432/tron_energy_rental
 注意：如果要执行 sql 之前，请先备份 执行：scripts/database/backup-database.sh
+4.数据库表已存在且有数据：相关的表已经存在，并且有数据
+就要检查：前端调用的API路径与后端注册的路由是否匹配
+前端期望的数据结构与后端返回的数据结构是否匹配

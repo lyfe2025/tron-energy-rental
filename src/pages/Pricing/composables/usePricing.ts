@@ -59,9 +59,9 @@ export function usePricing() {
         is_active: filters.strategies.status !== 'all' ? filters.strategies.status === 'active' : undefined,
         search: filters.strategies.searchQuery || undefined
       }
-      const response = await api.get('/pricing-strategies', { params })
+      const response = await api.get('/api/pricing-strategies', { params })
       const data = response.data.data
-      state.strategies = Array.isArray(data) ? data : []
+      state.strategies = Array.isArray(data?.strategies) ? data.strategies : []
     } catch (error) {
       console.error('Failed to load strategies:', error)
       toast.error('加载价格策略失败')
@@ -72,7 +72,7 @@ export function usePricing() {
 
   const loadPricingModes = async () => {
     try {
-      const response = await api.get('/pricing-modes')
+      const response = await api.get('/api/pricing-modes')
       const data = response.data.data
       state.pricingModes = Array.isArray(data) ? data : []
     } catch (error) {
@@ -90,9 +90,9 @@ export function usePricing() {
         type: filters.templates.type !== 'all' ? filters.templates.type : undefined,
         search: filters.templates.searchQuery || undefined
       }
-      const response = await api.get('/price-templates', { params })
+      const response = await api.get('/api/price-templates', { params })
       const data = response.data.data
-      state.templates = Array.isArray(data) ? data : []
+      state.templates = Array.isArray(data?.templates) ? data.templates : []
     } catch (error) {
       console.error('Failed to load templates:', error)
       toast.error('加载价格模板失败')
@@ -110,9 +110,9 @@ export function usePricing() {
         start_date: filters.history.dateRange?.start,
         end_date: filters.history.dateRange?.end
       }
-      const response = await api.get('/price-history', { params })
+      const response = await api.get('/api/pricing-history', { params })
       const data = response.data.data
-      state.priceHistory = Array.isArray(data) ? data : []
+      state.priceHistory = Array.isArray(data?.history) ? data.history : []
     } catch (error) {
       console.error('Failed to load price history:', error)
       toast.error('加载价格历史失败')
