@@ -125,11 +125,9 @@
               required
             >
               <option value="">请选择用户角色</option>
-              <option value="normal">普通用户</option>
-              <option value="vip">VIP用户</option>
-              <option value="premium">套餐用户</option>
-              <option value="agent">代理商</option>
-              <option value="admin">管理员</option>
+            <option value="normal">普通用户</option>
+            <option value="premium">套餐用户</option>
+            <option value="vip">VIP用户</option>
             </select>
           </div>
           
@@ -311,8 +309,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import { Loader2, X } from 'lucide-vue-next'
+import { ref, watch } from 'vue'
 import type { User, UserFormData } from '../types/user.types'
 
 interface Props {
@@ -412,6 +410,11 @@ const handleSubmit = () => {
   
   emit('save', formData.value)
 }
+
+// 确保函数在模板中可用
+defineExpose({
+  handleSubmit
+})
 </script>
 
 <style scoped>

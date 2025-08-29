@@ -95,7 +95,7 @@ export interface UnifiedUser {
 }
 
 // 用户状态类型
-export type UserStatus = 'active' | 'inactive' | 'banned';
+export type UserStatus = 'active' | 'banned';
 
 // 代理商状态类型
 export type AgentStatus = 'pending' | 'active' | 'inactive' | 'rejected';

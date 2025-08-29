@@ -78,7 +78,7 @@
         @toggle-user-select="toggleUserSelect"
         @view-user="viewUser"
         @edit-user="editUser"
-        @toggle-user-status="toggleUserStatus"
+
         @toggle-user-menu="toggleUserMenu"
         @reset-password="resetPassword"
         @adjust-balance="adjustBalance"
@@ -99,17 +99,30 @@
       @close="closeModal"
       @save="saveUser"
     />
+
+    <!-- 确认对话框 -->
+    <ConfirmDialog
+      :visible="showConfirmDialog"
+      :title="confirmDialogConfig.title"
+      :message="confirmDialogConfig.message"
+      :confirm-text="confirmDialogConfig.confirmText"
+      :cancel-text="confirmDialogConfig.cancelText"
+      :type="confirmDialogConfig.type"
+      @confirm="confirmDialogConfig.onConfirm"
+      @cancel="confirmDialogConfig.onCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { Plus } from 'lucide-vue-next'
-import UserStats from './components/UserStats.vue'
-import UserSearch from './components/UserSearch.vue'
+import { onMounted } from 'vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import UserActions from './components/UserActions.vue'
 import UserList from './components/UserList.vue'
 import UserModal from './components/UserModal.vue'
-import UserActions from './components/UserActions.vue'
+import UserSearch from './components/UserSearch.vue'
+import UserStats from './components/UserStats.vue'
 import { useUserManagement } from './composables/useUserManagement'
 
 // 使用 composable
@@ -130,6 +143,8 @@ const {
   currentUser,
   isSubmitting,
   showUserMenu,
+  showConfirmDialog,
+  confirmDialogConfig,
   
   // 计算属性
   filteredUsers,
@@ -175,7 +190,7 @@ const {
   
   // 用户操作
   saveUser,
-  toggleUserStatus,
+  // toggleUserStatus 已移除,
   deleteUser,
   
   // 批量操作

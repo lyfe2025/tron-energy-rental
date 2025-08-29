@@ -64,6 +64,14 @@ export interface Role {
   description: string;
 }
 
+// 权限信息接口
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
 export class AdminService {
   /**
    * 获取管理员列表
@@ -416,6 +424,56 @@ export class AdminService {
         value: 'operator',
         label: '操作员',
         description: '拥有基本操作权限'
+      }
+    ];
+  }
+
+  /**
+   * 获取权限列表
+   */
+  static async getPermissions(): Promise<Permission[]> {
+    return [
+      {
+        id: 'user_management',
+        name: '用户管理',
+        description: '管理系统用户',
+        category: 'user'
+      },
+      {
+        id: 'agent_management',
+        name: '代理商管理',
+        description: '管理代理商信息',
+        category: 'agent'
+      },
+      {
+        id: 'order_management',
+        name: '订单管理',
+        description: '管理订单信息',
+        category: 'order'
+      },
+      {
+        id: 'energy_package_management',
+        name: '能量包管理',
+        description: '管理能量包配置',
+        category: 'energy'
+      },
+      {
+        id: 'system_config',
+        name: '系统配置',
+        description: '管理系统配置',
+        category: 'system'
+      },
+      {
+        id: 'statistics_view',
+        name: '统计查看',
+        description: '查看统计数据',
+        category: 'statistics'
+      },
+      {
+        id: 'admin_management',
+        name: '管理员管理',
+        description: '管理管理员账户',
+        category: 'admin'
       }
     ];
   }

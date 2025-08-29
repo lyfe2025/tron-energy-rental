@@ -1,5 +1,6 @@
+import { useToast } from '@/composables/useToast'
 import { userService } from '@/services/userService'
-import { Shield, UserCheck, Users, UserX } from 'lucide-vue-next'
+import { Shield, UserCheck, Users } from 'lucide-vue-next'
 import { computed, reactive, ref } from 'vue'
 import type {
     BatchOperationParams,
@@ -11,7 +12,6 @@ import type {
     UserModalMode,
     UserSearchParams,
     UserStats,
-    UserRole
 } from '../types/user.types'
 
 // 统计卡片接口
@@ -26,6 +26,9 @@ interface StatCard {
 }
 
 export function useUserManagement() {
+  // 初始化 toast
+  const toast = useToast()
+  
   // 响应式状态
   const isLoading = ref(false)
   const users = ref<User[]>([])
@@ -38,6 +41,18 @@ export function useUserManagement() {
     newUsersThisMonth: 0,
     totalBalance: 0,
     averageBalance: 0
+  })
+  
+  // 确认对话框状态
+  const showConfirmDialog = ref(false)
+  const confirmDialogConfig = ref({
+    title: '',
+    message: '',
+    confirmText: '确认',
+    cancelText: '取消',
+    type: 'warning' as 'info' | 'warning' | 'danger',
+    onConfirm: () => {},
+    onCancel: () => {}
   })
 
   // 搜索和筛选状态
@@ -155,13 +170,6 @@ export function useUserManagement() {
       iconColor: 'text-green-600'
     },
     {
-      label: '停用用户',
-      value: rawUserStats.value.inactiveUsers,
-      icon: UserX,
-      bgColor: 'bg-gray-100',
-      iconColor: 'text-gray-600'
-    },
-    {
       label: '封禁用户',
       value: rawUserStats.value.bannedUsers,
       icon: Shield,
@@ -236,7 +244,6 @@ export function useUserManagement() {
   const getStatusText = (status: string): string => {
     const statusMap: Record<string, string> = {
       active: '正常',
-      inactive: '停用',
       banned: '封禁'
     }
     return statusMap[status] || status
@@ -245,7 +252,6 @@ export function useUserManagement() {
   const getStatusColor = (status: string): string => {
     const colorMap: Record<string, string> = {
       active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
       banned: 'bg-red-100 text-red-800'
     }
     return colorMap[status] || 'bg-gray-100 text-gray-800'
@@ -275,6 +281,7 @@ export function useUserManagement() {
         users.value = Array.isArray(response.users) ? response.users : []
         totalUsers.value = typeof response.total === 'number' ? response.total : 0
         console.debug('Users loaded:', users.value.length, 'Total:', totalUsers.value)
+        console.debug('First user sample:', users.value[0])
       } else {
         console.debug('Invalid response structure:', response)
         users.value = []
@@ -468,18 +475,7 @@ export function useUserManagement() {
     }
   }
 
-  const toggleUserStatus = async (user: User) => {
-    try {
-      const newStatus = user.status === 'active' ? 'inactive' : 'active'
-      await userService.updateUser(user.id, {
-        status: newStatus
-      })
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('切换用户状态失败:', error)
-    }
-  }
+  // 移除toggleUserStatus函数，现在只使用banUser函数来处理状态切换
 
   const deleteUser = async (userId: string) => {
     try {
@@ -566,43 +562,137 @@ export function useUserManagement() {
     }
   }
 
+  // 确认对话框辅助函数
+  const showConfirm = (config: {
+    title: string
+    message: string
+    confirmText?: string
+    cancelText?: string
+    type?: 'info' | 'warning' | 'danger'
+    onConfirm: () => void
+    onCancel?: () => void
+  }) => {
+    confirmDialogConfig.value = {
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText || '确认',
+      cancelText: config.cancelText || '取消',
+      type: config.type || 'warning',
+      onConfirm: () => {
+        showConfirmDialog.value = false
+        config.onConfirm()
+      },
+      onCancel: () => {
+        showConfirmDialog.value = false
+        config.onCancel?.()
+      }
+    }
+    showConfirmDialog.value = true
+  }
+
   // 其他方法
   const toggleUserMenu = (userId: string) => {
     showUserMenu.value = showUserMenu.value === userId ? '' : userId
   }
 
   const resetPassword = async (user: User) => {
-    try {
-      await userService.resetUserPassword({
-        userId: user.id,
-        newPassword: 'temp123456' // 临时密码
-      })
-      // 这里可以添加成功提示
-    } catch (error) {
-      console.error('重置密码失败:', error)
-    }
+    showConfirm({
+      title: '重置密码确认',
+      message: `确定要重置用户 "${user.username || user.email}" 的密码吗？重置后的临时密码为：temp123456`,
+      type: 'warning',
+      onConfirm: async () => {
+        let loadingToastId: string | null = null
+        try {
+          loadingToastId = toast.loading('正在重置密码...')
+          const result = await userService.resetUserPassword({
+            userId: user.id,
+            newPassword: 'temp123456'
+          })
+          // 关闭loading通知
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
+          toast.success(`密码重置成功！新密码：${result.new_password}`)
+          // 关闭用户菜单
+          showUserMenu.value = ''
+        } catch (error) {
+          // 关闭loading通知
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
+          console.error('重置密码失败:', error)
+          toast.error('重置密码失败，请稍后重试')
+        }
+      }
+    })
   }
 
   const adjustBalance = async (user: User) => {
-    // 这里可以打开余额调整模态框
-    console.log('调整余额:', user)
+    // 实现余额调整功能
+    showConfirm({
+      title: '调整余额',
+      message: `即将为用户 "${user.username || user.email}" 调整余额。\n\n当前余额：\nUSDT: ${formatCurrency(Number(user.usdt_balance) || 0)}\nTRX: ${formatCurrency(Number(user.trx_balance) || 0)}\n\n请确认是否继续？`,
+      type: 'info',
+      onConfirm: () => {
+        // 这里可以打开余额调整模态框
+        toast.info('余额调整功能开发中，敬请期待')
+        // TODO: 实现余额调整模态框
+        // 关闭用户菜单
+        showUserMenu.value = ''
+      }
+    })
   }
 
   const viewUserOrders = (user: User) => {
-    // 这里可以跳转到用户订单页面
-    console.log('查看用户订单:', user)
+    // 实现查看用户订单功能
+    showConfirm({
+      title: '查看用户订单',
+      message: `即将查看用户 "${user.username || user.email}" 的订单记录。\n\n用户ID: ${user.id}\n注册时间: ${formatDateTime(user.created_at)}\n\n请确认是否继续？`,
+      type: 'info',
+      onConfirm: () => {
+        // 这里可以跳转到用户订单页面或打开订单模态框
+        toast.info('订单查看功能开发中，敬请期待')
+        // TODO: 实现跳转到用户订单页面
+        // 关闭用户菜单
+        showUserMenu.value = ''
+      }
+    })
   }
 
   const banUser = async (user: User) => {
-    try {
-      await userService.updateUser(user.id, {
-        status: 'banned'
-      })
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('封禁用户失败:', error)
-    }
+    const action = user.status === 'banned' ? '解封' : '封禁'
+    const newStatus = user.status === 'banned' ? 'active' : 'banned'
+    
+    showConfirm({
+      title: `${action}用户确认`,
+      message: `确定要${action}用户 "${user.username || user.email}" 吗？\n\n${action}后用户将${newStatus === 'banned' ? '无法登录和使用系统' : '恢复正常使用'}。\n\n此操作不可撤销，请谨慎操作！`,
+      type: 'danger',
+      onConfirm: async () => {
+        let loadingToastId: string | null = null
+        try {
+          loadingToastId = toast.loading(`正在${action}用户...`)
+          await userService.updateUser(user.id, {
+            status: newStatus
+          })
+          // 关闭loading通知
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
+          await loadUsers()
+          await loadUserStats()
+          toast.success(`用户${action}成功`)
+          // 关闭用户菜单
+          showUserMenu.value = ''
+        } catch (error) {
+          // 关闭loading通知
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
+          console.error(`${action}用户失败:`, error)
+          toast.error(`${action}用户失败，请稍后重试`)
+        }
+      }
+    })
   }
 
   return {
@@ -621,6 +711,10 @@ export function useUserManagement() {
     currentUser,
     isSubmitting,
     showUserMenu,
+    
+    // 确认对话框状态
+    showConfirmDialog,
+    confirmDialogConfig,
     
     // 计算属性
     filteredUsers,
@@ -668,7 +762,7 @@ export function useUserManagement() {
     
     // 用户操作
     saveUser,
-    toggleUserStatus,
+    // toggleUserStatus 已移除
     deleteUser,
     
     // 批量操作
@@ -683,6 +777,7 @@ export function useUserManagement() {
     resetPassword,
     adjustBalance,
     viewUserOrders,
-    banUser
+    banUser,
+    showConfirm
   }
 }

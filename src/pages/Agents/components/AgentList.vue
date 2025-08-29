@@ -95,31 +95,31 @@
               <div class="flex items-center justify-end space-x-2">
                 <button
                   @click="handleView(agent)"
-                  class="text-blue-600 hover:text-blue-900 transition-colors"
+                  class="p-2 text-blue-600 hover:bg-blue-50 rounded"
                   title="查看详情"
                 >
-                  <Eye class="w-4 h-4" />
+                  <Eye class="h-4 w-4" />
                 </button>
                 <button
                   @click="handleEdit(agent)"
-                  class="text-green-600 hover:text-green-900 transition-colors"
+                  class="p-2 text-green-600 hover:bg-green-50 rounded"
                   title="编辑"
                 >
-                  <Edit class="w-4 h-4" />
+                  <Edit class="h-4 w-4" />
                 </button>
                 <button
                   @click="handlePricing(agent)"
-                  class="text-purple-600 hover:text-purple-900 transition-colors"
+                  class="p-2 text-purple-600 hover:bg-purple-50 rounded"
                   title="价格配置"
                 >
-                  <Settings class="w-4 h-4" />
+                  <Settings class="h-4 w-4" />
                 </button>
                 <button
                   @click="handleDelete(agent)"
-                  class="text-red-600 hover:text-red-900 transition-colors"
+                  class="p-2 text-red-600 hover:bg-red-50 rounded"
                   title="删除"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <Trash2 class="h-4 w-4" />
                 </button>
               </div>
             </td>
@@ -192,27 +192,31 @@
           <div class="flex items-center space-x-3">
             <button
               @click="handleView(agent)"
-              class="text-blue-600 hover:text-blue-900"
+              class="p-2 text-blue-600 hover:bg-blue-50 rounded"
+              title="查看详情"
             >
-              <Eye class="w-4 h-4" />
+              <Eye class="h-4 w-4" />
             </button>
             <button
               @click="handleEdit(agent)"
-              class="text-green-600 hover:text-green-900"
+              class="p-2 text-green-600 hover:bg-green-50 rounded"
+              title="编辑"
             >
-              <Edit class="w-4 h-4" />
+              <Edit class="h-4 w-4" />
             </button>
             <button
               @click="handlePricing(agent)"
-              class="text-purple-600 hover:text-purple-900"
+              class="p-2 text-purple-600 hover:bg-purple-50 rounded"
+              title="价格配置"
             >
-              <Settings class="w-4 h-4" />
+              <Settings class="h-4 w-4" />
             </button>
             <button
               @click="handleDelete(agent)"
-              class="text-red-600 hover:text-red-900"
+              class="p-2 text-red-600 hover:bg-red-50 rounded"
+              title="删除"
             >
-              <Trash2 class="w-4 h-4" />
+              <Trash2 class="h-4 w-4" />
             </button>
           </div>
         </div>

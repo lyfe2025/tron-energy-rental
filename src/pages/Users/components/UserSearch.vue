@@ -21,8 +21,7 @@
           class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="">所有状态</option>
-          <option value="active">活跃</option>
-          <option value="inactive">停用</option>
+          <option value="active">正常</option>
           <option value="banned">封禁</option>
         </select>
         
@@ -45,8 +44,6 @@
           <option value="normal">普通用户</option>
           <option value="vip">VIP用户</option>
           <option value="premium">套餐用户</option>
-          <option value="agent">代理商</option>
-          <option value="admin">管理员</option>
         </select>
         
         <button

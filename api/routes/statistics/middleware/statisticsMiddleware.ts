@@ -1,7 +1,7 @@
 /**
  * 统计分析中间件
  */
-import type { NextFunction, Request, Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 
 /**
  * 验证管理员权限

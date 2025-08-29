@@ -1,30 +1,26 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type {
-    AgentPricing,
-    Bot,
-    BotPricing,
-    CreateEnergyPackageData,
-    CreatePriceTemplateData,
-    CreateUserData,
-    EnergyPackage,
-    OperationLog,
-    Order,
-    OrderStats,
-    PriceTemplate,
-    RevenueStats,
-    StatisticsParams,
-    SystemConfig,
-    SystemSettings,
-    UpdateAgentPricingData,
-    UpdateBotPricingData,
-    UpdateEnergyPackageData,
-    UpdateOrderStatusData,
-    UpdatePriceTemplateData,
-    UpdateSettingsData,
-    UpdateUserData,
-    User,
-    UserActivityStats
-} from '../types/api'
+  Bot,
+  CreateEnergyPackageData,
+  CreatePriceTemplateData,
+  CreateUserData,
+  EnergyPackage,
+  OperationLog,
+  Order,
+  OrderStats,
+  PriceTemplate,
+  RevenueStats,
+  StatisticsParams,
+  SystemConfig,
+  SystemSettings,
+  UpdateEnergyPackageData,
+  UpdateOrderStatusData,
+  UpdatePriceTemplateData,
+  UpdateSettingsData,
+  UpdateUserData,
+  User,
+  UserActivityStats
+} from '../types/api';
 
 // API基础配置
 // 在开发环境中使用相对路径以利用Vite代理，在生产环境中使用完整URL
@@ -42,6 +38,9 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   },
 })
 
@@ -84,7 +83,7 @@ apiClient.interceptors.response.use(
 )
 
 // 导出apiClient实例
-export { apiClient }
+export { apiClient };
 
 // API响应类型定义
 export interface ApiResponse<T = unknown> {
@@ -97,14 +96,12 @@ export interface ApiResponse<T = unknown> {
 // 分页响应类型
 export interface PaginatedResponse<T> {
   success: boolean
-  data: {
-    users: T[]
-    pagination: {
-      page: number
-      limit: number
-      total: number
-      totalPages: number
-    }
+  data: T[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
   }
   message?: string
 }

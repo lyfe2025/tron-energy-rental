@@ -1,18 +1,9 @@
-/**
- * 用户管理API路由 - 支持Telegram端和H5网页端用户
- * 处理users表的用户管理，支持普通用户、VIP用户、套餐用户三种角色
- */
-
 import { Router, type Request, type Response } from 'express';
+import { body, param, query } from 'express-validator';
 import { UserService } from '../services/user.js';
-import { authenticateToken } from '../middleware/auth.js';
-import { handleValidationErrors, validatePagination } from '../middleware/validation.js';
-import { body, query, param } from 'express-validator';
+import { handleValidationErrors } from '../middleware/validation.js';
 
 const router = Router();
-
-// 应用认证中间件
-router.use(authenticateToken);
 
 /**
  * 获取用户列表
@@ -22,39 +13,61 @@ router.get('/', [
   query('page').optional().isInt({ min: 1 }).withMessage('页码必须是正整数'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
   query('search').optional().isString().withMessage('搜索关键词必须是字符串'),
-  query('user_type').optional().isIn(['normal', 'vip', 'premium', 'all']).withMessage('用户类型无效'),
-  query('status').optional().isString().withMessage('状态必须是字符串'),
-  query('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  query('status').optional().isIn(['active', 'banned']).withMessage('状态筛选无效'),
+  query('user_type').optional().isIn(['normal', 'vip', 'premium']).withMessage('用户类型筛选无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      user_type,
-      status,
-      agent_id
-    } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+    const userType = req.query.user_type as string;
 
     const result = await UserService.getUsers({
-      page: Number(page),
-      limit: Number(limit),
-      search: search as string,
-      user_type: user_type as string,
-      status: status as string,
-      agent_id: agent_id as string
+      page,
+      limit,
+      search,
+      status,
+      userType
     });
 
     res.json({
       success: true,
-      data: result
+      data: result.users,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit)
+      }
     });
   } catch (error) {
     console.error('获取用户列表失败:', error);
     res.status(500).json({
       success: false,
       error: '获取用户列表失败'
+    });
+  }
+});
+
+/**
+ * 获取用户统计数据
+ * GET /api/users/stats
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await UserService.getUserStats();
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('获取用户统计数据失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取用户统计数据失败'
     });
   }
 });
@@ -97,7 +110,7 @@ router.get('/:id', [
  */
 router.post('/', [
   body('login_type').isIn(['telegram', 'admin', 'both']).withMessage('登录类型无效'),
-  body('telegram_id').custom((value, { req }) => {
+  body('telegram_id').optional().custom((value, { req }) => {
     const loginType = req.body.login_type;
     if (loginType === 'telegram' || loginType === 'both') {
       if (!value || !Number.isInteger(Number(value))) {
@@ -114,7 +127,7 @@ router.post('/', [
   body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
   body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
   body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
-  body('status').optional().isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  body('status').optional().isIn(['active', 'banned']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
   try {
@@ -150,7 +163,7 @@ router.put('/:id', [
   body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
   body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
   body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
-  body('status').optional().isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  body('status').optional().isIn(['active', 'banned']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
   try {
@@ -186,7 +199,7 @@ router.put('/:id', [
  */
 router.patch('/:id/status', [
   param('id').isUUID().withMessage('用户ID必须是有效的UUID'),
-  body('status').isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  body('status').isIn(['active', 'banned']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
   try {
@@ -245,27 +258,6 @@ router.delete('/:id', [
     res.status(500).json({
       success: false,
       error: '删除用户失败'
-    });
-  }
-});
-
-/**
- * 获取用户统计数据
- * GET /api/users/stats
- */
-router.get('/stats', async (req: Request, res: Response) => {
-  try {
-    const stats = await UserService.getUserStats();
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error('获取用户统计失败:', error);
-    res.status(500).json({
-      success: false,
-      error: '获取统计数据失败'
     });
   }
 });

@@ -138,16 +138,7 @@
                   >
                     <Edit class="h-4 w-4" />
                   </button>
-                  <button
-                    @click="$emit('toggle-user-status', user)"
-                    :class="[
-                      'hover:opacity-75',
-                      user.status === 'active' ? 'text-red-600' : 'text-green-600'
-                    ]"
-                    :title="user.status === 'active' ? '停用' : '启用'"
-                  >
-                    <Power class="h-4 w-4" />
-                  </button>
+                  <!-- 移除停用/启用按钮，现在只使用封禁功能 -->
                   <div class="relative">
                     <button
                       @click="$emit('toggle-user-menu', user.id)"
@@ -319,18 +310,17 @@
 
 <script setup lang="ts">
 import {
-  Ban,
-  DollarSign,
-  Edit,
-  Eye,
-  Key,
-  Loader2,
-  MoreVertical,
-  Power,
-  ShoppingCart,
-  User,
-  UserPlus,
-  Users
+    Ban,
+    DollarSign,
+    Edit,
+    Eye,
+    Key,
+    Loader2,
+    MoreVertical,
+    ShoppingCart,
+    User,
+    UserPlus,
+    Users
 } from 'lucide-vue-next'
 import type { User as UserType } from '../types/user.types'
 
@@ -359,7 +349,6 @@ interface Emits {
   'toggle-user-select': [userId: string]
   'view-user': [user: UserType]
   'edit-user': [user: UserType]
-  'toggle-user-status': [user: UserType]
   'toggle-user-menu': [userId: string]
   'reset-password': [user: UserType]
   'adjust-balance': [user: UserType]

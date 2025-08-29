@@ -54,9 +54,8 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     
     if (search) {
       whereConditions.push(`(
-        name ILIKE $${paramIndex} OR 
-        username ILIKE $${paramIndex} OR 
-        description ILIKE $${paramIndex}
+        bot_name ILIKE $${paramIndex} OR 
+        bot_username ILIKE $${paramIndex}
       )`);
       queryParams.push(`%${String(search)}%`);
       paramIndex++;
@@ -69,10 +68,9 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
     // 查询机器人列表
     const botsQuery = `
       SELECT 
-        id, bot_name as name, bot_username as username, description, 
+        id, bot_name as name, bot_username as username, 
         CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, config as settings, welcome_message, help_message, 
-        allowed_updates as commands, 0 as total_users, 0 as total_orders, 
+        webhook_url, 0 as total_users, 0 as total_orders, 
         created_at, updated_at
       FROM telegram_bots 
       ${whereClause}
@@ -113,6 +111,40 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
 });
 
 /**
+ * 获取可用的机器人列表（用于代理商关联）
+ * GET /api/bots/available
+ * 权限：已认证用户
+ */
+router.get('/available', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    // 查询所有活跃的机器人
+    const botsResult = await query(`
+      SELECT 
+        id, 
+        bot_name as name, 
+        bot_username as username, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status
+      FROM telegram_bots 
+      WHERE is_active = true
+      ORDER BY bot_name ASC
+    `);
+    
+    res.status(200).json({
+      success: true,
+      message: '可用机器人列表获取成功',
+      data: botsResult.rows
+    });
+    
+  } catch (error) {
+    console.error('获取可用机器人列表错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+});
+
+/**
  * 获取单个机器人详情
  * GET /api/bots/:id
  * 权限：管理员
@@ -123,10 +155,9 @@ router.get('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     
     const botResult = await query(
       `SELECT 
-        id, bot_name as name, bot_username as username, description, 
+        id, bot_name as name, bot_username as username, 
         CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, config as settings, welcome_message, help_message, 
-        allowed_updates as commands, 0 as total_users, 0 as total_orders, 
+        webhook_url, 0 as total_users, 0 as total_orders, 
         created_at, updated_at
        FROM telegram_bots 
        WHERE id = $1`,
@@ -871,5 +902,7 @@ router.post('/:id/test', authenticateToken, requireAdmin, async (req: Request, r
     });
   }
 });
+
+
 
 export default router;

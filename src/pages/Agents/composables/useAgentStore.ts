@@ -66,7 +66,16 @@ export function useAgentStore() {
     try {
       const response = await agentService.getAgents(params);
       if (response.success) {
-        agents.value = response.data.agents;
+        // 转换API数据结构以匹配前端期望的格式
+        agents.value = response.data.agents.map((agent: any) => ({
+          ...agent,
+          // 从stats对象中提取统计数据到顶级属性
+          total_earnings: agent.stats?.total_commission || 0,
+          total_orders: agent.stats?.total_users || 0,
+          total_customers: agent.stats?.active_users || 0,
+          // 保持原有的stats对象以备后用
+          stats: agent.stats
+        }));
         pagination.value = response.data.pagination;
       } else {
         error.value = response.message || '获取代理商列表失败';
@@ -84,8 +93,18 @@ export function useAgentStore() {
     try {
       const response = await agentService.getAgent(id);
       if (response.success) {
-        currentAgent.value = response.data.agent;
-        return response.data.agent;
+        // 转换API数据结构以匹配前端期望的格式
+        const agent = {
+          ...response.data.agent,
+          // 从stats对象中提取统计数据到顶级属性
+          total_earnings: response.data.agent.stats?.total_commission || 0,
+          total_orders: response.data.agent.stats?.total_users || 0,
+          total_customers: response.data.agent.stats?.active_users || 0,
+          // 保持原有的stats对象以备后用
+          stats: response.data.agent.stats
+        };
+        currentAgent.value = agent;
+        return agent;
       } else {
         error.value = response.message || '获取代理商详情失败';
         return null;

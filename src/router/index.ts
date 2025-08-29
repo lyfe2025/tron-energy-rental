@@ -33,9 +33,9 @@ const router = createRouter({
           component: () => import('@/pages/Orders/index.vue')
         },
         {
-          path: 'pricing',
-          name: 'pricing',
-          component: () => import('@/pages/Pricing.vue'),
+          path: 'price-config',
+          name: 'PriceConfig',
+          component: () => import('@/pages/PriceConfig.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {
@@ -62,12 +62,7 @@ const router = createRouter({
           component: () => import('@/pages/Bots/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
-        {
-          path: 'energy',
-          name: 'energy',
-          component: () => import('@/pages/EnergyPackages.vue'),
-          meta: { roles: ['super_admin', 'admin'] }
-        },
+
         {
           path: 'energy-pool',
           name: 'energy-pool',

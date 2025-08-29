@@ -5,7 +5,7 @@
  * 包括请求验证、权限检查、日志记录和响应缓存等
  */
 
-import type { NextFunction, Request, Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 
 /**

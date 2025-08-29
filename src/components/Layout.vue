@@ -176,7 +176,7 @@ const allNavigation = [
   },
   {
     name: '价格配置',
-    href: '/pricing',
+    href: '/price-config',
     icon: DollarSign,
     roles: ['super_admin', 'admin']
   },
@@ -204,12 +204,7 @@ const allNavigation = [
     icon: Bot,
     roles: ['super_admin', 'admin']
   },
-  {
-    name: '能量包管理',
-    href: '/energy',
-    icon: Battery,
-    roles: ['super_admin', 'admin']
-  },
+
   {
     name: '能量池管理',
     href: '/energy-pool',

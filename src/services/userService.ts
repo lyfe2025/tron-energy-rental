@@ -12,8 +12,8 @@ import type {
     UserListResponse,
     UserStats
 } from '../pages/Users/types/user.types'
-import type { User } from '../types/api'
-import { usersAPI, statisticsAPI } from './api'
+import type { ApiResponse, User } from '../types/api'
+import { apiClient, usersAPI } from './api'
 
 export const userService = {
   /**
@@ -27,16 +27,17 @@ export const userService = {
       status: params.status,
       type: params.type,
       dateFrom: params.dateFrom,
-      dateTo: params.dateTo
+      dateTo: params.dateTo,
+      _t: Date.now() // 添加时间戳避免缓存
     }
     
     const response = await usersAPI.getUsers(apiParams)
     
-    // 后端API返回的数据结构是 {data: {users: [], pagination: {total, totalPages}}}
-    const responseData = response.data.data
+    // 后端API返回的数据结构是 {success: true, data: [], pagination: {}}
+    const responseData = response.data
     
     // 处理用户数据，确保字段映射正确
-    const processedUsers = (responseData.users || []).map(user => ({
+    const processedUsers = (responseData.data || []).map(user => ({
       ...user,
       // 确保 type 字段存在，根据 role 字段推断
       type: (user.role === 'admin' ? 'admin' : user.role === 'agent' ? 'agent' : 'telegram_user') as 'telegram_user' | 'agent' | 'admin',
@@ -69,20 +70,22 @@ export const userService = {
    */
   async getUserStats(): Promise<UserStats> {
     try {
-      // 调用后端统计API获取用户统计数据
-      const response = await statisticsAPI.getOverview({ period: '30' })
+      // 直接调用用户API获取统计数据，添加时间戳避免缓存
+      const response = await apiClient.get<ApiResponse<any>>('/api/users/stats', {
+        params: { _t: Date.now() }
+      })
       const data = response.data.data
       
       // 将后端返回的数据结构映射到前端期望的格式
       return {
-        totalUsers: data.total_users || 0,
-        activeUsers: data.active_users || 0,
-        inactiveUsers: 0, // 后端没有提供这个字段
-        bannedUsers: 0,   // 后端没有提供这个字段
-        newUsersToday: 0, // 后端没有提供这个字段
-        newUsersThisMonth: 0, // 后端没有提供这个字段
-        totalBalance: 0,  // 后端没有提供这个字段
-        averageBalance: 0 // 后端没有提供这个字段
+        totalUsers: data.total || 0,
+        activeUsers: data.active || 0,
+        inactiveUsers: 0, // 已移除停用状态
+        bannedUsers: data.banned || 0,
+        newUsersToday: 0, // 暂时不显示
+        newUsersThisMonth: 0, // 暂时不显示
+        totalBalance: data.totalUsdtBalance || 0,
+        averageBalance: data.totalUsdtBalance ? (data.totalUsdtBalance / (data.total || 1)) : 0
       }
     } catch (error) {
       console.error('获取用户统计数据失败:', error)
@@ -111,19 +114,27 @@ export const userService = {
    * 创建用户
    */
   async createUser(params: CreateUserParams): Promise<User> {
-    // 转换 CreateUserParams 为 CreateUserData 格式
+    // 转换 CreateUserParams 为后端API期望的格式
+    // 后端API期望的是login_type和user_type字段
     const createData = {
       username: params.username || params.email || '',
       email: params.email || '',
       password: params.password || '',
-      first_name: params.first_name,
-      last_name: params.last_name,
       phone: params.phone,
-      role: (params.role === 'admin' ? 'admin' : params.role === 'agent' ? 'agent' : 'user') as 'admin' | 'agent' | 'user',
-      balance: params.balance,
-      status: (params.status === 'pending' ? 'inactive' : params.status) as 'active' | 'inactive' | 'banned'
+      // 直接使用前端传递的login_type和user_type
+      login_type: params.login_type || 'admin',
+      user_type: params.user_type || 'normal',
+      // 根据login_type设置telegram相关字段
+      telegram_id: params.telegram_id || null,
+      first_name: params.first_name || null,
+      last_name: params.last_name || null,
+      usdt_balance: params.balance || 0,
+      trx_balance: 0,
+      status: params.status || 'active'
     }
-    const response = await usersAPI.createUser(createData)
+    
+    // 直接调用后端API
+    const response = await apiClient.post<ApiResponse<User>>('/api/users', createData)
     return response.data.data
   },
 

@@ -48,6 +48,7 @@ export class StatisticsService {
     return {
       total_orders: parseInt(stats.total_orders),
       total_revenue: parseFloat(stats.total_revenue),
+      total_users: parseInt(stats.total_users), // 添加总用户数字段
       active_users: parseInt(stats.active_users),
       online_bots: parseInt(stats.active_bots),
       orders_change: 0, // 简化实现

@@ -5,27 +5,23 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import adminsRoutes from './routes/admins.ts';
+import agentsRoutes from './routes/agents.ts';
 import authRoutes from './routes/auth.ts';
 import botsRoutes from './routes/bots.ts';
-import energyPackagesRoutes from './routes/energy-packages/index.ts';
+import energyDelegationRoutes from './routes/energy-delegation';
+import energyPoolRoutes from './routes/energy-pool.js';
 import ordersRoutes from './routes/orders.ts';
 import paymentRoutes from './routes/payment.ts';
-import pricingStrategiesRoutes from './routes/pricing-strategies.ts';
-import pricingModesRoutes from './routes/pricing-modes.ts';
-import priceTemplatesRoutes from './routes/price-templates.ts';
-import pricingHistoryRoutes from './routes/pricing-history.ts';
+import priceConfigsRoutes from './routes/price-configs.ts';
+import schedulerRoutes from './routes/scheduler';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
 import telegramRoutes from './routes/telegram.ts';
 import testRoutes from './routes/test.ts';
 import tronRoutes from './routes/tron.ts';
-import usersRoutes from './routes/users.ts';
-import agentsRoutes from './routes/agents.ts';
-import adminsRoutes from './routes/admins.ts';
 import userLevelsRoutes from './routes/user-levels.ts';
-import energyDelegationRoutes from './routes/energy-delegation';
-import schedulerRoutes from './routes/scheduler';
-import energyPoolRoutes from './routes/energy-pool.js';
+import usersRoutes from './routes/users.ts';
 
 
 // load env
@@ -49,13 +45,9 @@ app.use('/api/agents', agentsRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api/user-levels', userLevelsRoutes);
 app.use('/api/bots', botsRoutes);
-app.use('/api/energy-packages', energyPackagesRoutes);
+app.use('/api/price-configs', priceConfigsRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
-app.use('/api/pricing-strategies', pricingStrategiesRoutes);
-app.use('/api/pricing-modes', pricingModesRoutes);
-app.use('/api/price-templates', priceTemplatesRoutes);
-app.use('/api/pricing-history', pricingHistoryRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/energy-delegation', energyDelegationRoutes);
@@ -102,11 +94,9 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/admins',
       '/api/user-levels',
       '/api/bots',
-      '/api/energy-packages',
+      '/api/price-configs',
       '/api/statistics',
       '/api/system-configs',
-      '/api/pricing-strategies',
-      '/api/pricing-modes',
       '/api/telegram',
       '/api/tron',
       '/api/energy-delegation',

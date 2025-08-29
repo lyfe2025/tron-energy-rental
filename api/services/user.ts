@@ -5,6 +5,7 @@
 
 import pool from '../config/database.js';
 import type { PoolClient } from 'pg';
+import bcrypt from 'bcrypt';
 
 export interface User {
   id: string;
@@ -337,16 +338,15 @@ export class UserService {
       // 处理密码哈希
       let passwordHash = null;
       if (userData.password) {
-        const bcrypt = require('bcrypt');
         passwordHash = await bcrypt.hash(userData.password, 10);
       }
       
       const query = `
         INSERT INTO users (
           telegram_id, username, email, phone, password_hash, login_type, user_type,
-          usdt_balance, trx_balance, agent_id, commission_rate, status
+          usdt_balance, trx_balance, agent_id, status
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
         )
         RETURNING *
       `;
@@ -362,7 +362,6 @@ export class UserService {
         userData.usdt_balance || 0,
         userData.trx_balance || 0,
         userData.agent_id || null,
-        userData.commission_rate || null,
         userData.status || 'active'
       ];
       
@@ -397,7 +396,6 @@ export class UserService {
         if (value !== undefined) {
           if (key === 'password') {
             // 处理密码哈希
-            const bcrypt = require('bcrypt');
             const passwordHash = await bcrypt.hash(value as string, 10);
             updateFields.push(`password_hash = $${paramIndex}`);
             values.push(passwordHash);

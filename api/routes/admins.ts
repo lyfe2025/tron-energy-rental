@@ -57,6 +57,71 @@ router.get('/', [
 });
 
 /**
+ * 获取管理员统计数据
+ * GET /api/admins/stats
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await AdminService.getAdminStats();
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('获取管理员统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取统计数据失败'
+    });
+  }
+});
+
+/**
+ * 获取角色列表
+ * GET /api/admins/roles
+ */
+router.get('/roles', async (req: Request, res: Response) => {
+  try {
+    const roles = await AdminService.getRoles();
+
+    res.json({
+      success: true,
+      data: roles
+    });
+  } catch (error) {
+    console.error('获取角色列表失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取角色列表失败'
+    });
+  }
+});
+
+/**
+ * 获取权限列表
+ * GET /api/admins/permissions
+ */
+router.get('/permissions', async (req: Request, res: Response) => {
+  try {
+    const permissions = await AdminService.getPermissions();
+
+    res.json({
+      success: true,
+      data: {
+        permissions: permissions
+      }
+    });
+  } catch (error) {
+    console.error('获取权限列表失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取权限列表失败'
+    });
+  }
+});
+
+/**
  * 获取管理员详情
  * GET /api/admins/:id
  */
@@ -257,48 +322,6 @@ router.delete('/:id', [
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : '删除管理员失败'
-    });
-  }
-});
-
-/**
- * 获取管理员统计数据
- * GET /api/admins/stats
- */
-router.get('/stats', async (req: Request, res: Response) => {
-  try {
-    const stats = await AdminService.getAdminStats();
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error('获取管理员统计失败:', error);
-    res.status(500).json({
-      success: false,
-      error: '获取统计数据失败'
-    });
-  }
-});
-
-/**
- * 获取角色列表
- * GET /api/admins/roles
- */
-router.get('/roles', async (req: Request, res: Response) => {
-  try {
-    const roles = await AdminService.getRoles();
-
-    res.json({
-      success: true,
-      data: roles
-    });
-  } catch (error) {
-    console.error('获取角色列表失败:', error);
-    res.status(500).json({
-      success: false,
-      error: '获取角色列表失败'
     });
   }
 });

@@ -68,9 +68,25 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       [user.id]
     );
     
+    // 查询对应的users表记录
+    const userRecord = await query(
+      'SELECT id FROM users WHERE email = $1',
+      [user.email]
+    );
+    
+    if (userRecord.rows.length === 0) {
+      res.status(500).json({
+        success: false,
+        message: '用户记录不存在'
+      });
+      return;
+    }
+    
+    const userUuid = userRecord.rows[0].id;
+    
     // 生成JWT token
     const token = generateToken({
-      id: user.id.toString(),
+      id: userUuid,
       userId: user.id,
       email: user.email,
       role: user.role,
@@ -83,7 +99,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       data: {
         token,
         user: {
-          id: user.id,
+          id: userUuid,
           username: user.username,
           email: user.email,
           role: user.role,

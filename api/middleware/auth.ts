@@ -2,7 +2,7 @@
  * 认证中间件
  * 验证JWT token并保护API端点
  */
-import { type Request, type Response, type NextFunction } from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import { verifyToken, extractTokenFromHeader } from '../utils/jwt.js';
 
 // JWT载荷接口定义
