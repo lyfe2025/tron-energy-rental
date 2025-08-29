@@ -115,7 +115,7 @@ export class TelegramBotService {
     }
 
     // 注册或获取用户
-    const user = await this.userService.registerTelegramUser({
+    const user = await UserService.registerTelegramUser({
       telegram_id: telegramUser.id,
       username: telegramUser.username,
       first_name: telegramUser.first_name,
@@ -217,7 +217,7 @@ export class TelegramBotService {
       return;
     }
 
-    const user = await this.userService.getUserByTelegramId(telegramId);
+    const user = await UserService.getUserByTelegramId(telegramId);
     if (!user) {
       await this.bot.sendMessage(chatId, '❌ 用户不存在，请先使用 /start 注册');
       return;
@@ -251,13 +251,13 @@ export class TelegramBotService {
       return;
     }
 
-    const user = await this.userService.getUserByTelegramId(telegramId);
+    const user = await UserService.getUserByTelegramId(telegramId);
     if (!user) {
       await this.bot.sendMessage(chatId, '❌ 用户不存在，请先使用 /start 注册');
       return;
     }
 
-    const orders = await this.orderService.getUserOrders(user.id, 5); // 获取最近5个订单
+    const orders = await this.orderService.getUserOrders(parseInt(user.id), 5); // 获取最近5个订单
     
     if (!orders || orders.length === 0) {
       await this.bot.sendMessage(chatId, '📋 暂无订单记录');
@@ -434,7 +434,7 @@ export class TelegramBotService {
       }
 
       // 获取用户信息
-      const user = await this.userService.getUserByTelegramId(telegramId);
+      const user = await UserService.getUserByTelegramId(telegramId);
       if (!user) {
         await this.bot.sendMessage(chatId, '❌ 用户信息不存在，请重新开始');
         return;
@@ -500,7 +500,7 @@ export class TelegramBotService {
       }
 
       // 获取用户信息
-       const user = await this.userService.getUserByTelegramId(parseInt(telegramId));
+       const user = await UserService.getUserByTelegramId(parseInt(telegramId));
        if (!user) {
          await this.bot.sendMessage(chatId, '❌ 用户信息不存在');
          return;
@@ -508,7 +508,7 @@ export class TelegramBotService {
 
       // 创建订单
       const orderData: CreateOrderRequest = {
-        userId: user.id,
+        userId: parseInt(user.id),
         packageId: parseInt(packageData.id),
         energyAmount: packageData.energy_amount,
         priceTrx: packageData.price,
@@ -544,20 +544,10 @@ export class TelegramBotService {
         reply_markup: keyboard,
         parse_mode: 'Markdown'
       });
-      
-      // 创建订单
-      const newOrder = await orderService.createOrder({
-        userId: user.id,
-        packageId: parseInt(packageData.id, 10),
-        energyAmount: packageData.energy_amount,
-        durationHours: packageData.duration_hours,
-        priceTrx: packageData.price,
-        recipientAddress: user.tron_address!
-      });
 
       // 启动支付监控
       const paymentMonitoring = await paymentService.createPaymentMonitor(
-        newOrder.id.toString(),
+        order.id.toString(),
         packageData.price,
         user.tron_address!
       );

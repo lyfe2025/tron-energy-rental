@@ -48,15 +48,19 @@
                 <div class="space-y-4">
                   <div class="flex justify-between">
                     <span class="text-gray-600">用户名:</span>
-                    <span class="font-medium">{{ agent.username }}</span>
+                    <span class="font-medium">{{ agent.user?.username || '-' }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">邮箱:</span>
-                    <span class="font-medium">{{ agent.email }}</span>
+                    <span class="font-medium">{{ agent.user?.email || '-' }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">手机号:</span>
-                    <span class="font-medium">{{ agent.phone || '-' }}</span>
+                    <span class="font-medium">{{ agent.user?.phone || '-' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Telegram ID:</span>
+                    <span class="font-medium">{{ agent.user?.telegram_id || '-' }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">状态:</span>
@@ -160,11 +164,11 @@
                     <div class="text-sm text-gray-600">总收益 (TRX)</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-purple-600">{{ agent.managed_users || 0 }}</div>
+                    <div class="text-2xl font-bold text-purple-600">{{ agent.stats?.total_users || 0 }}</div>
                     <div class="text-sm text-gray-600">管理用户数</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-orange-600">{{ formatCurrency(agent.total_commission) }}</div>
+                    <div class="text-2xl font-bold text-orange-600">{{ formatCurrency(agent.stats?.total_commission) }}</div>
                     <div class="text-sm text-gray-600">总佣金 (TRX)</div>
                   </div>
                 </div>
@@ -281,19 +285,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import {
-  X,
-  User,
+  AlertCircle,
   Building,
   Crown,
-  TrendingUp,
-  Settings,
   Edit,
   Package,
-  AlertCircle
+  Settings,
+  TrendingUp,
+  User,
+  X
 } from 'lucide-vue-next';
 import { toast } from 'sonner';
+import { ref, watch } from 'vue';
 import { useAgentStore } from '../composables/useAgentStore';
 import type { Agent, AgentPricingConfig } from '../types';
 

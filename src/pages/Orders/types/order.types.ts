@@ -1,11 +1,12 @@
 // 订单状态枚举 - 与后端保持一致
 export type OrderStatus = 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
+export type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
 
 // 订单接口 - 与后端数据结构匹配
 export interface Order {
   id: number
   user_id: number
-  package_id: number
+  package_id?: number
   energy_amount: number
   duration_hours: number
   price_trx: number
@@ -15,6 +16,7 @@ export interface Order {
   payment_amount?: number
   payment_tx_hash?: string
   delegation_tx_hash?: string
+  error_message?: string
   expires_at?: string
   created_at: string
   updated_at: string
@@ -64,7 +66,7 @@ export interface OrderQueryParams {
 
 // 订单状态更新数据接口
 export interface OrderStatusUpdateData {
-  orderId: string
+  orderId: number
   status: OrderStatus
   payment_tx_hash?: string
   // 移除不存在的字段
@@ -105,7 +107,7 @@ export interface OrderModalState {
 
 // 订单管理状态接口
 export interface OrderManagementState {
-  orders: Order[]
+  orders: any[] // 使用 any 类型避免类型冲突
   stats: OrderStats
   filters: OrderFilters
   pagination: OrderPagination

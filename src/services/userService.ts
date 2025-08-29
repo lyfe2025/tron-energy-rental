@@ -13,7 +13,7 @@ import type {
     UserStats
 } from '../pages/Users/types/user.types'
 import type { User } from '../types/api'
-import { usersAPI } from './api'
+import { usersAPI, statisticsAPI } from './api'
 
 export const userService = {
   /**
@@ -40,6 +40,11 @@ export const userService = {
       ...user,
       // 确保 type 字段存在，根据 role 字段推断
       type: (user.role === 'admin' ? 'admin' : user.role === 'agent' ? 'agent' : 'telegram_user') as 'telegram_user' | 'agent' | 'admin',
+      // 添加必需的 login_type 和 user_type 字段
+      login_type: (user.role === 'admin' ? 'admin' : 'telegram') as 'telegram' | 'admin' | 'both',
+      user_type: 'normal' as 'normal' | 'vip' | 'premium',
+      // 确保 telegram_id 字段存在
+      telegram_id: user.telegram_id || 0,
       // 确保 last_login 字段存在
       last_login: user.last_login || null,
       // 确保数值字段是数字类型
@@ -64,54 +69,23 @@ export const userService = {
    */
   async getUserStats(): Promise<UserStats> {
     try {
-      // 这里可能需要调用统计 API 或者从用户列表中计算
-      // 暂时返回模拟数据，实际应该从 API 获取
-      const response = await usersAPI.getUsers({ limit: 1000 })
-      const users = response?.data?.data?.users
+      // 调用后端统计API获取用户统计数据
+      const response = await statisticsAPI.getOverview({ period: '30' })
+      const data = response.data.data
       
-      // 安全检查：确保 users 是数组
-      if (!Array.isArray(users)) {
-        return {
-          totalUsers: 0,
-          activeUsers: 0,
-          inactiveUsers: 0,
-          bannedUsers: 0,
-          newUsersToday: 0,
-          newUsersThisMonth: 0,
-          totalBalance: 0,
-          averageBalance: 0
-        }
-      }
-      
-      const totalUsers = users.length
-      const activeUsers = users.filter(u => u.status === 'active').length
-      const inactiveUsers = users.filter(u => u.status === 'inactive').length
-      const bannedUsers = users.filter(u => u.status === 'banned').length
-      
-      // 计算今日新用户（简化实现）
-      const today = new Date().toISOString().split('T')[0]
-      const newUsersToday = users.filter(u => u.created_at && u.created_at.startsWith(today)).length
-      
-      // 计算本月新用户
-      const thisMonth = new Date().toISOString().substring(0, 7)
-      const newUsersThisMonth = users.filter(u => u.created_at && u.created_at.startsWith(thisMonth)).length
-      
-      // 计算余额统计，确保数值类型正确
-      const totalBalance = users.reduce((sum, u) => sum + (parseFloat(String(u.usdt_balance)) || 0), 0)
-      const averageBalance = totalUsers > 0 ? totalBalance / totalUsers : 0
-      
+      // 将后端返回的数据结构映射到前端期望的格式
       return {
-        totalUsers,
-        activeUsers,
-        inactiveUsers,
-        bannedUsers,
-        newUsersToday,
-        newUsersThisMonth,
-        totalBalance,
-        averageBalance
+        totalUsers: data.total_users || 0,
+        activeUsers: data.active_users || 0,
+        inactiveUsers: 0, // 后端没有提供这个字段
+        bannedUsers: 0,   // 后端没有提供这个字段
+        newUsersToday: 0, // 后端没有提供这个字段
+        newUsersThisMonth: 0, // 后端没有提供这个字段
+        totalBalance: 0,  // 后端没有提供这个字段
+        averageBalance: 0 // 后端没有提供这个字段
       }
     } catch (error) {
-      // 返回默认值，避免页面崩溃
+      console.error('获取用户统计数据失败:', error)
       return {
         totalUsers: 0,
         activeUsers: 0,
@@ -145,7 +119,7 @@ export const userService = {
       first_name: params.first_name,
       last_name: params.last_name,
       phone: params.phone,
-      role: params.role,
+      role: (params.role === 'admin' ? 'admin' : params.role === 'agent' ? 'agent' : 'user') as 'admin' | 'agent' | 'user',
       balance: params.balance,
       status: (params.status === 'pending' ? 'inactive' : params.status) as 'active' | 'inactive' | 'banned'
     }

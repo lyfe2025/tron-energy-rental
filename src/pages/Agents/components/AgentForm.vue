@@ -338,9 +338,9 @@ const resetForm = () => {
 // 填充表单数据
 const fillForm = (agent: Agent) => {
   Object.assign(formData, {
-    username: agent.username || '',
-    email: agent.email || '',
-    phone: agent.phone || '',
+    username: agent.user?.username || '',
+    email: agent.user?.email || '',
+    phone: agent.user?.phone || '',
     status: agent.status,
     agent_level: agent.agent_level || 1,
     commission_rate: agent.commission_rate || 0,

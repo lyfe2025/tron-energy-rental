@@ -71,8 +71,8 @@
             @view-strategy="showViewStrategy"
             @edit-strategy="showEditStrategy"
             @duplicate-strategy="duplicateStrategy"
-            @toggle-status="toggleStrategyStatus"
-            @delete-strategy="deleteStrategy"
+            @toggle-status="(strategy) => toggleStrategyStatus(strategy.id)"
+            @delete-strategy="(strategy) => deleteStrategy(strategy.id)"
           />
         </div>
 

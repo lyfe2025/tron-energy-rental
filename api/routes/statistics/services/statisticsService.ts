@@ -24,9 +24,9 @@ export class StatisticsService {
     const overviewStats = await query(`
       SELECT 
         -- 用户统计
-        (SELECT COUNT(*) FROM telegram_users) as total_users,
-        (SELECT COUNT(*) FROM telegram_users WHERE status = 'active') as active_users,
-        (SELECT COUNT(*) FROM telegram_users WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days') as new_users,
+        (SELECT COUNT(*) FROM users) as total_users,
+        (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
+        (SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE - INTERVAL '${days} days') as new_users,
         
         -- 订单统计
         (SELECT COUNT(*) FROM orders) as total_orders,
@@ -125,17 +125,43 @@ export class StatisticsService {
   async getUserStats(period = '30'): Promise<UserStatistics> {
     const days = Number(period);
 
+    // 获取用户概览统计
+    const overviewStats = await query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
+        COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN status = 'banned' THEN 1 END) as banned_users,
+        COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as new_users_today,
+        COUNT(CASE WHEN DATE(created_at) >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as new_users_month,
+        COALESCE(SUM(usdt_balance), 0) as total_balance,
+        COALESCE(AVG(usdt_balance), 0) as average_balance
+      FROM users
+    `);
+
     const registrationTrend = await query(`
       SELECT 
         DATE(u.created_at) as date,
         COUNT(*) as new_users
-      FROM telegram_users u
+      FROM users u
       WHERE u.created_at >= CURRENT_DATE - INTERVAL '${days} days'
       GROUP BY DATE(u.created_at)
       ORDER BY date
     `);
 
+    const overview = overviewStats.rows[0];
+
     return {
+      overview: {
+        total_users: parseInt(overview.total_users),
+        active_users: parseInt(overview.active_users),
+        inactive_users: parseInt(overview.inactive_users),
+        banned_users: parseInt(overview.banned_users),
+        new_users_today: parseInt(overview.new_users_today),
+        new_users_month: parseInt(overview.new_users_month),
+        total_balance: parseFloat(overview.total_balance),
+        average_balance: parseFloat(overview.average_balance)
+      },
       registration_trend: registrationTrend.rows,
       activity_trend: [],
       user_segmentation: [],

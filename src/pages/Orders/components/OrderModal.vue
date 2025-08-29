@@ -46,7 +46,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700">用户地址</label>
             <p class="mt-1 text-sm text-gray-900 font-mono break-all">
-              {{ selectedOrder.user_address || '未设置' }}
+              {{ selectedOrder.recipient_address || '未设置' }}
             </p>
           </div>
         </div>
@@ -58,16 +58,16 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">订单金额</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.amount }} TRX</p>
+            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.price_trx }} TRX</p>
           </div>
         </div>
         
-        <div v-if="selectedOrder.tx_hash">
+        <div v-if="selectedOrder.payment_tx_hash">
           <label class="block text-sm font-medium text-gray-700">交易哈希</label>
           <div class="mt-1 flex items-center space-x-2">
-            <p class="text-sm text-gray-900 font-mono break-all">{{ selectedOrder.tx_hash }}</p>
+            <p class="text-sm text-gray-900 font-mono break-all">{{ selectedOrder.payment_tx_hash }}</p>
             <button
-              @click="viewTransaction(selectedOrder.tx_hash)"
+              @click="viewTransaction(selectedOrder.payment_tx_hash)"
               class="text-blue-600 hover:text-blue-800"
               title="在区块链浏览器中查看"
             >
@@ -192,12 +192,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import {
-  X,
   ExternalLink,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
 
 interface Props {
@@ -210,7 +210,7 @@ interface Props {
 interface Emits {
   'close-details': []
   'close-status': []
-  'update-status': [data: { orderId: string; status: string; txHash?: string; errorMessage?: string }]
+  'update-status': [data: { orderId: string | number; status: string; txHash?: string; errorMessage?: string }]
 }
 
 const props = defineProps<Props>()
@@ -269,7 +269,7 @@ const handleUpdateStatus = () => {
     txHash?: string
     errorMessage?: string
   } = {
-    orderId: props.selectedOrder?.id || '',
+    orderId: props.selectedOrder?.id?.toString() || '',
     status: newStatus.value
   }
   

@@ -1,562 +1,271 @@
 /**
- * 用户管理API路由
- * 处理Telegram用户的增删改查、状态管理等功能
- * 基于新的telegram_users表结构
+ * 用户管理API路由 - 支持Telegram端和H5网页端用户
+ * 处理users表的用户管理，支持普通用户、VIP用户、套餐用户三种角色
  */
-import { Router, type Request, type Response } from 'express';
-import bcrypt from 'bcryptjs';
-import { query } from '../config/database.js';
-import { authenticateToken, requireAdmin, requireRole } from '../middleware/auth.js';
 
-const router: Router = Router();
+import { Router, type Request, type Response } from 'express';
+import { UserService } from '../services/user.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { handleValidationErrors, validatePagination } from '../middleware/validation.js';
+import { body, query, param } from 'express-validator';
+
+const router = Router();
+
+// 应用认证中间件
+router.use(authenticateToken);
 
 /**
  * 获取用户列表
  * GET /api/users
- * 权限：管理员
  */
-router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      type, 
-      status, 
-      search,
-      login_type 
-    } = req.query;
-    
-    const offset = (Number(page) - 1) * Number(limit);
-    
-    // 构建查询条件
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-    
-    if (type) {
-      whereConditions.push(`user_type = $${paramIndex}`);
-      queryParams.push(type);
-      paramIndex++;
-    }
-    
-    if (status) {
-      whereConditions.push(`status = $${paramIndex}`);
-      queryParams.push(status);
-      paramIndex++;
-    }
-    
-    if (login_type) {
-      whereConditions.push(`login_type = $${paramIndex}`);
-      queryParams.push(login_type);
-      paramIndex++;
-    }
-    
-    if (search) {
-      whereConditions.push(`(
-        username ILIKE $${paramIndex} OR 
-        email ILIKE $${paramIndex} OR 
-        first_name ILIKE $${paramIndex} OR 
-        last_name ILIKE $${paramIndex}
-      )`);
-      queryParams.push(`%${search}%`);
-      paramIndex++;
-    }
-    
-    const whereClause = whereConditions.length > 0 
-      ? 'WHERE ' + whereConditions.join(' AND ') 
-      : '';
-    
-    // 查询用户列表
-    const usersQuery = `
-      SELECT 
-        telegram_id, username, first_name, last_name, 
-        user_type as role, status, tron_address, balance, usdt_balance, trx_balance, 
-        total_orders, total_energy_used, referral_code, referred_by, 
-        last_login_at, created_at, updated_at
-      FROM telegram_users 
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    
-    queryParams.push(Number(limit), offset);
-    
-    const usersResult = await query(usersQuery, queryParams);
-    
-    // 查询总数
-    const countQuery = `SELECT COUNT(*) as total FROM telegram_users ${whereClause}`;
-    const countResult = await query(countQuery, queryParams.slice(0, -2));
-    const total = parseInt(countResult.rows[0].total);
-    
-    res.status(200).json({
-      success: true,
-      message: '用户列表获取成功',
-      data: {
-        users: usersResult.rows,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          totalPages: Math.ceil(total / Number(limit))
-        }
-      }
-    });
-    
-  } catch (error) {
-    console.error('获取用户列表错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
-  }
-});
-
-/**
- * 获取单个用户详情
- * GET /api/users/:telegram_id
- * 权限：管理员或用户本人
- */
-router.get('/:telegram_id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { telegram_id } = req.params;
-    const currentUser = req.user;
-    
-    // 检查权限：仅管理员可以查看用户信息
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
-    if (!isAdmin) {
-      res.status(403).json({
-        success: false,
-        message: '权限不足，仅管理员可以查看用户信息'
-      });
-      return;
-    }
-    
-    const userResult = await query(
-      `SELECT 
-        telegram_id, username, first_name, last_name, 
-        user_type as role, status, tron_address, balance, usdt_balance, trx_balance, 
-        total_orders, total_energy_used, referral_code, referred_by, 
-        last_login_at, created_at, updated_at
-       FROM telegram_users 
-       WHERE telegram_id = $1`,
-      [telegram_id]
-    );
-    
-    if (userResult.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '用户不存在'
-      });
-      return;
-    }
-    
-    res.status(200).json({
-      success: true,
-      message: '用户信息获取成功',
-      data: {
-        user: userResult.rows[0]
-      }
-    });
-    
-  } catch (error) {
-    console.error('获取用户详情错误:', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器内部错误'
-    });
-  }
-});
-
-/**
- * 创建新用户
- * POST /api/users
- * 权限：管理员
- */
-router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get('/', [
+  query('page').optional().isInt({ min: 1 }).withMessage('页码必须是正整数'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+  query('search').optional().isString().withMessage('搜索关键词必须是字符串'),
+  query('user_type').optional().isIn(['normal', 'vip', 'premium', 'all']).withMessage('用户类型无效'),
+  query('status').optional().isString().withMessage('状态必须是字符串'),
+  query('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
   try {
     const {
-      telegram_id,
-      username,
-      first_name,
-      last_name,
-      type = 'normal',
-      status = 'active',
-      tron_address,
-      referral_code
-    } = req.body;
+      page = 1,
+      limit = 10,
+      search,
+      user_type,
+      status,
+      agent_id
+    } = req.query;
+
+    const result = await UserService.getUsers({
+      page: Number(page),
+      limit: Number(limit),
+      search: search as string,
+      user_type: user_type as string,
+      status: status as string,
+      agent_id: agent_id as string
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取用户列表失败'
+    });
+  }
+});
+
+/**
+ * 获取用户详情
+ * GET /api/users/:id
+ */
+router.get('/:id', [
+  param('id').isUUID().withMessage('用户ID必须是有效的UUID'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = await UserService.getUserById(id);
     
-    // 验证必填字段
-    if (!telegram_id) {
-      res.status(400).json({
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: 'telegram_id是必填字段'
+        error: '用户不存在'
       });
-      return;
     }
-    
-    // 检查telegram_id是否已存在
-    const existingTelegram = await query(
-      'SELECT telegram_id FROM telegram_users WHERE telegram_id = $1',
-      [telegram_id]
-    );
-    
-    if (existingTelegram.rows.length > 0) {
-      res.status(400).json({
-        success: false,
-        message: 'Telegram ID已存在'
-      });
-      return;
-    }
-    
-    // 检查推荐码是否已存在
-    if (referral_code) {
-      const existingReferral = await query(
-        'SELECT referral_code FROM telegram_users WHERE referral_code = $1',
-        [referral_code]
-      );
-      
-      if (existingReferral.rows.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: '推荐码已存在'
-        });
-        return;
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('获取用户详情失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取用户详情失败'
+    });
+  }
+});
+
+/**
+ * 创建用户
+ * POST /api/users
+ */
+router.post('/', [
+  body('login_type').isIn(['telegram', 'admin', 'both']).withMessage('登录类型无效'),
+  body('telegram_id').custom((value, { req }) => {
+    const loginType = req.body.login_type;
+    if (loginType === 'telegram' || loginType === 'both') {
+      if (!value || !Number.isInteger(Number(value))) {
+        throw new Error('Telegram登录类型需要提供有效的Telegram ID');
       }
     }
-    
-    // 创建用户
-    const newUser = await query(
-      `INSERT INTO telegram_users (
-        telegram_id, username, first_name, last_name,
-        user_type, status, tron_address, referral_code
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING 
-        telegram_id, username, first_name, last_name,
-        user_type as role, status, tron_address, referral_code, created_at`,
-      [
-        telegram_id, username, first_name, last_name,
-        type, status, tron_address, referral_code
-      ]
-    );
-    
+    return true;
+  }),
+  body('username').optional().isString().withMessage('用户名必须是字符串'),
+  body('email').optional().isEmail().withMessage('邮箱格式无效'),
+  body('password').optional().isLength({ min: 6 }).withMessage('密码至少6位'),
+  body('user_type').isIn(['normal', 'vip', 'premium']).withMessage('用户类型无效'),
+  body('usdt_balance').optional().isFloat({ min: 0 }).withMessage('USDT余额必须是非负数'),
+  body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
+  body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
+  body('status').optional().isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
+  try {
+    const userData = req.body;
+    const user = await UserService.createUser(userData);
+
     res.status(201).json({
       success: true,
-      message: '用户创建成功',
-      data: {
-        user: newUser.rows[0]
-      }
+      data: user,
+      message: '用户创建成功'
     });
-    
   } catch (error) {
-    console.error('创建用户错误:', error);
+    console.error('创建用户失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      error: '创建用户失败'
     });
   }
 });
 
 /**
- * 更新用户信息
- * PUT /api/users/:telegram_id
- * 权限：管理员或用户本人
+ * 更新用户
+ * PUT /api/users/:id
  */
-router.put('/:telegram_id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.put('/:id', [
+  param('id').isUUID().withMessage('用户ID必须是有效的UUID'),
+  body('login_type').optional().isIn(['telegram', 'admin', 'both']).withMessage('登录类型无效'),
+  body('telegram_id').optional().isInt().withMessage('Telegram ID必须是整数'),
+  body('username').optional().isString().withMessage('用户名必须是字符串'),
+  body('email').optional().isEmail().withMessage('邮箱格式无效'),
+  body('user_type').optional().isIn(['normal', 'vip', 'premium']).withMessage('用户类型无效'),
+  body('usdt_balance').optional().isFloat({ min: 0 }).withMessage('USDT余额必须是非负数'),
+  body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
+  body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
+  body('status').optional().isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
   try {
-    const { telegram_id } = req.params;
-    const currentUser = req.user;
+    const { id } = req.params;
+    const updateData = req.body;
     
-    // 检查权限：仅管理员可以修改用户信息
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
-    if (!isAdmin) {
-      res.status(403).json({
+    const user = await UserService.updateUser(id, updateData);
+    
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: '权限不足，仅管理员可以修改用户信息'
+        error: '用户不存在'
       });
-      return;
-    }
-    
-    const {
-      username,
-      first_name,
-      last_name,
-      type,
-      status,
-      tron_address,
-      referral_code
-    } = req.body;
-    
-    // 检查用户是否存在
-    const existingUser = await query(
-      'SELECT telegram_id, user_type as role FROM telegram_users WHERE telegram_id = $1',
-      [telegram_id]
-    );
-    
-    if (existingUser.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '用户不存在'
-      });
-      return;
-    }
-    
-    const user = existingUser.rows[0];
-    
-    // 非管理员不能修改类型和状态
-    if (!isAdmin && (type || status)) {
-      res.status(403).json({
-        success: false,
-        message: '权限不足，无法修改用户类型或状态'
-      });
-      return;
-    }
-    
-    // 构建更新字段
-    const updateFields = [];
-    const updateValues = [];
-    let paramIndex = 1;
-    
-    if (username !== undefined) {
-      updateFields.push(`username = $${paramIndex}`);
-      updateValues.push(username);
-      paramIndex++;
-    }
-    
-    if (first_name !== undefined) {
-      updateFields.push(`first_name = $${paramIndex}`);
-      updateValues.push(first_name);
-      paramIndex++;
-    }
-    
-    if (last_name !== undefined) {
-      updateFields.push(`last_name = $${paramIndex}`);
-      updateValues.push(last_name);
-      paramIndex++;
-    }
-    
-    if (type !== undefined && isAdmin) {
-      updateFields.push(`user_type = $${paramIndex}`);
-      updateValues.push(type);
-      paramIndex++;
     }
 
-    if (status !== undefined && isAdmin) {
-      updateFields.push(`status = $${paramIndex}`);
-      updateValues.push(status);
-      paramIndex++;
-    }
-    
-    if (tron_address !== undefined) {
-      updateFields.push(`tron_address = $${paramIndex}`);
-      updateValues.push(tron_address);
-      paramIndex++;
-    }
-    
-    if (referral_code !== undefined) {
-      updateFields.push(`referral_code = $${paramIndex}`);
-      updateValues.push(referral_code);
-      paramIndex++;
-    }
-    
-    if (updateFields.length === 0) {
-      res.status(400).json({
-        success: false,
-        message: '没有提供要更新的字段'
-      });
-      return;
-    }
-    
-    // 添加更新时间
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(telegram_id);
-    
-    // 执行更新
-    const updateQuery = `
-      UPDATE telegram_users 
-      SET ${updateFields.join(', ')}
-      WHERE telegram_id = $${paramIndex}
-      RETURNING 
-        telegram_id, username, first_name, last_name,
-        user_type as role, status, tron_address, referral_code, updated_at
-    `;
-    
-    const updatedUser = await query(updateQuery, updateValues);
-    
-    res.status(200).json({
+    res.json({
       success: true,
-      message: '用户信息更新成功',
-      data: {
-        user: updatedUser.rows[0]
-      }
+      data: user,
+      message: '用户更新成功'
     });
-    
   } catch (error) {
-    console.error('更新用户信息错误:', error);
+    console.error('更新用户失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      error: '更新用户失败'
     });
   }
 });
 
 /**
  * 更新用户状态
- * PATCH /api/users/:telegram_id/status
- * 权限：管理员
+ * PATCH /api/users/:id/status
  */
-router.patch('/:telegram_id/status', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id/status', [
+  param('id').isUUID().withMessage('用户ID必须是有效的UUID'),
+  body('status').isIn(['active', 'inactive', 'banned']).withMessage('状态无效'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
   try {
-    const { telegram_id } = req.params;
+    const { id } = req.params;
     const { status } = req.body;
     
-    // 验证状态值
-    const validStatuses = ['active', 'inactive', 'banned'];
-    if (!validStatuses.includes(status)) {
-      res.status(400).json({
+    const user = await UserService.updateUserStatus(id, status);
+    
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: '无效的状态值，允许的值: ' + validStatuses.join(', ')
+        error: '用户不存在'
       });
-      return;
     }
-    
-    // 检查用户是否存在
-    const existingUser = await query(
-      'SELECT telegram_id, status FROM telegram_users WHERE telegram_id = $1',
-      [telegram_id]
-    );
-    
-    if (existingUser.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: '用户不存在'
-      });
-      return;
-    }
-    
-    // 更新状态
-    const updatedUser = await query(
-      `UPDATE telegram_users 
-       SET status = $1, updated_at = CURRENT_TIMESTAMP 
-       WHERE telegram_id = $2 
-       RETURNING telegram_id, status, updated_at`,
-      [status, telegram_id]
-    );
-    
-    res.status(200).json({
+
+    res.json({
       success: true,
-      message: '用户状态更新成功',
-      data: {
-        user: updatedUser.rows[0]
-      }
+      data: user,
+      message: `用户状态已更新为${status}`
     });
-    
   } catch (error) {
-    console.error('更新用户状态错误:', error);
+    console.error('更新用户状态失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      error: '更新用户状态失败'
     });
   }
 });
 
 /**
  * 删除用户
- * DELETE /api/users/:telegram_id
- * 权限：管理员
+ * DELETE /api/users/:id
  */
-router.delete('/:telegram_id', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', [
+  param('id').isUUID().withMessage('用户ID必须是有效的UUID'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
   try {
-    const { telegram_id } = req.params;
+    const { id } = req.params;
     
-    // 检查用户是否存在
-    const existingUser = await query(
-      'SELECT telegram_id, user_type as role FROM telegram_users WHERE telegram_id = $1',
-      [telegram_id]
-    );
+    const success = await UserService.deleteUser(id);
     
-    if (existingUser.rows.length === 0) {
-      res.status(404).json({
+    if (!success) {
+      return res.status(404).json({
         success: false,
-        message: '用户不存在'
+        error: '用户不存在'
       });
-      return;
     }
-    
-    // 防止删除管理员账户（可选的安全措施）
-    if (existingUser.rows[0].role === 'admin') {
-      res.status(400).json({
-        success: false,
-        message: '不能删除管理员账户'
-      });
-      return;
-    }
-    
-    // 检查用户是否有关联的订单
-    const orderCheck = await query(
-      'SELECT COUNT(*) as count FROM orders WHERE telegram_id = $1',
-      [telegram_id]
-    );
-    
-    if (parseInt(orderCheck.rows[0].count) > 0) {
-      res.status(400).json({
-        success: false,
-        message: '该用户有关联的订单，不能删除。请先处理相关订单或将用户状态设为禁用。'
-      });
-      return;
-    }
-    
-    // 删除用户
-    await query('DELETE FROM telegram_users WHERE telegram_id = $1', [telegram_id]);
-    
-    res.status(200).json({
+
+    res.json({
       success: true,
       message: '用户删除成功'
     });
-    
   } catch (error) {
-    console.error('删除用户错误:', error);
+    console.error('删除用户失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      error: '删除用户失败'
     });
   }
 });
 
 /**
- * 获取用户统计信息
+ * 获取用户统计数据
  * GET /api/users/stats
- * 权限：管理员
  */
-router.get('/stats/overview', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get('/stats', async (req: Request, res: Response) => {
   try {
-    // 获取用户统计
-    const statsResult = await query(`
-      SELECT 
-        COUNT(*) as total_users,
-        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
-        COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
-        COUNT(CASE WHEN status = 'banned' THEN 1 END) as banned_users,
-        COUNT(CASE WHEN user_type = 'admin' THEN 1 END) as admin_users,
-        COUNT(CASE WHEN user_type = 'agent' THEN 1 END) as agent_users,
-        COUNT(CASE WHEN user_type = 'normal' THEN 1 END) as regular_users,
-        COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_users_week,
-        COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_users_month
-      FROM telegram_users
-    `);
-    
-    res.status(200).json({
+    const stats = await UserService.getUserStats();
+
+    res.json({
       success: true,
-      message: '用户统计信息获取成功',
-      data: {
-        stats: statsResult.rows[0]
-      }
+      data: stats
     });
-    
   } catch (error) {
-    console.error('获取用户统计错误:', error);
+    console.error('获取用户统计失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      error: '获取统计数据失败'
     });
   }
 });

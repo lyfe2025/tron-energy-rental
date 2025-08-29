@@ -30,9 +30,11 @@
         :search-query="searchParams.query"
         :status-filter="searchParams.status"
         :type-filter="searchParams.type"
+        :user-type-filter="searchParams.user_type || ''"
         @update:search-query="handleSearch"
         @update:status-filter="handleStatusFilter"
         @update:type-filter="handleTypeFilter"
+        @update:user-type-filter="handleUserTypeFilter"
         @export="batchExport"
         class="mb-6"
       />
@@ -68,6 +70,8 @@
         :format-currency="formatCurrency"
         :get-type-text="getTypeText"
         :get-type-color="getTypeColor"
+        :get-user-type-text="getUserTypeText"
+        :get-user-type-color="getUserTypeColor"
         :get-status-text="getStatusText"
         :get-status-color="getStatusColor"
         @toggle-select-all="toggleSelectAll"
@@ -138,6 +142,8 @@ const {
   formatCurrency,
   getTypeText,
   getTypeColor,
+  getUserTypeText,
+  getUserTypeColor,
   getStatusText,
   getStatusColor,
   
@@ -149,6 +155,7 @@ const {
   handleSearch,
   handleStatusFilter,
   handleTypeFilter,
+  handleUserTypeFilter,
   handleDateRangeFilter,
   clearFilters,
   

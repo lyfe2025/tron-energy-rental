@@ -26,7 +26,10 @@
                 Telegram ID
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                类型
+                登录类型
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                用户角色
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状态
@@ -81,10 +84,20 @@
                 <span 
                   :class="[
                     'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                    getTypeColor(user.type)
+                    getTypeColor(user.login_type)
                   ]"
                 >
-                  {{ getTypeText(user.type) }}
+                  {{ getTypeText(user.login_type) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span 
+                  :class="[
+                    'inline-flex px-2 py-1 text-xs font-medium rounded-full',
+                    getTypeColor(user.user_type)
+                  ]"
+                >
+                  {{ getUserTypeText(user.user_type) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -232,8 +245,12 @@
               <span class="ml-1 font-medium">{{ user.telegram_id || '-' }}</span>
             </div>
             <div>
-              <span class="text-gray-500">类型:</span>
-              <span class="ml-1 font-medium">{{ getTypeText(user.type) }}</span>
+              <span class="text-gray-500">登录类型:</span>
+              <span class="ml-1 font-medium">{{ getTypeText(user.login_type) }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">用户角色:</span>
+              <span class="ml-1 font-medium">{{ getUserTypeText(user.user_type) }}</span>
             </div>
             <div>
               <span class="text-gray-500">USDT余额:</span>
@@ -332,6 +349,7 @@ interface Props {
   formatCurrency: (amount: number) => string
   getTypeText: (type: string) => string
   getTypeColor: (type: string) => string
+  getUserTypeText: (userType: string) => string
   getStatusText: (status: string) => string
   getStatusColor: (status: string) => string
 }

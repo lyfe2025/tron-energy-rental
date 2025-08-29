@@ -89,7 +89,7 @@ router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Req
     }
     
     // 验证等级值
-    const validLevels = ['normal', 'vip', 'premium', 'agent', 'admin'];
+    const validLevels = ['normal', 'vip', 'premium'];
     if (!validLevels.includes(new_level)) {
       res.status(400).json({
         success: false,
@@ -100,7 +100,7 @@ router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Req
     
     // 检查用户是否存在并获取当前等级
     const userResult = await query(
-      'SELECT id, user_type FROM telegram_users WHERE id = $1',
+      'SELECT id, user_type FROM users WHERE id = $1',
       [user_id]
     );
     
@@ -129,7 +129,7 @@ router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Req
     try {
       // 更新用户等级
       await query(
-        'UPDATE telegram_users SET user_type = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        'UPDATE users SET user_type = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
         [new_level, user_id]
       );
       
@@ -200,7 +200,7 @@ router.post('/batch-change', authenticateToken, requireAdmin, async (req: Reques
     }
     
     // 验证等级值
-    const validLevels = ['normal', 'vip', 'premium', 'agent', 'admin'];
+    const validLevels = ['normal', 'vip', 'premium'];
     if (!validLevels.includes(new_level)) {
       res.status(400).json({
         success: false,
@@ -211,7 +211,7 @@ router.post('/batch-change', authenticateToken, requireAdmin, async (req: Reques
     
     // 获取用户当前等级
     const usersResult = await query(
-      `SELECT id, user_type FROM telegram_users WHERE id = ANY($1)`,
+      `SELECT id, user_type FROM users WHERE id = ANY($1)`,
       [user_ids]
     );
     
@@ -239,7 +239,7 @@ router.post('/batch-change', authenticateToken, requireAdmin, async (req: Reques
         
         // 更新用户等级
         await query(
-          'UPDATE telegram_users SET user_type = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+          'UPDATE users SET user_type = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
           [new_level, user.id]
         );
         

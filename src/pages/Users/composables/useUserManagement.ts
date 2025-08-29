@@ -10,7 +10,8 @@ import type {
     UserListParams,
     UserModalMode,
     UserSearchParams,
-    UserStats
+    UserStats,
+    UserRole
 } from '../types/user.types'
 
 // 统计卡片接口
@@ -43,7 +44,9 @@ export function useUserManagement() {
   const searchParams = reactive<UserSearchParams>({
     query: '',
     status: '',
+    login_type: '',
     type: '',
+    user_type: '',
     dateRange: {
       start: '',
       end: ''
@@ -92,9 +95,14 @@ export function useUserManagement() {
       result = result.filter(user => user.status === searchParams.status)
     }
 
-    // 类型过滤
+    // 登录类型过滤
     if (searchParams.type) {
-      result = result.filter(user => user.type === searchParams.type)
+      result = result.filter(user => user.login_type === searchParams.type)
+    }
+
+    // 用户角色过滤
+    if (searchParams.user_type) {
+      result = result.filter(user => user.user_type === searchParams.user_type)
     }
 
     // 日期范围过滤
@@ -191,16 +199,30 @@ export function useUserManagement() {
 
   const getTypeText = (type: string): string => {
     const typeMap: Record<string, string> = {
-      normal: '普通用户',
-      vip: 'VIP用户',
-      premium: '套餐用户',
-      agent: '代理商',
-      admin: '管理员'
+      telegram: 'Telegram端',
+      h5: 'H5端'
     }
     return typeMap[type] || type
   }
 
   const getTypeColor = (type: string): string => {
+    const colorMap: Record<string, string> = {
+      telegram: 'bg-blue-100 text-blue-800',
+      h5: 'bg-green-100 text-green-800'
+    }
+    return colorMap[type] || 'bg-gray-100 text-gray-800'
+  }
+
+  const getUserTypeText = (userType: string): string => {
+    const userTypeMap: Record<string, string> = {
+      normal: '普通用户',
+      vip: 'VIP用户',
+      premium: '套餐用户'
+    }
+    return userTypeMap[userType] || userType
+  }
+
+  const getUserTypeColor = (userType: string): string => {
     const colorMap: Record<string, string> = {
       normal: 'bg-gray-100 text-gray-800',
       vip: 'bg-yellow-100 text-yellow-800',
@@ -208,7 +230,7 @@ export function useUserManagement() {
       agent: 'bg-blue-100 text-blue-800',
       admin: 'bg-red-100 text-red-800'
     }
-    return colorMap[type] || 'bg-gray-100 text-gray-800'
+    return colorMap[userType] || 'bg-gray-100 text-gray-800'
   }
 
   const getStatusText = (status: string): string => {
@@ -238,7 +260,8 @@ export function useUserManagement() {
         pageSize: pageSize.value,
         search: searchParams.query || undefined,
         status: searchParams.status || undefined,
-        type: searchParams.type || undefined,
+        type: (searchParams.type === 'telegram_user') ? 'user' : searchParams.type as UserRole || undefined,
+        user_type: searchParams.user_type || undefined,
         dateFrom: searchParams.dateRange.start || undefined,
         dateTo: searchParams.dateRange.end || undefined
       }
@@ -308,6 +331,12 @@ export function useUserManagement() {
     loadUsers()
   }
 
+  const handleUserTypeFilter = (userType: string) => {
+    searchParams.user_type = userType as any
+    currentPage.value = 1
+    loadUsers()
+  }
+
   const handleDateRangeFilter = (start: string, end: string) => {
     searchParams.dateRange.start = start
     searchParams.dateRange.end = end
@@ -319,6 +348,7 @@ export function useUserManagement() {
     searchParams.query = ''
     searchParams.status = ''
     searchParams.type = ''
+    searchParams.user_type = ''
     searchParams.dateRange.start = ''
     searchParams.dateRange.end = ''
     currentPage.value = 1
@@ -390,8 +420,8 @@ export function useUserManagement() {
       
       if (modalMode.value === 'create') {
         const createParams: CreateUserParams = {
-          type: formData.type as any,
-          role: formData.type as any,
+          login_type: formData.login_type as any,
+          user_type: formData.user_type as any,
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
@@ -399,16 +429,17 @@ export function useUserManagement() {
           balance: formData.balance,
           password: formData.password,
           remark: formData.remark,
-          // 根据类型设置特有字段
-          telegram_id: formData.type === 'telegram_user' ? Math.floor(Math.random() * 1000000000) : undefined,
-          first_name: formData.type === 'telegram_user' ? formData.first_name || formData.username : undefined,
-          last_name: formData.type === 'telegram_user' ? formData.last_name || '' : undefined,
-          agent_id: formData.type === 'agent' ? formData.agent_id : undefined,
-          commission_rate: formData.type === 'agent' ? formData.commission_rate : undefined
+          // 根据登录类型设置特有字段
+          telegram_id: formData.login_type === 'telegram' ? formData.telegram_id || Math.floor(Math.random() * 1000000000) : undefined,
+          first_name: formData.login_type === 'telegram' ? formData.first_name || formData.username : undefined,
+          last_name: formData.login_type === 'telegram' ? formData.last_name || '' : undefined,
+          // agent_id 和 commission_rate 已移除，因为 agent 不再是 user_type 的选项
         }
         await userService.createUser(createParams)
       } else if (modalMode.value === 'edit') {
         const updateParams: UpdateUserParams = {
+          login_type: formData.login_type as any,
+          user_type: formData.user_type as any,
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
@@ -603,6 +634,8 @@ export function useUserManagement() {
     formatCurrency,
     getTypeText,
     getTypeColor,
+    getUserTypeText,
+    getUserTypeColor,
     getStatusText,
     getStatusColor,
     
@@ -614,6 +647,7 @@ export function useUserManagement() {
     handleSearch,
     handleStatusFilter,
     handleTypeFilter,
+    handleUserTypeFilter,
     handleDateRangeFilter,
     clearFilters,
     

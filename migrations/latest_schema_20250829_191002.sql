@@ -5,30 +5,6 @@
 -- Dumped from database version 14.18 (Homebrew)
 -- Dumped by pg_dump version 14.18 (Homebrew)
 
--- Started on 2025-08-28 22:01:30 CST
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
-DROP DATABASE tron_energy_rental;
---
--- TOC entry 4250 (class 1262 OID 28228)
--- Name: tron_energy_rental; Type: DATABASE; Schema: -; Owner: -
---
-
-CREATE DATABASE tron_energy_rental WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'C';
-
-
-\connect tron_energy_rental
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -41,7 +17,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 2 (class 3079 OID 28239)
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -49,8 +24,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 
 --
--- TOC entry 4251 (class 0 OID 0)
--- Dependencies: 2
 -- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -58,7 +31,6 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
--- TOC entry 902 (class 1247 OID 34345)
 -- Name: account_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -70,7 +42,6 @@ CREATE TYPE public.account_type AS ENUM (
 
 
 --
--- TOC entry 250 (class 1255 OID 34775)
 -- Name: get_active_bots(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -93,8 +64,6 @@ $$;
 
 
 --
--- TOC entry 4252 (class 0 OID 0)
--- Dependencies: 250
 -- Name: FUNCTION get_active_bots(); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -102,7 +71,6 @@ COMMENT ON FUNCTION public.get_active_bots() IS '获取所有激活的Telegram�
 
 
 --
--- TOC entry 266 (class 1255 OID 34661)
 -- Name: get_bot_active_pricing_config(uuid, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -132,8 +100,6 @@ $$;
 
 
 --
--- TOC entry 4253 (class 0 OID 0)
--- Dependencies: 266
 -- Name: FUNCTION get_bot_active_pricing_config(p_bot_id uuid, p_mode_type character varying); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -141,7 +107,6 @@ COMMENT ON FUNCTION public.get_bot_active_pricing_config(p_bot_id uuid, p_mode_t
 
 
 --
--- TOC entry 251 (class 1255 OID 34776)
 -- Name: get_bot_by_token(character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -164,8 +129,6 @@ $$;
 
 
 --
--- TOC entry 4254 (class 0 OID 0)
--- Dependencies: 251
 -- Name: FUNCTION get_bot_by_token(p_bot_token character varying); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -173,7 +136,6 @@ COMMENT ON FUNCTION public.get_bot_by_token(p_bot_token character varying) IS '�
 
 
 --
--- TOC entry 267 (class 1255 OID 34854)
 -- Name: get_pricing_change_stats(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -195,8 +157,6 @@ $$;
 
 
 --
--- TOC entry 4255 (class 0 OID 0)
--- Dependencies: 267
 -- Name: FUNCTION get_pricing_change_stats(p_days integer); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -204,7 +164,6 @@ COMMENT ON FUNCTION public.get_pricing_change_stats(p_days integer) IS '获取�
 
 
 --
--- TOC entry 265 (class 1255 OID 34853)
 -- Name: get_strategy_history(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -229,8 +188,6 @@ $$;
 
 
 --
--- TOC entry 4256 (class 0 OID 0)
--- Dependencies: 265
 -- Name: FUNCTION get_strategy_history(p_strategy_id uuid, p_limit integer); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -238,7 +195,6 @@ COMMENT ON FUNCTION public.get_strategy_history(p_strategy_id uuid, p_limit inte
 
 
 --
--- TOC entry 249 (class 1255 OID 34851)
 -- Name: log_pricing_strategy_changes(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -256,8 +212,6 @@ $$;
 
 
 --
--- TOC entry 4257 (class 0 OID 0)
--- Dependencies: 249
 -- Name: FUNCTION log_pricing_strategy_changes(); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -265,7 +219,6 @@ COMMENT ON FUNCTION public.log_pricing_strategy_changes() IS '自动记录价格
 
 
 --
--- TOC entry 248 (class 1255 OID 34774)
 -- Name: update_bot_activity(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -281,8 +234,6 @@ $$;
 
 
 --
--- TOC entry 4258 (class 0 OID 0)
--- Dependencies: 248
 -- Name: FUNCTION update_bot_activity(p_bot_id uuid); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -290,7 +241,6 @@ COMMENT ON FUNCTION public.update_bot_activity(p_bot_id uuid) IS '更新指定�
 
 
 --
--- TOC entry 247 (class 1255 OID 34384)
 -- Name: update_daily_consumption_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -305,7 +255,6 @@ $$;
 
 
 --
--- TOC entry 246 (class 1255 OID 28593)
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -320,7 +269,6 @@ $$;
 
 
 --
--- TOC entry 264 (class 1255 OID 34533)
 -- Name: validate_history_user_reference(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -345,8 +293,6 @@ $$;
 
 
 --
--- TOC entry 4259 (class 0 OID 0)
--- Dependencies: 264
 -- Name: FUNCTION validate_history_user_reference(); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -354,7 +300,6 @@ COMMENT ON FUNCTION public.validate_history_user_reference() IS '验证 system_c
 
 
 --
--- TOC entry 255 (class 1255 OID 34531)
 -- Name: validate_user_reference(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -390,8 +335,6 @@ $$;
 
 
 --
--- TOC entry 4260 (class 0 OID 0)
--- Dependencies: 255
 -- Name: FUNCTION validate_user_reference(); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -403,7 +346,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 227 (class 1259 OID 34442)
 -- Name: admin_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -416,8 +358,6 @@ CREATE TABLE public.admin_permissions (
 
 
 --
--- TOC entry 4261 (class 0 OID 0)
--- Dependencies: 227
 -- Name: TABLE admin_permissions; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -425,8 +365,6 @@ COMMENT ON TABLE public.admin_permissions IS '管理员权限分配表：记录�
 
 
 --
--- TOC entry 4262 (class 0 OID 0)
--- Dependencies: 227
 -- Name: COLUMN admin_permissions.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -434,8 +372,6 @@ COMMENT ON COLUMN public.admin_permissions.id IS '权限分配唯一标识符（
 
 
 --
--- TOC entry 4263 (class 0 OID 0)
--- Dependencies: 227
 -- Name: COLUMN admin_permissions.admin_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -443,8 +379,6 @@ COMMENT ON COLUMN public.admin_permissions.admin_id IS '管理员ID';
 
 
 --
--- TOC entry 4264 (class 0 OID 0)
--- Dependencies: 227
 -- Name: COLUMN admin_permissions.role_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -452,8 +386,6 @@ COMMENT ON COLUMN public.admin_permissions.role_id IS '角色ID';
 
 
 --
--- TOC entry 4265 (class 0 OID 0)
--- Dependencies: 227
 -- Name: COLUMN admin_permissions.granted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -461,7 +393,6 @@ COMMENT ON COLUMN public.admin_permissions.granted_at IS '权限授予时间';
 
 
 --
--- TOC entry 225 (class 1259 OID 34409)
 -- Name: admin_roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -475,8 +406,6 @@ CREATE TABLE public.admin_roles (
 
 
 --
--- TOC entry 4266 (class 0 OID 0)
--- Dependencies: 225
 -- Name: TABLE admin_roles; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -484,8 +413,6 @@ COMMENT ON TABLE public.admin_roles IS '管理员角色定义表：定义不同�
 
 
 --
--- TOC entry 4267 (class 0 OID 0)
--- Dependencies: 225
 -- Name: COLUMN admin_roles.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -493,8 +420,6 @@ COMMENT ON COLUMN public.admin_roles.id IS '角色唯一标识符（UUID）';
 
 
 --
--- TOC entry 4268 (class 0 OID 0)
--- Dependencies: 225
 -- Name: COLUMN admin_roles.name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -502,8 +427,6 @@ COMMENT ON COLUMN public.admin_roles.name IS '角色名称：super_admin=超级�
 
 
 --
--- TOC entry 4269 (class 0 OID 0)
--- Dependencies: 225
 -- Name: COLUMN admin_roles.description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -511,8 +434,6 @@ COMMENT ON COLUMN public.admin_roles.description IS '角色功能描述';
 
 
 --
--- TOC entry 4270 (class 0 OID 0)
--- Dependencies: 225
 -- Name: COLUMN admin_roles.permissions; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -520,8 +441,6 @@ COMMENT ON COLUMN public.admin_roles.permissions IS '角色权限列表（JSON�
 
 
 --
--- TOC entry 4271 (class 0 OID 0)
--- Dependencies: 225
 -- Name: COLUMN admin_roles.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -529,7 +448,6 @@ COMMENT ON COLUMN public.admin_roles.created_at IS '角色创建时间';
 
 
 --
--- TOC entry 226 (class 1259 OID 34422)
 -- Name: admins; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -548,8 +466,6 @@ CREATE TABLE public.admins (
 
 
 --
--- TOC entry 4272 (class 0 OID 0)
--- Dependencies: 226
 -- Name: TABLE admins; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -557,8 +473,6 @@ COMMENT ON TABLE public.admins IS '管理员账户表：管理系统管理员账
 
 
 --
--- TOC entry 4273 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -566,8 +480,6 @@ COMMENT ON COLUMN public.admins.id IS '管理员唯一标识符（UUID）';
 
 
 --
--- TOC entry 4274 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.username; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -575,8 +487,6 @@ COMMENT ON COLUMN public.admins.username IS '管理员登录用户名';
 
 
 --
--- TOC entry 4275 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.email; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -584,8 +494,6 @@ COMMENT ON COLUMN public.admins.email IS '管理员联系邮箱地址';
 
 
 --
--- TOC entry 4276 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.password_hash; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -593,8 +501,6 @@ COMMENT ON COLUMN public.admins.password_hash IS '管理员密码哈希值（加
 
 
 --
--- TOC entry 4277 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.role; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -602,8 +508,6 @@ COMMENT ON COLUMN public.admins.role IS '管理员角色类型';
 
 
 --
--- TOC entry 4278 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -611,8 +515,6 @@ COMMENT ON COLUMN public.admins.status IS '账户状态：active=活跃，inacti
 
 
 --
--- TOC entry 4279 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.last_login; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -620,8 +522,6 @@ COMMENT ON COLUMN public.admins.last_login IS '最后登录时间';
 
 
 --
--- TOC entry 4280 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -629,8 +529,6 @@ COMMENT ON COLUMN public.admins.created_at IS '管理员账户创建时间';
 
 
 --
--- TOC entry 4281 (class 0 OID 0)
--- Dependencies: 226
 -- Name: COLUMN admins.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -638,7 +536,6 @@ COMMENT ON COLUMN public.admins.updated_at IS '管理员信息最后更新时间
 
 
 --
--- TOC entry 216 (class 1259 OID 28384)
 -- Name: agent_applications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -659,8 +556,6 @@ CREATE TABLE public.agent_applications (
 
 
 --
--- TOC entry 4282 (class 0 OID 0)
--- Dependencies: 216
 -- Name: TABLE agent_applications; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -668,8 +563,6 @@ COMMENT ON TABLE public.agent_applications IS '代理申请表 - 记录用户申
 
 
 --
--- TOC entry 4283 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -677,8 +570,6 @@ COMMENT ON COLUMN public.agent_applications.id IS '申请记录唯一标识符�
 
 
 --
--- TOC entry 4284 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -686,8 +577,6 @@ COMMENT ON COLUMN public.agent_applications.user_id IS '申请用户ID';
 
 
 --
--- TOC entry 4285 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.application_reason; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -695,8 +584,6 @@ COMMENT ON COLUMN public.agent_applications.application_reason IS '申请成为�
 
 
 --
--- TOC entry 4286 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.contact_info; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -704,8 +591,6 @@ COMMENT ON COLUMN public.agent_applications.contact_info IS '联系信息（JSON
 
 
 --
--- TOC entry 4287 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.experience_description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -713,8 +598,6 @@ COMMENT ON COLUMN public.agent_applications.experience_description IS '相关经
 
 
 --
--- TOC entry 4288 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -722,8 +605,6 @@ COMMENT ON COLUMN public.agent_applications.status IS '申请状态：pending=�
 
 
 --
--- TOC entry 4289 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.reviewed_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -731,8 +612,6 @@ COMMENT ON COLUMN public.agent_applications.reviewed_by IS '审核人用户ID';
 
 
 --
--- TOC entry 4290 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.reviewed_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -740,8 +619,6 @@ COMMENT ON COLUMN public.agent_applications.reviewed_at IS '审核时间';
 
 
 --
--- TOC entry 4291 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.review_notes; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -749,8 +626,6 @@ COMMENT ON COLUMN public.agent_applications.review_notes IS '审核备注';
 
 
 --
--- TOC entry 4292 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -758,8 +633,6 @@ COMMENT ON COLUMN public.agent_applications.created_at IS '申请创建时间';
 
 
 --
--- TOC entry 4293 (class 0 OID 0)
--- Dependencies: 216
 -- Name: COLUMN agent_applications.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -767,7 +640,6 @@ COMMENT ON COLUMN public.agent_applications.updated_at IS '申请最后更新时
 
 
 --
--- TOC entry 217 (class 1259 OID 28406)
 -- Name: agent_earnings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -788,8 +660,6 @@ CREATE TABLE public.agent_earnings (
 
 
 --
--- TOC entry 4294 (class 0 OID 0)
--- Dependencies: 217
 -- Name: TABLE agent_earnings; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -797,8 +667,6 @@ COMMENT ON TABLE public.agent_earnings IS '代理收益记录表 - 记录代理�
 
 
 --
--- TOC entry 4295 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -806,8 +674,6 @@ COMMENT ON COLUMN public.agent_earnings.id IS '收益记录唯一标识符（UUI
 
 
 --
--- TOC entry 4296 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.agent_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -815,8 +681,6 @@ COMMENT ON COLUMN public.agent_earnings.agent_id IS '代理用户ID';
 
 
 --
--- TOC entry 4297 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.order_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -824,8 +688,6 @@ COMMENT ON COLUMN public.agent_earnings.order_id IS '关联订单ID';
 
 
 --
--- TOC entry 4298 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -833,8 +695,6 @@ COMMENT ON COLUMN public.agent_earnings.user_id IS '下单用户ID';
 
 
 --
--- TOC entry 4299 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.commission_rate; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -842,8 +702,6 @@ COMMENT ON COLUMN public.agent_earnings.commission_rate IS '佣金比例（0-1�
 
 
 --
--- TOC entry 4300 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.commission_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -851,8 +709,6 @@ COMMENT ON COLUMN public.agent_earnings.commission_amount IS '佣金金额（TRX
 
 
 --
--- TOC entry 4301 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.order_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -860,8 +716,6 @@ COMMENT ON COLUMN public.agent_earnings.order_amount IS '订单金额（TRX）';
 
 
 --
--- TOC entry 4302 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -869,8 +723,6 @@ COMMENT ON COLUMN public.agent_earnings.status IS '收益状态：pending=待结
 
 
 --
--- TOC entry 4303 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.paid_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -878,8 +730,6 @@ COMMENT ON COLUMN public.agent_earnings.paid_at IS '结算时间';
 
 
 --
--- TOC entry 4304 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -887,8 +737,6 @@ COMMENT ON COLUMN public.agent_earnings.created_at IS '收益记录创建时间'
 
 
 --
--- TOC entry 4305 (class 0 OID 0)
--- Dependencies: 217
 -- Name: COLUMN agent_earnings.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -896,7 +744,6 @@ COMMENT ON COLUMN public.agent_earnings.updated_at IS '收益记录最后更新�
 
 
 --
--- TOC entry 215 (class 1259 OID 28358)
 -- Name: agents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -918,8 +765,6 @@ CREATE TABLE public.agents (
 
 
 --
--- TOC entry 4306 (class 0 OID 0)
--- Dependencies: 215
 -- Name: TABLE agents; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -927,8 +772,6 @@ COMMENT ON TABLE public.agents IS '代理商信息表：管理系统代理商的
 
 
 --
--- TOC entry 4307 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -936,8 +779,6 @@ COMMENT ON COLUMN public.agents.id IS '代理商唯一标识符（UUID）';
 
 
 --
--- TOC entry 4308 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -945,8 +786,6 @@ COMMENT ON COLUMN public.agents.user_id IS '关联的用户ID，引用telegram_u
 
 
 --
--- TOC entry 4309 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.agent_code; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -954,8 +793,6 @@ COMMENT ON COLUMN public.agents.agent_code IS '代理商代码，用于标识代
 
 
 --
--- TOC entry 4310 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.commission_rate; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -963,8 +800,6 @@ COMMENT ON COLUMN public.agents.commission_rate IS '代理商佣金比例（0-1�
 
 
 --
--- TOC entry 4311 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -972,8 +807,6 @@ COMMENT ON COLUMN public.agents.status IS '代理商状态：pending=待审核�
 
 
 --
--- TOC entry 4312 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.total_earnings; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -981,8 +814,6 @@ COMMENT ON COLUMN public.agents.total_earnings IS '代理商累计收益（TRX�
 
 
 --
--- TOC entry 4313 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.total_orders; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -990,8 +821,6 @@ COMMENT ON COLUMN public.agents.total_orders IS '代理商累计订单数量';
 
 
 --
--- TOC entry 4314 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.total_customers; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -999,8 +828,6 @@ COMMENT ON COLUMN public.agents.total_customers IS '代理商累计客户数量'
 
 
 --
--- TOC entry 4315 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.approved_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1008,8 +835,6 @@ COMMENT ON COLUMN public.agents.approved_at IS '代理商审核通过时间';
 
 
 --
--- TOC entry 4316 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.approved_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1017,8 +842,6 @@ COMMENT ON COLUMN public.agents.approved_by IS '审核人用户ID';
 
 
 --
--- TOC entry 4317 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1026,8 +849,6 @@ COMMENT ON COLUMN public.agents.created_at IS '代理商记录创建时间';
 
 
 --
--- TOC entry 4318 (class 0 OID 0)
--- Dependencies: 215
 -- Name: COLUMN agents.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1035,7 +856,6 @@ COMMENT ON COLUMN public.agents.updated_at IS '代理商信息最后更新时间
 
 
 --
--- TOC entry 228 (class 1259 OID 34463)
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1051,8 +871,6 @@ CREATE TABLE public.audit_logs (
 
 
 --
--- TOC entry 4319 (class 0 OID 0)
--- Dependencies: 228
 -- Name: TABLE audit_logs; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1060,8 +878,6 @@ COMMENT ON TABLE public.audit_logs IS '系统审计日志表：记录所有管�
 
 
 --
--- TOC entry 4320 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1069,8 +885,6 @@ COMMENT ON COLUMN public.audit_logs.id IS '日志记录唯一标识符（UUID）
 
 
 --
--- TOC entry 4321 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.admin_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1078,8 +892,6 @@ COMMENT ON COLUMN public.audit_logs.admin_id IS '执行操作的管理员ID';
 
 
 --
--- TOC entry 4322 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.action; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1087,8 +899,6 @@ COMMENT ON COLUMN public.audit_logs.action IS '执行的操作类型：如CREATE
 
 
 --
--- TOC entry 4323 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.resource; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1096,8 +906,6 @@ COMMENT ON COLUMN public.audit_logs.resource IS '操作的目标资源：如user
 
 
 --
--- TOC entry 4324 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.details; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1105,8 +913,6 @@ COMMENT ON COLUMN public.audit_logs.details IS '操作详细信息（JSON格式�
 
 
 --
--- TOC entry 4325 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.ip_address; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1114,8 +920,6 @@ COMMENT ON COLUMN public.audit_logs.ip_address IS '操作者IP地址';
 
 
 --
--- TOC entry 4326 (class 0 OID 0)
--- Dependencies: 228
 -- Name: COLUMN audit_logs.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1123,7 +927,6 @@ COMMENT ON COLUMN public.audit_logs.created_at IS '日志记录创建时间';
 
 
 --
--- TOC entry 218 (class 1259 OID 28431)
 -- Name: bot_users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1142,8 +945,6 @@ CREATE TABLE public.bot_users (
 
 
 --
--- TOC entry 4327 (class 0 OID 0)
--- Dependencies: 218
 -- Name: TABLE bot_users; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1151,8 +952,6 @@ COMMENT ON TABLE public.bot_users IS '机器人用户关联表 - 管理用户与
 
 
 --
--- TOC entry 4328 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1160,8 +959,6 @@ COMMENT ON COLUMN public.bot_users.id IS '关联记录唯一标识符（UUID）'
 
 
 --
--- TOC entry 4329 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.bot_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1169,8 +966,6 @@ COMMENT ON COLUMN public.bot_users.bot_id IS '机器人ID';
 
 
 --
--- TOC entry 4330 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1178,8 +973,6 @@ COMMENT ON COLUMN public.bot_users.user_id IS '用户ID';
 
 
 --
--- TOC entry 4331 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.telegram_chat_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1187,8 +980,6 @@ COMMENT ON COLUMN public.bot_users.telegram_chat_id IS 'Telegram聊天ID';
 
 
 --
--- TOC entry 4332 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1196,8 +987,6 @@ COMMENT ON COLUMN public.bot_users.status IS '用户状态：active=活跃，blo
 
 
 --
--- TOC entry 4333 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.last_interaction_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1205,8 +994,6 @@ COMMENT ON COLUMN public.bot_users.last_interaction_at IS '最后交互时间';
 
 
 --
--- TOC entry 4334 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.settings; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1214,8 +1001,6 @@ COMMENT ON COLUMN public.bot_users.settings IS '用户个性化设置（JSON格�
 
 
 --
--- TOC entry 4335 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1223,8 +1008,6 @@ COMMENT ON COLUMN public.bot_users.created_at IS '关联记录创建时间';
 
 
 --
--- TOC entry 4336 (class 0 OID 0)
--- Dependencies: 218
 -- Name: COLUMN bot_users.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1232,7 +1015,6 @@ COMMENT ON COLUMN public.bot_users.updated_at IS '关联记录最后更新时间
 
 
 --
--- TOC entry 223 (class 1259 OID 34355)
 -- Name: energy_consumption_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1250,8 +1032,6 @@ CREATE TABLE public.energy_consumption_logs (
 
 
 --
--- TOC entry 4337 (class 0 OID 0)
--- Dependencies: 223
 -- Name: TABLE energy_consumption_logs; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1259,8 +1039,6 @@ COMMENT ON TABLE public.energy_consumption_logs IS '能量消耗记录表：追�
 
 
 --
--- TOC entry 4338 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1268,8 +1046,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.id IS '消耗记录唯一标识
 
 
 --
--- TOC entry 4339 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.pool_account_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1277,8 +1053,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.pool_account_id IS '关联的�
 
 
 --
--- TOC entry 4340 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.energy_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1286,8 +1060,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.energy_amount IS '消耗的能�
 
 
 --
--- TOC entry 4341 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.cost_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1295,8 +1067,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.cost_amount IS '消耗能量的
 
 
 --
--- TOC entry 4342 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.transaction_type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1304,8 +1074,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.transaction_type IS '交易类�
 
 
 --
--- TOC entry 4343 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.order_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1313,8 +1081,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.order_id IS '关联的订单ID�
 
 
 --
--- TOC entry 4344 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.telegram_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1322,8 +1088,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.telegram_user_id IS 'Telegram�
 
 
 --
--- TOC entry 4345 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1331,8 +1095,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.created_at IS '消耗记录创�
 
 
 --
--- TOC entry 4346 (class 0 OID 0)
--- Dependencies: 223
 -- Name: COLUMN energy_consumption_logs.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1340,7 +1102,6 @@ COMMENT ON COLUMN public.energy_consumption_logs.updated_at IS '消耗记录最�
 
 
 --
--- TOC entry 219 (class 1259 OID 28456)
 -- Name: energy_pools; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1372,8 +1133,6 @@ CREATE TABLE public.energy_pools (
 
 
 --
--- TOC entry 4347 (class 0 OID 0)
--- Dependencies: 219
 -- Name: TABLE energy_pools; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1381,8 +1140,6 @@ COMMENT ON TABLE public.energy_pools IS '能量池账户表';
 
 
 --
--- TOC entry 4348 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1390,8 +1147,6 @@ COMMENT ON COLUMN public.energy_pools.id IS '能量池唯一标识符（UUID）'
 
 
 --
--- TOC entry 4349 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1399,8 +1154,6 @@ COMMENT ON COLUMN public.energy_pools.name IS '能量池名称';
 
 
 --
--- TOC entry 4350 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.tron_address; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1408,8 +1161,6 @@ COMMENT ON COLUMN public.energy_pools.tron_address IS '能量池TRON地址';
 
 
 --
--- TOC entry 4351 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.private_key_encrypted; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1417,8 +1168,6 @@ COMMENT ON COLUMN public.energy_pools.private_key_encrypted IS '加密的私钥�
 
 
 --
--- TOC entry 4352 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.total_energy; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1426,8 +1175,6 @@ COMMENT ON COLUMN public.energy_pools.total_energy IS '总能量数量';
 
 
 --
--- TOC entry 4353 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.available_energy; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1435,8 +1182,6 @@ COMMENT ON COLUMN public.energy_pools.available_energy IS '可用能量数量';
 
 
 --
--- TOC entry 4354 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.reserved_energy; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1444,8 +1189,6 @@ COMMENT ON COLUMN public.energy_pools.reserved_energy IS '预留能量数量';
 
 
 --
--- TOC entry 4355 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1453,8 +1196,6 @@ COMMENT ON COLUMN public.energy_pools.status IS '能量池状态：active=已启
 
 
 --
--- TOC entry 4356 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.last_updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1462,8 +1203,6 @@ COMMENT ON COLUMN public.energy_pools.last_updated_at IS '最后更新时间';
 
 
 --
--- TOC entry 4357 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1471,8 +1210,6 @@ COMMENT ON COLUMN public.energy_pools.created_at IS '创建时间';
 
 
 --
--- TOC entry 4358 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1480,8 +1217,6 @@ COMMENT ON COLUMN public.energy_pools.updated_at IS '更新时间';
 
 
 --
--- TOC entry 4359 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.account_type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1489,8 +1224,6 @@ COMMENT ON COLUMN public.energy_pools.account_type IS '账户类型：own_energy
 
 
 --
--- TOC entry 4360 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.priority; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1498,8 +1231,6 @@ COMMENT ON COLUMN public.energy_pools.priority IS '优先级，数字越大优�
 
 
 --
--- TOC entry 4361 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.cost_per_energy; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1507,8 +1238,6 @@ COMMENT ON COLUMN public.energy_pools.cost_per_energy IS '每单位能量的成�
 
 
 --
--- TOC entry 4362 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1516,8 +1245,6 @@ COMMENT ON COLUMN public.energy_pools.description IS '账户描述信息，说�
 
 
 --
--- TOC entry 4363 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.contact_info; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1525,8 +1252,6 @@ COMMENT ON COLUMN public.energy_pools.contact_info IS '联系信息（JSON格式
 
 
 --
--- TOC entry 4364 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.daily_limit; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1534,8 +1259,6 @@ COMMENT ON COLUMN public.energy_pools.daily_limit IS '日消耗限制，控制�
 
 
 --
--- TOC entry 4365 (class 0 OID 0)
--- Dependencies: 219
 -- Name: COLUMN energy_pools.monthly_limit; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1543,7 +1266,6 @@ COMMENT ON COLUMN public.energy_pools.monthly_limit IS '月消耗限制，控制
 
 
 --
--- TOC entry 224 (class 1259 OID 34379)
 -- Name: daily_energy_consumption; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1573,8 +1295,6 @@ CREATE VIEW public.daily_energy_consumption AS
 
 
 --
--- TOC entry 4366 (class 0 OID 0)
--- Dependencies: 224
 -- Name: VIEW daily_energy_consumption; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1582,7 +1302,6 @@ COMMENT ON VIEW public.daily_energy_consumption IS '每日能量消耗统计视�
 
 
 --
--- TOC entry 213 (class 1259 OID 28296)
 -- Name: energy_packages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1600,8 +1319,6 @@ CREATE TABLE public.energy_packages (
 
 
 --
--- TOC entry 4367 (class 0 OID 0)
--- Dependencies: 213
 -- Name: TABLE energy_packages; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1609,8 +1326,6 @@ COMMENT ON TABLE public.energy_packages IS '能量包配置表 - 定义可购买
 
 
 --
--- TOC entry 4368 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1618,8 +1333,6 @@ COMMENT ON COLUMN public.energy_packages.id IS '能量包唯一标识符（UUID�
 
 
 --
--- TOC entry 4369 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1627,8 +1340,6 @@ COMMENT ON COLUMN public.energy_packages.name IS '能量包名称';
 
 
 --
--- TOC entry 4370 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1636,8 +1347,6 @@ COMMENT ON COLUMN public.energy_packages.description IS '能量包详细描述';
 
 
 --
--- TOC entry 4371 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.energy_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1645,8 +1354,6 @@ COMMENT ON COLUMN public.energy_packages.energy_amount IS '能量包包含的能
 
 
 --
--- TOC entry 4372 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.price; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1654,8 +1361,6 @@ COMMENT ON COLUMN public.energy_packages.price IS '能量包价格（TRX）';
 
 
 --
--- TOC entry 4373 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.duration_hours; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1663,8 +1368,6 @@ COMMENT ON COLUMN public.energy_packages.duration_hours IS '能量包有效期�
 
 
 --
--- TOC entry 4374 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.is_active; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1672,8 +1375,6 @@ COMMENT ON COLUMN public.energy_packages.is_active IS '能量包是否激活可�
 
 
 --
--- TOC entry 4375 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1681,8 +1382,6 @@ COMMENT ON COLUMN public.energy_packages.created_at IS '能量包创建时间';
 
 
 --
--- TOC entry 4376 (class 0 OID 0)
--- Dependencies: 213
 -- Name: COLUMN energy_packages.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1690,7 +1389,6 @@ COMMENT ON COLUMN public.energy_packages.updated_at IS '能量包最后更新时
 
 
 --
--- TOC entry 220 (class 1259 OID 28474)
 -- Name: energy_transactions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1712,8 +1410,6 @@ CREATE TABLE public.energy_transactions (
 
 
 --
--- TOC entry 4377 (class 0 OID 0)
--- Dependencies: 220
 -- Name: TABLE energy_transactions; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1721,8 +1417,6 @@ COMMENT ON TABLE public.energy_transactions IS '能量交易记录表 - 记录�
 
 
 --
--- TOC entry 4378 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1730,8 +1424,6 @@ COMMENT ON COLUMN public.energy_transactions.id IS '交易记录唯一标识符�
 
 
 --
--- TOC entry 4379 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.order_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1739,8 +1431,6 @@ COMMENT ON COLUMN public.energy_transactions.order_id IS '关联订单ID';
 
 
 --
--- TOC entry 4380 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.pool_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1748,8 +1438,6 @@ COMMENT ON COLUMN public.energy_transactions.pool_id IS '能量池ID';
 
 
 --
--- TOC entry 4381 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.from_address; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1757,8 +1445,6 @@ COMMENT ON COLUMN public.energy_transactions.from_address IS '发送方地址（
 
 
 --
--- TOC entry 4382 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.to_address; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1766,8 +1452,6 @@ COMMENT ON COLUMN public.energy_transactions.to_address IS '接收方地址（�
 
 
 --
--- TOC entry 4383 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.energy_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1775,8 +1459,6 @@ COMMENT ON COLUMN public.energy_transactions.energy_amount IS '交易能量数�
 
 
 --
--- TOC entry 4384 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.tx_hash; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1784,8 +1466,6 @@ COMMENT ON COLUMN public.energy_transactions.tx_hash IS '交易哈希';
 
 
 --
--- TOC entry 4385 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1793,8 +1473,6 @@ COMMENT ON COLUMN public.energy_transactions.status IS '交易状态：pending=�
 
 
 --
--- TOC entry 4386 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.block_number; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1802,8 +1480,6 @@ COMMENT ON COLUMN public.energy_transactions.block_number IS '交易所在区块
 
 
 --
--- TOC entry 4387 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.gas_used; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1811,8 +1487,6 @@ COMMENT ON COLUMN public.energy_transactions.gas_used IS '交易消耗的gas';
 
 
 --
--- TOC entry 4388 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1820,8 +1494,6 @@ COMMENT ON COLUMN public.energy_transactions.created_at IS '交易记录创建�
 
 
 --
--- TOC entry 4389 (class 0 OID 0)
--- Dependencies: 220
 -- Name: COLUMN energy_transactions.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1829,7 +1501,6 @@ COMMENT ON COLUMN public.energy_transactions.updated_at IS '交易记录最后�
 
 
 --
--- TOC entry 214 (class 1259 OID 28325)
 -- Name: orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1858,8 +1529,6 @@ CREATE TABLE public.orders (
 
 
 --
--- TOC entry 4390 (class 0 OID 0)
--- Dependencies: 214
 -- Name: TABLE orders; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1867,8 +1536,6 @@ COMMENT ON TABLE public.orders IS '订单信息表 - 记录所有能量租赁订
 
 
 --
--- TOC entry 4391 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1876,8 +1543,6 @@ COMMENT ON COLUMN public.orders.id IS '订单唯一标识符（UUID）';
 
 
 --
--- TOC entry 4392 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.order_number; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1885,8 +1550,6 @@ COMMENT ON COLUMN public.orders.order_number IS '订单编号，用于用户查�
 
 
 --
--- TOC entry 4393 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1894,8 +1557,6 @@ COMMENT ON COLUMN public.orders.user_id IS '下单用户ID';
 
 
 --
--- TOC entry 4394 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.bot_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1903,8 +1564,6 @@ COMMENT ON COLUMN public.orders.bot_id IS '处理订单的机器人ID';
 
 
 --
--- TOC entry 4395 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.package_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1912,8 +1571,6 @@ COMMENT ON COLUMN public.orders.package_id IS '购买的能量包ID';
 
 
 --
--- TOC entry 4396 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.energy_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1921,8 +1578,6 @@ COMMENT ON COLUMN public.orders.energy_amount IS '订单能量数量';
 
 
 --
--- TOC entry 4397 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.price; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1930,8 +1585,6 @@ COMMENT ON COLUMN public.orders.price IS '订单价格（TRX）';
 
 
 --
--- TOC entry 4398 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.commission_rate; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1939,8 +1592,6 @@ COMMENT ON COLUMN public.orders.commission_rate IS '佣金比例（0-1之间的�
 
 
 --
--- TOC entry 4399 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.commission_amount; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1948,8 +1599,6 @@ COMMENT ON COLUMN public.orders.commission_amount IS '佣金金额（TRX）';
 
 
 --
--- TOC entry 4400 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1957,8 +1606,6 @@ COMMENT ON COLUMN public.orders.status IS '订单状态：pending=待处理，pr
 
 
 --
--- TOC entry 4401 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.payment_status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1966,8 +1613,6 @@ COMMENT ON COLUMN public.orders.payment_status IS '支付状态：unpaid=未支�
 
 
 --
--- TOC entry 4402 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.tron_tx_hash; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1975,8 +1620,6 @@ COMMENT ON COLUMN public.orders.tron_tx_hash IS '用户支付TRX的交易哈希'
 
 
 --
--- TOC entry 4403 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.delegate_tx_hash; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1984,8 +1627,6 @@ COMMENT ON COLUMN public.orders.delegate_tx_hash IS '能量委托交易哈希';
 
 
 --
--- TOC entry 4404 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.target_address; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1993,8 +1634,6 @@ COMMENT ON COLUMN public.orders.target_address IS '目标TRON地址，能量将�
 
 
 --
--- TOC entry 4405 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.expires_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2002,8 +1641,6 @@ COMMENT ON COLUMN public.orders.expires_at IS '订单过期时间';
 
 
 --
--- TOC entry 4406 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.completed_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2011,8 +1648,6 @@ COMMENT ON COLUMN public.orders.completed_at IS '订单完成时间';
 
 
 --
--- TOC entry 4407 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2020,8 +1655,6 @@ COMMENT ON COLUMN public.orders.created_at IS '订单创建时间';
 
 
 --
--- TOC entry 4408 (class 0 OID 0)
--- Dependencies: 214
 -- Name: COLUMN orders.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2029,7 +1662,6 @@ COMMENT ON COLUMN public.orders.updated_at IS '订单最后更新时间';
 
 
 --
--- TOC entry 235 (class 1259 OID 34975)
 -- Name: pricing_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2045,8 +1677,6 @@ CREATE TABLE public.pricing_history (
 
 
 --
--- TOC entry 4409 (class 0 OID 0)
--- Dependencies: 235
 -- Name: TABLE pricing_history; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2054,8 +1684,6 @@ COMMENT ON TABLE public.pricing_history IS '价格历史表：记录价格策略
 
 
 --
--- TOC entry 4410 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2063,8 +1691,6 @@ COMMENT ON COLUMN public.pricing_history.id IS '历史记录唯一标识符（UU
 
 
 --
--- TOC entry 4411 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.strategy_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2072,8 +1698,6 @@ COMMENT ON COLUMN public.pricing_history.strategy_id IS '关联的价格策略ID
 
 
 --
--- TOC entry 4412 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.old_config; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2081,8 +1705,6 @@ COMMENT ON COLUMN public.pricing_history.old_config IS '变更前的配置（JSO
 
 
 --
--- TOC entry 4413 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.new_config; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2090,8 +1712,6 @@ COMMENT ON COLUMN public.pricing_history.new_config IS '变更后的配置（JSO
 
 
 --
--- TOC entry 4414 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.change_reason; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2099,8 +1719,6 @@ COMMENT ON COLUMN public.pricing_history.change_reason IS '变更原因说明，
 
 
 --
--- TOC entry 4415 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.changed_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2108,8 +1726,6 @@ COMMENT ON COLUMN public.pricing_history.changed_by IS '操作者用户ID，记�
 
 
 --
--- TOC entry 4416 (class 0 OID 0)
--- Dependencies: 235
 -- Name: COLUMN pricing_history.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2117,7 +1733,6 @@ COMMENT ON COLUMN public.pricing_history.created_at IS '记录创建时间';
 
 
 --
--- TOC entry 231 (class 1259 OID 34705)
 -- Name: pricing_modes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2134,8 +1749,6 @@ CREATE TABLE public.pricing_modes (
 
 
 --
--- TOC entry 4417 (class 0 OID 0)
--- Dependencies: 231
 -- Name: TABLE pricing_modes; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2143,8 +1756,6 @@ COMMENT ON TABLE public.pricing_modes IS '定价模式表：定义能量闪租�
 
 
 --
--- TOC entry 4418 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2152,8 +1763,6 @@ COMMENT ON COLUMN public.pricing_modes.id IS '模式唯一标识符（UUID）';
 
 
 --
--- TOC entry 4419 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.mode_type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2161,8 +1770,6 @@ COMMENT ON COLUMN public.pricing_modes.mode_type IS '模式类型：energy_flash
 
 
 --
--- TOC entry 4420 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.config_schema; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2170,8 +1777,6 @@ COMMENT ON COLUMN public.pricing_modes.config_schema IS '配置参数的JSON Sch
 
 
 --
--- TOC entry 4421 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.default_config; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2179,8 +1784,6 @@ COMMENT ON COLUMN public.pricing_modes.default_config IS '默认配置参数（J
 
 
 --
--- TOC entry 4422 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.is_enabled; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2188,8 +1791,6 @@ COMMENT ON COLUMN public.pricing_modes.is_enabled IS '是否启用该定价模�
 
 
 --
--- TOC entry 4423 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2197,8 +1798,6 @@ COMMENT ON COLUMN public.pricing_modes.created_at IS '模式创建时间';
 
 
 --
--- TOC entry 4424 (class 0 OID 0)
--- Dependencies: 231
 -- Name: COLUMN pricing_modes.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2206,7 +1805,6 @@ COMMENT ON COLUMN public.pricing_modes.updated_at IS '模式最后更新时间';
 
 
 --
--- TOC entry 230 (class 1259 OID 34663)
 -- Name: pricing_strategies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2225,8 +1823,6 @@ CREATE TABLE public.pricing_strategies (
 
 
 --
--- TOC entry 4425 (class 0 OID 0)
--- Dependencies: 230
 -- Name: TABLE pricing_strategies; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2234,8 +1830,6 @@ COMMENT ON TABLE public.pricing_strategies IS '价格策略表：统一管理能
 
 
 --
--- TOC entry 4426 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2243,8 +1837,6 @@ COMMENT ON COLUMN public.pricing_strategies.id IS '策略唯一标识符（UUID�
 
 
 --
--- TOC entry 4427 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2252,8 +1844,6 @@ COMMENT ON COLUMN public.pricing_strategies.name IS '策略名称，用于标识
 
 
 --
--- TOC entry 4428 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2261,8 +1851,6 @@ COMMENT ON COLUMN public.pricing_strategies.type IS '策略类型：energy_flash
 
 
 --
--- TOC entry 4429 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.config; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2270,8 +1858,6 @@ COMMENT ON COLUMN public.pricing_strategies.config IS '策略配置参数（JSON
 
 
 --
--- TOC entry 4430 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.template_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2279,8 +1865,6 @@ COMMENT ON COLUMN public.pricing_strategies.template_id IS '基于的定价模�
 
 
 --
--- TOC entry 4431 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.is_active; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2288,8 +1872,6 @@ COMMENT ON COLUMN public.pricing_strategies.is_active IS '策略是否激活可�
 
 
 --
--- TOC entry 4432 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.created_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2297,8 +1879,6 @@ COMMENT ON COLUMN public.pricing_strategies.created_by IS '创建者用户ID';
 
 
 --
--- TOC entry 4433 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2306,8 +1886,6 @@ COMMENT ON COLUMN public.pricing_strategies.created_at IS '策略创建时间';
 
 
 --
--- TOC entry 4434 (class 0 OID 0)
--- Dependencies: 230
 -- Name: COLUMN pricing_strategies.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2315,7 +1893,6 @@ COMMENT ON COLUMN public.pricing_strategies.updated_at IS '策略最后更新时
 
 
 --
--- TOC entry 233 (class 1259 OID 34884)
 -- Name: pricing_templates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2332,8 +1909,6 @@ CREATE TABLE public.pricing_templates (
 
 
 --
--- TOC entry 4435 (class 0 OID 0)
--- Dependencies: 233
 -- Name: TABLE pricing_templates; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2341,8 +1916,6 @@ COMMENT ON TABLE public.pricing_templates IS '定价模板表：提供可复用�
 
 
 --
--- TOC entry 4436 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2350,8 +1923,6 @@ COMMENT ON COLUMN public.pricing_templates.id IS '模板唯一标识符（UUID�
 
 
 --
--- TOC entry 4437 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2359,8 +1930,6 @@ COMMENT ON COLUMN public.pricing_templates.name IS '模板名称，用于描述�
 
 
 --
--- TOC entry 4438 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2368,8 +1937,6 @@ COMMENT ON COLUMN public.pricing_templates.type IS '模板类型：energy_flash=
 
 
 --
--- TOC entry 4439 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.default_config; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2377,8 +1944,6 @@ COMMENT ON COLUMN public.pricing_templates.default_config IS '默认配置参数
 
 
 --
--- TOC entry 4440 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2386,8 +1951,6 @@ COMMENT ON COLUMN public.pricing_templates.description IS '模板详细描述，
 
 
 --
--- TOC entry 4441 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.is_system; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2395,8 +1958,6 @@ COMMENT ON COLUMN public.pricing_templates.is_system IS '是否为系统内置�
 
 
 --
--- TOC entry 4442 (class 0 OID 0)
--- Dependencies: 233
 -- Name: COLUMN pricing_templates.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2404,7 +1965,6 @@ COMMENT ON COLUMN public.pricing_templates.created_at IS '模板创建时间';
 
 
 --
--- TOC entry 211 (class 1259 OID 28230)
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2416,8 +1976,6 @@ CREATE TABLE public.schema_migrations (
 
 
 --
--- TOC entry 4443 (class 0 OID 0)
--- Dependencies: 211
 -- Name: TABLE schema_migrations; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2425,8 +1983,6 @@ COMMENT ON TABLE public.schema_migrations IS '数据库迁移记录表 - 记录�
 
 
 --
--- TOC entry 4444 (class 0 OID 0)
--- Dependencies: 211
 -- Name: COLUMN schema_migrations.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2434,8 +1990,6 @@ COMMENT ON COLUMN public.schema_migrations.id IS '迁移记录唯一标识符';
 
 
 --
--- TOC entry 4445 (class 0 OID 0)
--- Dependencies: 211
 -- Name: COLUMN schema_migrations.filename; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2443,8 +1997,6 @@ COMMENT ON COLUMN public.schema_migrations.filename IS '迁移文件名';
 
 
 --
--- TOC entry 4446 (class 0 OID 0)
--- Dependencies: 211
 -- Name: COLUMN schema_migrations.executed_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2452,7 +2004,6 @@ COMMENT ON COLUMN public.schema_migrations.executed_at IS '迁移执行时间';
 
 
 --
--- TOC entry 210 (class 1259 OID 28229)
 -- Name: schema_migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -2466,8 +2017,6 @@ CREATE SEQUENCE public.schema_migrations_id_seq
 
 
 --
--- TOC entry 4447 (class 0 OID 0)
--- Dependencies: 210
 -- Name: schema_migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -2475,7 +2024,6 @@ ALTER SEQUENCE public.schema_migrations_id_seq OWNED BY public.schema_migrations
 
 
 --
--- TOC entry 222 (class 1259 OID 34312)
 -- Name: system_config_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2491,8 +2039,6 @@ CREATE TABLE public.system_config_history (
 
 
 --
--- TOC entry 4448 (class 0 OID 0)
--- Dependencies: 222
 -- Name: TABLE system_config_history; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2500,8 +2046,6 @@ COMMENT ON TABLE public.system_config_history IS '系统配置历史表 - 记录
 
 
 --
--- TOC entry 4449 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2509,8 +2053,6 @@ COMMENT ON COLUMN public.system_config_history.id IS '历史记录唯一标识�
 
 
 --
--- TOC entry 4450 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.config_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2518,8 +2060,6 @@ COMMENT ON COLUMN public.system_config_history.config_id IS '配置ID - 关联sy
 
 
 --
--- TOC entry 4451 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.old_value; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2527,8 +2067,6 @@ COMMENT ON COLUMN public.system_config_history.old_value IS '旧值 - 修改前�
 
 
 --
--- TOC entry 4452 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.new_value; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2536,8 +2074,6 @@ COMMENT ON COLUMN public.system_config_history.new_value IS '新值 - 修改后�
 
 
 --
--- TOC entry 4453 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.change_reason; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2545,8 +2081,6 @@ COMMENT ON COLUMN public.system_config_history.change_reason IS '变更原因 - 
 
 
 --
--- TOC entry 4454 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.changed_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2554,8 +2088,6 @@ COMMENT ON COLUMN public.system_config_history.changed_by IS '变更人 - 执行
 
 
 --
--- TOC entry 4455 (class 0 OID 0)
--- Dependencies: 222
 -- Name: COLUMN system_config_history.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2563,7 +2095,6 @@ COMMENT ON COLUMN public.system_config_history.created_at IS '变更记录创建
 
 
 --
--- TOC entry 221 (class 1259 OID 34285)
 -- Name: system_configs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2587,8 +2118,6 @@ CREATE TABLE public.system_configs (
 
 
 --
--- TOC entry 4456 (class 0 OID 0)
--- Dependencies: 221
 -- Name: TABLE system_configs; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2596,8 +2125,6 @@ COMMENT ON TABLE public.system_configs IS '系统配置表 - 存储系统参数�
 
 
 --
--- TOC entry 4457 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2605,8 +2132,6 @@ COMMENT ON COLUMN public.system_configs.id IS '配置项唯一标识符（UUID�
 
 
 --
--- TOC entry 4458 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.config_key; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2614,8 +2139,6 @@ COMMENT ON COLUMN public.system_configs.config_key IS '配置键名 - 唯一标�
 
 
 --
--- TOC entry 4459 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.config_value; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2623,8 +2146,6 @@ COMMENT ON COLUMN public.system_configs.config_value IS '配置值 - 以字符�
 
 
 --
--- TOC entry 4460 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.config_type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2632,8 +2153,6 @@ COMMENT ON COLUMN public.system_configs.config_type IS '配置类型 - string/nu
 
 
 --
--- TOC entry 4461 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.category; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2641,8 +2160,6 @@ COMMENT ON COLUMN public.system_configs.category IS '配置分类 - system/secur
 
 
 --
--- TOC entry 4462 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.description; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2650,8 +2167,6 @@ COMMENT ON COLUMN public.system_configs.description IS '配置描述 - 说明配
 
 
 --
--- TOC entry 4463 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.is_public; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2659,8 +2174,6 @@ COMMENT ON COLUMN public.system_configs.is_public IS '是否公开 - 普通用�
 
 
 --
--- TOC entry 4464 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.is_editable; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2668,8 +2181,6 @@ COMMENT ON COLUMN public.system_configs.is_editable IS '是否可编辑 - 是否
 
 
 --
--- TOC entry 4465 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.validation_rules; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2677,8 +2188,6 @@ COMMENT ON COLUMN public.system_configs.validation_rules IS '验证规则 - JSON
 
 
 --
--- TOC entry 4466 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.default_value; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2686,8 +2195,6 @@ COMMENT ON COLUMN public.system_configs.default_value IS '默认值 - 重置时�
 
 
 --
--- TOC entry 4467 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.created_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2695,8 +2202,6 @@ COMMENT ON COLUMN public.system_configs.created_by IS '创建人用户ID';
 
 
 --
--- TOC entry 4468 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.updated_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2704,8 +2209,6 @@ COMMENT ON COLUMN public.system_configs.updated_by IS '最后更新人用户ID';
 
 
 --
--- TOC entry 4469 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2713,8 +2216,6 @@ COMMENT ON COLUMN public.system_configs.created_at IS '配置创建时间';
 
 
 --
--- TOC entry 4470 (class 0 OID 0)
--- Dependencies: 221
 -- Name: COLUMN system_configs.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2722,7 +2223,6 @@ COMMENT ON COLUMN public.system_configs.updated_at IS '配置最后更新时间'
 
 
 --
--- TOC entry 234 (class 1259 OID 34953)
 -- Name: telegram_bots; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2740,8 +2240,6 @@ CREATE TABLE public.telegram_bots (
 
 
 --
--- TOC entry 4471 (class 0 OID 0)
--- Dependencies: 234
 -- Name: TABLE telegram_bots; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2749,8 +2247,6 @@ COMMENT ON TABLE public.telegram_bots IS 'Telegram机器人表：管理多个Tel
 
 
 --
--- TOC entry 4472 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2758,8 +2254,6 @@ COMMENT ON COLUMN public.telegram_bots.id IS '机器人唯一标识符（UUID）
 
 
 --
--- TOC entry 4473 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.bot_token; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2767,8 +2261,6 @@ COMMENT ON COLUMN public.telegram_bots.bot_token IS 'Telegram Bot API Token，�
 
 
 --
--- TOC entry 4474 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.bot_name; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2776,8 +2268,6 @@ COMMENT ON COLUMN public.telegram_bots.bot_name IS '机器人显示名称，用�
 
 
 --
--- TOC entry 4475 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.bot_username; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2785,8 +2275,6 @@ COMMENT ON COLUMN public.telegram_bots.bot_username IS '机器人用户名（@us
 
 
 --
--- TOC entry 4476 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.webhook_url; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2794,8 +2282,6 @@ COMMENT ON COLUMN public.telegram_bots.webhook_url IS 'Webhook URL，用于接�
 
 
 --
--- TOC entry 4477 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.is_active; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2803,8 +2289,6 @@ COMMENT ON COLUMN public.telegram_bots.is_active IS '是否激活该机器人，
 
 
 --
--- TOC entry 4478 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.created_by; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2812,8 +2296,6 @@ COMMENT ON COLUMN public.telegram_bots.created_by IS '创建者用户ID，记录
 
 
 --
--- TOC entry 4479 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2821,8 +2303,6 @@ COMMENT ON COLUMN public.telegram_bots.created_at IS '机器人创建时间';
 
 
 --
--- TOC entry 4480 (class 0 OID 0)
--- Dependencies: 234
 -- Name: COLUMN telegram_bots.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -2830,11 +2310,106 @@ COMMENT ON COLUMN public.telegram_bots.updated_at IS '机器人配置最后更�
 
 
 --
--- TOC entry 212 (class 1259 OID 28273)
--- Name: telegram_users; Type: TABLE; Schema: public; Owner: -
+-- Name: user_level_changes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.telegram_users (
+CREATE TABLE public.user_level_changes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    old_level character varying(50),
+    new_level character varying(50) NOT NULL,
+    change_reason character varying(255),
+    changed_by uuid,
+    change_type character varying(50) DEFAULT 'manual'::character varying NOT NULL,
+    effective_date timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT user_level_changes_change_type_check CHECK (((change_type)::text = ANY ((ARRAY['manual'::character varying, 'automatic'::character varying, 'system'::character varying])::text[])))
+);
+
+
+--
+-- Name: TABLE user_level_changes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.user_level_changes IS '用户等级变更记录表：追踪用户等级的变更历史，支持等级管理的审计需求';
+
+
+--
+-- Name: COLUMN user_level_changes.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.id IS '变更记录唯一标识符（UUID）';
+
+
+--
+-- Name: COLUMN user_level_changes.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.user_id IS '用户ID，关联telegram_users表';
+
+
+--
+-- Name: COLUMN user_level_changes.old_level; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.old_level IS '变更前等级，记录用户之前的等级状态';
+
+
+--
+-- Name: COLUMN user_level_changes.new_level; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.new_level IS '变更后等级，记录用户变更后的等级状态';
+
+
+--
+-- Name: COLUMN user_level_changes.change_reason; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.change_reason IS '变更原因，说明等级变更的具体原因';
+
+
+--
+-- Name: COLUMN user_level_changes.changed_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.changed_by IS '操作人ID，关联admins表，记录执行等级变更的管理员';
+
+
+--
+-- Name: COLUMN user_level_changes.change_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.change_type IS '变更类型：manual=手动变更，automatic=自动变更，system=系统变更';
+
+
+--
+-- Name: COLUMN user_level_changes.effective_date; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.effective_date IS '生效时间，等级变更开始生效的时间点';
+
+
+--
+-- Name: COLUMN user_level_changes.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.created_at IS '记录创建时间';
+
+
+--
+-- Name: COLUMN user_level_changes.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_level_changes.updated_at IS '记录最后更新时间';
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     telegram_id bigint,
     username character varying(255),
@@ -2871,439 +2446,188 @@ CREATE TABLE public.telegram_users (
 
 
 --
--- TOC entry 4481 (class 0 OID 0)
--- Dependencies: 212
--- Name: TABLE telegram_users; Type: COMMENT; Schema: public; Owner: -
+-- Name: TABLE users; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.telegram_users IS '用户信息表 - 存储系统所有用户的基本信息、认证信息和业务数据';
+COMMENT ON TABLE public.users IS '用户信息表 - 存储系统所有用户的基本信息、认证信息和业务数据';
 
 
 --
--- TOC entry 4482 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.id; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.id IS '用户唯一标识符（UUID）';
+COMMENT ON COLUMN public.users.id IS '用户唯一标识符（UUID）';
 
 
 --
--- TOC entry 4483 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.telegram_id; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.telegram_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.telegram_id IS 'Telegram用户ID，用于Telegram登录';
+COMMENT ON COLUMN public.users.telegram_id IS 'Telegram用户ID，用于Telegram登录';
 
 
 --
--- TOC entry 4484 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.username; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.username; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.username IS '用户名，用于显示和登录';
+COMMENT ON COLUMN public.users.username IS '用户名，用于显示和登录';
 
 
 --
--- TOC entry 4485 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.first_name; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.first_name; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.first_name IS '用户名字';
+COMMENT ON COLUMN public.users.first_name IS '用户名字';
 
 
 --
--- TOC entry 4486 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.last_name; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.last_name; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.last_name IS '用户姓氏';
+COMMENT ON COLUMN public.users.last_name IS '用户姓氏';
 
 
 --
--- TOC entry 4487 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.email; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.email; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.email IS '用户邮箱地址，用于管理后台登录';
+COMMENT ON COLUMN public.users.email IS '用户邮箱地址，用于管理后台登录';
 
 
 --
--- TOC entry 4488 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.phone; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.phone; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.phone IS '用户手机号码';
+COMMENT ON COLUMN public.users.phone IS '用户手机号码';
 
 
 --
--- TOC entry 4489 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.status; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.status; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.status IS '用户状态：active=活跃，inactive=非活跃，banned=已封禁';
+COMMENT ON COLUMN public.users.status IS '用户状态：active=活跃，inactive=非活跃，banned=已封禁';
 
 
 --
--- TOC entry 4490 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.tron_address; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.tron_address; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.tron_address IS '用户TRON钱包地址';
+COMMENT ON COLUMN public.users.tron_address IS '用户TRON钱包地址';
 
 
 --
--- TOC entry 4491 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.balance; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.balance; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.balance IS '用户账户余额（TRX）';
+COMMENT ON COLUMN public.users.balance IS '用户账户余额（TRX）';
 
 
 --
--- TOC entry 4492 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.total_orders; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.total_orders; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.total_orders IS '用户总订单数量';
+COMMENT ON COLUMN public.users.total_orders IS '用户总订单数量';
 
 
 --
--- TOC entry 4493 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.total_energy_used; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.total_energy_used; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.total_energy_used IS '用户累计使用的能量数量';
+COMMENT ON COLUMN public.users.total_energy_used IS '用户累计使用的能量数量';
 
 
 --
--- TOC entry 4494 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.referral_code; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.referral_code; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.referral_code IS '用户推荐码，用于推荐系统';
+COMMENT ON COLUMN public.users.referral_code IS '用户推荐码，用于推荐系统';
 
 
 --
--- TOC entry 4495 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.referred_by; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.referred_by; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.referred_by IS '推荐人用户ID';
+COMMENT ON COLUMN public.users.referred_by IS '推荐人用户ID';
 
 
 --
--- TOC entry 4496 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.created_at; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.created_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.created_at IS '用户创建时间';
+COMMENT ON COLUMN public.users.created_at IS '用户创建时间';
 
 
 --
--- TOC entry 4497 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.updated_at; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN users.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.telegram_users.updated_at IS '用户信息最后更新时间';
+COMMENT ON COLUMN public.users.updated_at IS '用户信息最后更新时间';
 
 
 --
--- TOC entry 4498 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.password_hash; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.password_hash IS '用户密码哈希值，用于管理后台登录';
-
-
---
--- TOC entry 4499 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.login_type; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.login_type IS '登录类型：telegram=仅Telegram登录，admin=仅管理后台登录，both=两种方式都支持';
-
-
---
--- TOC entry 4500 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.last_login_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.last_login_at IS '最后登录时间';
-
-
---
--- TOC entry 4501 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.password_reset_token; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.password_reset_token IS '密码重置令牌';
-
-
---
--- TOC entry 4502 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.password_reset_expires; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.password_reset_expires IS '密码重置令牌过期时间';
-
-
---
--- TOC entry 4503 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.usdt_balance; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.usdt_balance IS 'USDT余额，精确到8位小数';
-
-
---
--- TOC entry 4504 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.trx_balance; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.trx_balance IS 'TRX余额，精确到8位小数';
-
-
---
--- TOC entry 4505 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.agent_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.agent_id IS '关联的代理商ID，如果用户是代理商的下级用户';
-
-
---
--- TOC entry 4506 (class 0 OID 0)
--- Dependencies: 212
--- Name: COLUMN telegram_users.user_type; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.telegram_users.user_type IS '用户类型：normal-普通用户，vip-VIP用户，premium-高级用户';
-
-
---
--- TOC entry 229 (class 1259 OID 34500)
--- Name: user_level_changes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_level_changes (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    old_level character varying(50),
-    new_level character varying(50) NOT NULL,
-    change_reason character varying(255),
-    changed_by uuid,
-    change_type character varying(50) DEFAULT 'manual'::character varying NOT NULL,
-    effective_date timestamp with time zone DEFAULT now(),
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT user_level_changes_change_type_check CHECK (((change_type)::text = ANY ((ARRAY['manual'::character varying, 'automatic'::character varying, 'system'::character varying])::text[])))
-);
-
-
---
--- TOC entry 4507 (class 0 OID 0)
--- Dependencies: 229
--- Name: TABLE user_level_changes; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.user_level_changes IS '用户等级变更记录表：追踪用户等级的变更历史，支持等级管理的审计需求';
-
-
---
--- TOC entry 4508 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.id IS '变更记录唯一标识符（UUID）';
-
-
---
--- TOC entry 4509 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.user_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.user_id IS '用户ID，关联telegram_users表';
-
-
---
--- TOC entry 4510 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.old_level; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.old_level IS '变更前等级，记录用户之前的等级状态';
-
-
---
--- TOC entry 4511 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.new_level; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.new_level IS '变更后等级，记录用户变更后的等级状态';
-
-
---
--- TOC entry 4512 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.change_reason; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.change_reason IS '变更原因，说明等级变更的具体原因';
-
-
---
--- TOC entry 4513 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.changed_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.changed_by IS '操作人ID，关联admins表，记录执行等级变更的管理员';
-
-
---
--- TOC entry 4514 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.change_type; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.change_type IS '变更类型：manual=手动变更，automatic=自动变更，system=系统变更';
-
-
---
--- TOC entry 4515 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.effective_date; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.effective_date IS '生效时间，等级变更开始生效的时间点';
-
-
---
--- TOC entry 4516 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.created_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.created_at IS '记录创建时间';
-
-
---
--- TOC entry 4517 (class 0 OID 0)
--- Dependencies: 229
--- Name: COLUMN user_level_changes.updated_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_level_changes.updated_at IS '记录最后更新时间';
-
-
---
--- TOC entry 232 (class 1259 OID 34879)
--- Name: users; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.users AS
- SELECT telegram_users.id,
-    telegram_users.telegram_id,
-    telegram_users.username,
-    telegram_users.first_name,
-    telegram_users.last_name,
-    telegram_users.email,
-    telegram_users.phone,
-    telegram_users.status,
-    telegram_users.tron_address,
-    telegram_users.balance,
-    telegram_users.total_orders,
-    telegram_users.total_energy_used,
-    telegram_users.referral_code,
-    telegram_users.referred_by,
-    telegram_users.created_at,
-    telegram_users.updated_at,
-    telegram_users.password_hash,
-    telegram_users.login_type,
-    telegram_users.last_login_at,
-    telegram_users.password_reset_token,
-    telegram_users.password_reset_expires,
-    telegram_users.usdt_balance,
-    telegram_users.trx_balance,
-    telegram_users.agent_id,
-    telegram_users.user_type
-   FROM public.telegram_users;
-
-
---
--- TOC entry 4518 (class 0 OID 0)
--- Dependencies: 232
 -- Name: COLUMN users.password_hash; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.users.password_hash IS '用户密码哈希值，用于管理后台登录验证';
+COMMENT ON COLUMN public.users.password_hash IS '用户密码哈希值，用于管理后台登录';
 
 
 --
--- TOC entry 4519 (class 0 OID 0)
--- Dependencies: 232
 -- Name: COLUMN users.login_type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.users.login_type IS '登录类型：telegram=仅Telegram登录，admin=仅管理后台登录，both=两种方式都支持';
+COMMENT ON COLUMN public.users.login_type IS '登录类型：telegram=Telegram登录，h5=网页登录，both=双端登录';
 
 
 --
--- TOC entry 4520 (class 0 OID 0)
--- Dependencies: 232
 -- Name: COLUMN users.last_login_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.users.last_login_at IS '最后登录时间，记录用户最后一次成功登录的时间';
+COMMENT ON COLUMN public.users.last_login_at IS '最后登录时间';
 
 
 --
--- TOC entry 4521 (class 0 OID 0)
--- Dependencies: 232
 -- Name: COLUMN users.password_reset_token; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.users.password_reset_token IS '密码重置令牌，用于密码重置功能';
+COMMENT ON COLUMN public.users.password_reset_token IS '密码重置令牌';
 
 
 --
--- TOC entry 4522 (class 0 OID 0)
--- Dependencies: 232
 -- Name: COLUMN users.password_reset_expires; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.users.password_reset_expires IS '密码重置令牌过期时间，确保令牌的安全性';
+COMMENT ON COLUMN public.users.password_reset_expires IS '密码重置令牌过期时间';
 
 
 --
--- TOC entry 3757 (class 2604 OID 34337)
+-- Name: COLUMN users.usdt_balance; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.usdt_balance IS 'USDT余额，精确到8位小数';
+
+
+--
+-- Name: COLUMN users.trx_balance; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.trx_balance IS 'TRX余额，精确到8位小数';
+
+
+--
+-- Name: COLUMN users.agent_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.agent_id IS '关联的代理商ID，如果用户是代理商的下级用户';
+
+
+--
+-- Name: COLUMN users.user_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.user_type IS '用户类型：normal-普通用户，vip-VIP用户，premium-套餐用户';
+
+
+--
 -- Name: schema_migrations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3311,354 +2635,6 @@ ALTER TABLE ONLY public.schema_migrations ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
--- TOC entry 4237 (class 0 OID 34442)
--- Dependencies: 227
--- Data for Name: admin_permissions; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.admin_permissions (id, admin_id, role_id, granted_at) FROM stdin;
-78dd0b6c-d7ec-42bf-b764-0704866ebdac	980ff3a6-161d-49d6-9373-454d1e3cf4c4	25df2d58-d0ba-44fd-977f-717183c945f3	2025-08-28 18:37:58.087356+08
-81050225-084c-4ab7-b838-256e3f98d4dc	980ff3a6-161d-49d6-9373-454d1e3cf4c4	0106750c-3fc8-4e07-8bdb-275be516188c	2025-08-28 18:37:58.089652+08
-deb792b9-593f-44c5-8384-8a05cbe56e0f	833cf35a-0114-4d5c-aead-886d500a1570	25df2d58-d0ba-44fd-977f-717183c945f3	2025-08-28 18:53:02.258307+08
-1110bfda-81e5-454e-9db9-226cec17bada	f46cbeb3-7d4f-41aa-ba82-b6f13a354ce6	8e1c1402-5a68-458d-b216-5eb95a12958b	2025-08-28 20:07:02.033466+08
-\.
-
-
---
--- TOC entry 4235 (class 0 OID 34409)
--- Dependencies: 225
--- Data for Name: admin_roles; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.admin_roles (id, name, description, permissions, created_at) FROM stdin;
-8e1c1402-5a68-458d-b216-5eb95a12958b	super_admin	超级管理员	["all"]	2025-08-28 14:44:32.806987+08
-7239cff8-402b-465f-a856-401c27124522	admin	普通管理员	["users.read", "users.write", "orders.read", "statistics.read"]	2025-08-28 14:44:32.806987+08
-0106750c-3fc8-4e07-8bdb-275be516188c	operator	运营管理员	["users.read", "agents.read", "agents.write", "statistics.read"]	2025-08-28 14:44:32.806987+08
-25df2d58-d0ba-44fd-977f-717183c945f3	customer_service	客服管理员	["users.read", "orders.read", "orders.write"]	2025-08-28 14:44:32.806987+08
-\.
-
-
---
--- TOC entry 4236 (class 0 OID 34422)
--- Dependencies: 226
--- Data for Name: admins; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.admins (id, username, email, password_hash, role, status, last_login, created_at, updated_at) FROM stdin;
-980ff3a6-161d-49d6-9373-454d1e3cf4c4	superadmin	admin@tronrental.com	$2a$12$JV0X/zw6AEtYHJ71HM29IO5Vr3jHcM6KED/1o6P.Dz9SerwfeIFIe	super_admin	active	2025-08-28 21:50:38.730196+08	2025-08-28 14:44:32.807375+08	2025-08-28 21:50:38.730196+08
-fb9d5e25-7a11-439e-997e-80d9c49087a3	updatedadmin	updated@admin.com	$2a$12$9vPUF3UrFIthu94zAShaW.U6tUKPh6Bj6hdigc1p0NUlghCjnpOmC	admin	inactive	\N	2025-08-28 15:21:08.920763+08	2025-08-28 15:21:18.979508+08
-833cf35a-0114-4d5c-aead-886d500a1570	customerservice	cs@tronrental.com	$2a$12$s0V6Ouna32mcabwlCWqYx.asXkO9mfVGk99zzi8vF3Uv.Db4Nooem	customer_service	active	\N	2025-08-28 18:52:41.584155+08	2025-08-28 18:52:41.584155+08
-f46cbeb3-7d4f-41aa-ba82-b6f13a354ce6	testadmin	test@admin.com	$2a$12$MbbXXVdmRGLDVIDOgktH7.GXUft.PlyNoMgHB0SfkIjaZ.Z0B6Dra	admin	active	\N	2025-08-28 17:43:03.202006+08	2025-08-28 17:43:03.202006+08
-\.
-
-
---
--- TOC entry 4227 (class 0 OID 28384)
--- Dependencies: 216
--- Data for Name: agent_applications; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.agent_applications (id, user_id, application_reason, contact_info, experience_description, status, reviewed_by, reviewed_at, review_notes, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4228 (class 0 OID 28406)
--- Dependencies: 217
--- Data for Name: agent_earnings; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.agent_earnings (id, agent_id, order_id, user_id, commission_rate, commission_amount, order_amount, status, paid_at, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4226 (class 0 OID 28358)
--- Dependencies: 215
--- Data for Name: agents; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.agents (id, user_id, agent_code, commission_rate, status, total_earnings, total_orders, total_customers, approved_at, approved_by, created_at, updated_at) FROM stdin;
-2904d630-be20-4be0-b483-e73b4814be28	c380caa5-b04c-4f1a-a4e8-3cc7cc301021	AGENT001	0.2000	inactive	0.000000	0	0	\N	\N	2025-08-28 15:10:30.252394+08	2025-08-28 15:11:48.056396+08
-d72e501e-656a-4e79-b859-0c1a09c90cc4	09ad451f-3bd8-4ebd-a6e0-fc037db7e703	AGENT002	0.1500	pending	0.000000	0	0	\N	\N	2025-08-28 17:41:12.173474+08	2025-08-28 17:41:12.173474+08
-\.
-
-
---
--- TOC entry 4238 (class 0 OID 34463)
--- Dependencies: 228
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.audit_logs (id, admin_id, action, resource, details, ip_address, created_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4229 (class 0 OID 28431)
--- Dependencies: 218
--- Data for Name: bot_users; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.bot_users (id, bot_id, user_id, telegram_chat_id, status, last_interaction_at, settings, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4234 (class 0 OID 34355)
--- Dependencies: 223
--- Data for Name: energy_consumption_logs; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.energy_consumption_logs (id, pool_account_id, energy_amount, cost_amount, transaction_type, order_id, telegram_user_id, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4224 (class 0 OID 28296)
--- Dependencies: 213
--- Data for Name: energy_packages; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.energy_packages (id, name, description, energy_amount, price, duration_hours, is_active, created_at, updated_at) FROM stdin;
-550e8400-e29b-41d4-a716-446655440001	基础能量包	适合小额交易的基础能量包	10000	1.00	24	t	2025-08-27 09:18:42.096529+08	2025-08-27 09:18:42.096529+08
-550e8400-e29b-41d4-a716-446655440002	标准能量包	适合日常使用的标准能量包	50000	4.50	24	t	2025-08-27 09:18:42.096529+08	2025-08-27 09:18:42.096529+08
-550e8400-e29b-41d4-a716-446655440003	高级能量包	适合大额交易的高级能量包	100000	8.00	24	t	2025-08-27 09:18:42.096529+08	2025-08-27 09:18:42.096529+08
-550e8400-e29b-41d4-a716-446655440004	企业能量包	适合企业用户的大容量能量包	500000	35.00	24	t	2025-08-27 09:18:42.096529+08	2025-08-27 09:18:42.096529+08
-550e8400-e29b-41d4-a716-446655440005	超级能量包	适合超大额交易的超级能量包	1000000	65.00	24	t	2025-08-27 09:18:42.096529+08	2025-08-27 09:18:42.096529+08
-\.
-
-
---
--- TOC entry 4230 (class 0 OID 28456)
--- Dependencies: 219
--- Data for Name: energy_pools; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.energy_pools (id, name, tron_address, private_key_encrypted, total_energy, available_energy, reserved_energy, status, last_updated_at, created_at, updated_at, account_type, priority, cost_per_energy, description, contact_info, daily_limit, monthly_limit) FROM stdin;
-550e8400-e29b-41d4-a716-446655440021	主能量池2	TYour2MainPoolAddressHere123456789	encrypted_private_key_here_2	10000000	10000000	0	maintenance	2025-08-28 15:16:22.938697+08	2025-08-27 09:18:42.099478+08	2025-08-28 16:09:10.604225+08	own_energy	1	0.001000	\N	\N	\N	\N
-0c0ea0b0-1c53-4881-aae2-19928f1b1a97	测试代理商账户	TTestAgentAddress123456789012345	encrypted_test_key_here	5000000	5000000	0	inactive	2025-08-28 16:52:09.88964+08	2025-08-28 12:38:47.834256+08	2025-08-28 16:52:09.88964+08	agent_energy	1	0.001000	\N	\N	\N	\N
-550e8400-e29b-41d4-a716-446655440020	主能量池11111111111111	TYour1MainPoolAddressHere123456789	encrypted_private_key_here_1	10000000	10000000	0	active	2025-08-28 20:09:28.538167+08	2025-08-27 09:18:42.099478+08	2025-08-28 20:09:28.538167+08	own_energy	1	0.001000	\N	\N	\N	\N
-\.
-
-
---
--- TOC entry 4231 (class 0 OID 28474)
--- Dependencies: 220
--- Data for Name: energy_transactions; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.energy_transactions (id, order_id, pool_id, from_address, to_address, energy_amount, tx_hash, status, block_number, gas_used, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4225 (class 0 OID 28325)
--- Dependencies: 214
--- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.orders (id, order_number, user_id, bot_id, package_id, energy_amount, price, commission_rate, commission_amount, status, payment_status, tron_tx_hash, delegate_tx_hash, target_address, expires_at, completed_at, created_at, updated_at) FROM stdin;
-11427be5-8dbf-4f54-ba89-bbab14112c8b	ORD1756259427864GJFH	09ad451f-3bd8-4ebd-a6e0-fc037db7e703	550e8400-e29b-41d4-a716-446655440010	550e8400-e29b-41d4-a716-446655440001	10000	1.00	0.0000	0.00	cancelled	unpaid	\N	\N	TRX123456789	2025-08-28 09:50:27.864+08	\N	2025-08-27 09:50:27.865697+08	2025-08-27 09:52:21.608322+08
-0ea0c560-be19-4558-b96f-c7b85c46a051	ORD1756259608458BOTV	550e8400-e29b-41d4-a716-446655440000	550e8400-e29b-41d4-a716-446655440011	550e8400-e29b-41d4-a716-446655440002	50000	4.50	0.0000	0.00	pending	unpaid	\N	\N	TRX987654321	2025-08-28 09:53:28.458+08	\N	2025-08-27 09:53:28.45902+08	2025-08-27 09:53:28.45902+08
-b1f0537c-ea72-4705-8b07-f52d210c430e	ORD1756259622011V9RK	09ad451f-3bd8-4ebd-a6e0-fc037db7e703	550e8400-e29b-41d4-a716-446655440010	550e8400-e29b-41d4-a716-446655440003	100000	8.00	0.0000	0.00	pending	unpaid	\N	\N	TRX111222333	2025-08-28 09:53:42.011+08	\N	2025-08-27 09:53:42.011661+08	2025-08-27 09:53:42.011661+08
-\.
-
-
---
--- TOC entry 4244 (class 0 OID 34975)
--- Dependencies: 235
--- Data for Name: pricing_history; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.pricing_history (id, strategy_id, old_config, new_config, change_reason, changed_by, created_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4241 (class 0 OID 34705)
--- Dependencies: 231
--- Data for Name: pricing_modes; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.pricing_modes (id, mode_type, config_schema, default_config, is_enabled, created_at, updated_at) FROM stdin;
-63e160bb-44d2-4167-b9be-431629a9447a	energy_flash	{"type": "object", "required": ["unit_price", "max_quantity", "expiry_hours"], "properties": {"unit_price": {"type": "number", "maximum": 10, "minimum": 0.1, "description": "单笔价格（TRX）"}, "expiry_hours": {"type": "integer", "maximum": 24, "minimum": 1, "description": "过期时间（小时）"}, "max_quantity": {"type": "integer", "maximum": 10, "minimum": 1, "description": "最大购买笔数"}, "collection_address": {"type": "string", "pattern": "^T[A-Za-z1-9]{33}$", "description": "收款地址"}, "double_energy_for_no_usdt": {"type": "boolean", "description": "向无USDT地址转账是否需要双倍能量"}}}	{"unit_price": 2.6, "expiry_hours": 1, "max_quantity": 5, "collection_address": "TWdcgk9NEsV1nt5yPrNfSYktbA12345678", "double_energy_for_no_usdt": true}	t	2025-08-28 19:23:18.121642+08	2025-08-28 19:23:18.121642+08
-76c61aab-4332-4908-bba0-bdf97f1b1eb7	transaction_package	{"type": "object", "required": ["packages", "occupation_fee_hours", "occupation_fee_amount"], "properties": {"packages": {"type": "array", "items": {"type": "object", "required": ["transactions", "price"], "properties": {"price": {"type": "number", "minimum": 0.1, "description": "价格（TRX）"}, "transactions": {"type": "integer", "minimum": 1, "description": "笔数"}}}, "description": "套餐列表"}, "transfer_enabled": {"type": "boolean", "description": "是否允许转移笔数"}, "occupation_fee_hours": {"type": "integer", "maximum": 168, "minimum": 1, "description": "占用费扣除间隔（小时）"}, "occupation_fee_amount": {"type": "integer", "maximum": 10, "minimum": 1, "description": "占用费扣除笔数"}}}	{"packages": [{"price": 25, "transactions": 10}, {"price": 120, "transactions": 50}, {"price": 230, "transactions": 100}], "transfer_enabled": true, "occupation_fee_hours": 24, "occupation_fee_amount": 1}	t	2025-08-28 19:23:18.121642+08	2025-08-28 19:23:18.121642+08
-\.
-
-
---
--- TOC entry 4240 (class 0 OID 34663)
--- Dependencies: 230
--- Data for Name: pricing_strategies; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.pricing_strategies (id, name, type, config, template_id, is_active, created_by, created_at, updated_at) FROM stdin;
-f7a6e1f0-9ed3-4a45-b230-3d9e67f464a7	test-strategy	energy_flash	{"unit_price": 2.6, "expiry_hours": 1, "max_quantity": 5, "collection_address": "TWdcgk9NEsV1nt5yPrNfSYktbA12345678", "double_energy_for_no_usdt": true}	\N	t	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 20:14:45.780273+08	2025-08-28 20:14:45.780273+08
-\.
-
-
---
--- TOC entry 4242 (class 0 OID 34884)
--- Dependencies: 233
--- Data for Name: pricing_templates; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.pricing_templates (id, name, type, default_config, description, is_system, created_at) FROM stdin;
-30433a0d-4818-4072-a0fe-c48dc1d22b6f	标准能量闪租模板	energy_flash	{"unit_price": 2.6, "expiry_hours": 1, "max_quantity": 5, "collection_address": "TWdcgk9NEsV1nt5yPrNfSYktbA12345678", "double_energy_for_no_usdt": true}	标准的能量闪租定价模板	t	2025-08-28 19:43:31.030044+08
-c700ac36-6cdf-42f3-9061-e90b501064e6	标准笔数套餐模板	transaction_package	{"packages": [{"price": 25, "transactions": 10}, {"price": 120, "transactions": 50}, {"price": 230, "transactions": 100}], "transfer_enabled": true, "occupation_fee_hours": 24, "occupation_fee_amount": 1}	标准的笔数套餐定价模板	t	2025-08-28 19:43:31.030044+08
-\.
-
-
---
--- TOC entry 4222 (class 0 OID 28230)
--- Dependencies: 211
--- Data for Name: schema_migrations; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.schema_migrations (id, filename, executed_at) FROM stdin;
-1	001_create_tables.sql	2025-08-27 09:17:35.261284+08
-2	002_insert_initial_data.sql	2025-08-27 09:21:08.199366+08
-\.
-
-
---
--- TOC entry 4233 (class 0 OID 34312)
--- Dependencies: 222
--- Data for Name: system_config_history; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.system_config_history (id, config_id, old_value, new_value, change_reason, changed_by, created_at) FROM stdin;
-378f3930-8eb4-4eb9-92e1-6a38f4dbe27b	e1a1e171-3413-4a20-bb31-36a05937e9a0	support@tron-energy.com	test@example.com	测试基础设置保存	550e8400-e29b-41d4-a716-446655440000	2025-08-28 11:10:49.259497+08
-1e23188f-dcd5-4467-885a-ae91c6031a19	857927cc-a67f-4fe2-b691-6c6e16f62b84	TRON能量租赁系统	TRON能量租赁系统 1	批量更新系统设置	550e8400-e29b-41d4-a716-446655440000	2025-08-28 11:11:25.80523+08
-a9b61f23-d704-4994-a80f-0811e069acc4	857927cc-a67f-4fe2-b691-6c6e16f62b84	TRON能量租赁系统 1	TRON能量租赁系统 11	批量更新系统设置	550e8400-e29b-41d4-a716-446655440000	2025-08-28 12:30:29.420523+08
-d4e37d8e-73ca-4137-8059-efa80f2c33c4	857927cc-a67f-4fe2-b691-6c6e16f62b84	TRON能量租赁系统 11	TRON能量租赁系统 111	批量更新系统设置	550e8400-e29b-41d4-a716-446655440000	2025-08-28 12:46:23.876832+08
-76ccb59b-7bb1-4291-b094-4164c886be8d	857927cc-a67f-4fe2-b691-6c6e16f62b84	TRON能量租赁系统 111	测试系统名称更新	API测试	550e8400-e29b-41d4-a716-446655440000	2025-08-28 12:54:21.60674+08
-ef3c5ff3-632f-4de8-aabe-fb77bad55711	857927cc-a67f-4fe2-b691-6c6e16f62b84	测试系统名称更新	测试系统名称更新111	批量更新系统设置	550e8400-e29b-41d4-a716-446655440000	2025-08-28 13:07:26.118242+08
-37faabfb-a70a-469f-a45f-ec2aff2003a0	857927cc-a67f-4fe2-b691-6c6e16f62b84	测试系统名称更新111	测试系统名称_2025-08-28T10:52:26.827Z	测试保存功能	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 18:52:26.844659+08
-e98690b1-8684-44cc-a163-99048ab6734a	e1a1e171-3413-4a20-bb31-36a05937e9a0	test@example.com	test_1756378346828@example.com	测试保存功能	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 18:52:26.858257+08
-38de7f97-da6d-449b-95ed-25506e2162ea	857927cc-a67f-4fe2-b691-6c6e16f62b84	测试系统名称_2025-08-28T10:52:26.827Z	测试系统名称_2025-08-28T10:52:26.827Z111	更新basic设置	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 19:49:52.72445+08
-47a1acbe-804f-4130-bcf0-c6d6d5747362	857927cc-a67f-4fe2-b691-6c6e16f62b84	测试系统名称_2025-08-28T10:52:26.827Z111	测试系统名称_12312312	更新basic设置	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 19:49:59.824892+08
-985f793c-1070-4df9-afd2-c7f97ec22320	857927cc-a67f-4fe2-b691-6c6e16f62b84	测试系统名称_12312312	测试系统名称_12312312111	更新basic设置	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 20:10:56.927658+08
-\.
-
-
---
--- TOC entry 4232 (class 0 OID 34285)
--- Dependencies: 221
--- Data for Name: system_configs; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.system_configs (id, config_key, config_value, config_type, category, description, is_public, is_editable, validation_rules, default_value, created_by, updated_by, created_at, updated_at) FROM stdin;
-2dad6564-d212-4131-a199-1cacc7353e91	system.version	1.0.0	string	system	系统版本	t	f	\N	1.0.0	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-365b1611-f634-4f4c-a819-a124615b1d21	system.maintenance_mode	false	boolean	system	维护模式开关	f	t	\N	false	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-fc036bf8-0379-4a23-afad-34cf779c99d3	feature.user_registration	true	boolean	features	用户注册功能开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-194be6b2-d47e-40a7-8053-ed24511c6266	feature.agent_application	true	boolean	features	代理申请功能开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-eabab032-130b-4ba7-a677-478010be2f7f	feature.energy_trading	true	boolean	features	能量交易功能开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-5fe6e180-bbbb-42c2-8d4f-1e76922ca123	feature.referral_system	true	boolean	features	推荐系统功能开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-fc630553-823d-412d-b8fe-2cc84c183f78	business.min_order_amount	100	number	business	最小订单金额(TRX)	f	t	\N	100	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-21e0d7a7-3f7d-49c2-b014-581eee258bde	business.max_order_amount	10000	number	business	最大订单金额(TRX)	f	t	\N	10000	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-42369187-1e9e-432b-a3c7-6bb19692aee6	business.default_commission_rate	0.1	number	business	默认佣金比例	f	t	\N	0.1	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-2930b7a7-1afd-451c-abae-889096c82981	business.order_timeout_hours	24	number	business	订单超时时间(小时)	f	t	\N	24	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-b5311375-b230-46a6-837c-872ea17f6a4a	business.energy_unit_price	0.0001	number	business	能量单价(TRX/能量)	f	t	\N	0.0001	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-da83481a-a87c-4e09-be70-4d2010a99bd3	security.max_login_attempts	5	number	security	最大登录尝试次数	f	t	\N	5	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-bec93d38-870e-4763-a614-d82fa5d09f22	security.login_lockout_minutes	30	number	security	登录锁定时间(分钟)	f	t	\N	30	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-ecb37cc9-64bb-4167-8c69-ee83dfb8a63e	security.jwt_expire_hours	24	number	security	JWT过期时间(小时)	f	t	\N	24	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-d8f76ccf-3223-478d-801b-1d3a5562d070	security.password_min_length	8	number	security	密码最小长度	f	t	\N	8	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-5a396047-e67f-40b4-b327-e6b8a1c2855f	notification.email_enabled	true	boolean	notification	邮件通知开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-6cc2627b-6cc6-468e-999d-a660fe4a2da3	notification.sms_enabled	false	boolean	notification	短信通知开关	f	t	\N	false	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-7c1a4e15-1c46-42c8-b3b0-b121efe02497	notification.telegram_enabled	true	boolean	notification	Telegram通知开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-f7987958-7d72-4c43-a33d-d8247ddd25ae	api.rate_limit_per_minute	100	number	api	API每分钟请求限制	f	t	\N	100	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-6609faa1-bb7c-4680-af2c-dbf18d970701	api.rate_limit_per_hour	1000	number	api	API每小时请求限制	f	t	\N	1000	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-a34ab844-ae63-4752-a3de-010090f0846d	api.enable_cors	true	boolean	api	CORS开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-3ca53f3c-fb70-405c-9d7b-cd7d3503d479	payment.tron_network	mainnet	string	payment	TRON网络类型	f	t	\N	mainnet	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-f684e5e3-80db-45c6-9d00-5f9e319df7ba	payment.confirmation_blocks	19	number	payment	支付确认区块数	f	t	\N	19	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-40f9bbfa-3440-4f1b-8e98-a54fb171517d	payment.auto_refund_hours	72	number	payment	自动退款时间(小时)	f	t	\N	72	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-e620c2ff-7cd7-4bf8-ba98-bbf19f64a021	cache.redis_ttl_seconds	3600	number	cache	Redis缓存过期时间(秒)	f	t	\N	3600	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-e1fb72c6-318f-46e0-9c8e-7521721454d1	cache.enable_query_cache	true	boolean	cache	查询缓存开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-089d2935-bd70-4218-a859-50d428a176e6	logging.level	info	string	logging	日志级别	f	t	\N	info	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-b4cc9beb-66e5-49eb-947b-f62b20eb9b4b	logging.retention_days	30	number	logging	日志保留天数	f	t	\N	30	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-7d8407f6-96fc-4f4e-bdb1-5cbf6b43ea85	logging.enable_file_log	true	boolean	logging	文件日志开关	f	t	\N	true	\N	\N	2025-08-27 10:45:18.241664+08	2025-08-27 10:45:18.241664+08
-5ffed6ce-c94c-4b73-b0a4-b0f34433eda8	system.maintenance_message	系统正在维护中，请稍后再试	string	system	维护模式提示信息	t	t	\N	系统正在维护中，请稍后再试	\N	550e8400-e29b-41d4-a716-446655440000	2025-08-27 10:45:18.241664+08	2025-08-28 09:56:54.317236+08
-07c1264d-c312-4400-9921-179f40d74bd9	security.enable_two_factor	true	boolean	security	启用双因子认证	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-a3ff2fa5-6d4d-435c-8d4b-88030200a88d	security.session_timeout	30	number	security	会话超时时间(分钟)	f	t	\N	30	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-eaf1b041-6db7-4391-a38a-65a08bd17419	security.password_expire_days	90	number	security	密码过期天数	f	t	\N	90	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-22cb7d6d-8581-47f1-b130-300ef5750cdb	security.enable_ip_whitelist	false	boolean	security	启用IP白名单	f	t	\N	false	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-8837bb7a-9fa5-43de-9b1b-3e36eb111e36	security.ip_whitelist	[]	array	security	IP白名单列表	f	t	\N	[]	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-b081d33a-c0e1-4b3f-9f5a-e126e4a4113e	security.enable_api_rate_limit	true	boolean	security	启用API速率限制	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-44b93160-a466-4bf5-8d81-516de5339388	security.api_rate_limit	1000	number	security	API速率限制(每小时)	f	t	\N	1000	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-9354f6ff-076a-4e0a-90bd-afae9e58920b	notification.system_alerts	true	boolean	notification	系统警报通知	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-3aba79dc-4a25-44b7-820a-3c77255afafb	notification.order_updates	true	boolean	notification	订单更新通知	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-f6c849f3-58bb-471f-9cb0-7e7a94c42f77	notification.low_balance_alert	true	boolean	notification	余额不足警报	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-169ce4a9-25ec-45b6-993d-144310fb775e	notification.maintenance_notifications	true	boolean	notification	维护通知	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-2874576b-d747-4d2e-a36a-ee727343937b	notification.weekly_report	true	boolean	notification	周报通知	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-32b81ab2-7108-4025-98d3-811f7ccdbf5d	notification.monthly_report	true	boolean	notification	月报通知	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-f6a005a4-2020-430d-a446-f8364cd9737b	system.debug_mode	false	boolean	system	调试模式	f	t	\N	false	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-85132fcd-802d-4d53-94aa-0fa6f6de07e9	system.log_level	info	string	system	日志级别	f	t	\N	info	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-64357156-a5b1-4dee-b5e7-e79cc83bb901	system.auto_backup	true	boolean	system	自动备份	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-73301580-d3a3-4d37-a295-d7b5b2dc228f	system.backup_retention_days	30	number	system	备份保留天数	f	t	\N	30	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-8cecd3d4-ad09-4418-a874-0af3abe948ac	system.cache_optimization	true	boolean	system	缓存优化	f	t	\N	true	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-0dfd7fc1-01bd-41d9-84d4-84f05241acc3	system.cache_expire_time	3600	number	system	缓存过期时间(秒)	f	t	\N	3600	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-bc920c98-0f94-4b62-a23e-bff19052fc39	pricing.energy_base_price	0.1	number	pricing	能量基础价格	f	t	\N	0.1	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-4be6c093-674c-45df-a141-b1bbc7418cb2	pricing.bandwidth_base_price	0.05	number	pricing	带宽基础价格	f	t	\N	0.05	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-491ab6ba-9408-40e2-a745-4f125bfc6788	pricing.emergency_fee_multiplier	1.5	number	pricing	紧急费用倍数	f	t	\N	1.5	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-70009f6e-516e-454e-ba46-472e26233f2e	pricing.minimum_order_amount	10	number	pricing	最小订单金额	f	t	\N	10	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-59d9a6e7-895a-4c07-956a-a9ccdc5f3906	pricing.maximum_order_amount	10000	number	pricing	最大订单金额	f	t	\N	10000	\N	\N	2025-08-28 08:44:26.036469+08	2025-08-28 08:44:26.036469+08
-857927cc-a67f-4fe2-b691-6c6e16f62b84	system.name	测试系统名称_12312312111	string	system	系统名称	t	t	\N	TRON能量租赁系统	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-27 10:45:18.241664+08	2025-08-28 20:10:56.931327+08
-f244a391-2302-4f97-a51b-1f29551ff99b	system.description	专业的TRON网络能量和带宽租赁服务平台	string	system	系统描述	t	t	\N	专业的TRON网络能量和带宽租赁服务平台	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.932723+08
-e1a1e171-3413-4a20-bb31-36a05937e9a0	system.contact_email	test_1756378346828@example.com	string	system	联系邮箱	t	t	\N	support@tron-energy.com	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.935142+08
-b123106a-5191-4140-ac03-e5d3061607c4	system.support_phone	+86-400-123-4567	string	system	支持电话	t	t	\N	+86-400-123-4567	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.936334+08
-2a92f184-8dee-465e-8ccb-1c5ad4fc05b1	system.timezone	Asia/Shanghai	string	system	系统时区	t	t	\N	Asia/Shanghai	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.937736+08
-446679fe-b05e-4894-a0af-75aef15f2751	system.language	zh-CN	string	system	系统语言	t	t	\N	zh-CN	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.938683+08
-bedee1b1-6d54-4c2e-85b5-ab8aa2eed4e7	system.currency	CNY	string	system	系统货币	t	t	\N	CNY	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.939429+08
-91ac4825-62c8-4858-965a-fe9d21a2e167	system.date_format	YYYY-MM-DD	string	system	日期格式	t	t	\N	YYYY-MM-DD	\N	980ff3a6-161d-49d6-9373-454d1e3cf4c4	2025-08-28 08:44:26.036469+08	2025-08-28 20:10:56.940104+08
-\.
-
-
---
--- TOC entry 4243 (class 0 OID 34953)
--- Dependencies: 234
--- Data for Name: telegram_bots; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.telegram_bots (id, bot_token, bot_name, bot_username, webhook_url, is_active, created_by, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4223 (class 0 OID 28273)
--- Dependencies: 212
--- Data for Name: telegram_users; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.telegram_users (id, telegram_id, username, first_name, last_name, email, phone, status, tron_address, balance, total_orders, total_energy_used, referral_code, referred_by, created_at, updated_at, password_hash, login_type, last_login_at, password_reset_token, password_reset_expires, usdt_balance, trx_balance, agent_id, user_type) FROM stdin;
-09ad451f-3bd8-4ebd-a6e0-fc037db7e703	\N	\N	\N	\N	test@example.com	\N	active	\N	0.000000	0	0	\N	\N	2025-08-27 09:33:04.348682+08	2025-08-28 17:06:28.986061+08	$2a$10$E3QMocOmgGsRzKuV2db.j.OBVfdQ9hfnIkGfOOsNZo6HdAo2wPq6y	admin	\N	\N	\N	0.00000000	0.00000000	\N	normal
-550e8400-e29b-41d4-a716-446655440000	123456789	admin	System Admin	\N	admin@tronrental.com	\N	active	\N	0.000000	0	0	ADMIN001	\N	2025-08-27 09:18:42.092445+08	2025-08-28 17:06:28.986061+08	$2a$10$czslCVI4UmXf1.j0zub2mesltXB66uCNJRJYj.1YSRJMSYSOrQeuG	both	2025-08-28 14:19:18.101117	\N	\N	0.00000000	0.00000000	\N	normal
-c380caa5-b04c-4f1a-a4e8-3cc7cc301021	987654321	testuser	Updated Test	User	\N	\N	inactive	\N	0.000000	0	0	TEST001	\N	2025-08-28 15:00:07.511842+08	2025-08-28 17:06:28.966007+08	\N	telegram	\N	\N	\N	0.00000000	0.00000000	\N	vip
-\.
-
-
---
--- TOC entry 4239 (class 0 OID 34500)
--- Dependencies: 229
--- Data for Name: user_level_changes; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.user_level_changes (id, user_id, old_level, new_level, change_reason, changed_by, change_type, effective_date, created_at, updated_at) FROM stdin;
-\.
-
-
---
--- TOC entry 4523 (class 0 OID 0)
--- Dependencies: 210
--- Name: schema_migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.schema_migrations_id_seq', 2, true);
-
-
---
--- TOC entry 3990 (class 2606 OID 34450)
 -- Name: admin_permissions admin_permissions_admin_id_role_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3667,7 +2643,6 @@ ALTER TABLE ONLY public.admin_permissions
 
 
 --
--- TOC entry 3992 (class 2606 OID 34448)
 -- Name: admin_permissions admin_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3676,7 +2651,6 @@ ALTER TABLE ONLY public.admin_permissions
 
 
 --
--- TOC entry 3976 (class 2606 OID 34420)
 -- Name: admin_roles admin_roles_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3685,7 +2659,6 @@ ALTER TABLE ONLY public.admin_roles
 
 
 --
--- TOC entry 3978 (class 2606 OID 34418)
 -- Name: admin_roles admin_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3694,7 +2667,6 @@ ALTER TABLE ONLY public.admin_roles
 
 
 --
--- TOC entry 3981 (class 2606 OID 34438)
 -- Name: admins admins_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3703,7 +2675,6 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 3983 (class 2606 OID 34434)
 -- Name: admins admins_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3712,7 +2683,6 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 3985 (class 2606 OID 34436)
 -- Name: admins admins_username_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3721,7 +2691,6 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 3929 (class 2606 OID 28395)
 -- Name: agent_applications agent_applications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3730,7 +2699,6 @@ ALTER TABLE ONLY public.agent_applications
 
 
 --
--- TOC entry 3931 (class 2606 OID 28415)
 -- Name: agent_earnings agent_earnings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3739,7 +2707,6 @@ ALTER TABLE ONLY public.agent_earnings
 
 
 --
--- TOC entry 3922 (class 2606 OID 28373)
 -- Name: agents agents_agent_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3748,7 +2715,6 @@ ALTER TABLE ONLY public.agents
 
 
 --
--- TOC entry 3924 (class 2606 OID 28371)
 -- Name: agents agents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3757,7 +2723,6 @@ ALTER TABLE ONLY public.agents
 
 
 --
--- TOC entry 3996 (class 2606 OID 34471)
 -- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3766,7 +2731,6 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 3936 (class 2606 OID 28445)
 -- Name: bot_users bot_users_bot_id_telegram_chat_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3775,7 +2739,6 @@ ALTER TABLE ONLY public.bot_users
 
 
 --
--- TOC entry 3938 (class 2606 OID 28443)
 -- Name: bot_users bot_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3784,7 +2747,6 @@ ALTER TABLE ONLY public.bot_users
 
 
 --
--- TOC entry 3971 (class 2606 OID 34362)
 -- Name: energy_consumption_logs energy_consumption_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3793,7 +2755,6 @@ ALTER TABLE ONLY public.energy_consumption_logs
 
 
 --
--- TOC entry 3910 (class 2606 OID 28307)
 -- Name: energy_packages energy_packages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3802,7 +2763,6 @@ ALTER TABLE ONLY public.energy_packages
 
 
 --
--- TOC entry 3943 (class 2606 OID 28471)
 -- Name: energy_pools energy_pools_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3811,7 +2771,6 @@ ALTER TABLE ONLY public.energy_pools
 
 
 --
--- TOC entry 3945 (class 2606 OID 28473)
 -- Name: energy_pools energy_pools_tron_address_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3820,7 +2779,6 @@ ALTER TABLE ONLY public.energy_pools
 
 
 --
--- TOC entry 3951 (class 2606 OID 28485)
 -- Name: energy_transactions energy_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3829,7 +2787,6 @@ ALTER TABLE ONLY public.energy_transactions
 
 
 --
--- TOC entry 3953 (class 2606 OID 28487)
 -- Name: energy_transactions energy_transactions_tx_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3838,7 +2795,6 @@ ALTER TABLE ONLY public.energy_transactions
 
 
 --
--- TOC entry 3918 (class 2606 OID 28342)
 -- Name: orders orders_order_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3847,7 +2803,6 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 3920 (class 2606 OID 28340)
 -- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3856,7 +2811,6 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 4035 (class 2606 OID 34983)
 -- Name: pricing_history pricing_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3865,7 +2819,6 @@ ALTER TABLE ONLY public.pricing_history
 
 
 --
--- TOC entry 4017 (class 2606 OID 34717)
 -- Name: pricing_modes pricing_modes_mode_type_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3874,7 +2827,6 @@ ALTER TABLE ONLY public.pricing_modes
 
 
 --
--- TOC entry 4019 (class 2606 OID 34715)
 -- Name: pricing_modes pricing_modes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3883,7 +2835,6 @@ ALTER TABLE ONLY public.pricing_modes
 
 
 --
--- TOC entry 4013 (class 2606 OID 34674)
 -- Name: pricing_strategies pricing_strategies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3892,7 +2843,6 @@ ALTER TABLE ONLY public.pricing_strategies
 
 
 --
--- TOC entry 4023 (class 2606 OID 34894)
 -- Name: pricing_templates pricing_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3901,7 +2851,6 @@ ALTER TABLE ONLY public.pricing_templates
 
 
 --
--- TOC entry 3889 (class 2606 OID 28238)
 -- Name: schema_migrations schema_migrations_filename_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3910,7 +2859,6 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- TOC entry 3891 (class 2606 OID 28236)
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3919,7 +2867,6 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- TOC entry 3969 (class 2606 OID 34320)
 -- Name: system_config_history system_config_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3928,7 +2875,6 @@ ALTER TABLE ONLY public.system_config_history
 
 
 --
--- TOC entry 3963 (class 2606 OID 34301)
 -- Name: system_configs system_configs_config_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3937,7 +2883,6 @@ ALTER TABLE ONLY public.system_configs
 
 
 --
--- TOC entry 3965 (class 2606 OID 34299)
 -- Name: system_configs system_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3946,7 +2891,6 @@ ALTER TABLE ONLY public.system_configs
 
 
 --
--- TOC entry 4028 (class 2606 OID 34965)
 -- Name: telegram_bots telegram_bots_bot_token_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3955,7 +2899,6 @@ ALTER TABLE ONLY public.telegram_bots
 
 
 --
--- TOC entry 4030 (class 2606 OID 34963)
 -- Name: telegram_bots telegram_bots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3964,7 +2907,6 @@ ALTER TABLE ONLY public.telegram_bots
 
 
 --
--- TOC entry 4006 (class 2606 OID 34510)
 -- Name: user_level_changes user_level_changes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3973,43 +2915,38 @@ ALTER TABLE ONLY public.user_level_changes
 
 
 --
--- TOC entry 3902 (class 2606 OID 28293)
--- Name: telegram_users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_email_key UNIQUE (email);
 
 
 --
--- TOC entry 3904 (class 2606 OID 28289)
--- Name: telegram_users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 3906 (class 2606 OID 28295)
--- Name: telegram_users users_referral_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_referral_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_referral_code_key UNIQUE (referral_code);
 
 
 --
--- TOC entry 3908 (class 2606 OID 28291)
--- Name: telegram_users users_telegram_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_telegram_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_telegram_id_key UNIQUE (telegram_id);
 
 
 --
--- TOC entry 3993 (class 1259 OID 34461)
 -- Name: idx_admin_permissions_admin_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4017,7 +2954,6 @@ CREATE INDEX idx_admin_permissions_admin_id ON public.admin_permissions USING bt
 
 
 --
--- TOC entry 3994 (class 1259 OID 34462)
 -- Name: idx_admin_permissions_role_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4025,7 +2961,6 @@ CREATE INDEX idx_admin_permissions_role_id ON public.admin_permissions USING btr
 
 
 --
--- TOC entry 3979 (class 1259 OID 34421)
 -- Name: idx_admin_roles_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4033,7 +2968,6 @@ CREATE INDEX idx_admin_roles_name ON public.admin_roles USING btree (name);
 
 
 --
--- TOC entry 3986 (class 1259 OID 34440)
 -- Name: idx_admins_email; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4041,7 +2975,6 @@ CREATE INDEX idx_admins_email ON public.admins USING btree (email);
 
 
 --
--- TOC entry 3987 (class 1259 OID 34441)
 -- Name: idx_admins_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4049,7 +2982,6 @@ CREATE INDEX idx_admins_status ON public.admins USING btree (status);
 
 
 --
--- TOC entry 3988 (class 1259 OID 34439)
 -- Name: idx_admins_username; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4057,7 +2989,6 @@ CREATE INDEX idx_admins_username ON public.admins USING btree (username);
 
 
 --
--- TOC entry 3932 (class 1259 OID 28567)
 -- Name: idx_agent_earnings_agent_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4065,7 +2996,6 @@ CREATE INDEX idx_agent_earnings_agent_id ON public.agent_earnings USING btree (a
 
 
 --
--- TOC entry 3933 (class 1259 OID 28568)
 -- Name: idx_agent_earnings_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4073,7 +3003,6 @@ CREATE INDEX idx_agent_earnings_order_id ON public.agent_earnings USING btree (o
 
 
 --
--- TOC entry 3934 (class 1259 OID 28569)
 -- Name: idx_agent_earnings_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4081,7 +3010,6 @@ CREATE INDEX idx_agent_earnings_status ON public.agent_earnings USING btree (sta
 
 
 --
--- TOC entry 3925 (class 1259 OID 28565)
 -- Name: idx_agents_agent_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4089,7 +3017,6 @@ CREATE INDEX idx_agents_agent_code ON public.agents USING btree (agent_code);
 
 
 --
--- TOC entry 3926 (class 1259 OID 28566)
 -- Name: idx_agents_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4097,7 +3024,6 @@ CREATE INDEX idx_agents_status ON public.agents USING btree (status);
 
 
 --
--- TOC entry 3927 (class 1259 OID 28564)
 -- Name: idx_agents_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4105,7 +3031,6 @@ CREATE INDEX idx_agents_user_id ON public.agents USING btree (user_id);
 
 
 --
--- TOC entry 3997 (class 1259 OID 34478)
 -- Name: idx_audit_logs_action; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4113,7 +3038,6 @@ CREATE INDEX idx_audit_logs_action ON public.audit_logs USING btree (action);
 
 
 --
--- TOC entry 3998 (class 1259 OID 34477)
 -- Name: idx_audit_logs_admin_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4121,7 +3045,6 @@ CREATE INDEX idx_audit_logs_admin_id ON public.audit_logs USING btree (admin_id)
 
 
 --
--- TOC entry 3999 (class 1259 OID 34479)
 -- Name: idx_audit_logs_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4129,7 +3052,6 @@ CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created
 
 
 --
--- TOC entry 3939 (class 1259 OID 28572)
 -- Name: idx_bot_users_bot_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4137,7 +3059,6 @@ CREATE INDEX idx_bot_users_bot_id ON public.bot_users USING btree (bot_id);
 
 
 --
--- TOC entry 3940 (class 1259 OID 28574)
 -- Name: idx_bot_users_telegram_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4145,7 +3066,6 @@ CREATE INDEX idx_bot_users_telegram_chat_id ON public.bot_users USING btree (tel
 
 
 --
--- TOC entry 3941 (class 1259 OID 28573)
 -- Name: idx_bot_users_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4153,7 +3073,6 @@ CREATE INDEX idx_bot_users_user_id ON public.bot_users USING btree (user_id);
 
 
 --
--- TOC entry 3972 (class 1259 OID 34371)
 -- Name: idx_energy_consumption_logs_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4161,7 +3080,6 @@ CREATE INDEX idx_energy_consumption_logs_created_at ON public.energy_consumption
 
 
 --
--- TOC entry 3973 (class 1259 OID 34372)
 -- Name: idx_energy_consumption_logs_pool_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4169,7 +3087,6 @@ CREATE INDEX idx_energy_consumption_logs_pool_account_id ON public.energy_consum
 
 
 --
--- TOC entry 3974 (class 1259 OID 34373)
 -- Name: idx_energy_consumption_logs_transaction_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4177,7 +3094,6 @@ CREATE INDEX idx_energy_consumption_logs_transaction_type ON public.energy_consu
 
 
 --
--- TOC entry 3946 (class 1259 OID 34368)
 -- Name: idx_energy_pools_account_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4185,7 +3101,6 @@ CREATE INDEX idx_energy_pools_account_type ON public.energy_pools USING btree (a
 
 
 --
--- TOC entry 3947 (class 1259 OID 34369)
 -- Name: idx_energy_pools_priority; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4193,7 +3108,6 @@ CREATE INDEX idx_energy_pools_priority ON public.energy_pools USING btree (prior
 
 
 --
--- TOC entry 3948 (class 1259 OID 28576)
 -- Name: idx_energy_pools_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4201,7 +3115,6 @@ CREATE INDEX idx_energy_pools_status ON public.energy_pools USING btree (status)
 
 
 --
--- TOC entry 3949 (class 1259 OID 28575)
 -- Name: idx_energy_pools_tron_address; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4209,7 +3122,6 @@ CREATE INDEX idx_energy_pools_tron_address ON public.energy_pools USING btree (t
 
 
 --
--- TOC entry 3954 (class 1259 OID 28577)
 -- Name: idx_energy_transactions_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4217,7 +3129,6 @@ CREATE INDEX idx_energy_transactions_order_id ON public.energy_transactions USIN
 
 
 --
--- TOC entry 3955 (class 1259 OID 28578)
 -- Name: idx_energy_transactions_pool_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4225,7 +3136,6 @@ CREATE INDEX idx_energy_transactions_pool_id ON public.energy_transactions USING
 
 
 --
--- TOC entry 3956 (class 1259 OID 28580)
 -- Name: idx_energy_transactions_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4233,7 +3143,6 @@ CREATE INDEX idx_energy_transactions_status ON public.energy_transactions USING 
 
 
 --
--- TOC entry 3957 (class 1259 OID 28579)
 -- Name: idx_energy_transactions_tx_hash; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4241,7 +3150,6 @@ CREATE INDEX idx_energy_transactions_tx_hash ON public.energy_transactions USING
 
 
 --
--- TOC entry 3911 (class 1259 OID 28559)
 -- Name: idx_orders_bot_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4249,7 +3157,6 @@ CREATE INDEX idx_orders_bot_id ON public.orders USING btree (bot_id);
 
 
 --
--- TOC entry 3912 (class 1259 OID 28562)
 -- Name: idx_orders_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4257,7 +3164,6 @@ CREATE INDEX idx_orders_created_at ON public.orders USING btree (created_at);
 
 
 --
--- TOC entry 3913 (class 1259 OID 28563)
 -- Name: idx_orders_order_number; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4265,7 +3171,6 @@ CREATE INDEX idx_orders_order_number ON public.orders USING btree (order_number)
 
 
 --
--- TOC entry 3914 (class 1259 OID 28561)
 -- Name: idx_orders_payment_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4273,7 +3178,6 @@ CREATE INDEX idx_orders_payment_status ON public.orders USING btree (payment_sta
 
 
 --
--- TOC entry 3915 (class 1259 OID 28560)
 -- Name: idx_orders_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4281,7 +3185,6 @@ CREATE INDEX idx_orders_status ON public.orders USING btree (status);
 
 
 --
--- TOC entry 3916 (class 1259 OID 28558)
 -- Name: idx_orders_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4289,7 +3192,6 @@ CREATE INDEX idx_orders_user_id ON public.orders USING btree (user_id);
 
 
 --
--- TOC entry 4031 (class 1259 OID 34996)
 -- Name: idx_pricing_history_changed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4297,7 +3199,6 @@ CREATE INDEX idx_pricing_history_changed_by ON public.pricing_history USING btre
 
 
 --
--- TOC entry 4032 (class 1259 OID 34995)
 -- Name: idx_pricing_history_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4305,7 +3206,6 @@ CREATE INDEX idx_pricing_history_created_at ON public.pricing_history USING btre
 
 
 --
--- TOC entry 4033 (class 1259 OID 34994)
 -- Name: idx_pricing_history_strategy_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4313,7 +3213,6 @@ CREATE INDEX idx_pricing_history_strategy_id ON public.pricing_history USING btr
 
 
 --
--- TOC entry 4014 (class 1259 OID 34719)
 -- Name: idx_pricing_modes_enabled; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4321,7 +3220,6 @@ CREATE INDEX idx_pricing_modes_enabled ON public.pricing_modes USING btree (is_e
 
 
 --
--- TOC entry 4015 (class 1259 OID 34718)
 -- Name: idx_pricing_modes_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4329,7 +3227,6 @@ CREATE INDEX idx_pricing_modes_type ON public.pricing_modes USING btree (mode_ty
 
 
 --
--- TOC entry 4007 (class 1259 OID 34681)
 -- Name: idx_pricing_strategies_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4337,7 +3234,6 @@ CREATE INDEX idx_pricing_strategies_active ON public.pricing_strategies USING bt
 
 
 --
--- TOC entry 4008 (class 1259 OID 34682)
 -- Name: idx_pricing_strategies_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4345,7 +3241,6 @@ CREATE INDEX idx_pricing_strategies_created_by ON public.pricing_strategies USIN
 
 
 --
--- TOC entry 4009 (class 1259 OID 34684)
 -- Name: idx_pricing_strategies_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4353,7 +3248,6 @@ CREATE INDEX idx_pricing_strategies_name ON public.pricing_strategies USING btre
 
 
 --
--- TOC entry 4010 (class 1259 OID 34683)
 -- Name: idx_pricing_strategies_template; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4361,7 +3255,6 @@ CREATE INDEX idx_pricing_strategies_template ON public.pricing_strategies USING 
 
 
 --
--- TOC entry 4011 (class 1259 OID 34680)
 -- Name: idx_pricing_strategies_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4369,7 +3262,6 @@ CREATE INDEX idx_pricing_strategies_type ON public.pricing_strategies USING btre
 
 
 --
--- TOC entry 4020 (class 1259 OID 34896)
 -- Name: idx_pricing_templates_system; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4377,7 +3269,6 @@ CREATE INDEX idx_pricing_templates_system ON public.pricing_templates USING btre
 
 
 --
--- TOC entry 4021 (class 1259 OID 34895)
 -- Name: idx_pricing_templates_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4385,7 +3276,6 @@ CREATE INDEX idx_pricing_templates_type ON public.pricing_templates USING btree 
 
 
 --
--- TOC entry 3966 (class 1259 OID 34335)
 -- Name: idx_system_config_history_config_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4393,7 +3283,6 @@ CREATE INDEX idx_system_config_history_config_id ON public.system_config_history
 
 
 --
--- TOC entry 3967 (class 1259 OID 34336)
 -- Name: idx_system_config_history_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4401,7 +3290,6 @@ CREATE INDEX idx_system_config_history_created_at ON public.system_config_histor
 
 
 --
--- TOC entry 3958 (class 1259 OID 34332)
 -- Name: idx_system_configs_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4409,7 +3297,6 @@ CREATE INDEX idx_system_configs_category ON public.system_configs USING btree (c
 
 
 --
--- TOC entry 3959 (class 1259 OID 34333)
 -- Name: idx_system_configs_is_public; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4417,7 +3304,6 @@ CREATE INDEX idx_system_configs_is_public ON public.system_configs USING btree (
 
 
 --
--- TOC entry 3960 (class 1259 OID 34331)
 -- Name: idx_system_configs_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4425,7 +3311,6 @@ CREATE INDEX idx_system_configs_key ON public.system_configs USING btree (config
 
 
 --
--- TOC entry 3961 (class 1259 OID 34334)
 -- Name: idx_system_configs_updated_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4433,7 +3318,6 @@ CREATE INDEX idx_system_configs_updated_at ON public.system_configs USING btree 
 
 
 --
--- TOC entry 4024 (class 1259 OID 34971)
 -- Name: idx_telegram_bots_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4441,7 +3325,6 @@ CREATE INDEX idx_telegram_bots_active ON public.telegram_bots USING btree (is_ac
 
 
 --
--- TOC entry 4025 (class 1259 OID 34973)
 -- Name: idx_telegram_bots_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4449,7 +3332,6 @@ CREATE INDEX idx_telegram_bots_created_by ON public.telegram_bots USING btree (c
 
 
 --
--- TOC entry 4026 (class 1259 OID 34972)
 -- Name: idx_telegram_bots_username; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4457,15 +3339,13 @@ CREATE INDEX idx_telegram_bots_username ON public.telegram_bots USING btree (bot
 
 
 --
--- TOC entry 3892 (class 1259 OID 34529)
 -- Name: idx_telegram_users_user_type; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_telegram_users_user_type ON public.telegram_users USING btree (user_type);
+CREATE INDEX idx_telegram_users_user_type ON public.users USING btree (user_type);
 
 
 --
--- TOC entry 4000 (class 1259 OID 34523)
 -- Name: idx_user_level_changes_change_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4473,7 +3353,6 @@ CREATE INDEX idx_user_level_changes_change_type ON public.user_level_changes USI
 
 
 --
--- TOC entry 4001 (class 1259 OID 34522)
 -- Name: idx_user_level_changes_changed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4481,7 +3360,6 @@ CREATE INDEX idx_user_level_changes_changed_by ON public.user_level_changes USIN
 
 
 --
--- TOC entry 4002 (class 1259 OID 34525)
 -- Name: idx_user_level_changes_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4489,7 +3367,6 @@ CREATE INDEX idx_user_level_changes_created_at ON public.user_level_changes USIN
 
 
 --
--- TOC entry 4003 (class 1259 OID 34524)
 -- Name: idx_user_level_changes_effective_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4497,7 +3374,6 @@ CREATE INDEX idx_user_level_changes_effective_date ON public.user_level_changes 
 
 
 --
--- TOC entry 4004 (class 1259 OID 34521)
 -- Name: idx_user_level_changes_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4505,71 +3381,62 @@ CREATE INDEX idx_user_level_changes_user_id ON public.user_level_changes USING b
 
 
 --
--- TOC entry 3893 (class 1259 OID 28554)
 -- Name: idx_users_email; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_email ON public.telegram_users USING btree (email);
+CREATE INDEX idx_users_email ON public.users USING btree (email);
 
 
 --
--- TOC entry 3894 (class 1259 OID 28609)
 -- Name: idx_users_login_type; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_login_type ON public.telegram_users USING btree (login_type);
+CREATE INDEX idx_users_login_type ON public.users USING btree (login_type);
 
 
 --
--- TOC entry 3895 (class 1259 OID 28608)
 -- Name: idx_users_password_reset_token; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_password_reset_token ON public.telegram_users USING btree (password_reset_token) WHERE (password_reset_token IS NOT NULL);
+CREATE INDEX idx_users_password_reset_token ON public.users USING btree (password_reset_token) WHERE (password_reset_token IS NOT NULL);
 
 
 --
--- TOC entry 3896 (class 1259 OID 28557)
 -- Name: idx_users_referral_code; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_referral_code ON public.telegram_users USING btree (referral_code);
+CREATE INDEX idx_users_referral_code ON public.users USING btree (referral_code);
 
 
 --
--- TOC entry 3897 (class 1259 OID 28556)
 -- Name: idx_users_status; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_status ON public.telegram_users USING btree (status);
+CREATE INDEX idx_users_status ON public.users USING btree (status);
 
 
 --
--- TOC entry 3898 (class 1259 OID 28553)
 -- Name: idx_users_telegram_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_telegram_id ON public.telegram_users USING btree (telegram_id);
+CREATE INDEX idx_users_telegram_id ON public.users USING btree (telegram_id);
 
 
 --
--- TOC entry 3899 (class 1259 OID 34341)
 -- Name: idx_users_trx_balance; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_trx_balance ON public.telegram_users USING btree (trx_balance);
+CREATE INDEX idx_users_trx_balance ON public.users USING btree (trx_balance);
 
 
 --
--- TOC entry 3900 (class 1259 OID 34340)
 -- Name: idx_users_usdt_balance; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_users_usdt_balance ON public.telegram_users USING btree (usdt_balance);
+CREATE INDEX idx_users_usdt_balance ON public.users USING btree (usdt_balance);
 
 
 --
--- TOC entry 4076 (class 2620 OID 34852)
 -- Name: pricing_strategies pricing_strategies_history_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4577,7 +3444,6 @@ CREATE TRIGGER pricing_strategies_history_trigger AFTER INSERT OR DELETE OR UPDA
 
 
 --
--- TOC entry 4077 (class 2620 OID 34997)
 -- Name: pricing_strategies pricing_strategy_change_log; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4585,7 +3451,6 @@ CREATE TRIGGER pricing_strategy_change_log AFTER UPDATE ON public.pricing_strate
 
 
 --
--- TOC entry 4073 (class 2620 OID 34499)
 -- Name: admins update_admins_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4593,7 +3458,6 @@ CREATE TRIGGER update_admins_updated_at BEFORE UPDATE ON public.admins FOR EACH 
 
 
 --
--- TOC entry 4065 (class 2620 OID 28598)
 -- Name: agent_applications update_agent_applications_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4601,7 +3465,6 @@ CREATE TRIGGER update_agent_applications_updated_at BEFORE UPDATE ON public.agen
 
 
 --
--- TOC entry 4066 (class 2620 OID 28599)
 -- Name: agent_earnings update_agent_earnings_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4609,7 +3472,6 @@ CREATE TRIGGER update_agent_earnings_updated_at BEFORE UPDATE ON public.agent_ea
 
 
 --
--- TOC entry 4064 (class 2620 OID 34497)
 -- Name: agents update_agents_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4617,7 +3479,6 @@ CREATE TRIGGER update_agents_updated_at BEFORE UPDATE ON public.agents FOR EACH 
 
 
 --
--- TOC entry 4067 (class 2620 OID 28601)
 -- Name: bot_users update_bot_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4625,7 +3486,6 @@ CREATE TRIGGER update_bot_users_updated_at BEFORE UPDATE ON public.bot_users FOR
 
 
 --
--- TOC entry 4072 (class 2620 OID 34378)
 -- Name: energy_consumption_logs update_energy_consumption_logs_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4633,7 +3493,6 @@ CREATE TRIGGER update_energy_consumption_logs_updated_at BEFORE UPDATE ON public
 
 
 --
--- TOC entry 4062 (class 2620 OID 28595)
 -- Name: energy_packages update_energy_packages_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4641,7 +3500,6 @@ CREATE TRIGGER update_energy_packages_updated_at BEFORE UPDATE ON public.energy_
 
 
 --
--- TOC entry 4068 (class 2620 OID 28602)
 -- Name: energy_pools update_energy_pools_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4649,7 +3507,6 @@ CREATE TRIGGER update_energy_pools_updated_at BEFORE UPDATE ON public.energy_poo
 
 
 --
--- TOC entry 4069 (class 2620 OID 28603)
 -- Name: energy_transactions update_energy_transactions_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4657,7 +3514,6 @@ CREATE TRIGGER update_energy_transactions_updated_at BEFORE UPDATE ON public.ene
 
 
 --
--- TOC entry 4063 (class 2620 OID 28596)
 -- Name: orders update_orders_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4665,7 +3521,6 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH 
 
 
 --
--- TOC entry 4078 (class 2620 OID 34720)
 -- Name: pricing_modes update_pricing_modes_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4673,7 +3528,6 @@ CREATE TRIGGER update_pricing_modes_updated_at BEFORE UPDATE ON public.pricing_m
 
 
 --
--- TOC entry 4075 (class 2620 OID 34685)
 -- Name: pricing_strategies update_pricing_strategies_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4681,7 +3535,6 @@ CREATE TRIGGER update_pricing_strategies_updated_at BEFORE UPDATE ON public.pric
 
 
 --
--- TOC entry 4079 (class 2620 OID 34974)
 -- Name: telegram_bots update_telegram_bots_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4689,7 +3542,6 @@ CREATE TRIGGER update_telegram_bots_updated_at BEFORE UPDATE ON public.telegram_
 
 
 --
--- TOC entry 4074 (class 2620 OID 34526)
 -- Name: user_level_changes update_user_level_changes_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4697,15 +3549,13 @@ CREATE TRIGGER update_user_level_changes_updated_at BEFORE UPDATE ON public.user
 
 
 --
--- TOC entry 4061 (class 2620 OID 28594)
--- Name: telegram_users update_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
+-- Name: users update_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.telegram_users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
--- TOC entry 4071 (class 2620 OID 34534)
 -- Name: system_config_history validate_system_config_history_user_reference; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4713,8 +3563,6 @@ CREATE TRIGGER validate_system_config_history_user_reference BEFORE INSERT OR UP
 
 
 --
--- TOC entry 4524 (class 0 OID 0)
--- Dependencies: 4071
 -- Name: TRIGGER validate_system_config_history_user_reference ON system_config_history; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -4722,7 +3570,6 @@ COMMENT ON TRIGGER validate_system_config_history_user_reference ON public.syste
 
 
 --
--- TOC entry 4070 (class 2620 OID 34532)
 -- Name: system_configs validate_system_configs_user_reference; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4730,8 +3577,6 @@ CREATE TRIGGER validate_system_configs_user_reference BEFORE INSERT OR UPDATE ON
 
 
 --
--- TOC entry 4525 (class 0 OID 0)
--- Dependencies: 4070
 -- Name: TRIGGER validate_system_configs_user_reference ON system_configs; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -4739,7 +3584,6 @@ COMMENT ON TRIGGER validate_system_configs_user_reference ON public.system_confi
 
 
 --
--- TOC entry 4052 (class 2606 OID 34451)
 -- Name: admin_permissions admin_permissions_admin_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4748,7 +3592,6 @@ ALTER TABLE ONLY public.admin_permissions
 
 
 --
--- TOC entry 4053 (class 2606 OID 34456)
 -- Name: admin_permissions admin_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4757,25 +3600,22 @@ ALTER TABLE ONLY public.admin_permissions
 
 
 --
--- TOC entry 4043 (class 2606 OID 28401)
 -- Name: agent_applications agent_applications_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.agent_applications
-    ADD CONSTRAINT agent_applications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT agent_applications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4042 (class 2606 OID 28396)
 -- Name: agent_applications agent_applications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.agent_applications
-    ADD CONSTRAINT agent_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT agent_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4044 (class 2606 OID 28416)
 -- Name: agent_earnings agent_earnings_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4784,7 +3624,6 @@ ALTER TABLE ONLY public.agent_earnings
 
 
 --
--- TOC entry 4045 (class 2606 OID 28421)
 -- Name: agent_earnings agent_earnings_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4793,34 +3632,30 @@ ALTER TABLE ONLY public.agent_earnings
 
 
 --
--- TOC entry 4046 (class 2606 OID 28426)
 -- Name: agent_earnings agent_earnings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.agent_earnings
-    ADD CONSTRAINT agent_earnings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT agent_earnings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4041 (class 2606 OID 28379)
 -- Name: agents agents_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.agents
-    ADD CONSTRAINT agents_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT agents_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4040 (class 2606 OID 28374)
 -- Name: agents agents_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.agents
-    ADD CONSTRAINT agents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT agents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4054 (class 2606 OID 34472)
 -- Name: audit_logs audit_logs_admin_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4829,16 +3664,14 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 4047 (class 2606 OID 28451)
 -- Name: bot_users bot_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.bot_users
-    ADD CONSTRAINT bot_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT bot_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4051 (class 2606 OID 34363)
 -- Name: energy_consumption_logs energy_consumption_logs_pool_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4847,7 +3680,6 @@ ALTER TABLE ONLY public.energy_consumption_logs
 
 
 --
--- TOC entry 4048 (class 2606 OID 28488)
 -- Name: energy_transactions energy_transactions_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4856,7 +3688,6 @@ ALTER TABLE ONLY public.energy_transactions
 
 
 --
--- TOC entry 4049 (class 2606 OID 28493)
 -- Name: energy_transactions energy_transactions_pool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4865,16 +3696,14 @@ ALTER TABLE ONLY public.energy_transactions
 
 
 --
--- TOC entry 4036 (class 2606 OID 28587)
--- Name: telegram_users fk_users_referred_by; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users fk_users_referred_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
-    ADD CONSTRAINT fk_users_referred_by FOREIGN KEY (referred_by) REFERENCES public.telegram_users(id);
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT fk_users_referred_by FOREIGN KEY (referred_by) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4039 (class 2606 OID 28353)
 -- Name: orders orders_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4883,25 +3712,22 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 4038 (class 2606 OID 28343)
 -- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4060 (class 2606 OID 34989)
 -- Name: pricing_history pricing_history_changed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.pricing_history
-    ADD CONSTRAINT pricing_history_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT pricing_history_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4059 (class 2606 OID 34984)
 -- Name: pricing_history pricing_history_strategy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4910,7 +3736,6 @@ ALTER TABLE ONLY public.pricing_history
 
 
 --
--- TOC entry 4057 (class 2606 OID 34998)
 -- Name: pricing_strategies pricing_strategies_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4919,7 +3744,6 @@ ALTER TABLE ONLY public.pricing_strategies
 
 
 --
--- TOC entry 4050 (class 2606 OID 34321)
 -- Name: system_config_history system_config_history_config_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4928,25 +3752,22 @@ ALTER TABLE ONLY public.system_config_history
 
 
 --
--- TOC entry 4058 (class 2606 OID 34966)
 -- Name: telegram_bots telegram_bots_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.telegram_bots
-    ADD CONSTRAINT telegram_bots_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.telegram_users(id);
+    ADD CONSTRAINT telegram_bots_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
 
 
 --
--- TOC entry 4037 (class 2606 OID 34492)
--- Name: telegram_users telegram_users_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users telegram_users_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.telegram_users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT telegram_users_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.agents(id);
 
 
 --
--- TOC entry 4056 (class 2606 OID 34516)
 -- Name: user_level_changes user_level_changes_changed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4955,15 +3776,12 @@ ALTER TABLE ONLY public.user_level_changes
 
 
 --
--- TOC entry 4055 (class 2606 OID 34511)
 -- Name: user_level_changes user_level_changes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_level_changes
-    ADD CONSTRAINT user_level_changes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.telegram_users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT user_level_changes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
-
--- Completed on 2025-08-28 22:01:30 CST
 
 --
 -- PostgreSQL database dump complete

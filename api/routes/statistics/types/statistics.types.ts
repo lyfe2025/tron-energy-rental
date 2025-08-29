@@ -41,6 +41,16 @@ export interface RevenueStatistics {
 }
 
 export interface UserStatistics {
+  overview: {
+    total_users: number;
+    active_users: number;
+    inactive_users: number;
+    banned_users: number;
+    new_users_today: number;
+    new_users_month: number;
+    total_balance: number;
+    average_balance: number;
+  };
   registration_trend: any[];
   activity_trend: any[];
   user_segmentation: any[];

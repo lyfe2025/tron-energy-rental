@@ -175,23 +175,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ordersAPI, statisticsAPI } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import { statisticsAPI, ordersAPI } from '@/services/api'
 import {
-  TrendingUp,
-  TrendingDown,
-  ShoppingCart,
-  DollarSign,
-  Users,
-  Bot,
-  Battery,
   BarChart3,
+  Bot,
+  DollarSign,
+  FileText,
   PieChart,
   Plus,
   Settings,
-  FileText
+  ShoppingCart,
+  TrendingDown,
+  TrendingUp,
+  Users
 } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
 
 // 状态管理
 const authStore = useAuthStore()
@@ -391,8 +390,8 @@ const loadStatistics = async () => {
 const loadRecentOrders = async () => {
   try {
     const response = await ordersAPI.getOrders({ page: 1, limit: 5 })
-    if (response.data.success && response.data.data?.users) {
-      recentOrders.value = response.data.data.users
+    if (response.data.success && response.data.data?.orders) {
+      recentOrders.value = response.data.data.orders
     }
   } catch (error) {
     console.error('加载最近订单失败:', error)

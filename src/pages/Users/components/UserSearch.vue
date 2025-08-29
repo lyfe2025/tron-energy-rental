@@ -31,7 +31,17 @@
           @change="$emit('update:typeFilter', ($event.target as HTMLSelectElement).value)"
           class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="">所有类型</option>
+          <option value="">全部类型</option>
+          <option value="telegram">Telegram端</option>
+          <option value="h5">H5端</option>
+        </select>
+        
+        <select
+          :value="userTypeFilter"
+          @change="$emit('update:userTypeFilter', ($event.target as HTMLSelectElement).value)"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">全部角色</option>
           <option value="normal">普通用户</option>
           <option value="vip">VIP用户</option>
           <option value="premium">套餐用户</option>
@@ -58,12 +68,14 @@ interface Props {
   searchQuery: string
   statusFilter: string
   typeFilter: string
+  userTypeFilter: string
 }
 
 interface Emits {
   'update:searchQuery': [value: string]
   'update:statusFilter': [value: string]
   'update:typeFilter': [value: string]
+  'update:userTypeFilter': [value: string]
   'export': []
 }
 

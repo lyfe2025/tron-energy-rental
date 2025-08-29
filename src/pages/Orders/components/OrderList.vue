@@ -44,29 +44,29 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <div>
                 <div class="text-sm font-medium text-gray-900">
-                  #{{ order.id.slice(-8) }}
+                  #{{ order.id }}
                 </div>
                 <div class="text-sm text-gray-500">
                   {{ order.energy_amount }} TRX能量
                 </div>
-                <div v-if="order.tx_hash" class="text-xs text-gray-400 font-mono">
-                  {{ order.tx_hash.slice(0, 16) }}...
+                <div v-if="order.payment_tx_hash" class="text-xs text-gray-400 font-mono">
+                  {{ order.payment_tx_hash.slice(0, 16) }}...
                 </div>
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-900">{{ order.user_id }}</div>
-              <div v-if="order.user_address" class="text-xs text-gray-500 font-mono">
-                {{ order.user_address.slice(0, 8) }}...{{ order.user_address.slice(-6) }}
+              <div v-if="order.recipient_address" class="text-xs text-gray-500 font-mono">
+                {{ order.recipient_address.slice(0, 8) }}...{{ order.recipient_address.slice(-6) }}
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">
-                {{ order.amount }} TRX
-              </div>
-              <div class="text-xs text-gray-500">
-                ≈ ${{ (order.amount * 0.1).toFixed(2) }}
-              </div>
+                              <div class="text-sm font-medium text-gray-900">
+                  {{ order.price_trx }} TRX
+                </div>
+                <div class="text-xs text-gray-500">
+                  ≈ ${{ (order.price_trx * 0.1).toFixed(2) }}
+                </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span 
@@ -99,8 +99,8 @@
                   <Edit class="h-4 w-4" />
                 </button>
                 <button
-                  v-if="order.tx_hash"
-                  @click="viewTransaction(order.tx_hash)"
+                  v-if="order.payment_tx_hash"
+                  @click="viewTransaction(order.payment_tx_hash)"
                   class="text-blue-600 hover:text-blue-900"
                   title="查看交易"
                 >
@@ -154,9 +154,9 @@
 
 <script setup lang="ts">
 import {
-  Eye,
   Edit,
   ExternalLink,
+  Eye,
   Loader2,
   ShoppingCart
 } from 'lucide-vue-next'

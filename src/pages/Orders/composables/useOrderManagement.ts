@@ -2,7 +2,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { debounce } from 'lodash-es'
 import { ordersAPI } from '@/services/api'
 import type {
-  Order,
   OrderStats,
   OrderFilters,
   OrderPagination,
@@ -12,6 +11,7 @@ import type {
   OrderModalState,
   OrderManagementState
 } from '../types/order.types'
+import type { Order } from '@/types/api'
 
 export function useOrderManagement() {
   // 状态管理
@@ -103,7 +103,9 @@ export function useOrderManagement() {
       // 处理API响应数据结构
       if (response.data.success && response.data.data) {
         const data = response.data.data
-        state.orders = data.orders || []
+        // 确保返回的数据是数组类型
+        const orders = Array.isArray(data.orders) ? data.orders : []
+        state.orders = orders
         state.pagination = {
           page: data.pagination?.page || 1,
           limit: data.pagination?.limit || 10,
@@ -136,13 +138,13 @@ export function useOrderManagement() {
     try {
       state.modal.isUpdating = true
       
-      await ordersAPI.updateOrderStatus(data.orderId, {
+      await ordersAPI.updateOrderStatus(data.orderId.toString(), {
         status: data.status,
         payment_tx_hash: data.payment_tx_hash,
       })
       
       // 更新本地状态
-      const orderIndex = state.orders.findIndex(order => order.id === parseInt(data.orderId))
+      const orderIndex = state.orders.findIndex(order => order.id === data.orderId)
       if (orderIndex !== -1) {
         state.orders[orderIndex] = {
           ...state.orders[orderIndex],

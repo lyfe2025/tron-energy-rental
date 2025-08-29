@@ -2,24 +2,32 @@
  * 代理商管理模块类型定义
  */
 
-// 代理商基本信息
+// 代理商基本信息 - 匹配后端返回的数据结构
 export interface Agent {
   id: string;
   agent_code: string;
   user_id: string;
   commission_rate: number;
-  status: 'pending' | 'active' | 'suspended' | 'rejected';
-  total_earnings: number;
-  total_orders: number;
-  total_customers: number;
+  status: 'pending' | 'active' | 'suspended' | 'rejected' | 'inactive';
   created_at: string;
   updated_at: string;
+  // 嵌套的用户信息对象
+  user: {
+    id: string;
+    username: string | null;
+    email: string | null;
+    phone: string | null;
+    telegram_id: string | null;
+  };
+  // 嵌套的统计信息对象
+  stats: {
+    total_users: number;
+    active_users: number;
+    total_commission: number;
+  };
+  // 可选的扩展字段（用于兼容性）
   user_count?: number;
   pricing?: AgentPricing[];
-  // 添加缺失的属性
-  username?: string;
-  email?: string;
-  phone?: string;
   agent_level?: number;
   max_discount_rate?: number;
   credit_limit?: number;
@@ -31,11 +39,18 @@ export interface Agent {
   last_login_at?: string;
   total_revenue?: number;
   managed_users?: number;
-  total_commission?: number;
+  total_earnings?: number;
+  total_orders?: number;
+  total_customers?: number;
   // 机器人关联
   bot_id?: string;
   bot_name?: string;
   bot_username?: string;
+  // 便利属性（从嵌套对象中提取）
+  username?: string;
+  email?: string;
+  phone?: string;
+  telegram_id?: string;
 }
 
 // 代理商定价配置

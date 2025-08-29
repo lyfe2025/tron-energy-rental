@@ -11,8 +11,8 @@ const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   type: z.enum(['energy_flash', 'transaction_package']),
-  config_schema: z.record(z.any()),
-  default_config: z.record(z.any()),
+  config_schema: z.record(z.string(), z.any()),
+  default_config: z.record(z.string(), z.any()),
   is_system: z.boolean().default(false)
 });
 
