@@ -72,8 +72,9 @@ export class AdminService {
    * 获取管理员角色列表
    */
   static async getAdminRoles(): Promise<AdminRoleListResponse> {
-    const response = await apiClient.get<ApiResponse<AdminRoleListResponse>>('/api/admins/roles');
-    return response.data.data;
+    const response = await apiClient.get<ApiResponse<any>>('/api/admins/roles');
+    // 后端返回的是 {success: true, data: roles}，需要包装成前端期望的格式
+    return { roles: response.data.data };
   }
 
   /**

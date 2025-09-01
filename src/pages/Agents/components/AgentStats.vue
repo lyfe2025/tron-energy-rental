@@ -37,12 +37,10 @@ interface Props {
   stats: {
     total: number;
     active: number;
-    pending: number;
+    inactive: number;
     suspended: number;
-    rejected: number;
-    total_earnings: number;
-    total_orders: number;
-    total_customers: number;
+    totalCommission: number;
+    totalUsers: number;
   } | null;
   loading?: boolean;
 }
@@ -70,14 +68,14 @@ const statCards = computed<StatCard[]>(() => {
         iconColor: 'text-green-600'
       },
       {
-        label: '待审核',
+        label: '非活跃',
         value: 0,
-        icon: Clock,
+        icon: UserX,
         bgColor: 'bg-orange-100',
         iconColor: 'text-orange-600'
       },
       {
-        label: '总收益',
+        label: '总佣金',
         value: 0,
         icon: DollarSign,
         bgColor: 'bg-purple-100',
@@ -102,15 +100,15 @@ const statCards = computed<StatCard[]>(() => {
       iconColor: 'text-green-600'
     },
     {
-      label: '待审核',
-      value: props.stats.pending,
-      icon: Clock,
+      label: '非活跃',
+      value: props.stats.inactive,
+      icon: UserX,
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600'
     },
     {
-      label: '总收益',
-      value: props.stats.total_earnings,
+      label: '总佣金',
+      value: props.stats.totalCommission,
       icon: DollarSign,
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600'
@@ -119,7 +117,12 @@ const statCards = computed<StatCard[]>(() => {
 });
 
 // 格式化数值显示
-const formatValue = (value: string | number): string => {
+const formatValue = (value: string | number | null | undefined): string => {
+  // 处理空值
+  if (value === null || value === undefined) {
+    return '0';
+  }
+  
   if (typeof value === 'string') return value;
   
   // 如果是收益金额，格式化为货币

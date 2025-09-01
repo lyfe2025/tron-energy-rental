@@ -2,7 +2,7 @@
  * 代理商管理服务
  * 处理代理商相关的API调用
  */
-import axios from 'axios';
+import { api } from '@/utils/api';
 import type {
   AgentQuery,
   CreateAgentRequest,
@@ -17,14 +17,14 @@ import type {
 } from '@/pages/Agents/types';
 
 class AgentService {
-  private baseURL = '/api/agents';
+  private baseURL = '/agents';
   // 注意：代理商价格配置相关的API已移除
 
   /**
    * 获取代理商列表
    */
   async getAgents(params: AgentQuery = {}): Promise<AgentListResponse> {
-    const response = await axios.get(this.baseURL, { params });
+    const response = await api.get(this.baseURL, { params });
     return response.data;
   }
 
@@ -32,7 +32,7 @@ class AgentService {
    * 获取代理商详情
    */
   async getAgent(id: string): Promise<AgentDetailResponse> {
-    const response = await axios.get(`${this.baseURL}/${id}`);
+    const response = await api.get(`${this.baseURL}/${id}`);
     return response.data;
   }
 
@@ -40,7 +40,7 @@ class AgentService {
    * 创建代理商
    */
   async createAgent(data: CreateAgentRequest): Promise<AgentDetailResponse> {
-    const response = await axios.post(this.baseURL, data);
+    const response = await api.post(this.baseURL, data);
     return response.data;
   }
 
@@ -48,7 +48,7 @@ class AgentService {
    * 更新代理商
    */
   async updateAgent(id: string, data: UpdateAgentRequest): Promise<AgentDetailResponse> {
-    const response = await axios.put(`${this.baseURL}/${id}`, data);
+    const response = await api.put(`${this.baseURL}/${id}`, data);
     return response.data;
   }
 
@@ -56,7 +56,7 @@ class AgentService {
    * 删除代理商
    */
   async deleteAgent(id: string): Promise<{ success: boolean; message: string }> {
-    const response = await axios.delete(`${this.baseURL}/${id}`);
+    const response = await api.delete(`${this.baseURL}/${id}`);
     return response.data;
   }
 
@@ -67,7 +67,7 @@ class AgentService {
     agentIds: string[], 
     status: 'pending' | 'active' | 'suspended' | 'rejected'
   ): Promise<{ success: boolean; message: string }> {
-    const response = await axios.patch(`${this.baseURL}/batch-status`, {
+    const response = await api.patch(`${this.baseURL}/batch-status`, {
       agent_ids: agentIds,
       status
     });
@@ -78,7 +78,7 @@ class AgentService {
    * 批量删除代理商
    */
   async batchDelete(agentIds: string[]): Promise<{ success: boolean; message: string }> {
-    const response = await axios.delete(`${this.baseURL}/batch`, {
+    const response = await api.delete(`${this.baseURL}/batch`, {
       data: { agent_ids: agentIds }
     });
     return response.data;
@@ -110,7 +110,7 @@ class AgentService {
       total_customers: number;
     };
   }> {
-    const response = await axios.get(`${this.baseURL}/stats`);
+    const response = await api.get(`${this.baseURL}/stats`);
     return response.data;
   }
 
@@ -118,7 +118,7 @@ class AgentService {
    * 导出代理商数据
    */
   async exportAgents(params: AgentQuery = {}): Promise<Blob> {
-    const response = await axios.get(`${this.baseURL}/export`, {
+    const response = await api.get(`${this.baseURL}/export`, {
       params,
       responseType: 'blob'
     });

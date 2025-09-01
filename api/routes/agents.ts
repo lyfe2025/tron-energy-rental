@@ -54,6 +54,27 @@ router.get('/', [
 });
 
 /**
+ * 获取代理商统计数据
+ * GET /api/agents/stats
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await AgentService.getAgentStats();
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('获取代理商统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取统计数据失败'
+    });
+  }
+});
+
+/**
  * 获取代理商详情
  * GET /api/agents/:id
  */
@@ -217,27 +238,6 @@ router.delete('/:id', [
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : '删除代理商失败'
-    });
-  }
-});
-
-/**
- * 获取代理商统计数据
- * GET /api/agents/stats
- */
-router.get('/stats', async (req: Request, res: Response) => {
-  try {
-    const stats = await AgentService.getAgentStats();
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error('获取代理商统计失败:', error);
-    res.status(500).json({
-      success: false,
-      error: '获取统计数据失败'
     });
   }
 });

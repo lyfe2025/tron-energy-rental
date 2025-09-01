@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试认证流程</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        .info { background: #e3f2fd; color: #1565c0; }
+        button { padding: 10px 20px; margin: 5px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #1976d2; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>认证流程测试</h1>
+    
+    <div class="section">
+        <h3>1. 检查当前认证状态</h3>
+        <button onclick="checkAuthStatus()">检查认证状态</button>
+        <div id="auth-status"></div>
+    </div>
+    
+    <div class="section">
+        <h3>2. 执行登录</h3>
+        <button onclick="performLogin()">执行登录</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>3. 测试代理商API</h3>
+        <button onclick="testAgentsAPI()">测试代理商API</button>
+        <div id="api-result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>4. 清除认证状态</h3>
+        <button onclick="clearAuth()">清除认证</button>
+        <div id="clear-result"></div>
+    </div>
+    
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+        
+        function checkAuthStatus() {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerHTML = '';
+            
+            const token = localStorage.getItem('admin_token');
+            const user = localStorage.getItem('admin_user');
+            
+            log('auth-status', `Token存在: ${token ? '是' : '否'}`);
+            if (token) {
+                log('auth-status', `Token: ${token.substring(0, 20)}...`);
+            }
+            
+            log('auth-status', `用户信息存在: ${user ? '是' : '否'}`);
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    log('auth-status', `用户: ${userData.email} (${userData.role})`);
+                } catch (e) {
+                    log('auth-status', '用户信息解析失败', 'error');
+                }
+            }
+        }
+        
+        async function performLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                log('login-result', '正在执行登录...');
+                
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tronrental.com',
+                        password: 'admin123456'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const { token, user } = data.data;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('admin_token', token);
+                    localStorage.setItem('admin_user', JSON.stringify(user));
+                    
+                    log('login-result', '登录成功！', 'success');
+                    log('login-result', `用户: ${user.email}`);
+                    log('login-result', `角色: ${user.role}`);
+                } else {
+                    log('login-result', `登录失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log('login-result', `请求错误: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAgentsAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                const token = localStorage.getItem('admin_token');
+                if (!token) {
+                    log('api-result', '没有找到token，请先登录', 'error');
+                    return;
+                }
+                
+                log('api-result', '正在测试代理商API...');
+                
+                const response = await fetch('http://localhost:3001/api/agents', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('api-result', '代理商API调用成功！', 'success');
+                    log('api-result', `代理商数量: ${data.data.agents.length}`);
+                    log('api-result', `总数: ${data.data.pagination.total}`);
+                    
+                    // 显示前3个代理商
+                    const agents = data.data.agents.slice(0, 3);
+                    agents.forEach(agent => {
+                        log('api-result', `- ${agent.agent_code}: ${agent.name} (${agent.status})`);
+                    });
+                } else {
+                    log('api-result', `API调用失败: ${data.message || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log('api-result', `请求错误: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearAuth() {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            
+            const resultDiv = document.getElementById('clear-result');
+            resultDiv.innerHTML = '';
+            log('clear-result', '认证状态已清除', 'success');
+        }
+        
+        // 页面加载时自动检查状态
+        window.onload = function() {
+            checkAuthStatus();
+        };
+    </script>
+</body>
+</html>
