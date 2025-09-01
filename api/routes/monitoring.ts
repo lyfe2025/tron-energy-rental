@@ -16,17 +16,19 @@ router.get('/overview', requireAdmin, monitoringController.getOverview);
 
 // 在线用户管理
 router.get('/online-users', requireAdmin, monitoringController.getOnlineUsers);
-router.post('/online-users/:sessionId/force-logout', requireAdmin, monitoringController.forceLogout);
+router.post('/online-users/force-logout', requireAdmin, monitoringController.forceLogout);
 
 // 定时任务管理
 router.get('/scheduled-tasks', requireAdmin, monitoringController.getScheduledTasks);
 router.post('/scheduled-tasks/:taskId/pause', requireAdmin, monitoringController.pauseTask);
 router.post('/scheduled-tasks/:taskId/resume', requireAdmin, monitoringController.resumeTask);
 router.post('/scheduled-tasks/:taskId/execute', requireAdmin, monitoringController.executeTask);
+router.delete('/scheduled-tasks/:taskId', requireAdmin, monitoringController.deleteTask);
 router.get('/scheduled-tasks/:taskId/logs', requireAdmin, monitoringController.getTaskLogs);
 
 // 数据监控
 router.get('/database', requireAdmin, monitoringController.getDatabaseInfo);
+router.post('/database/analyze/:tableName', requireAdmin, monitoringController.analyzeTable);
 
 // 服务状态监控
 router.get('/service-status', requireAdmin, monitoringController.getServiceStatus);

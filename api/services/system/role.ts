@@ -15,6 +15,8 @@ export interface Role {
   description?: string;
   created_at: Date;
   updated_at: Date;
+  permission_count?: number;
+  user_count?: number;
   permissions?: Permission[];
 }
 
@@ -74,8 +76,21 @@ export class RoleService {
     const offset = (page - 1) * limit;
 
     let sql = `
-      SELECT id, name, code, type, sort_order, status, description, created_at, updated_at
-      FROM roles
+      SELECT r.id, r.name, r.code, r.type, r.sort_order, r.status, r.description, 
+             r.created_at, r.updated_at,
+             COALESCE(pc.permission_count, 0) as permission_count,
+             COALESCE(uc.user_count, 0) as user_count
+      FROM roles r
+      LEFT JOIN (
+        SELECT role_id, COUNT(*) as permission_count
+        FROM role_permissions
+        GROUP BY role_id
+      ) pc ON r.id = pc.role_id
+      LEFT JOIN (
+        SELECT role_id, COUNT(*) as user_count
+        FROM admin_roles
+        GROUP BY role_id
+      ) uc ON r.id = uc.role_id
       WHERE 1=1
     `;
     
@@ -89,20 +104,20 @@ export class RoleService {
     let paramIndex = 1;
 
     if (params.type !== undefined) {
-      const condition = ` AND type = $${paramIndex++}`;
+      const condition = ` AND r.type = $${paramIndex++}`;
       sql += condition;
-      countSql += condition;
+      countSql += condition.replace('r.type', 'type');
       values.push(params.type);
     }
 
     if (params.status !== undefined) {
-      const condition = ` AND status = $${paramIndex++}`;
+      const condition = ` AND r.status = $${paramIndex++}`;
       sql += condition;
-      countSql += condition;
+      countSql += condition.replace('r.status', 'status');
       values.push(params.status);
     }
 
-    sql += ` ORDER BY sort_order ASC, id ASC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    sql += ` ORDER BY r.sort_order ASC, r.id ASC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     values.push(limit, offset);
 
     const [rolesResult, countResult] = await Promise.all([

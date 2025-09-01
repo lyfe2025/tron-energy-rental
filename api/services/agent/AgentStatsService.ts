@@ -68,10 +68,10 @@ export class AgentStatsService {
     const userCommissionQuery = `
       SELECT 
         COUNT(DISTINCT u.id) as total_users,
-        COALESCE(SUM(o.commission_amount), 0) as total_commission
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission
       FROM agents a
       LEFT JOIN users u ON a.id = u.agent_id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       WHERE a.status = 'active'
     `;
     
@@ -85,11 +85,11 @@ export class AgentStatsService {
         a.agent_code,
         u.username,
         COUNT(DISTINCT cu.id) as total_users,
-        COALESCE(SUM(o.commission_amount), 0) as total_commission
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN users cu ON a.id = cu.agent_id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       WHERE a.status = 'active'
       GROUP BY a.id, a.agent_code, u.username
       ORDER BY total_commission DESC
@@ -133,13 +133,14 @@ export class AgentStatsService {
         COUNT(CASE WHEN cu.status = 'active' THEN cu.id END) as active_users,
         COUNT(o.id) as total_orders,
         COUNT(CASE WHEN o.status = 'completed' THEN o.id END) as completed_orders,
-        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.amount END), 0) as total_revenue,
-        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.commission_amount END), 0) as total_commission,
-        COALESCE(AVG(CASE WHEN o.status = 'completed' THEN o.amount END), 0) as average_order_value
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as total_revenue,
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission,
+        COALESCE(AVG(CASE WHEN o.status = 'completed' THEN o.price END), 0) as average_order_value
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN users cu ON a.id = cu.agent_id
       LEFT JOIN orders o ON cu.id = o.user_id
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.order_id = o.id AND ae.status = 'paid'
       ${whereClause}
       GROUP BY a.id, a.agent_code, u.username
       ORDER BY total_commission DESC
@@ -245,9 +246,9 @@ export class AgentStatsService {
         SELECT 
           a.id,
           a.agent_code,
-          COALESCE(SUM(o.commission_amount), 0) as total_commission
+          COALESCE(SUM(ae.commission_amount), 0) as total_commission
         FROM agents a
-        LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+        LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
         GROUP BY a.id, a.agent_code
       )
       SELECT 
@@ -294,13 +295,13 @@ export class AgentStatsService {
       SELECT 
         a.agent_code,
         u.username,
-        COALESCE(SUM(o.commission_amount), 0) as commission
+        COALESCE(SUM(ae.commission_amount), 0) as commission
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       WHERE a.status = 'active'
       GROUP BY a.id, a.agent_code, u.username
-      HAVING SUM(o.commission_amount) > 0
+      HAVING SUM(ae.commission_amount) > 0
       ORDER BY commission DESC
       LIMIT 10
     `;
@@ -335,11 +336,12 @@ export class AgentStatsService {
         TO_CHAR(DATE_TRUNC('month', o.created_at), 'YYYY-MM') as month,
         COUNT(DISTINCT u.id) as users,
         COUNT(o.id) as orders,
-        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.amount END), 0) as revenue,
-        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.commission_amount END), 0) as commission
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.price END), 0) as revenue,
+        COALESCE(SUM(ae.commission_amount), 0) as commission
       FROM agents a
       LEFT JOIN users u ON a.id = u.agent_id
       LEFT JOIN orders o ON u.id = o.user_id
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.order_id = o.id AND ae.status = 'paid'
       WHERE a.id = $1 AND o.created_at >= CURRENT_DATE - INTERVAL '12 months'
       GROUP BY TO_CHAR(DATE_TRUNC('month', o.created_at), 'YYYY-MM')
       ORDER BY month DESC

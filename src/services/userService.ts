@@ -78,14 +78,14 @@ export const userService = {
       
       // 将后端返回的数据结构映射到前端期望的格式
       return {
-        totalUsers: data.total || 0,
-        activeUsers: data.active || 0,
-        inactiveUsers: 0, // 已移除停用状态
-        bannedUsers: data.banned || 0,
-        newUsersToday: 0, // 暂时不显示
-        newUsersThisMonth: 0, // 暂时不显示
-        totalBalance: data.totalUsdtBalance || 0,
-        averageBalance: data.totalUsdtBalance ? (data.totalUsdtBalance / (data.total || 1)) : 0
+        totalUsers: data.totalUsers || 0,
+        activeUsers: data.activeUsers || 0,
+        inactiveUsers: data.inactiveUsers || 0, // 后端已经提供了这个字段
+        bannedUsers: data.bannedUsers || 0,
+        newUsersToday: data.newUsersToday || 0,
+        newUsersThisMonth: data.newUsersThisMonth || 0,
+        totalBalance: data.totalBalance || 0,
+        averageBalance: data.averageBalance || 0
       }
     } catch (error) {
       console.error('获取用户统计数据失败:', error)

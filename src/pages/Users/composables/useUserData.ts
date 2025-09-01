@@ -4,7 +4,7 @@
  */
 
 import { userService } from '@/services/userService'
-import { Shield, UserCheck, Users } from 'lucide-vue-next'
+import { Calendar, Shield, TrendingUp, UserCheck, Users, Wallet } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type {
     AllUserStatus,
@@ -67,6 +67,27 @@ export function useUserData() {
       icon: Shield,
       bgColor: 'bg-red-100',
       iconColor: 'text-red-600'
+    },
+    {
+      label: '今日新用户',
+      value: rawUserStats.value.newUsersToday,
+      icon: TrendingUp,
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600'
+    },
+    {
+      label: '本月新用户',
+      value: rawUserStats.value.newUsersThisMonth,
+      icon: Calendar,
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600'
+    },
+    {
+      label: '用户总余额',
+      value: `$${(rawUserStats.value.totalBalance || 0).toFixed(2)}`,
+      icon: Wallet,
+      bgColor: 'bg-emerald-100',
+      iconColor: 'text-emerald-600'
     }
   ])
 

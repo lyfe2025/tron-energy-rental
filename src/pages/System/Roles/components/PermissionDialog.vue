@@ -269,11 +269,82 @@ const toggleExpand = (nodeId: number) => {
 }
 
 const toggleSelect = (nodeId: number, selected: boolean) => {
+  // 找到对应的权限节点
+  const findNode = (nodes: PermissionTreeNode[], id: number): PermissionTreeNode | null => {
+    for (const node of nodes) {
+      if (node.id === id) {
+        return node
+      }
+      if (node.children) {
+        const found = findNode(node.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  // 递归选中/取消选中所有子权限
+  const toggleChildren = (node: PermissionTreeNode, isSelected: boolean) => {
+    if (isSelected) {
+      selectedPermissions.value.add(node.id)
+    } else {
+      selectedPermissions.value.delete(node.id)
+    }
+    
+    if (node.children) {
+      node.children.forEach(child => {
+        toggleChildren(child, isSelected)
+      })
+    }
+  }
+
+  // 检查并更新父权限状态
+  const updateParentStatus = (nodes: PermissionTreeNode[], targetId: number, parentNode?: PermissionTreeNode) => {
+    for (const node of nodes) {
+      if (node.children) {
+        // 检查当前节点的子节点
+        const childFound = node.children.find(child => child.id === targetId)
+        if (childFound) {
+          // 检查所有子节点是否都被选中
+          const allChildrenSelected = node.children.every(child => 
+            selectedPermissions.value.has(child.id)
+          )
+          
+          if (allChildrenSelected && selected) {
+            // 如果所有子节点都被选中，自动选中父节点
+            selectedPermissions.value.add(node.id)
+          } else if (!selected) {
+            // 如果有子节点被取消选中，取消选中父节点
+            selectedPermissions.value.delete(node.id)
+          }
+          return
+        }
+        
+        // 递归检查更深层的节点
+        updateParentStatus(node.children, targetId, node)
+      }
+    }
+  }
+
+  const targetNode = findNode(permissions.value, nodeId)
+  if (!targetNode) return
+
+  // 切换当前节点状态
   if (selected) {
     selectedPermissions.value.add(nodeId)
   } else {
     selectedPermissions.value.delete(nodeId)
   }
+
+  // 如果有子权限，同步更新子权限状态
+  if (targetNode.children && targetNode.children.length > 0) {
+    targetNode.children.forEach(child => {
+      toggleChildren(child, selected)
+    })
+  }
+
+  // 更新父权限状态
+  updateParentStatus(permissions.value, nodeId)
 }
 
 const expandAll = () => {

@@ -54,11 +54,11 @@ export class AgentCRUDService {
         u.telegram_id,
         COUNT(cu.id) as total_users,
         COUNT(CASE WHEN cu.status = 'active' THEN 1 END) as active_users,
-        COALESCE(SUM(o.commission_amount), 0) as total_commission
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN users cu ON a.id = cu.agent_id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       ${whereClause}
       GROUP BY a.id, u.id, u.username, u.email, u.phone, u.telegram_id
       ORDER BY a.created_at DESC
@@ -115,11 +115,11 @@ export class AgentCRUDService {
         u.telegram_id,
         COUNT(cu.id) as total_users,
         COUNT(CASE WHEN cu.status = 'active' THEN 1 END) as active_users,
-        COALESCE(SUM(o.commission_amount), 0) as total_commission
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN users cu ON a.id = cu.agent_id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       WHERE a.id = $1
       GROUP BY a.id, u.id, u.username, u.email, u.phone, u.telegram_id
     `;
@@ -166,11 +166,11 @@ export class AgentCRUDService {
         u.telegram_id,
         COUNT(cu.id) as total_users,
         COUNT(CASE WHEN cu.status = 'active' THEN 1 END) as active_users,
-        COALESCE(SUM(o.commission_amount), 0) as total_commission
+        COALESCE(SUM(ae.commission_amount), 0) as total_commission
       FROM agents a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN users cu ON a.id = cu.agent_id
-      LEFT JOIN orders o ON a.id = o.agent_id AND o.status = 'completed'
+      LEFT JOIN agent_earnings ae ON a.id = ae.agent_id AND ae.status = 'paid'
       WHERE a.user_id = $1
       GROUP BY a.id, u.id, u.username, u.email, u.phone, u.telegram_id
     `;
@@ -351,7 +351,7 @@ export class AgentCRUDService {
 
     // 检查是否有未完成的订单
     const hasActiveOrders = await pool.query(
-      'SELECT COUNT(*) as count FROM orders WHERE agent_id = $1 AND status IN ($2, $3)',
+      'SELECT COUNT(*) as count FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE u.agent_id = $1 AND o.status IN ($2, $3)',
       [id, 'pending', 'processing']
     );
     

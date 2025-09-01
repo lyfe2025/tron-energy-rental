@@ -9,7 +9,7 @@ export interface Menu {
   id: number;
   name: string;
   permission?: string;
-  type: number;
+  type: number | string;
   parent_id?: number;
   path?: string;
   component?: string;
@@ -83,8 +83,14 @@ export class MenuService {
     const result = await query(sql, values);
     const menus = result.rows as Menu[];
 
+    // 转换type字段为字符串类型
+    const menusWithStringType = menus.map(menu => ({
+      ...menu,
+      type: this.convertTypeToString(menu.type as number)
+    }));
+
     // 构建树形结构
-    return this.buildTree(menus);
+    return this.buildTree(menusWithStringType);
   }
 
   /**
@@ -106,8 +112,14 @@ export class MenuService {
     const result = await query(sql, [userId]);
     const menus = result.rows as Menu[];
 
+    // 转换type字段为字符串类型
+    const menusWithStringType = menus.map(menu => ({
+      ...menu,
+      type: this.convertTypeToString(menu.type as number)
+    }));
+
     // 构建树形结构
-    return this.buildTree(menus);
+    return this.buildTree(menusWithStringType);
   }
 
   /**
@@ -351,6 +363,26 @@ export class MenuService {
 
     const result = await query(sql, values);
     return result.rows;
+  }
+
+  /**
+   * 转换数字类型为字符串类型
+   */
+  private static convertTypeToString(type: number): string {
+    switch (type) {
+      case 1:
+        return 'menu';
+      case 2:
+        return 'button';
+      case 3:
+        return 'api';
+      case 4:
+        return 'page';
+      case 5:
+        return 'operation';
+      default:
+        return 'menu';
+    }
   }
 
   /**

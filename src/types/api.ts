@@ -16,7 +16,7 @@ export interface User {
   first_name?: string
   last_name?: string
   phone?: string
-  role: 'admin' | 'agent' | 'user'
+  role: 'super_admin' | 'admin' | 'agent' | 'user' | 'customer_service'
   status: 'active' | 'inactive' | 'banned'
   balance: number
   usdt_balance: number
@@ -35,7 +35,7 @@ export interface CreateUserData {
   first_name?: string
   last_name?: string
   phone?: string
-  role: 'admin' | 'agent' | 'user'
+  role: 'super_admin' | 'admin' | 'agent' | 'user' | 'customer_service'
   balance?: number
   status?: 'active' | 'inactive' | 'banned'
 }
@@ -46,7 +46,7 @@ export interface UpdateUserData {
   first_name?: string
   last_name?: string
   phone?: string
-  role?: 'admin' | 'agent' | 'user'
+  role?: 'super_admin' | 'admin' | 'agent' | 'user' | 'customer_service'
   status?: 'active' | 'inactive' | 'banned'
   balance?: number
 }

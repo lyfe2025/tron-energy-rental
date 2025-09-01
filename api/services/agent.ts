@@ -203,7 +203,7 @@ export class AgentService {
     const { page = 1, limit = 20, status } = params;
     const offset = (page - 1) * limit;
 
-    const conditions = ['o.agent_id = $1'];
+    const conditions = ['u.agent_id = $1'];
     const values = [agentId];
     let paramIndex = 2;
 
@@ -230,6 +230,7 @@ export class AgentService {
     const countQuery = `
       SELECT COUNT(*) as total 
       FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
       WHERE ${whereClause}
     `;
 

@@ -23,10 +23,24 @@ export async function request<T = any>(
       ...config
     })
     
+    console.log('🔍 [Request] 响应状态:', response.status, response.statusText)
+    console.log('🔍 [Request] 响应数据:', response.data)
+    
     // 直接返回响应数据
     return response.data
   } catch (error) {
-    console.error('Request error:', error)
+    console.error('❌ [Request] 请求错误:', error)
+    
+    // 如果是axios错误，提供更详细的信息
+    if (error.response) {
+      console.error('❌ [Request] 错误响应:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      })
+    }
+    
     throw error
   }
 }

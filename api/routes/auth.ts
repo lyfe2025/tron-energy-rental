@@ -2,14 +2,14 @@
  * 用户认证API路由
  * 处理用户注册、登录、token管理等功能
  */
-import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { Router, type Request, type Response } from 'express';
 import { query } from '../config/database.js';
-import { generateToken, verifyToken, refreshToken } from '../utils/jwt.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { AdminServiceMain as AdminService } from '../services/admin.js';
+import { generateToken, refreshToken } from '../utils/jwt.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 管理员登录
@@ -112,6 +112,28 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       department_id: user.department_id,
       position_id: user.position_id
     });
+
+    // 创建会话记录
+    try {
+      console.log('开始创建会话记录:', {
+        admin_id: user.id,
+        token_length: token.length,
+        ip: req.ip || 'unknown',
+        user_agent: req.get('User-Agent') || 'unknown'
+      });
+      
+      const sessionResult = await query(
+        `INSERT INTO admin_sessions (admin_id, session_token, ip_address, user_agent, login_at, last_activity, is_active)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true)
+         RETURNING id`,
+        [user.id, token, req.ip || 'unknown', req.get('User-Agent') || 'unknown']
+      );
+      
+      console.log('会话记录创建成功:', sessionResult.rows[0]);
+    } catch (sessionError) {
+      console.error('创建会话记录失败:', sessionError);
+      // 不阻塞登录流程，继续执行
+    }
     
     res.status(200).json({
       success: true,
@@ -291,8 +313,16 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
  */
 router.post('/logout', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    // 在实际应用中，可以将token加入黑名单
-    // 这里简单返回成功，客户端删除本地token即可
+    const userId = req.user?.userId || req.user?.id;
+    
+    if (userId) {
+      // 将用户的所有活跃会话设为非活跃
+      await query(
+        'UPDATE admin_sessions SET is_active = false WHERE admin_id = $1 AND is_active = true',
+        [userId]
+      );
+    }
+    
     res.status(200).json({
       success: true,
       message: '登出成功'

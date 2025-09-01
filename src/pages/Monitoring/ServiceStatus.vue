@@ -179,16 +179,16 @@
                   fill="none"
                   stroke-linecap="round"
                   :stroke-dasharray="`${2 * Math.PI * 40}`"
-                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - systemStats.cpu.usage / 100)}`"
+                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - (systemStats.cpu?.usage || 0) / 100)}`"
                   class="transition-all duration-300"
                 />
               </svg>
               <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.cpu.usage) }}%</span>
+                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.cpu?.usage || 0) }}%</span>
               </div>
             </div>
             <h3 class="text-sm font-medium text-gray-900 mb-1">CPU 使用率</h3>
-            <p class="text-xs text-gray-500">{{ systemStats.cpu.cores }} 核心</p>
+            <p class="text-xs text-gray-500">{{ systemStats.cpu?.cores || '-' }} 核心</p>
           </div>
           
           <!-- 内存使用率 -->
@@ -207,21 +207,21 @@
                   cx="48"
                   cy="48"
                   r="40"
-                  :stroke="getMemoryColor(systemStats.memory.usage)"
+                  :stroke="getMemoryColor(systemStats.memory?.usage || 0)"
                   stroke-width="8"
                   fill="none"
                   stroke-linecap="round"
                   :stroke-dasharray="`${2 * Math.PI * 40}`"
-                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - systemStats.memory.usage / 100)}`"
+                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - (systemStats.memory?.usage || 0) / 100)}`"
                   class="transition-all duration-300"
                 />
               </svg>
               <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.memory.usage) }}%</span>
+                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.memory?.usage || 0) }}%</span>
               </div>
             </div>
             <h3 class="text-sm font-medium text-gray-900 mb-1">内存使用率</h3>
-            <p class="text-xs text-gray-500">{{ formatSize(systemStats.memory.used) }} / {{ formatSize(systemStats.memory.total) }}</p>
+            <p class="text-xs text-gray-500">{{ formatSize(systemStats.memory?.used || 0) }} / {{ formatSize(systemStats.memory?.total || 0) }}</p>
           </div>
           
           <!-- 磁盘使用率 -->
@@ -240,21 +240,21 @@
                   cx="48"
                   cy="48"
                   r="40"
-                  :stroke="getDiskColor(systemStats.disk.usage)"
+                  :stroke="getDiskColor(systemStats.disk?.usage || 0)"
                   stroke-width="8"
                   fill="none"
                   stroke-linecap="round"
                   :stroke-dasharray="`${2 * Math.PI * 40}`"
-                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - systemStats.disk.usage / 100)}`"
+                  :stroke-dashoffset="`${2 * Math.PI * 40 * (1 - (systemStats.disk?.usage || 0) / 100)}`"
                   class="transition-all duration-300"
                 />
               </svg>
               <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.disk.usage) }}%</span>
+                <span class="text-lg font-bold text-gray-900">{{ Math.round(systemStats.disk?.usage || 0) }}%</span>
               </div>
             </div>
             <h3 class="text-sm font-medium text-gray-900 mb-1">磁盘使用率</h3>
-            <p class="text-xs text-gray-500">{{ formatSize(systemStats.disk.used) }} / {{ formatSize(systemStats.disk.total) }}</p>
+            <p class="text-xs text-gray-500">{{ formatSize(systemStats.disk?.used || 0) }} / {{ formatSize(systemStats.disk?.total || 0) }}</p>
           </div>
         </div>
       </div>
@@ -331,22 +331,26 @@
 <script setup lang="ts">
 import { monitoringApi, type ServiceStatus } from '@/api/monitoring'
 import {
-  AlertTriangle,
-  CheckCircle,
-  Database,
-  Eye,
-  Globe,
-  RefreshCw,
-  Server,
-  X,
-  XCircle
+    AlertTriangle,
+    CheckCircle,
+    Database,
+    Eye,
+    Globe,
+    RefreshCw,
+    Server,
+    X,
+    XCircle
 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 // 响应式数据
 const loading = ref(false)
 const services = ref<ServiceStatus[]>([])
-const systemStats = ref<any>(null)
+const systemStats = ref<any>({
+  cpu: { usage: 0 },
+  memory: { usage: 0, used: 0, total: 0 },
+  disk: { usage: 0, used: 0, total: 0 }
+})
 const selectedService = ref<ServiceStatus | null>(null)
 const showDetailsDialog = ref(false)
 

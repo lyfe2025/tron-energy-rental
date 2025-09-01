@@ -1,25 +1,25 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type {
-  Bot,
-  CreateEnergyPackageData,
-  CreatePriceTemplateData,
-  CreateUserData,
-  EnergyPackage,
-  OperationLog,
-  Order,
-  OrderStats,
-  PriceTemplate,
-  RevenueStats,
-  StatisticsParams,
-  SystemConfig,
-  SystemSettings,
-  UpdateEnergyPackageData,
-  UpdateOrderStatusData,
-  UpdatePriceTemplateData,
-  UpdateSettingsData,
-  UpdateUserData,
-  User,
-  UserActivityStats
+    Bot,
+    CreateEnergyPackageData,
+    CreatePriceTemplateData,
+    CreateUserData,
+    EnergyPackage,
+    OperationLog,
+    Order,
+    OrderStats,
+    PriceTemplate,
+    RevenueStats,
+    StatisticsParams,
+    SystemConfig,
+    SystemSettings,
+    UpdateEnergyPackageData,
+    UpdateOrderStatusData,
+    UpdatePriceTemplateData,
+    UpdateSettingsData,
+    UpdateUserData,
+    User,
+    UserActivityStats
 } from '../types/api';
 
 // API基础配置
@@ -30,7 +30,8 @@ interface ImportMeta {
   };
 }
 
-const API_BASE_URL = (import.meta as ImportMeta).env?.VITE_API_BASE_URL || ''
+// 在开发环境中使用相对路径以利用Vite代理，在生产环境中使用完整URL
+const API_BASE_URL = (import.meta as ImportMeta).env?.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://localhost:3001')
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
@@ -44,12 +45,24 @@ const apiClient: AxiosInstance = axios.create({
   },
 })
 
+console.log('🔍 [API Client] 初始化配置:', {
+  baseURL: API_BASE_URL,
+  isDev: import.meta.env.DEV,
+  env: import.meta.env
+})
+
 // 请求拦截器 - 添加认证token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('admin_token')
+    console.log('🔍 [API Client] 请求拦截器:', {
+      url: config.url,
+      token: token ? '存在' : '不存在',
+      headers: config.headers
+    })
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('🔍 [API Client] 已添加认证头:', `Bearer ${token.substring(0, 20)}...`)
     }
     return config
   },

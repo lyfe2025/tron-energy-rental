@@ -131,13 +131,13 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatDateTime(user.loginTime) }}
+                {{ user.loginTime ? formatDateTime(user.loginTime) : formatDateTime(user.lastActivity) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ formatDateTime(user.lastActivity) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ user.ipAddress }}
+                {{ user.ipAddress || 'N/A' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button
@@ -220,19 +220,27 @@
               <label class="text-sm font-medium text-gray-600">角色</label>
               <p class="text-sm text-gray-900">{{ getRoleDisplayName(selectedUser.role) }}</p>
             </div>
+            <div v-if="selectedUser.email">
+              <label class="text-sm font-medium text-gray-600">邮箱</label>
+              <p class="text-sm text-gray-900">{{ selectedUser.email }}</p>
+            </div>
             <div>
               <label class="text-sm font-medium text-gray-600">登录时间</label>
-              <p class="text-sm text-gray-900">{{ formatDateTime(selectedUser.loginTime) }}</p>
+              <p class="text-sm text-gray-900">{{ selectedUser.loginTime ? formatDateTime(selectedUser.loginTime) : formatDateTime(selectedUser.lastActivity) }}</p>
             </div>
             <div>
               <label class="text-sm font-medium text-gray-600">最后活动</label>
               <p class="text-sm text-gray-900">{{ formatDateTime(selectedUser.lastActivity) }}</p>
             </div>
-            <div>
+            <div v-if="selectedUser.onlineDuration !== undefined">
+              <label class="text-sm font-medium text-gray-600">在线时长</label>
+              <p class="text-sm text-gray-900">{{ selectedUser.onlineDuration }} 分钟</p>
+            </div>
+            <div v-if="selectedUser.ipAddress">
               <label class="text-sm font-medium text-gray-600">IP地址</label>
               <p class="text-sm text-gray-900">{{ selectedUser.ipAddress }}</p>
             </div>
-            <div>
+            <div v-if="selectedUser.userAgent">
               <label class="text-sm font-medium text-gray-600">用户代理</label>
               <p class="text-sm text-gray-900 break-all">{{ selectedUser.userAgent }}</p>
             </div>
@@ -292,11 +300,14 @@ const fetchOnlineUsers = async () => {
     const response = await monitoringApi.getOnlineUsers()
     
     if (response.success && response.data) {
-      // 确保数据是数组类型
-      if (Array.isArray(response.data)) {
+      // 检查数据结构：后端返回 { users: [], pagination: {} }
+      if (response.data.users && Array.isArray(response.data.users)) {
+        onlineUsers.value = response.data.users
+      } else if (Array.isArray(response.data)) {
+        // 向后兼容：如果直接返回数组
         onlineUsers.value = response.data
       } else {
-        console.warn('在线用户数据不是数组格式:', response.data)
+        console.warn('在线用户数据格式不正确:', response.data)
         onlineUsers.value = []
       }
     } else {

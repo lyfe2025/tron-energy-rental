@@ -64,13 +64,17 @@ export const verifyToken = (token: string): JWTPayload | null => {
   }
   
   try {
+    console.log('🔍 [JWT] 开始验证token，密钥长度:', getJWTSecret().length);
+    console.log('🔍 [JWT] Token前20字符:', trimmedToken.substring(0, 20) + '...');
+    
     const decoded = jwt.verify(trimmedToken, getJWTSecret()) as JWTPayload;
+    console.log('✅ [JWT] Token验证成功:', decoded.id);
     return decoded;
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      console.warn('JWT验证失败:', error.message);
+      console.error('❌ [JWT] JWT验证失败:', error.message);
     } else {
-      console.error('JWT验证失败:', error);
+      console.error('❌ [JWT] JWT验证失败:', error);
     }
     return null;
   }

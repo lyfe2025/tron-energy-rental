@@ -26,9 +26,16 @@ const handleTokenExpired = (event: CustomEvent) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 添加全局事件监听器
   window.addEventListener('auth:token-expired', handleTokenExpired as EventListener)
+  
+  // 初始化认证状态
+  try {
+    await authStore.initializeAuth()
+  } catch (error) {
+    console.error('初始化认证状态失败:', error)
+  }
 })
 
 onUnmounted(() => {

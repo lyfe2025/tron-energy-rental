@@ -166,33 +166,28 @@
 </template>
 
 <script setup lang="ts">
+import { useMenu } from '@/composables/useMenu'
 import { useAuthStore } from '@/stores/auth'
 import {
-    BarChart3,
-    Bell,
-    Bot,
-    ChevronDown,
-    DollarSign,
-    Fuel,
-    LayoutDashboard,
-    LogOut,
-    Menu,
-    Monitor,
-    Settings,
-    ShoppingCart,
-    User,
-    UserCheck,
-    Users,
-    X,
-    Zap
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Settings,
+  User,
+  X,
+  Zap
 } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 // 路由和状态管理
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+
+// 菜单管理
+const { navigation, loading: menuLoading, error: menuError, initializeMenus } = useMenu()
 
 // 响应式数据
 const sidebarOpen = ref(false)
@@ -210,186 +205,7 @@ const toggleMenu = (menuName: string) => {
   }
 }
 
-// 导航菜单配置（包含权限控制）
-const allNavigation = [
-  {
-    name: '仪表板',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '订单管理',
-    href: '/orders',
-    icon: ShoppingCart,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '用户管理',
-    href: '/users',
-    icon: Users,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '价格配置',
-    href: '/price-config',
-    icon: DollarSign,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '机器人管理',
-    href: '/bots',
-    icon: Bot,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '能量池管理',
-    href: '/energy-pool',
-    icon: Fuel,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '代理商管理',
-    href: '/agents',
-    icon: UserCheck,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '统计分析',
-    href: '/statistics',
-    icon: BarChart3,
-    roles: ['super_admin', 'admin']
-  },
-  {
-    name: '监控中心',
-    href: '/monitoring',
-    icon: Monitor,
-    roles: ['super_admin', 'admin'],
-    children: [
-      {
-        name: '监控概览',
-        href: '/monitoring/overview',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '在线用户',
-        href: '/monitoring/online-users',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '定时任务',
-        href: '/monitoring/scheduled-tasks',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '数据监控',
-        href: '/monitoring/database',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '服务状态',
-        href: '/monitoring/service-status',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '缓存状态',
-        href: '/monitoring/cache-status',
-        roles: ['super_admin', 'admin']
-      }
-    ]
-  },
-  {
-    name: '系统管理',
-    href: '/system',
-    icon: Settings,
-    roles: ['super_admin', 'admin'],
-    children: [
-      {
-        name: '部门管理',
-        href: '/system/departments',
-        permission: 'system:dept:list',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '岗位管理',
-        href: '/system/positions',
-        permission: 'system:position:list',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '角色管理',
-        href: '/system/roles',
-        permission: 'system:role:list',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '菜单管理',
-        href: '/system/menus',
-        permission: 'system:menu:list',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '管理员管理',
-        href: '/system/user-roles',
-        permission: 'system:user:list',
-        roles: ['super_admin', 'admin']
-      },
-      {
-        name: '日志管理',
-        href: '/system/logs',
-        roles: ['super_admin', 'admin'],
-        children: [
-          {
-            name: '登录日志',
-            href: '/system/logs/login',
-            permission: 'system:log:login:list',
-            roles: ['super_admin', 'admin']
-          },
-          {
-            name: '操作日志',
-            href: '/system/logs/operation',
-            permission: 'system:log:operation:list',
-            roles: ['super_admin', 'admin']
-          }
-        ]
-      },
-      {
-          name: '系统设置',
-          href: '/system/settings',
-          permission: 'system:settings:list',
-          roles: ['super_admin', 'admin']
-        }
-    ]
-  }
-]
-
-// 基于用户角色和权限过滤导航菜单
-const navigation = computed(() => {
-  const userRole = authStore.userRole
-  const userPermissions = authStore.user?.permissions || []
-  if (!userRole) return []
-  
-  const filterMenuItems = (items: any[]) => {
-    return items.filter(item => {
-      // 检查角色权限
-      if (item.roles && !item.roles.includes(userRole)) return false
-      
-      // 检查具体权限
-      if (item.permission && !userPermissions.includes(item.permission)) return false
-      
-      // 如果有子菜单，递归过滤
-      if (item.children) {
-        item.children = filterMenuItems(item.children)
-        // 如果所有子菜单都被过滤掉，则隐藏父菜单
-        return item.children.length > 0
-      }
-      
-      return true
-    })
-  }
-  
-  return filterMenuItems(allNavigation)
-})
+// 注意：菜单数据现在从数据库获取，已移除硬编码的菜单配置
 
 // 页面标题映射
 const pageTitleMap: Record<string, string> = {
@@ -444,8 +260,19 @@ const handleResize = () => {
   }
 }
 
+// 监听认证状态变化，初始化菜单
+watch(() => authStore.isAuthenticated, async (isAuthenticated) => {
+  if (isAuthenticated) {
+    try {
+      await initializeMenus()
+    } catch (error) {
+      console.error('初始化菜单失败:', error)
+    }
+  }
+}, { immediate: true })
+
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
   // 初始化侧边栏状态
   handleResize()
   
@@ -455,6 +282,13 @@ onMounted(() => {
   // 验证用户认证状态
   if (!authStore.isAuthenticated) {
     router.push('/login')
+  } else {
+    // 如果已经认证，立即初始化菜单
+    try {
+      await initializeMenus()
+    } catch (error) {
+      console.error('初始化菜单失败:', error)
+    }
   }
 })
 

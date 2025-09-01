@@ -214,7 +214,7 @@ export function useRoles() {
         `/roles/${data.role_id}/permissions`,
         {
           method: 'PUT',
-          body: JSON.stringify({ permission_ids: data.permission_ids })
+          body: JSON.stringify({ menu_ids: data.permission_ids })
         }
       )
       return response.success

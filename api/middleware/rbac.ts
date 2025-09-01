@@ -7,6 +7,7 @@ import { type NextFunction, type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { MenuService } from '../services/system/menu.ts';
 import { query } from '../config/database.ts';
+import { verifyToken } from '../utils/jwt.js';
 
 // Request接口扩展已在auth.ts中定义
 
@@ -25,21 +26,14 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       });
     }
 
-    // 动态获取JWT密钥
-    const getJWTSecret = () => {
-      return process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-    };
-
-    const jwtSecret = getJWTSecret();
-    if (!jwtSecret) {
-      return res.status(500).json({
+    // 使用统一的token验证函数
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
         success: false,
-        error: '服务器配置错误'
+        error: '无效的访问令牌'
       });
     }
-
-    // 验证token
-    const decoded = jwt.verify(token, jwtSecret) as any;
     
     // 查询用户信息
     const userResult = await query(
@@ -65,6 +59,17 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 
     // 获取用户权限
     const permissions = await MenuService.getUserPermissionCodes(user.id);
+    
+    // 更新会话的最后活动时间
+    try {
+      await query(
+        'UPDATE admin_sessions SET last_activity = NOW() WHERE session_token = $1 AND is_active = true',
+        [token]
+      );
+    } catch (sessionError) {
+      console.error('更新会话活动时间失败:', sessionError);
+      // 不阻塞请求，继续执行
+    }
     
     req.user = {
       id: decoded.id,

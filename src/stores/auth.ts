@@ -12,12 +12,17 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
 
   // 计算属性
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => {
+    const hasToken = !!token.value
+    const hasUser = !!user.value
+    console.log('🔍 [AuthStore] 认证状态计算:', { hasToken, hasUser, token: token.value, user: user.value })
+    return hasToken && hasUser
+  })
   const isAdmin = computed(() => {
     const role = user.value?.role
-    return role === 'admin'
+    return role === 'admin' || role === 'super_admin'
   })
-  // 移除isSuperAdmin，因为User类型的role字段不包含'super_admin'
+  const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
   const isAgent = computed(() => user.value?.role === 'agent')
   const userRole = computed(() => user.value?.role)
 
@@ -53,10 +58,14 @@ export const useAuthStore = defineStore('auth', () => {
       // 不清除之前的错误，让用户能看到具体的错误信息
       // error.value = null
 
+      console.log('🔍 [AuthStore] 开始登录流程')
       const response = await authAPI.login(credentials)
+      console.log('🔍 [AuthStore] 登录响应:', response.data)
       
       if (response.data.success && response.data.data) {
         const { token: newToken, user: userData } = response.data.data
+        
+        console.log('🔍 [AuthStore] 登录成功，保存认证信息')
         
         // 登录成功，清除错误信息
         error.value = null
@@ -68,6 +77,24 @@ export const useAuthStore = defineStore('auth', () => {
         // 保存到本地存储
         localStorage.setItem('admin_token', newToken)
         localStorage.setItem('admin_user', JSON.stringify(userData))
+        
+        console.log('🔍 [AuthStore] 认证信息已保存:', {
+          token: newToken ? '存在' : '不存在',
+          user: userData ? '存在' : '不存在',
+          localStorage: {
+            token: localStorage.getItem('admin_token') ? '存在' : '不存在',
+            user: localStorage.getItem('admin_user') ? '存在' : '不存在'
+          }
+        })
+        
+        // 延迟检查认证状态，确保数据同步
+        setTimeout(() => {
+          console.log('🔍 [AuthStore] 延迟检查认证状态:', {
+            isAuthenticated: isAuthenticated.value,
+            token: token.value,
+            user: user.value
+          })
+        }, 100)
         
         return { success: true, message: '登录成功' }
       } else {
@@ -174,6 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
     // 计算属性
     isAuthenticated,
     isAdmin,
+    isSuperAdmin,
     isAgent,
     userRole,
     

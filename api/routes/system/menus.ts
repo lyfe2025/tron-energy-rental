@@ -4,10 +4,10 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { MenuService } from '../../services/system/menu.js';
+import { body, param, query } from 'express-validator';
+import { authenticateToken, logOperation, requirePermission } from '../../middleware/rbac.js';
 import { handleValidationErrors } from '../../middleware/validation.js';
-import { body, query, param } from 'express-validator';
-import { authenticateToken, requirePermission, logOperation } from '../../middleware/rbac.js';
+import { MenuService } from '../../services/system/menu.js';
 
 const router: Router = Router();
 
@@ -50,22 +50,31 @@ router.get('/', [
  */
 router.get('/user-menus', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 [Menu API] 收到菜单请求:', {
+      adminId: req.user?.id,
+      user: req.user,
+      headers: req.headers
+    });
+
     const adminId = req.user?.id;
     if (!adminId) {
+      console.error('❌ [Menu API] 用户未登录');
       return res.status(401).json({
         success: false,
         error: '用户未登录'
       });
     }
 
+    console.log('🔍 [Menu API] 开始获取用户菜单，adminId:', adminId);
     const menus = await MenuService.getUserMenus(adminId);
+    console.log('✅ [Menu API] 菜单获取成功，数量:', menus.length);
 
     res.json({
       success: true,
       data: menus
     });
   } catch (error) {
-    console.error('获取用户菜单失败:', error);
+    console.error('❌ [Menu API] 获取用户菜单失败:', error);
     res.status(500).json({
       success: false,
       error: '获取用户菜单失败'

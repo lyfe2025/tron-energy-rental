@@ -51,11 +51,19 @@ export interface ScheduledTask {
   id: string
   name: string
   description: string
-  cronExpression: string
-  status: 'active' | 'inactive' | 'running' | 'paused' | 'error'
-  lastRun: string | null
-  nextRun: string | null
-  createdAt: string
+  cron_expression: string
+  command: string
+  is_active: boolean
+  next_run?: string | null
+  last_run?: string | null
+  created_at: string
+  updated_at: string
+  // 计算属性，前端使用
+  cronExpression?: string
+  status?: 'active' | 'inactive' | 'running' | 'paused' | 'error'
+  lastRun?: string | null
+  nextRun?: string | null
+  createdAt?: string
   updatedAt?: string
 }
 
@@ -285,6 +293,19 @@ export const monitoringApi = {
     }>>('/api/monitoring/scheduled-tasks')
   },
 
+  // 创建定时任务
+  createTask: (task: {
+    name: string
+    description: string
+    cron_expression: string
+    command: string
+  }) => {
+    return request<ApiResponseWrapper<ScheduledTask>>('/api/monitoring/scheduled-tasks', {
+      method: 'POST',
+      data: task
+    })
+  },
+
   // 获取任务执行日志
   getTaskExecutionLogs: (params?: {
     taskId?: string | number
@@ -293,21 +314,24 @@ export const monitoringApi = {
     limit?: number
   } | string | number) => {
     // 兼容多种参数类型
+    let taskId: string | number | undefined
     let searchParams = new URLSearchParams()
     
     if (typeof params === 'string' || typeof params === 'number') {
       // 如果参数是字符串或数字，则作为taskId处理
-      searchParams.append('taskId', params.toString())
+      taskId = params
     } else if (params && typeof params === 'object') {
       // 如果参数是对象，则按对象处理
-      if (params.taskId) searchParams.append('taskId', params.taskId.toString())
+      taskId = params.taskId
       if (params.status) searchParams.append('status', params.status)
       if (params.page) searchParams.append('page', params.page.toString())
       if (params.limit) searchParams.append('limit', params.limit.toString())
     }
     
     const queryString = searchParams.toString()
-    const url = queryString ? `/api/monitoring/task-logs?${queryString}` : '/api/monitoring/task-logs'
+    const url = taskId 
+      ? `/api/monitoring/scheduled-tasks/${taskId}/logs${queryString ? `?${queryString}` : ''}`
+      : `/api/monitoring/task-logs${queryString ? `?${queryString}` : ''}`
     
     return request<ApiResponseWrapper<{
       logs: TaskExecutionLog[]
@@ -350,6 +374,12 @@ export const monitoringApi = {
   executeTask: (taskId: string | number) => {
     return request(`/api/monitoring/scheduled-tasks/${taskId}/execute`, {
       method: 'POST'
+    })
+  },
+
+  deleteTask: (taskId: string | number) => {
+    return request(`/api/monitoring/scheduled-tasks/${taskId}`, {
+      method: 'DELETE'
     })
   },
 

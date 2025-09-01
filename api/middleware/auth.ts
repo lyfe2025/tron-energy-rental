@@ -2,8 +2,8 @@
  * 认证中间件
  * 验证JWT token并保护API端点
  */
-import express, { type Request, type Response, type NextFunction } from 'express';
-import { verifyToken, extractTokenFromHeader } from '../utils/jwt.js';
+import { type NextFunction, type Request, type Response } from 'express';
+import { extractTokenFromHeader, verifyToken } from '../utils/jwt.js';
 
 // JWT载荷接口定义
 interface JWTPayload {
@@ -44,14 +44,17 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     return;
   }
   
+  console.log('🔍 [Auth] 开始验证token，长度:', token.length);
   const payload = verifyToken(token);
   if (!payload) {
+    console.error('❌ [Auth] Token验证失败');
     res.status(403).json({
       success: false,
-      message: 'Token无效或已过期'
+      error: '无效的访问令牌'
     });
     return;
   }
+  console.log('✅ [Auth] Token验证成功，用户ID:', payload.id);
   
   try {
     // 获取用户完整信息和权限

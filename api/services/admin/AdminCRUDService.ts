@@ -57,6 +57,7 @@ export class AdminCRUDService {
         username,
         email,
         role,
+        role_id,
         status,
         department_id,
         position_id,
@@ -93,7 +94,6 @@ export class AdminCRUDService {
         id,
         username,
         email,
-        role,
         status,
         department_id,
         position_id,
@@ -113,7 +113,7 @@ export class AdminCRUDService {
    * 创建管理员
    */
   static async createAdmin(data: AdminCreateData): Promise<Admin> {
-    const { username, email, password, role, status = 'active', department_id, position_id } = data;
+    const { username, email, password, status = 'active', department_id, position_id } = data;
 
     // 检查用户名是否已存在
     const existingUsername = await pool.query(
@@ -159,13 +159,12 @@ export class AdminCRUDService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = `
-      INSERT INTO admins (username, email, password_hash, role, status, department_id, position_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO admins (username, email, password_hash, status, department_id, position_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING 
         id,
         username,
         email,
-        role,
         status,
         department_id,
         position_id,
@@ -173,7 +172,7 @@ export class AdminCRUDService {
         updated_at
     `;
     
-    const result = await pool.query(query, [username, email, hashedPassword, role, status, department_id, position_id]);
+    const result = await pool.query(query, [username, email, hashedPassword, status, department_id, position_id]);
     return result.rows[0];
   }
 
@@ -181,7 +180,7 @@ export class AdminCRUDService {
    * 更新管理员信息
    */
   static async updateAdmin(id: string, data: AdminUpdateData): Promise<Admin | null> {
-    const { username, email, role, status, department_id, position_id } = data;
+    const { username, email, status, department_id, position_id } = data;
 
     // 动态构建更新字段
     const updateFields: string[] = [];
@@ -216,11 +215,7 @@ export class AdminCRUDService {
       paramIndex++;
     }
 
-    if (role !== undefined) {
-      updateFields.push(`role = $${paramIndex}`);
-      values.push(role);
-      paramIndex++;
-    }
+
 
     if (status !== undefined) {
       updateFields.push(`status = $${paramIndex}`);
@@ -276,7 +271,6 @@ export class AdminCRUDService {
         id,
         username,
         email,
-        role,
         status,
         department_id,
         position_id,
@@ -302,7 +296,6 @@ export class AdminCRUDService {
         id,
         username,
         email,
-        role,
         status,
         department_id,
         position_id,
@@ -320,23 +313,13 @@ export class AdminCRUDService {
    * 删除管理员
    */
   static async deleteAdmin(id: string): Promise<boolean> {
-    // 检查是否为超级管理员（可能需要特殊保护）
+    // 检查管理员是否存在
     const admin = await this.getAdminById(id);
     if (!admin) {
       return false;
     }
 
-    // 可以添加额外的业务逻辑，比如不允许删除最后一个超级管理员
-    if (admin.role === 'super_admin') {
-      const superAdminCount = await pool.query(
-        'SELECT COUNT(*) as count FROM admins WHERE role = $1 AND status = $2',
-        ['super_admin', 'active']
-      );
-      if (parseInt(superAdminCount.rows[0].count) <= 1) {
-        throw new Error('不能删除最后一个超级管理员');
-      }
-    }
-
+    // 删除管理员（角色关系通过admin_roles表管理）
     const query = 'DELETE FROM admins WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rowCount > 0;

@@ -10,6 +10,7 @@ export interface Admin {
   username: string;
   email: string;
   role: string;
+  role_id?: string;
   status: string;
   department_id?: number;
   position_id?: number;
@@ -31,7 +32,8 @@ export interface AdminCreateData {
   username: string;
   email: string;
   password: string;
-  role: string;
+  role?: string;
+  role_id?: string;
   status?: string;
   department_id?: number;
   position_id?: number;
@@ -41,6 +43,7 @@ export interface AdminUpdateData {
   username?: string;
   email?: string;
   role?: string;
+  role_id?: string;
   status?: string;
   department_id?: number;
   position_id?: number;

@@ -9,7 +9,12 @@ export interface Admin {
   username: string;
   email: string;
   role: AdminRole;
+  role_id?: string; // 支持动态角色分配
   status: AdminStatus;
+  department_id?: number;
+  department_name?: string;
+  position_id?: number;
+  position_name?: string;
   last_login?: string;
   notes?: string; // 添加缺失的notes属性
   created_at: string;
@@ -70,7 +75,10 @@ export interface CreateAdminRequest {
   email: string;
   password: string;
   role?: AdminRole;
+  role_id?: string; // 支持动态角色分配
   status?: AdminStatus;
+  department_id?: number;
+  position_id?: number;
   notes?: string; // 添加缺失的notes属性
 }
 
@@ -80,7 +88,10 @@ export interface UpdateAdminRequest {
   email?: string;
   password?: string;
   role?: AdminRole;
+  role_id?: string; // 支持动态角色分配
   status?: AdminStatus;
+  department_id?: number;
+  position_id?: number;
   notes?: string; // 添加缺失的notes属性
 }
 

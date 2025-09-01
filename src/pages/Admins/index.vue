@@ -32,28 +32,38 @@
       <!-- 管理员组件 -->
       <div class="bg-white shadow rounded-lg">
         <!-- 工具栏：搜索、筛选、批量操作 -->
-        <AdminToolbar
-          :selected-count="selectedAdmins.length"
-          @search="handleSearch"
-          @reset="handleSearchReset"
+        <AdminActions
+          :selected-ids="selectedAdmins"
+          :loading="adminStore.loading.value"
           @create="showCreateModal"
-          @bulk-action="handleBulkAction"
           @clear-selection="clearSelection"
+          @batch-enable="(ids) => handleBulkAction('enable', ids)"
+          @batch-disable="(ids) => handleBulkAction('disable', ids)"
+          @batch-permissions="(ids) => handleBulkAction('permissions', ids)"
+          @batch-delete="(ids) => handleBulkAction('delete', ids)"
+          @export-selected="(ids) => handleBulkAction('export', ids)"
+          @export-all="() => handleBulkAction('export', [])"
         />
         
-        <!-- 管理员表格 -->
-        <AdminTable
-          :loading="adminStore.loading"
-          :admins="adminStore.admins"
-          :pagination="adminStore.pagination"
-          :selected="selectedAdmins"
+        <!-- 搜索和筛选 -->
+        <AdminSearch
+          @search="handleSearch"
+          @reset="handleSearchReset"
+        />
+        
+        <!-- 管理员列表 -->
+        <AdminList
+          :loading="adminStore.loading.value"
+          :admins="adminStore.admins.value"
+          :pagination="adminStore.pagination.value"
+          :selected-ids="selectedAdmins"
           @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
           @view="showDetailModal"
           @edit="showEditModal"
           @delete="handleDelete"
           @toggle-status="handleToggleStatus"
-          @manage-permissions="showPermissionModal"
+          @permissions="showPermissionModal"
         />
       </div>
     </div>
@@ -108,12 +118,13 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import Layout from '../../components/Layout.vue'
 import StatCard from '../../components/StatCard.vue'
+import AdminActions from './components/AdminActions.vue'
 import AdminDetailModal from './components/AdminDetailModal.vue'
 import AdminForm from './components/AdminForm.vue'
+import AdminList from './components/AdminList.vue'
 import AdminNetworkStatus from './components/AdminNetworkStatus.vue'
 import AdminPageHeader from './components/AdminPageHeader.vue'
-import AdminTable from './components/AdminTable.vue'
-import AdminToolbar from './components/AdminToolbar.vue'
+import AdminSearch from './components/AdminSearch.vue'
 import PermissionDialog from './components/PermissionDialog.vue'
 import { useAdminPage } from './composables/useAdminPage'
 import { useAdminStore } from './composables/useAdminStore'

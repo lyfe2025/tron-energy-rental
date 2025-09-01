@@ -20,6 +20,12 @@
               角色
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              部门
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              岗位
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               状态
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -67,11 +73,26 @@
               </span>
             </td>
             
+            <!-- 部门 -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {{ admin.department_name || '-' }}
+            </td>
+            
+            <!-- 岗位 -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {{ admin.position_name || '-' }}
+            </td>
+            
             <!-- 状态 -->
             <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getStatusClass(admin.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+              <button
+                @click="$emit('toggle-status', admin)"
+                :class="getStatusClass(admin.status)"
+                class="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                :title="`点击${admin.status === 'active' ? '停用' : '启用'}管理员`"
+              >
                 {{ getStatusLabel(admin.status) }}
-              </span>
+              </button>
             </td>
             
             <!-- 最后登录 -->
@@ -162,9 +183,19 @@
                   <span :class="getRoleClass(admin.role)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
                     {{ getRoleLabel(admin.role) }}
                   </span>
-                  <span :class="getStatusClass(admin.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  <button
+                    @click="$emit('toggle-status', admin)"
+                    :class="getStatusClass(admin.status)"
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                    :title="`点击${admin.status === 'active' ? '停用' : '启用'}管理员`"
+                  >
                     {{ getStatusLabel(admin.status) }}
-                  </span>
+                  </button>
+                </div>
+                
+                <div class="mt-2 text-xs text-gray-500">
+                  <p v-if="admin.department_name">部门: {{ admin.department_name }}</p>
+                  <p v-if="admin.position_name">岗位: {{ admin.position_name }}</p>
                 </div>
                 
                 <div class="mt-2 text-xs text-gray-500">
@@ -216,27 +247,80 @@
       <h3 class="mt-2 text-sm font-medium text-gray-900">暂无管理员</h3>
       <p class="mt-1 text-sm text-gray-500">开始创建第一个管理员账户</p>
     </div>
+
+    <!-- 分页组件 -->
+    <div v-if="pagination && pagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          显示第 {{ (pagination.page - 1) * pagination.limit + 1 }} 到 
+          {{ Math.min(pagination.page * pagination.limit, pagination.total) }} 条，
+          共 {{ pagination.total }} 条记录
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <!-- 上一页 -->
+          <button
+            @click="handlePageChange(pagination.page - 1)"
+            :disabled="pagination.page <= 1"
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          
+          <!-- 页码 -->
+          <div class="flex items-center space-x-1">
+            <template v-for="page in getVisiblePages()" :key="page">
+              <button
+                v-if="typeof page === 'number'"
+                @click="handlePageChange(page)"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-md',
+                  page === pagination.page
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+              <span v-else class="px-2 py-2 text-gray-500">...</span>
+            </template>
+          </div>
+          
+          <!-- 下一页 -->
+          <button
+            @click="handlePageChange(pagination.page + 1)"
+            :disabled="pagination.page >= pagination.totalPages"
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Edit, Eye, Shield, Trash2, User } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { User, Eye, Edit, Shield, Trash2 } from 'lucide-vue-next';
-import type { Admin } from '../types';
-import { ADMIN_STATUS_LABELS, ADMIN_ROLE_LABELS } from '../types';
+import type { Admin, AdminPagination } from '../types';
+import { ADMIN_ROLE_LABELS, ADMIN_STATUS_LABELS } from '../types';
 
 interface Props {
   admins: Admin[];
   selectedIds: string[];
   loading?: boolean;
+  pagination?: AdminPagination;
 }
 
 interface Emits {
   'selection-change': [ids: string[]];
+  'page-change': [page: number];
   view: [admin: Admin];
   edit: [admin: Admin];
   permissions: [admin: Admin];
   delete: [admin: Admin];
+  'toggle-status': [admin: Admin];
 }
 
 const props = defineProps<Props>();
@@ -330,5 +414,36 @@ const formatLastLogin = (dateString: string | null) => {
   } else {
     return formatDate(dateString);
   }
+};
+
+// 获取分页页码
+const getVisiblePages = () => {
+  const pages: (number | string)[] = [];
+  const totalPages = props.pagination?.totalPages || 0;
+  const currentPage = props.pagination?.page || 1;
+
+  if (totalPages <= 5) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    pages.push(1);
+    if (currentPage > 3) {
+      pages.push('...');
+    }
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) {
+      pages.push('...');
+    }
+    pages.push(totalPages);
+  }
+  return pages;
+};
+
+// 处理分页变化
+const handlePageChange = (page: number) => {
+  emit('page-change', page);
 };
 </script>

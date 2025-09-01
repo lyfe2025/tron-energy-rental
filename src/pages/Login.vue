@@ -181,13 +181,13 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  User,
-  Zap
+    AlertCircle,
+    Eye,
+    EyeOff,
+    Loader2,
+    Lock,
+    User,
+    Zap
 } from 'lucide-vue-next'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -361,6 +361,11 @@ const handleLogin = async () => {
       
       // 延迟跳转，让用户看到成功动画
       setTimeout(async () => {
+        console.log('🔍 [Login.vue] 准备跳转到仪表板，当前认证状态:', {
+          isAuthenticated: authStore.isAuthenticated,
+          token: authStore.token,
+          user: authStore.user
+        })
         await router.push('/dashboard')
       }, 1500) // 1.5秒后跳转
       

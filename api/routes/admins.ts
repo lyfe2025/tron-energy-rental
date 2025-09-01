@@ -4,7 +4,7 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { AdminService } from '../services/admin.js';
+import { AdminService } from '../services/admin/AdminService.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { handleValidationErrors, validatePagination } from '../middleware/validation.js';
 import { requirePermission, logOperation } from '../middleware/rbac.js';
@@ -166,7 +166,9 @@ router.post('/', [
   body('username').isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').isEmail().withMessage('邮箱格式无效'),
   body('password').isString().isLength({ min: 6 }).withMessage('密码长度至少6位'),
-  body('role').isIn(['super_admin', 'admin', 'operator']).withMessage('角色无效'),
+  body('role_id').isUUID().withMessage('角色ID必须是有效的UUID'),
+  body('department_id').optional().isInt({ min: 1 }).withMessage('部门ID必须是正整数'),
+  body('position_id').optional().isInt({ min: 1 }).withMessage('岗位ID必须是正整数'),
   body('status').optional().isIn(['active', 'inactive']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
@@ -198,7 +200,9 @@ router.put('/:id', [
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   body('username').optional().isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').optional().isEmail().withMessage('邮箱格式无效'),
-  body('role').optional().isIn(['super_admin', 'admin', 'operator']).withMessage('角色无效'),
+  body('role_id').optional().isUUID().withMessage('角色ID必须是有效的UUID'),
+  body('department_id').optional().isInt({ min: 1 }).withMessage('部门ID必须是正整数'),
+  body('position_id').optional().isInt({ min: 1 }).withMessage('岗位ID必须是正整数'),
   body('status').optional().isIn(['active', 'inactive']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
@@ -300,6 +304,63 @@ router.patch('/:id/password', [
     res.status(500).json({
       success: false,
       error: '重置密码失败'
+    });
+  }
+});
+
+/**
+ * 获取管理员权限
+ * GET /api/admins/:id/permissions
+ */
+router.get('/:id/permissions', [
+  requirePermission('system:admin:view'),
+  param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // 获取管理员详情以验证存在性
+    const admin = await AdminService.getAdminById(id);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        error: '管理员不存在'
+      });
+    }
+
+    // 获取管理员权限
+    const permissions = await AdminService.getAdminPermissions(id);
+    
+    // 获取所有可用权限以便前端显示
+    const allPermissions = await AdminService.getPermissions();
+    
+    // 将权限按组分类
+    const groupedPermissions: { [key: string]: any[] } = {};
+    allPermissions.forEach((permission: any) => {
+      const group = permission.id.split(':')[0] || 'other';
+      if (!groupedPermissions[group]) {
+        groupedPermissions[group] = [];
+      }
+      groupedPermissions[group].push({
+        ...permission,
+        checked: permissions.includes(permission.id)
+      });
+    });
+
+    res.json({
+      success: true,
+      data: {
+        adminId: id,
+        permissions: groupedPermissions,
+        selectedPermissions: permissions
+      }
+    });
+  } catch (error) {
+    console.error('获取管理员权限失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取管理员权限失败'
     });
   }
 });

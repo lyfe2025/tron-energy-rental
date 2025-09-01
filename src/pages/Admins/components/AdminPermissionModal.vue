@@ -208,7 +208,8 @@ const groupedPermissions = computed(() => {
   const groups: Record<string, AdminPermission[]> = {};
   
   allPermissions.value.forEach(permission => {
-    const group = permission.resource || 'other';
+    // 使用 resource 字段进行分组，如果没有则默认为 'other'
+    const group = (permission as any).resource || 'other';
     if (!groups[group]) {
       groups[group] = [];
     }
@@ -221,15 +222,21 @@ const groupedPermissions = computed(() => {
 // 获取分组显示名称
 const getGroupDisplayName = (groupName: string): string => {
   const groupNames: Record<string, string> = {
+    // API返回的category字段值映射
+    user: '用户管理',
+    agent: '代理商管理', 
+    admin: '管理员管理',
+    order: '订单管理',
+    energy: '能量管理',
+    statistics: '统计分析',
+    system: '系统设置',
+    // 兼容旧的resource字段值
     users: '用户管理',
     agents: '代理商管理',
     admins: '管理员管理',
     orders: '订单管理',
     pricing: '价格配置',
     bots: '机器人管理',
-    energy: '能量管理',
-    statistics: '统计分析',
-    system: '系统设置',
     other: '其他权限'
   };
   
@@ -244,77 +251,40 @@ const loadPermissions = async () => {
   error.value = '';
   
   try {
-    // 加载角色列表
-    await adminStore.fetchRoles();
-    availableRoles.value = adminStore.roles.value;
+    // 获取角色列表
+    const rolesResponse = await AdminService.getAdminRoles();
+    availableRoles.value = rolesResponse.roles || [];
     
-    // 加载管理员详情（包含权限）
-    await adminStore.fetchAdminDetail(props.admin.id);
-    const adminDetail = adminStore.currentAdmin.value;
-    
-    if (adminDetail) {
-      selectedRole.value = adminDetail.role;
-      selectedPermissions.value = adminDetail.permissions?.map(p => p.id) || [];
+    // 获取管理员详情
+    const adminResponse = await AdminService.getAdmin(props.admin.id);
+    if (adminResponse) {
+      selectedRole.value = adminResponse.role_id || '';
     }
     
-    // 从API获取所有可用权限
-    try {
-      const permissionsData = await AdminService.getAllPermissions();
-      allPermissions.value = permissionsData.permissions.map(permission => ({
-        ...permission,
-        admin_id: '',
-        role_id: '',
-        role_name: '',
-        role_description: '',
-        permissions: [],
-        granted_at: ''
-      }));
-    } catch (error) {
-      console.error('获取权限列表失败:', error);
-      error.value = '获取权限列表失败';
-      // 如果API失败，使用默认权限列表作为备选
-      allPermissions.value = [
-        // 用户管理权限
-        { id: 'users:read', name: '查看用户', description: '查看用户列表和详情', resource: 'users', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'users:create', name: '创建用户', description: '创建新用户', resource: 'users', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'users:update', name: '编辑用户', description: '编辑用户信息', resource: 'users', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'users:delete', name: '删除用户', description: '删除用户账户', resource: 'users', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'users:status', name: '用户状态', description: '修改用户状态', resource: 'users', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 代理商管理权限
-        { id: 'agents:read', name: '查看代理商', description: '查看代理商列表和详情', resource: 'agents', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'agents:create', name: '创建代理商', description: '创建新代理商', resource: 'agents', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'agents:update', name: '编辑代理商', description: '编辑代理商信息', resource: 'agents', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'agents:delete', name: '删除代理商', description: '删除代理商账户', resource: 'agents', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 管理员管理权限
-        { id: 'admins:read', name: '查看管理员', description: '查看管理员列表和详情', resource: 'admins', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'admins:create', name: '创建管理员', description: '创建新管理员', resource: 'admins', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'admins:update', name: '编辑管理员', description: '编辑管理员信息', resource: 'admins', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'admins:delete', name: '删除管理员', description: '删除管理员账户', resource: 'admins', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'admins:permissions', name: '权限配置', description: '配置管理员权限', resource: 'admins', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 订单管理权限
-        { id: 'orders:read', name: '查看订单', description: '查看订单列表和详情', resource: 'orders', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'orders:update', name: '处理订单', description: '处理和更新订单', resource: 'orders', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'orders:refund', name: '订单退款', description: '处理订单退款', resource: 'orders', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 机器人管理权限
-        { id: 'bots:read', name: '查看机器人', description: '查看机器人列表和详情', resource: 'bots', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'bots:create', name: '创建机器人', description: '创建新机器人', resource: 'bots', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'bots:update', name: '编辑机器人', description: '编辑机器人信息', resource: 'bots', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'bots:delete', name: '删除机器人', description: '删除机器人', resource: 'bots', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 统计分析权限
-        { id: 'statistics:read', name: '查看统计', description: '查看统计数据和报表', resource: 'statistics', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        
-        // 系统配置权限
-        { id: 'system:read', name: '查看配置', description: '查看系统配置', resource: 'system', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' },
-        { id: 'system:update', name: '修改配置', description: '修改系统配置', resource: 'system', admin_id: '', role_id: '', role_name: '', role_description: '', permissions: [], granted_at: '' }
-      ];
+    // 获取管理员权限（包含分组信息）
+    const response = await fetch(`/api/admins/${props.admin.id}/permissions`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('获取管理员权限失败');
     }
     
+    const result = await response.json();
+    if (result.success) {
+      // 设置所有权限数据
+      allPermissions.value = result.data.allPermissions || [];
+      
+      // 设置已选权限
+      selectedPermissions.value = result.data.selectedPermissions || [];
+    } else {
+      throw new Error(result.error || '获取权限数据失败');
+    }
   } catch (err) {
+    console.error('加载权限数据失败:', err);
     error.value = err instanceof Error ? err.message : '加载权限数据失败';
   } finally {
     loading.value = false;
@@ -378,22 +348,22 @@ const handleBackdropClick = (event: MouseEvent) => {
   }
 };
 
-// 角色默认权限映射
+// 角色默认权限映射（使用API返回的实际权限ID）
 const roleDefaultPermissions: Record<string, string[]> = {
   super_admin: [], // 超级管理员拥有所有权限，在选择时会自动选择全部
   admin: [
-    'users:read', 'users:create', 'users:update', 'users:status',
-    'orders:read', 'orders:update',
-    'statistics:read'
+    'user_management',
+    'order_management', 
+    'statistics_view'
   ],
   customer_service: [
-    'users:read',
-    'orders:read', 'orders:update'
+    'user_management',
+    'order_management'
   ],
   operator: [
-    'users:read',
-    'agents:read', 'agents:create', 'agents:update',
-    'statistics:read'
+    'user_management',
+    'agent_management',
+    'statistics_view'
   ]
 };
 

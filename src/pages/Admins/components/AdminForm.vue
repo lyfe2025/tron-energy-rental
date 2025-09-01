@@ -103,20 +103,67 @@
             </label>
             <select
               id="role"
-              v-model="formData.role"
+              v-model="formData.role_id"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">请选择角色</option>
               <option
-                v-for="option in ADMIN_ROLE_OPTIONS"
-                :key="option.value"
-                :value="option.value"
+                v-for="option in roleOptions"
+                :key="option.id"
+                :value="option.id"
               >
-                {{ option.label }}
+                {{ option.name }}
               </option>
             </select>
-            <p v-if="errors.role" class="mt-1 text-sm text-red-600">{{ errors.role }}</p>
+            <p v-if="errors.role_id" class="mt-1 text-sm text-red-600">{{ errors.role_id }}</p>
+          </div>
+
+          <!-- 部门 -->
+          <div>
+            <label for="department" class="block text-sm font-medium text-gray-700 mb-1">
+              部门 <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="department"
+              v-model="formData.department_id"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option :value="null">请选择部门</option>
+              <option
+                v-for="option in departmentOptions"
+                :key="option.id"
+                :value="option.id"
+              >
+                {{ option.name }}
+              </option>
+            </select>
+            <p v-if="errors.department_id" class="mt-1 text-sm text-red-600">{{ errors.department_id }}</p>
+          </div>
+
+          <!-- 岗位 -->
+          <div>
+            <label for="position" class="block text-sm font-medium text-gray-700 mb-1">
+              岗位 <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="position"
+              v-model="formData.position_id"
+              required
+              :disabled="!formData.department_id"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option :value="null">{{ formData.department_id ? '请选择岗位' : '请先选择部门' }}</option>
+              <option
+                v-for="option in positionOptions"
+                :key="option.id"
+                :value="option.id"
+              >
+                {{ option.name }}
+              </option>
+            </select>
+            <p v-if="errors.position_id" class="mt-1 text-sm text-red-600">{{ errors.position_id }}</p>
           </div>
 
           <!-- 状态 -->
@@ -190,10 +237,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { X, Eye, EyeOff } from 'lucide-vue-next';
 import type { Admin, CreateAdminRequest, UpdateAdminRequest } from '../types';
-import { ADMIN_ROLE_OPTIONS } from '../types';
+import { useRoles } from '../../System/Roles/composables/useRoles';
+import { useDepartments } from '../../System/Departments/composables/useDepartments';
+import { usePositions } from '../../System/Positions/composables/usePositions';
 
 interface Props {
   visible: boolean;
@@ -210,6 +259,16 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+// 组合式函数
+const { getRoleOptions } = useRoles();
+const { getDepartmentOptions } = useDepartments();
+const { getPositionOptions } = usePositions();
+
+// 选项数据
+const roleOptions = ref([]);
+const departmentOptions = ref([]);
+const positionOptions = ref([]);
+
 // 是否为编辑模式
 const isEdit = computed(() => !!props.admin);
 
@@ -223,7 +282,10 @@ const formData = ref<CreateAdminRequest & { confirmPassword?: string }>({
   password: '',
   confirmPassword: '',
   role: undefined,
+  role_id: undefined,
   status: 'active',
+  department_id: null as number | null,
+  position_id: null as number | null,
   notes: ''
 });
 
@@ -238,7 +300,10 @@ const resetForm = () => {
     password: '',
     confirmPassword: '',
     role: undefined,
+    role_id: undefined,
     status: 'active',
+    department_id: null,
+    position_id: null,
     notes: ''
   };
   errors.value = {};
@@ -253,7 +318,10 @@ const fillForm = (admin: Admin) => {
     password: '',
     confirmPassword: '',
     role: admin.role,
+    role_id: admin.role_id,
     status: admin.status,
+    department_id: admin.department_id || null,
+    position_id: admin.position_id || null,
     notes: admin.notes || ''
   };
   errors.value = {};
@@ -290,8 +358,18 @@ const validateForm = (): boolean => {
   }
   
   // 角色验证
-  if (!formData.value.role) {
-    errors.value.role = '请选择角色';
+  if (!formData.value.role_id) {
+    errors.value.role_id = '请选择角色';
+  }
+  
+  // 部门验证
+  if (!formData.value.department_id) {
+    errors.value.department_id = '请选择部门';
+  }
+  
+  // 岗位验证
+  if (!formData.value.position_id) {
+    errors.value.position_id = '请选择岗位';
   }
   
   return Object.keys(errors.value).length === 0;
@@ -351,6 +429,35 @@ watch(() => props.visible, (visible) => {
 watch(() => props.admin, (admin) => {
   if (admin && props.visible) {
     fillForm(admin);
+  }
+});
+
+// 监听部门变化，更新岗位选项
+watch(() => formData.value.department_id, async (departmentId) => {
+  if (departmentId) {
+    positionOptions.value = await getPositionOptions(departmentId);
+    // 如果当前选择的岗位不属于新部门，清空岗位选择
+    if (formData.value.position_id) {
+      const currentPosition = positionOptions.value.find(p => p.id === formData.value.position_id);
+      if (!currentPosition) {
+        formData.value.position_id = null;
+      }
+    }
+  } else {
+    positionOptions.value = [];
+    formData.value.position_id = null;
+  }
+});
+
+// 初始化数据
+onMounted(async () => {
+  try {
+    // 加载角色选项
+    roleOptions.value = await getRoleOptions();
+    // 加载部门选项
+    departmentOptions.value = await getDepartmentOptions();
+  } catch (error) {
+    console.error('加载选项数据失败:', error);
   }
 });
 </script>
