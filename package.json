@@ -34,6 +34,7 @@
     "comments:setup": "npm run comments:apply && npm run comments:verify"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@types/bcrypt": "^6.0.0",
     "axios": "^1.6.2",
     "bcrypt": "^6.0.0",
@@ -56,6 +57,7 @@
     "recharts": "^3.1.2",
     "redis": "^4.6.12",
     "sonner": "^2.0.7",
+    "systeminformation": "^5.27.8",
     "tailwind-merge": "^3.3.0",
     "tronweb": "^6.0.0",
     "vue": "^3.4.15",

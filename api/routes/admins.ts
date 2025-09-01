@@ -7,6 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import { AdminService } from '../services/admin.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { handleValidationErrors, validatePagination } from '../middleware/validation.js';
+import { requirePermission, logOperation } from '../middleware/rbac.js';
 import { body, query, param } from 'express-validator';
 
 const router = Router();
@@ -19,6 +20,7 @@ router.use(authenticateToken);
  * GET /api/admins
  */
 router.get('/', [
+  requirePermission('system:admin:list'),
   query('page').optional().isInt({ min: 1 }).withMessage('页码必须是正整数'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
   query('search').optional().isString().withMessage('搜索关键词必须是字符串'),
@@ -60,7 +62,7 @@ router.get('/', [
  * 获取管理员统计数据
  * GET /api/admins/stats
  */
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', requirePermission('system:admin:stats'), async (req: Request, res: Response) => {
   try {
     const stats = await AdminService.getAdminStats();
 
@@ -81,7 +83,7 @@ router.get('/stats', async (req: Request, res: Response) => {
  * 获取角色列表
  * GET /api/admins/roles
  */
-router.get('/roles', async (req: Request, res: Response) => {
+router.get('/roles', requirePermission('system:role:list'), async (req: Request, res: Response) => {
   try {
     const roles = await AdminService.getRoles();
 
@@ -102,7 +104,7 @@ router.get('/roles', async (req: Request, res: Response) => {
  * 获取权限列表
  * GET /api/admins/permissions
  */
-router.get('/permissions', async (req: Request, res: Response) => {
+router.get('/permissions', requirePermission('system:permission:list'), async (req: Request, res: Response) => {
   try {
     const permissions = await AdminService.getPermissions();
 
@@ -126,6 +128,7 @@ router.get('/permissions', async (req: Request, res: Response) => {
  * GET /api/admins/:id
  */
 router.get('/:id', [
+  requirePermission('system:admin:view'),
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
@@ -158,6 +161,8 @@ router.get('/:id', [
  * POST /api/admins
  */
 router.post('/', [
+  requirePermission('system:admin:create'),
+  logOperation('创建管理员'),
   body('username').isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').isEmail().withMessage('邮箱格式无效'),
   body('password').isString().isLength({ min: 6 }).withMessage('密码长度至少6位'),
@@ -188,6 +193,8 @@ router.post('/', [
  * PUT /api/admins/:id
  */
 router.put('/:id', [
+  requirePermission('system:admin:update'),
+  logOperation('更新管理员'),
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   body('username').optional().isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').optional().isEmail().withMessage('邮箱格式无效'),
@@ -227,6 +234,8 @@ router.put('/:id', [
  * PATCH /api/admins/:id/status
  */
 router.patch('/:id/status', [
+  requirePermission('system:admin:update'),
+  logOperation('更新管理员状态'),
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   body('status').isIn(['active', 'inactive']).withMessage('状态无效'),
   handleValidationErrors
@@ -263,6 +272,8 @@ router.patch('/:id/status', [
  * PATCH /api/admins/:id/password
  */
 router.patch('/:id/password', [
+  requirePermission('system:admin:reset_password'),
+  logOperation('重置管理员密码'),
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   body('password').isString().isLength({ min: 6 }).withMessage('密码长度至少6位'),
   handleValidationErrors
@@ -298,6 +309,8 @@ router.patch('/:id/password', [
  * DELETE /api/admins/:id
  */
 router.delete('/:id', [
+  requirePermission('system:admin:delete'),
+  logOperation('删除管理员'),
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {

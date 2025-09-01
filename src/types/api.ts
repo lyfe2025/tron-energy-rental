@@ -23,6 +23,7 @@ export interface User {
   trx_balance: number
   last_login?: string
   login_count?: number
+  permissions?: string[]
   created_at: string
   updated_at: string
 }

@@ -8,7 +8,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import adminsRoutes from './routes/admins.ts';
 import agentsRoutes from './routes/agents.ts';
 import authRoutes from './routes/auth.ts';
-import botsRoutes from './routes/bots.ts';
+import botsRoutes from './routes/bots/index.js';
 import energyDelegationRoutes from './routes/energy-delegation';
 import energyPoolRoutes from './routes/energy-pool.js';
 import ordersRoutes from './routes/orders.ts';
@@ -17,11 +17,13 @@ import priceConfigsRoutes from './routes/price-configs.ts';
 import schedulerRoutes from './routes/scheduler';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
+import systemRoutes from './routes/system/index.js';
 import telegramRoutes from './routes/telegram.ts';
 import testRoutes from './routes/test.ts';
 import tronRoutes from './routes/tron.ts';
 import userLevelsRoutes from './routes/user-levels.ts';
 import usersRoutes from './routes/users.ts';
+import monitoringRoutes from './routes/monitoring.ts';
 
 
 // load env
@@ -48,11 +50,15 @@ app.use('/api/bots', botsRoutes);
 app.use('/api/price-configs', priceConfigsRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/admin', systemRoutes);
+app.use('/api/admin-roles', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/energy-delegation', energyDelegationRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/energy-pool', energyPoolRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 /**
  * health check - direct access
@@ -97,11 +103,13 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/price-configs',
       '/api/statistics',
       '/api/system-configs',
+      '/api/system',
       '/api/telegram',
       '/api/tron',
       '/api/energy-delegation',
       '/api/scheduler',
       '/api/energy-pool',
+      '/api/monitoring',
       '/api/health'
     ]
   });

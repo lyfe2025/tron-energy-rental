@@ -17,6 +17,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+
+    
     return config
   },
   (error) => {
@@ -27,6 +30,8 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
+
+    
     return response
   },
   (error) => {

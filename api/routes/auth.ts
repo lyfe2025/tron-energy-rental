@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/database.js';
 import { generateToken, verifyToken, refreshToken } from '../utils/jwt.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { AdminServiceMain as AdminService } from '../services/admin.js';
 
 const router = Router();
 
@@ -29,11 +30,18 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     
     // 查询管理员用户
     const userResult = await query(
-      'SELECT id, username, email, password_hash, role, status FROM admins WHERE email = $1',
+      'SELECT id, username, email, password_hash, role, status, department_id, position_id FROM admins WHERE email = $1',
       [email]
     );
     
     if (userResult.rows.length === 0) {
+      // 记录登录失败日志
+      await query(
+        `INSERT INTO login_logs (username, login_time, ip_address, user_agent, status, login_type, failure_reason)
+         VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6)`,
+        [email, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '用户不存在']
+      );
+      
       res.status(401).json({
         success: false,
         message: '邮箱或密码错误'
@@ -45,6 +53,13 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     
     // 检查用户状态
     if (user.status !== 'active') {
+      // 记录登录失败日志
+      await query(
+        `INSERT INTO login_logs (user_id, username, login_time, ip_address, user_agent, status, login_type, failure_reason)
+         VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7)`,
+        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '账户已被禁用']
+      );
+      
       res.status(401).json({
         success: false,
         message: '账户已被禁用'
@@ -55,6 +70,13 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     // 验证密码
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
+      // 记录登录失败日志
+      await query(
+        `INSERT INTO login_logs (user_id, username, login_time, ip_address, user_agent, status, login_type, failure_reason)
+         VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7)`,
+        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '密码错误']
+      );
+      
       res.status(401).json({
         success: false,
         message: '邮箱或密码错误'
@@ -64,33 +86,31 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     
     // 更新最后登录时间
     await query(
-      'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+      'UPDATE admins SET last_login = CURRENT_TIMESTAMP, last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
-    
-    // 查询对应的users表记录
-    const userRecord = await query(
-      'SELECT id FROM users WHERE email = $1',
-      [user.email]
+
+    // 获取用户权限信息
+    const userPermissions = await AdminService.getUserRolesAndPermissions(user.id);
+
+    // 记录登录日志
+    await query(
+      `INSERT INTO login_logs (user_id, username, login_time, ip_address, user_agent, status)
+       VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5)`,
+      [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 1]
     );
     
-    if (userRecord.rows.length === 0) {
-      res.status(500).json({
-        success: false,
-        message: '用户记录不存在'
-      });
-      return;
-    }
-    
-    const userUuid = userRecord.rows[0].id;
-    
-    // 生成JWT token
+    // 生成JWT token - 使用admins表的ID作为主要标识
     const token = generateToken({
-      id: userUuid,
-      userId: user.id,
+      id: user.id, // 使用admins表的ID
+      userId: user.id, // 保持一致性
+      username: user.username,
       email: user.email,
       role: user.role,
-      loginType: 'admin'
+      loginType: 'admin',
+      permissions: userPermissions.permissions,
+      department_id: user.department_id,
+      position_id: user.position_id
     });
     
     res.status(200).json({
@@ -99,11 +119,15 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       data: {
         token,
         user: {
-          id: userUuid,
+          id: user.id, // 使用admins表的ID
           username: user.username,
           email: user.email,
           role: user.role,
-          loginType: 'admin'
+          loginType: 'admin',
+          permissions: userPermissions.permissions,
+          roles: userPermissions.roles,
+          department_id: user.department_id,
+          position_id: user.position_id
         }
       }
     });

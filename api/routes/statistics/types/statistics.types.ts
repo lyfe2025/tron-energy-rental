@@ -10,6 +10,7 @@ export interface StatisticsQuery {
 export interface OverviewStats {
   total_orders: number;
   total_revenue: number;
+  total_users: number;
   active_users: number;
   online_bots: number;
   orders_change: number;

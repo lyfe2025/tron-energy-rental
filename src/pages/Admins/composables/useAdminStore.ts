@@ -20,10 +20,16 @@ interface AdminStats {
   total: number;
   active: number;
   inactive: number;
-  superAdmins: number;
-  admins: number;
-  operators: number;
-  customerService: number;
+  by_role: {
+    super_admin: number;
+    admin: number;
+    operator: number;
+    [key: string]: number;
+  };
+  new_admins_today: number;
+  new_admins_this_week: number;
+  new_admins_this_month: number;
+  recent_logins: number;
 }
 
 export function useAdminStore() {
@@ -45,10 +51,15 @@ export function useAdminStore() {
     total: 0,
     active: 0,
     inactive: 0,
-    superAdmins: 0,
-    admins: 0,
-    operators: 0,
-    customerService: 0
+    by_role: {
+      super_admin: 0,
+      admin: 0,
+      operator: 0
+    },
+    new_admins_today: 0,
+    new_admins_this_week: 0,
+    new_admins_this_month: 0,
+    recent_logins: 0
   });
 
   // Actions
@@ -343,10 +354,15 @@ export function useAdminStore() {
       total: 0,
       active: 0,
       inactive: 0,
-      superAdmins: 0,
-      admins: 0,
-      operators: 0,
-      customerService: 0
+      by_role: {
+        super_admin: 0,
+        admin: 0,
+        operator: 0
+      },
+      new_admins_today: 0,
+      new_admins_this_week: 0,
+      new_admins_this_month: 0,
+      recent_logins: 0
     };
   };
 

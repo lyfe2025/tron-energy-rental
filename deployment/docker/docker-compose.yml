@@ -1,0 +1,282 @@
+# TRON能量租赁系统 - Docker Compose配置
+# 作者: 系统管理员
+# 描述: 用于部署TRON能量租赁系统的Docker Compose配置
+
+version: '3.8'
+
+# 网络配置
+networks:
+  tron-energy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据卷配置
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_backups:
+    driver: local
+
+# 服务配置
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: tron-energy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tron_energy_rental
+      POSTGRES_USER: tron_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - tron-energy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tron_user -d tron_energy_rental"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: tron-energy-redis
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - tron-energy-network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # API服务
+  api:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+      target: production
+    container_name: tron-energy-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tron_energy_rental
+      DB_USER: tron_user
+      DB_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      TRON_API_KEY: ${TRON_API_KEY}
+      TRON_PRIVATE_KEY: ${TRON_PRIVATE_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      START_MODE: api
+      TZ: Asia/Shanghai
+    volumes:
+      - app_logs:/app/logs
+      - app_backups:/app/backups
+    ports:
+      - "${API_PORT:-3001}:3001"
+    networks:
+      - tron-energy-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # 定时任务服务
+  scheduler:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+      target: production
+    container_name: tron-energy-scheduler
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tron_energy_rental
+      DB_USER: tron_user
+      DB_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      TRON_API_KEY: ${TRON_API_KEY}
+      TRON_PRIVATE_KEY: ${TRON_PRIVATE_KEY}
+      SCHEDULER_ENABLED: "true"
+      START_MODE: scheduler
+      TZ: Asia/Shanghai
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - tron-energy-network
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # Telegram机器人服务 (可选)
+  telegram-bot:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+      target: production
+    container_name: tron-energy-bot
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tron_energy_rental
+      DB_USER: tron_user
+      DB_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      START_MODE: bot
+      TZ: Asia/Shanghai
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - tron-energy-network
+    depends_on:
+      api:
+        condition: service_healthy
+    profiles:
+      - telegram
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: tron-energy-nginx
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ../configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-site.conf:/etc/nginx/conf.d/default.conf:ro
+      - app_logs:/var/log/nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    networks:
+      - tron-energy-network
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # 监控和日志收集 (可选)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tron-energy-prometheus
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - tron-energy-network
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tron-energy-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin123}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./grafana:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3003}:3000"
+    networks:
+      - tron-energy-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+# 开发环境覆盖配置
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up

@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     const role = user.value?.role
     return role === 'admin'
   })
-  const isSuperAdmin = computed(() => user.value?.role === 'admin')
+  // 移除isSuperAdmin，因为User类型的role字段不包含'super_admin'
   const isAgent = computed(() => user.value?.role === 'agent')
   const userRole = computed(() => user.value?.role)
 
@@ -174,7 +174,6 @@ export const useAuthStore = defineStore('auth', () => {
     // 计算属性
     isAuthenticated,
     isAdmin,
-    isSuperAdmin,
     isAgent,
     userRole,
     

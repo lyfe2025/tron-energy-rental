@@ -4,20 +4,25 @@
  */
 import jwt from 'jsonwebtoken';
 import type { StringValue } from 'ms';
-import dotenv from 'dotenv';
 
-dotenv.config();
+// 动态获取JWT密钥，确保环境变量已加载
+const getJWTSecret = (): string => {
+  return process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+};
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN: StringValue = (process.env.JWT_EXPIRES_IN || '24h') as StringValue;
 
 export interface JWTPayload {
   id: string;
   userId: number;
+  username?: string;
   email: string;
   role: string;
   loginType: string;
   telegram_id?: number;
+  permissions?: string[];
+  department_id?: number;
+  position_id?: number;
 }
 
 /**
@@ -26,7 +31,7 @@ export interface JWTPayload {
  * @returns JWT token字符串
  */
 export const generateToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJWTSecret(), {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'tron-energy-rental',
     audience: 'tron-energy-rental-users'
@@ -59,10 +64,7 @@ export const verifyToken = (token: string): JWTPayload | null => {
   }
   
   try {
-    const decoded = jwt.verify(trimmedToken, JWT_SECRET, {
-      issuer: 'tron-energy-rental',
-      audience: 'tron-energy-rental-users'
-    }) as JWTPayload;
+    const decoded = jwt.verify(trimmedToken, getJWTSecret()) as JWTPayload;
     return decoded;
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -117,9 +119,14 @@ export const refreshToken = (oldToken: string): string | null => {
   const newPayload: JWTPayload = {
     id: payload.id,
     userId: payload.userId,
+    username: payload.username,
     email: payload.email,
     role: payload.role,
-    loginType: payload.loginType
+    loginType: payload.loginType,
+    telegram_id: payload.telegram_id,
+    permissions: payload.permissions,
+    department_id: payload.department_id,
+    position_id: payload.position_id
   };
   
   return generateToken(newPayload);

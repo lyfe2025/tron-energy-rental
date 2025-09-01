@@ -37,10 +37,12 @@ interface Props {
   stats: {
     total: number;
     active: number;
-    inactive: number;
+    pending: number;
     suspended: number;
-    totalCommission: number;
-    totalUsers: number;
+    rejected: number;
+    total_earnings: number;
+    total_orders: number;
+    total_customers: number;
   } | null;
   loading?: boolean;
 }
@@ -68,9 +70,9 @@ const statCards = computed<StatCard[]>(() => {
         iconColor: 'text-green-600'
       },
       {
-        label: '非活跃',
+        label: '待审核',
         value: 0,
-        icon: UserX,
+        icon: Clock,
         bgColor: 'bg-orange-100',
         iconColor: 'text-orange-600'
       },
@@ -100,15 +102,15 @@ const statCards = computed<StatCard[]>(() => {
       iconColor: 'text-green-600'
     },
     {
-      label: '非活跃',
-      value: props.stats.inactive,
-      icon: UserX,
+      label: '待审核',
+      value: props.stats.pending,
+      icon: Clock,
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600'
     },
     {
       label: '总佣金',
-      value: props.stats.totalCommission,
+      value: props.stats.total_earnings,
       icon: DollarSign,
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600'

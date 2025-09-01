@@ -6,3 +6,4 @@ curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: applicati
 4.数据库表已存在且有数据：相关的表已经存在，并且有数据
 就要检查：前端调用的API路径与后端注册的路由是否匹配
 前端期望的数据结构与后端返回的数据结构是否匹配
+5.执行完后运行npm run check来验证所有TypeScript错误是否已修复

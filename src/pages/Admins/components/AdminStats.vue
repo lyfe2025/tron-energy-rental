@@ -31,7 +31,7 @@
               {{ ADMIN_ROLE_LABELS.super_admin }}
             </dt>
             <dd class="text-lg font-medium text-gray-900">
-              {{ stats.value.superAdmins }}
+              {{ stats.value.by_role?.super_admin || 0 }}
             </dd>
           </dl>
         </div>
@@ -50,7 +50,7 @@
               {{ ADMIN_ROLE_LABELS.admin }}
             </dt>
             <dd class="text-lg font-medium text-gray-900">
-              {{ stats.value.admins }}
+              {{ stats.value.by_role?.admin || 0 }}
             </dd>
           </dl>
         </div>
@@ -69,7 +69,7 @@
               {{ ADMIN_ROLE_LABELS.operator }}
             </dt>
             <dd class="text-lg font-medium text-gray-900">
-              {{ stats.value.operators }}
+              {{ stats.value.by_role?.operator || 0 }}
             </dd>
           </dl>
         </div>
@@ -88,7 +88,7 @@
               {{ ADMIN_ROLE_LABELS.customer_service }}
             </dt>
             <dd class="text-lg font-medium text-gray-900">
-              {{ stats.value.customerService }}
+              {{ stats.value.by_role?.customer_service || 0 }}
             </dd>
           </dl>
         </div>
@@ -108,10 +108,16 @@ interface AdminStats {
   total: number;
   active: number;
   inactive: number;
-  superAdmins: number;
-  admins: number;
-  operators: number;
-  customerService: number;
+  by_role: {
+    super_admin: number;
+    admin: number;
+    operator: number;
+    [key: string]: number;
+  };
+  new_admins_today: number;
+  new_admins_this_week: number;
+  new_admins_this_month: number;
+  recent_logins: number;
 }
 
 const adminStore = useAdminStore();

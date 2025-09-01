@@ -29,7 +29,7 @@ router.get('/', [
       limit,
       search,
       status,
-      userType
+      user_type: userType
     });
 
     res.json({
@@ -38,8 +38,8 @@ router.get('/', [
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit)
+        total: result.pagination.total,
+        totalPages: Math.ceil(result.pagination.total / limit)
       }
     });
   } catch (error) {

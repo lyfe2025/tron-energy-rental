@@ -23,10 +23,14 @@ export class AdminService {
    * 获取管理员列表
    */
   static async getAdmins(params?: AdminQuery): Promise<AdminListResponse> {
-    const response = await apiClient.get<ApiResponse<AdminListResponse>>('/api/admins', {
+    const response = await apiClient.get<any>('/api/admins', {
       params
     });
-    return response.data.data;
+    // 后端返回格式: {success: true, data: [...], pagination: {...}}
+    return {
+      admins: response.data.data || [],
+      pagination: response.data.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+    };
   }
 
   /**
@@ -129,25 +133,33 @@ export class AdminService {
     total: number;
     active: number;
     inactive: number;
-    superAdmins: number;
-    admins: number;
-    operators: number;
-    customerService: number;
-  }> {
-    // 获取所有管理员数据进行统计
-    const { admins } = await this.getAdmins({ limit: 1000 });
-    
-    const stats = {
-      total: admins.length,
-      active: admins.filter(admin => admin.status === 'active').length,
-      inactive: admins.filter(admin => admin.status === 'inactive').length,
-      superAdmins: admins.filter(admin => admin.role === 'super_admin').length,
-      admins: admins.filter(admin => admin.role === 'admin').length,
-      operators: admins.filter(admin => admin.role === 'operator').length,
-      customerService: admins.filter(admin => admin.role === 'customer_service').length
+    by_role: {
+      [key: string]: number;
+      super_admin: number;
+      admin: number;
+      operator: number;
     };
-    
-    return stats;
+    new_admins_today: number;
+    new_admins_this_week: number;
+    new_admins_this_month: number;
+    recent_logins: number;
+  }> {
+    const response = await apiClient.get<ApiResponse<any>>('/api/admins/stats');
+    // 后端返回格式: {success: true, data: {...}}
+    return response.data.data || {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      by_role: {
+        super_admin: 0,
+        admin: 0,
+        operator: 0
+      },
+      new_admins_today: 0,
+      new_admins_this_week: 0,
+      new_admins_this_month: 0,
+      recent_logins: 0
+    };
   }
 }
 

@@ -1,726 +1,203 @@
-import { useToast } from '@/composables/useToast'
-import { userService } from '@/services/userService'
-import { Shield, UserCheck, Users } from 'lucide-vue-next'
-import { computed, reactive, ref } from 'vue'
-import type {
-    BatchOperationParams,
-    CreateUserParams,
-    UpdateUserParams,
-    User,
-    UserFormData,
-    UserListParams,
-    UserModalMode,
-    UserSearchParams,
-    UserStats,
-} from '../types/user.types'
+/**
+ * 用户管理主组合式函数
+ * 整合了所有分离的模块，保持原有API接口不变
+ */
 
-// 统计卡片接口
-interface StatCard {
-  label: string
-  value: string | number
-  icon: any
-  bgColor: string
-  iconColor: string
-  change?: string
-  changeColor?: string
-}
+import { useUserActions } from './useUserActions'
+import { useUserData, type StatCard } from './useUserData'
+import { useUserFilters } from './useUserFilters'
+import { useUserUI } from './useUserUI'
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  getStatusColor,
+  getStatusText,
+  getTypeColor,
+  getTypeText,
+  getUserTypeColor,
+  getUserTypeText
+} from './userFormatUtils'
+
+// 导出类型以确保外部可访问
+export type { StatCard }
 
 export function useUserManagement() {
-  // 初始化 toast
-  const toast = useToast()
-  
-  // 响应式状态
-  const isLoading = ref(false)
-  const users = ref<User[]>([])
-  const rawUserStats = ref<UserStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    inactiveUsers: 0,
-    bannedUsers: 0,
-    newUsersToday: 0,
-    newUsersThisMonth: 0,
-    totalBalance: 0,
-    averageBalance: 0
-  })
-  
-  // 确认对话框状态
-  const showConfirmDialog = ref(false)
-  const confirmDialogConfig = ref({
-    title: '',
-    message: '',
-    confirmText: '确认',
-    cancelText: '取消',
-    type: 'warning' as 'info' | 'warning' | 'danger',
-    onConfirm: () => {},
-    onCancel: () => {}
-  })
+  // 使用分离的模块
+  const userData = useUserData()
+  const userFilters = useUserFilters()
+  const userUI = useUserUI()
+  const userActions = useUserActions()
 
-  // 搜索和筛选状态
-  const searchParams = reactive<UserSearchParams>({
-    query: '',
-    status: '',
-    login_type: '',
-    type: '',
-    user_type: '',
-    dateRange: {
-      start: '',
-      end: ''
-    }
-  })
+  // 创建过滤和分页的计算属性
+  const filteredUsers = userFilters.createFilteredUsers(userData.users)
+  const paginatedUsers = userFilters.createPaginatedUsers(filteredUsers, userData.currentPage, userData.pageSize)
+  const totalPages = userFilters.createTotalPages(filteredUsers, userData.pageSize)
 
-  // 分页状态
-  const currentPage = ref(1)
-  const pageSize = ref(20)
-  const totalUsers = ref(0)
-
-  // 选择状态
-  const selectedUsers = ref<string[]>([])
-  const selectAll = ref(false)
-
-  // 模态框状态
-  const modalMode = ref<UserModalMode>('view')
-  const isModalOpen = ref(false)
-  const currentUser = ref<User | undefined>()
-  const isSubmitting = ref(false)
-
-  // 其他状态
-  const showUserMenu = ref('')
-
-  // 计算属性
-  const filteredUsers = computed(() => {
-    // 安全检查：确保 users.value 是数组
-    if (!Array.isArray(users.value)) {
-      return []
-    }
-    
-    let result = users.value
-
-    // 搜索过滤
-    if (searchParams.query) {
-      const query = searchParams.query.toLowerCase()
-      result = result.filter(user => 
-        user.username.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        (user.phone && user.phone.includes(query))
-      )
-    }
-
-    // 状态过滤
-    if (searchParams.status) {
-      result = result.filter(user => user.status === searchParams.status)
-    }
-
-    // 登录类型过滤
-    if (searchParams.type) {
-      result = result.filter(user => user.login_type === searchParams.type)
-    }
-
-    // 用户角色过滤
-    if (searchParams.user_type) {
-      result = result.filter(user => user.user_type === searchParams.user_type)
-    }
-
-    // 日期范围过滤
-    if (searchParams.dateRange.start && searchParams.dateRange.end) {
-      result = result.filter(user => {
-        const userDate = new Date(user.created_at)
-        const startDate = new Date(searchParams.dateRange.start)
-        const endDate = new Date(searchParams.dateRange.end)
-        return userDate >= startDate && userDate <= endDate
-      })
-    }
-
-    return result
-  })
-
-  const totalPages = computed(() => {
-    const filtered = filteredUsers.value
-    if (!Array.isArray(filtered)) {
-      return 0
-    }
-    return Math.ceil(filtered.length / pageSize.value)
-  })
-
-  const paginatedUsers = computed(() => {
-    const filtered = filteredUsers.value
-    if (!Array.isArray(filtered)) {
-      return []
-    }
-    const start = (currentPage.value - 1) * pageSize.value
-    const end = start + pageSize.value
-    return filtered.slice(start, end)
-  })
-
-  const selectedCount = computed(() => selectedUsers.value.length)
-
-  // 统计卡片数据
-  const userStats = computed((): StatCard[] => [
-    {
-      label: '总用户数',
-      value: rawUserStats.value.totalUsers,
-      icon: Users,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
-    },
-    {
-      label: '活跃用户',
-      value: rawUserStats.value.activeUsers,
-      icon: UserCheck,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
-    },
-    {
-      label: '封禁用户',
-      value: rawUserStats.value.bannedUsers,
-      icon: Shield,
-      bgColor: 'bg-red-100',
-      iconColor: 'text-red-600'
-    }
-  ])
-
-  // 工具函数
-  const formatDateTime = (dateString: string): string => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+  // 包装数据加载方法，支持搜索参数
+  const loadUsersWithParams = (searchParams?: any) => {
+    return userData.loadUsers(searchParams || userFilters.searchParams)
   }
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleDateString('zh-CN')
+  // 包装分页方法
+  const handlePageChange = (page: number) => {
+    userData.handlePageChange(page)
+    loadUsersWithParams()
   }
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6
-    }).format(amount)
-  }
-
-  const getTypeText = (type: string): string => {
-    const typeMap: Record<string, string> = {
-      telegram: 'Telegram端',
-      h5: 'H5端'
-    }
-    return typeMap[type] || type
-  }
-
-  const getTypeColor = (type: string): string => {
-    const colorMap: Record<string, string> = {
-      telegram: 'bg-blue-100 text-blue-800',
-      h5: 'bg-green-100 text-green-800'
-    }
-    return colorMap[type] || 'bg-gray-100 text-gray-800'
-  }
-
-  const getUserTypeText = (userType: string): string => {
-    const userTypeMap: Record<string, string> = {
-      normal: '普通用户',
-      vip: 'VIP用户',
-      premium: '套餐用户'
-    }
-    return userTypeMap[userType] || userType
-  }
-
-  const getUserTypeColor = (userType: string): string => {
-    const colorMap: Record<string, string> = {
-      normal: 'bg-gray-100 text-gray-800',
-      vip: 'bg-yellow-100 text-yellow-800',
-      premium: 'bg-purple-100 text-purple-800',
-      agent: 'bg-blue-100 text-blue-800',
-      admin: 'bg-red-100 text-red-800'
-    }
-    return colorMap[userType] || 'bg-gray-100 text-gray-800'
-  }
-
-  const getStatusText = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      active: '正常',
-      banned: '封禁'
-    }
-    return statusMap[status] || status
-  }
-
-  const getStatusColor = (status: string): string => {
-    const colorMap: Record<string, string> = {
-      active: 'bg-green-100 text-green-800',
-      banned: 'bg-red-100 text-red-800'
-    }
-    return colorMap[status] || 'bg-gray-100 text-gray-800'
-  }
-
-  // 数据加载方法
-  const loadUsers = async () => {
-    try {
-      isLoading.value = true
-      const params: UserListParams = {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        search: searchParams.query || undefined,
-        status: searchParams.status || undefined,
-        type: (searchParams.type === 'telegram_user') ? 'user' : searchParams.type as UserRole || undefined,
-        user_type: searchParams.user_type || undefined,
-        dateFrom: searchParams.dateRange.start || undefined,
-        dateTo: searchParams.dateRange.end || undefined
-      }
-      
-      console.debug('Loading users with params:', params)
-      const response = await userService.getUserList(params)
-      console.debug('User service response:', response)
-      
-      // 确保返回的数据结构正确
-      if (response && typeof response === 'object') {
-        users.value = Array.isArray(response.users) ? response.users : []
-        totalUsers.value = typeof response.total === 'number' ? response.total : 0
-        console.debug('Users loaded:', users.value.length, 'Total:', totalUsers.value)
-        console.debug('First user sample:', users.value[0])
-      } else {
-        console.debug('Invalid response structure:', response)
-        users.value = []
-        totalUsers.value = 0
-      }
-    } catch (error) {
-      console.error('加载用户列表失败:', error)
-      // 确保在错误情况下也有正确的初始值
-      users.value = []
-      totalUsers.value = 0
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  const loadUserStats = async () => {
-    try {
-      const stats = await userService.getUserStats()
-      // 确保返回的数据结构正确
-      if (stats && typeof stats === 'object') {
-        rawUserStats.value = {
-          totalUsers: stats.totalUsers || 0,
-          activeUsers: stats.activeUsers || 0,
-          inactiveUsers: stats.inactiveUsers || 0,
-          bannedUsers: stats.bannedUsers || 0,
-          newUsersToday: stats.newUsersToday || 0,
-          newUsersThisMonth: stats.newUsersThisMonth || 0,
-          totalBalance: stats.totalBalance || 0,
-          averageBalance: stats.averageBalance || 0
-        }
-      }
-    } catch (error) {
-      console.error('加载用户统计失败:', error)
-      // 保持默认值，避免页面崩溃
-    }
-  }
-
-  // 搜索方法
+  // 包装搜索筛选方法
   const handleSearch = (query: string) => {
-    searchParams.query = query
-    currentPage.value = 1
-    loadUsers()
+    userFilters.handleSearch(query, loadUsersWithParams)
   }
 
   const handleStatusFilter = (status: string) => {
-    searchParams.status = status as any
-    currentPage.value = 1
-    loadUsers()
+    userFilters.handleStatusFilter(status, loadUsersWithParams, userData.handlePageChange)
   }
 
   const handleTypeFilter = (type: string) => {
-    searchParams.type = type as any
-    currentPage.value = 1
-    loadUsers()
+    userFilters.handleTypeFilter(type, loadUsersWithParams, userData.handlePageChange)
   }
 
   const handleUserTypeFilter = (userType: string) => {
-    searchParams.user_type = userType as any
-    currentPage.value = 1
-    loadUsers()
+    userFilters.handleUserTypeFilter(userType, loadUsersWithParams, userData.handlePageChange)
   }
 
   const handleDateRangeFilter = (start: string, end: string) => {
-    searchParams.dateRange.start = start
-    searchParams.dateRange.end = end
-    currentPage.value = 1
-    loadUsers()
+    userFilters.handleDateRangeFilter(start, end, loadUsersWithParams, userData.handlePageChange)
   }
 
   const clearFilters = () => {
-    searchParams.query = ''
-    searchParams.status = ''
-    searchParams.type = ''
-    searchParams.user_type = ''
-    searchParams.dateRange.start = ''
-    searchParams.dateRange.end = ''
-    currentPage.value = 1
-    loadUsers()
+    userFilters.clearFilters(loadUsersWithParams, userData.handlePageChange)
   }
 
-  // 分页方法
-  const handlePageChange = (page: number) => {
-    currentPage.value = page
-    loadUsers()
-  }
-
-  // 选择方法
+  // 包装UI方法
   const toggleSelectAll = () => {
-    if (selectAll.value) {
-      selectedUsers.value = []
-    } else {
-      selectedUsers.value = paginatedUsers.value.map(user => user.id)
-    }
-    selectAll.value = !selectAll.value
+    userUI.toggleSelectAll(paginatedUsers)
   }
 
   const toggleUserSelect = (userId: string) => {
-    const index = selectedUsers.value.indexOf(userId)
-    if (index > -1) {
-      selectedUsers.value.splice(index, 1)
-    } else {
-      selectedUsers.value.push(userId)
-    }
-    
-    // 更新全选状态
-    selectAll.value = selectedUsers.value.length === paginatedUsers.value.length
+    userUI.toggleUserSelect(userId, paginatedUsers)
   }
 
-  const clearSelection = () => {
-    selectedUsers.value = []
-    selectAll.value = false
+  // 包装用户操作方法
+  const saveUser = (formData: any) => {
+    return userActions.saveUser(
+      formData,
+      userUI.modalMode,
+      userUI.currentUser,
+      userUI.closeModal,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userUI.isSubmitting,
+      userFilters.searchParams
+    )
   }
 
-  // 模态框方法
-  const openModal = (mode: UserModalMode, user?: User) => {
-    modalMode.value = mode
-    currentUser.value = user
-    isModalOpen.value = true
+  const deleteUser = (userId: string) => {
+    return userActions.deleteUser(
+      userId,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userFilters.searchParams
+    )
   }
 
-  const closeModal = () => {
-    isModalOpen.value = false
-    currentUser.value = undefined
-    isSubmitting.value = false
+  // 包装批量操作方法
+  const batchActivate = () => {
+    return userActions.batchActivate(
+      userUI.selectedUsers,
+      userUI.clearSelection,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userFilters.searchParams
+    )
   }
 
-  const viewUser = (user: User) => {
-    openModal('view', user)
+  const batchDeactivate = () => {
+    return userActions.batchDeactivate(
+      userUI.selectedUsers,
+      userUI.clearSelection,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userFilters.searchParams
+    )
   }
 
-  const editUser = (user: User) => {
-    openModal('edit', user)
+  const batchDelete = () => {
+    return userActions.batchDelete(
+      userUI.selectedUsers,
+      userUI.clearSelection,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userFilters.searchParams
+    )
   }
 
-  const createUser = () => {
-    openModal('create')
+  const batchExport = () => {
+    return userActions.batchExport(userUI.selectedUsers)
   }
 
-  // 用户操作方法
-  const saveUser = async (formData: UserFormData) => {
-    try {
-      isSubmitting.value = true
-      
-      if (modalMode.value === 'create') {
-        const createParams: CreateUserParams = {
-          login_type: formData.login_type as any,
-          user_type: formData.user_type as any,
-          username: formData.username,
-          email: formData.email,
-          phone: formData.phone,
-          status: formData.status,
-          balance: formData.balance,
-          password: formData.password,
-          remark: formData.remark,
-          // 根据登录类型设置特有字段
-          telegram_id: formData.login_type === 'telegram' ? formData.telegram_id || Math.floor(Math.random() * 1000000000) : undefined,
-          first_name: formData.login_type === 'telegram' ? formData.first_name || formData.username : undefined,
-          last_name: formData.login_type === 'telegram' ? formData.last_name || '' : undefined,
-          // agent_id 和 commission_rate 已移除，因为 agent 不再是 user_type 的选项
-        }
-        await userService.createUser(createParams)
-      } else if (modalMode.value === 'edit') {
-        const updateParams: UpdateUserParams = {
-          login_type: formData.login_type as any,
-          user_type: formData.user_type as any,
-          username: formData.username,
-          email: formData.email,
-          phone: formData.phone,
-          status: formData.status as any,
-          balance: formData.balance,
-          remark: formData.remark,
-          // 根据类型更新特有字段
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          commission_rate: formData.commission_rate
-        }
-        if (formData.password) {
-          updateParams.password = formData.password
-        }
-        await userService.updateUser(currentUser.value!.id, updateParams)
-      }
-      
-      closeModal()
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('保存用户失败:', error)
-      // 这里可以添加错误提示
-    } finally {
-      isSubmitting.value = false
-    }
+  const batchTypeChange = (type: string) => {
+    return userActions.batchTypeChange(
+      type,
+      userUI.selectedUsers,
+      userUI.clearSelection,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userFilters.searchParams
+    )
   }
 
-  // 移除toggleUserStatus函数，现在只使用banUser函数来处理状态切换
-
-  const deleteUser = async (userId: string) => {
-    try {
-      await userService.deleteUser(userId)
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('删除用户失败:', error)
-    }
+  // 包装其他业务操作
+  const resetPassword = (user: any) => {
+    return userActions.resetPassword(user, userUI.showConfirm, userUI.showUserMenu)
   }
 
-  // 批量操作方法
-  const batchActivate = async () => {
-    try {
-      const params: BatchOperationParams = {
-        userIds: selectedUsers.value,
-        operation: 'activate'
-      }
-      await userService.batchOperation(params)
-      clearSelection()
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('批量启用失败:', error)
-    }
+  const adjustBalance = (user: any) => {
+    return userActions.adjustBalance(user, userUI.showConfirm, userUI.showUserMenu)
   }
 
-  const batchDeactivate = async () => {
-    try {
-      const params: BatchOperationParams = {
-        userIds: selectedUsers.value,
-        operation: 'deactivate'
-      }
-      await userService.batchOperation(params)
-      clearSelection()
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('批量停用失败:', error)
-    }
+  const viewUserOrders = (user: any) => {
+    return userActions.viewUserOrders(user, userUI.showConfirm, userUI.showUserMenu)
   }
 
-  const batchDelete = async () => {
-    try {
-      const params: BatchOperationParams = {
-        userIds: selectedUsers.value,
-        operation: 'delete'
-      }
-      await userService.batchOperation(params)
-      clearSelection()
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('批量删除失败:', error)
-    }
-  }
-
-  const batchExport = async () => {
-    try {
-      const params = {
-        userIds: selectedUsers.value,
-        format: 'excel' as const,
-        fields: ['username', 'email', 'phone', 'type', 'status', 'balance', 'created_at']
-      }
-      await userService.exportUsers(params)
-    } catch (error) {
-      console.error('批量导出失败:', error)
-    }
-  }
-
-  const batchTypeChange = async (type: string) => {
-    try {
-      const params: BatchOperationParams = {
-        userIds: selectedUsers.value,
-        operation: 'typeChange',
-        data: { type }
-      }
-      await userService.batchOperation(params)
-      clearSelection()
-      await loadUsers()
-      await loadUserStats()
-    } catch (error) {
-      console.error('批量类型变更失败:', error)
-    }
-  }
-
-  // 确认对话框辅助函数
-  const showConfirm = (config: {
-    title: string
-    message: string
-    confirmText?: string
-    cancelText?: string
-    type?: 'info' | 'warning' | 'danger'
-    onConfirm: () => void
-    onCancel?: () => void
-  }) => {
-    confirmDialogConfig.value = {
-      title: config.title,
-      message: config.message,
-      confirmText: config.confirmText || '确认',
-      cancelText: config.cancelText || '取消',
-      type: config.type || 'warning',
-      onConfirm: () => {
-        showConfirmDialog.value = false
-        config.onConfirm()
-      },
-      onCancel: () => {
-        showConfirmDialog.value = false
-        config.onCancel?.()
-      }
-    }
-    showConfirmDialog.value = true
-  }
-
-  // 其他方法
-  const toggleUserMenu = (userId: string) => {
-    showUserMenu.value = showUserMenu.value === userId ? '' : userId
-  }
-
-  const resetPassword = async (user: User) => {
-    showConfirm({
-      title: '重置密码确认',
-      message: `确定要重置用户 "${user.username || user.email}" 的密码吗？重置后的临时密码为：temp123456`,
-      type: 'warning',
-      onConfirm: async () => {
-        let loadingToastId: string | null = null
-        try {
-          loadingToastId = toast.loading('正在重置密码...')
-          const result = await userService.resetUserPassword({
-            userId: user.id,
-            newPassword: 'temp123456'
-          })
-          // 关闭loading通知
-          if (loadingToastId) {
-            toast.dismiss(loadingToastId)
-          }
-          toast.success(`密码重置成功！新密码：${result.new_password}`)
-          // 关闭用户菜单
-          showUserMenu.value = ''
-        } catch (error) {
-          // 关闭loading通知
-          if (loadingToastId) {
-            toast.dismiss(loadingToastId)
-          }
-          console.error('重置密码失败:', error)
-          toast.error('重置密码失败，请稍后重试')
-        }
-      }
-    })
-  }
-
-  const adjustBalance = async (user: User) => {
-    // 实现余额调整功能
-    showConfirm({
-      title: '调整余额',
-      message: `即将为用户 "${user.username || user.email}" 调整余额。\n\n当前余额：\nUSDT: ${formatCurrency(Number(user.usdt_balance) || 0)}\nTRX: ${formatCurrency(Number(user.trx_balance) || 0)}\n\n请确认是否继续？`,
-      type: 'info',
-      onConfirm: () => {
-        // 这里可以打开余额调整模态框
-        toast.info('余额调整功能开发中，敬请期待')
-        // TODO: 实现余额调整模态框
-        // 关闭用户菜单
-        showUserMenu.value = ''
-      }
-    })
-  }
-
-  const viewUserOrders = (user: User) => {
-    // 实现查看用户订单功能
-    showConfirm({
-      title: '查看用户订单',
-      message: `即将查看用户 "${user.username || user.email}" 的订单记录。\n\n用户ID: ${user.id}\n注册时间: ${formatDateTime(user.created_at)}\n\n请确认是否继续？`,
-      type: 'info',
-      onConfirm: () => {
-        // 这里可以跳转到用户订单页面或打开订单模态框
-        toast.info('订单查看功能开发中，敬请期待')
-        // TODO: 实现跳转到用户订单页面
-        // 关闭用户菜单
-        showUserMenu.value = ''
-      }
-    })
-  }
-
-  const banUser = async (user: User) => {
-    const action = user.status === 'banned' ? '解封' : '封禁'
-    const newStatus = user.status === 'banned' ? 'active' : 'banned'
-    
-    showConfirm({
-      title: `${action}用户确认`,
-      message: `确定要${action}用户 "${user.username || user.email}" 吗？\n\n${action}后用户将${newStatus === 'banned' ? '无法登录和使用系统' : '恢复正常使用'}。\n\n此操作不可撤销，请谨慎操作！`,
-      type: 'danger',
-      onConfirm: async () => {
-        let loadingToastId: string | null = null
-        try {
-          loadingToastId = toast.loading(`正在${action}用户...`)
-          await userService.updateUser(user.id, {
-            status: newStatus
-          })
-          // 关闭loading通知
-          if (loadingToastId) {
-            toast.dismiss(loadingToastId)
-          }
-          await loadUsers()
-          await loadUserStats()
-          toast.success(`用户${action}成功`)
-          // 关闭用户菜单
-          showUserMenu.value = ''
-        } catch (error) {
-          // 关闭loading通知
-          if (loadingToastId) {
-            toast.dismiss(loadingToastId)
-          }
-          console.error(`${action}用户失败:`, error)
-          toast.error(`${action}用户失败，请稍后重试`)
-        }
-      }
-    })
+  const banUser = (user: any) => {
+    return userActions.banUser(
+      user,
+      userUI.showConfirm,
+      loadUsersWithParams,
+      userData.loadUserStats,
+      userUI.showUserMenu,
+      userFilters.searchParams
+    )
   }
 
   return {
-    // 状态
-    isLoading,
-    users,
-    userStats,
-    searchParams,
-    currentPage,
-    pageSize,
-    totalUsers,
-    selectedUsers,
-    selectAll,
-    modalMode,
-    isModalOpen,
-    currentUser,
-    isSubmitting,
-    showUserMenu,
+    // 状态 - 从各个模块整合
+    isLoading: userData.isLoading,
+    users: userData.users,
+    userStats: userData.userStats,
+    searchParams: userFilters.searchParams,
+    currentPage: userData.currentPage,
+    pageSize: userData.pageSize,
+    totalUsers: userData.totalUsers,
+    selectedUsers: userUI.selectedUsers,
+    selectAll: userUI.selectAll,
+    modalMode: userUI.modalMode,
+    isModalOpen: userUI.isModalOpen,
+    currentUser: userUI.currentUser,
+    isSubmitting: userUI.isSubmitting,
+    showUserMenu: userUI.showUserMenu,
     
     // 确认对话框状态
-    showConfirmDialog,
-    confirmDialogConfig,
+    showConfirmDialog: userUI.showConfirmDialog,
+    confirmDialogConfig: userUI.confirmDialogConfig,
     
     // 计算属性
     filteredUsers,
     totalPages,
     paginatedUsers,
-    selectedCount,
+    selectedCount: userUI.selectedCount,
     
     // 工具函数
     formatDateTime,
@@ -734,8 +211,8 @@ export function useUserManagement() {
     getStatusColor,
     
     // 数据加载
-    loadUsers,
-    loadUserStats,
+    loadUsers: loadUsersWithParams,
+    loadUserStats: userData.loadUserStats,
     
     // 搜索筛选
     handleSearch,
@@ -751,18 +228,17 @@ export function useUserManagement() {
     // 选择
     toggleSelectAll,
     toggleUserSelect,
-    clearSelection,
+    clearSelection: userUI.clearSelection,
     
     // 模态框
-    openModal,
-    closeModal,
-    viewUser,
-    editUser,
-    createUser,
+    openModal: userUI.openModal,
+    closeModal: userUI.closeModal,
+    viewUser: userUI.viewUser,
+    editUser: userUI.editUser,
+    createUser: userUI.createUser,
     
     // 用户操作
     saveUser,
-    // toggleUserStatus 已移除
     deleteUser,
     
     // 批量操作
@@ -773,11 +249,11 @@ export function useUserManagement() {
     batchTypeChange,
     
     // 其他
-    toggleUserMenu,
+    toggleUserMenu: userUI.toggleUserMenu,
     resetPassword,
     adjustBalance,
     viewUserOrders,
     banUser,
-    showConfirm
+    showConfirm: userUI.showConfirm
   }
 }

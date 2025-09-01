@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import Login from '@/pages/Login.vue'
 import Layout from '@/components/Layout.vue'
 import Dashboard from '@/pages/Dashboard.vue'
+import Login from '@/pages/Login.vue'
+import { useAuthStore } from '@/stores/auth'
+import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,7 +35,7 @@ const router = createRouter({
         {
           path: 'price-config',
           name: 'PriceConfig',
-          component: () => import('@/pages/PriceConfig.vue'),
+          component: () => import('@/pages/PriceConfig/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {
@@ -50,12 +50,7 @@ const router = createRouter({
           component: () => import('@/pages/Agents/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
-        {
-          path: 'admins',
-          name: 'admins',
-          component: () => import('@/pages/Admins/index.vue'),
-          meta: { roles: ['super_admin'] }
-        },
+
         {
           path: 'bots',
           name: 'bots',
@@ -75,10 +70,116 @@ const router = createRouter({
           component: () => import('@/pages/Statistics.vue'),
           meta: { roles: ['super_admin', 'admin', 'agent'] }
         },
+
+        // 系统管理路由
         {
-          path: 'settings',
-          name: 'settings',
-          component: () => import('@/pages/Settings.vue'),
+          path: 'system',
+          name: 'system',
+          component: () => import('@/pages/System/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/departments',
+          name: 'system-departments',
+          component: () => import('@/pages/System/Departments/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/positions',
+          name: 'system-positions',
+          component: () => import('@/pages/System/Positions/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/roles',
+          name: 'system-roles',
+          component: () => import('@/pages/System/Roles/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/menus',
+          name: 'system-menus',
+          component: () => import('@/pages/System/Menus/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/user-roles',
+          name: 'system-user-roles',
+          component: () => import('@/pages/System/AdminRoles/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/logs',
+          name: 'system-logs',
+          component: () => import('@/pages/System/Logs/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/logs/operation',
+          name: 'system-logs-operation',
+          component: () => import('@/pages/System/Logs/OperationLogs.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/logs/login',
+          name: 'system-logs-login',
+          component: () => import('@/pages/System/Logs/LoginLogs.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/settings',
+          name: 'system-settings',
+          component: () => import('@/pages/Settings/index.vue'),
+          meta: { roles: ['super_admin'] }
+        },
+        {
+          path: 'admins',
+          name: 'admins',
+          component: () => import('@/pages/Admins/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        
+        // 监控中心路由
+        {
+          path: 'monitoring',
+          name: 'monitoring',
+          component: () => import('@/pages/Monitoring/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/overview',
+          name: 'monitoring-overview',
+          component: () => import('@/pages/Monitoring/Overview.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/online-users',
+          name: 'monitoring-online-users',
+          component: () => import('@/pages/Monitoring/OnlineUsers.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/scheduled-tasks',
+          name: 'monitoring-scheduled-tasks',
+          component: () => import('@/pages/Monitoring/ScheduledTasks.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/database',
+          name: 'monitoring-database',
+          component: () => import('@/pages/Monitoring/Database.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/service-status',
+          name: 'monitoring-service-status',
+          component: () => import('@/pages/Monitoring/ServiceStatus.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'monitoring/cache-status',
+          name: 'monitoring-cache-status',
+          component: () => import('@/pages/Monitoring/CacheStatus.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         }
       ]
