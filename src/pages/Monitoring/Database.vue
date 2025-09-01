@@ -191,6 +191,54 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- 分页控件 -->
+      <div v-if="dbStats?.tables && dbStats.tables.length > 0 && tablePagination.total > tablePagination.pageSize" 
+           class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+          <button
+            @click="previousPage"
+            :disabled="tablePagination.current <= 1"
+            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <button
+            @click="nextPage"
+            :disabled="tablePagination.current >= Math.ceil(tablePagination.total / tablePagination.pageSize)"
+            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-700">
+              显示第 <span class="font-medium">{{ (tablePagination.current - 1) * tablePagination.pageSize + 1 }}</span> 到 
+              <span class="font-medium">{{ Math.min(tablePagination.current * tablePagination.pageSize, tablePagination.total) }}</span> 条，
+              共 <span class="font-medium">{{ tablePagination.total }}</span> 条记录
+            </p>
+          </div>
+          <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button
+                @click="previousPage"
+                :disabled="tablePagination.current <= 1"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft class="h-5 w-5" />
+              </button>
+              <button
+                @click="nextPage"
+                :disabled="tablePagination.current >= Math.ceil(tablePagination.total / tablePagination.pageSize)"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight class="h-5 w-5" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 慢查询日志 -->
@@ -301,6 +349,8 @@
 import { monitoringApi, type DatabaseStats, type TableInfo } from '@/api/monitoring'
 import {
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Database,
   Eye,
@@ -320,6 +370,13 @@ const dbStats = ref<DatabaseStats | null>(null)
 const selectedTable = ref<TableInfo | null>(null)
 const showTableDialog = ref(false)
 
+// 分页状态
+const tablePagination = ref({
+  current: 1,
+  pageSize: 10,
+  total: 0
+})
+
 // 定时器
 let refreshTimer: NodeJS.Timeout | null = null
 
@@ -327,7 +384,7 @@ let refreshTimer: NodeJS.Timeout | null = null
 const fetchDatabaseStats = async () => {
   try {
     loading.value = true
-    const response = await monitoringApi.getDatabaseStats()
+    const response = await monitoringApi.getDatabaseStats(tablePagination.value.current, tablePagination.value.pageSize)
     
     if (response.success && response.data) {
       // 确保数据结构完整
@@ -355,6 +412,15 @@ const fetchDatabaseStats = async () => {
         version: data.version || 'PostgreSQL 14.x',
         activeConnections: data.activeConnections || data.connectionCount || 5,
         maxConnections: data.maxConnections || 100
+      }
+      
+      // 更新分页信息
+      if (response.data.pagination) {
+        tablePagination.value = {
+          current: response.data.pagination.page,
+          pageSize: response.data.pagination.limit,
+          total: response.data.pagination.total
+        }
       }
     } else {
       // 初始化默认数据
@@ -423,9 +489,89 @@ const closeTableDialog = () => {
 }
 
 // 分析表
-const analyzeTable = (tableName: string) => {
-  console.log('分析表:', tableName)
-  // 这里可以实现表分析功能
+const analyzeTable = async (tableName: string) => {
+  try {
+    loading.value = true
+    const response = await monitoringApi.analyzeTable(tableName)
+    
+    if (response.success && response.data) {
+      // 显示分析结果
+      showAnalysisResult(response.data)
+    } else {
+      console.error('表分析失败:', response.message)
+      alert('表分析失败: ' + (response.message || '未知错误'))
+    }
+  } catch (error) {
+    console.error('表分析失败:', error)
+    alert('表分析失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 显示分析结果
+const showAnalysisResult = (analysisData: any) => {
+  const result = [
+    `=== 表分析报告: ${analysisData.tableName} ===`,
+    `分析时间: ${new Date(analysisData.analyzedAt).toLocaleString('zh-CN')}`,
+    `健康度评分: ${analysisData.healthScore}/100`,
+    '',
+    '=== 基本信息 ===',
+    `表所有者: ${analysisData.tableInfo.tableowner || '-'}`,
+    `是否有索引: ${analysisData.tableInfo.hasindexes ? '是' : '否'}`,
+    `是否有触发器: ${analysisData.tableInfo.hastriggers ? '是' : '否'}`,
+    '',
+    '=== 大小信息 ===',
+    `总大小: ${analysisData.sizeInfo.total_size || '-'}`,
+    `表大小: ${analysisData.sizeInfo.table_size || '-'}`,
+    `索引大小: ${analysisData.sizeInfo.index_size || '-'}`,
+    '',
+    '=== 统计信息 ===',
+    `活跃元组: ${analysisData.statistics.live_tuples || 0}`,
+    `死元组: ${analysisData.statistics.dead_tuples || 0}`,
+    `插入次数: ${analysisData.statistics.inserts || 0}`,
+    `更新次数: ${analysisData.statistics.updates || 0}`,
+    `删除次数: ${analysisData.statistics.deletes || 0}`,
+    `最后清理: ${analysisData.statistics.last_vacuum || analysisData.statistics.last_autovacuum || '从未'}`,
+    `最后分析: ${analysisData.statistics.last_analyze || analysisData.statistics.last_autoanalyze || '从未'}`,
+    '',
+    '=== 索引信息 ===',
+    ...analysisData.indexes.map((idx: any) => `- ${idx.indexname}: ${idx.indexdef}`),
+    '',
+    '=== 字段信息 ===',
+    ...analysisData.columns.map((col: any) => 
+      `- ${col.column_name} (${col.data_type}${col.character_maximum_length ? `(${col.character_maximum_length})` : ''}) ${col.is_nullable === 'YES' ? 'NULL' : 'NOT NULL'}`
+    ),
+    '',
+    '=== 优化建议 ===',
+    ...analysisData.recommendations.map((rec: string) => `• ${rec}`)
+  ].join('\n')
+  
+  // 创建一个新窗口显示分析结果
+  const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes')
+  if (newWindow) {
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>表分析报告 - ${analysisData.tableName}</title>
+          <style>
+            body { font-family: 'Courier New', monospace; padding: 20px; line-height: 1.6; }
+            pre { white-space: pre-wrap; word-wrap: break-word; }
+          </style>
+        </head>
+        <body>
+          <pre>${result}</pre>
+          <br>
+          <button onclick="window.print()">打印报告</button>
+          <button onclick="window.close()">关闭</button>
+        </body>
+      </html>
+    `)
+    newWindow.document.close()
+  } else {
+    // 如果无法打开新窗口，则使用alert显示
+    alert(result)
+  }
 }
 
 // 格式化文件大小
@@ -455,6 +601,22 @@ const formatDateTime = (dateString: string): string => {
     minute: '2-digit',
     second: '2-digit'
   })
+}
+
+// 分页方法
+const previousPage = () => {
+  if (tablePagination.value.current > 1) {
+    tablePagination.value.current--
+    fetchDatabaseStats()
+  }
+}
+
+const nextPage = () => {
+  const totalPages = Math.ceil(tablePagination.value.total / tablePagination.value.pageSize)
+  if (tablePagination.value.current < totalPages) {
+    tablePagination.value.current++
+    fetchDatabaseStats()
+  }
 }
 
 // 生命周期

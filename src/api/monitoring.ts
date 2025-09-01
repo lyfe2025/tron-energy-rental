@@ -37,11 +37,14 @@ export interface MonitoringOverview {
 export interface OnlineUser {
   id: string
   username: string
+  email?: string
   role: string
-  loginTime: string
   lastActivity: string
-  ipAddress: string
-  userAgent: string
+  onlineDuration?: number
+  // 保留这些字段以兼容现有代码，但标记为可选
+  loginTime?: string
+  ipAddress?: string
+  userAgent?: string
 }
 
 export interface ScheduledTask {
@@ -253,7 +256,15 @@ export const monitoringApi = {
 
   // 获取在线用户列表
   getOnlineUsers: () => {
-    return request<ApiResponseWrapper<OnlineUser[]>>('/api/monitoring/online-users')
+    return request<ApiResponseWrapper<{
+      users: OnlineUser[]
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+      }
+    }>>('/api/monitoring/online-users')
   },
 
   // 强制用户下线
@@ -266,7 +277,12 @@ export const monitoringApi = {
 
   // 获取定时任务列表
   getScheduledTasks: () => {
-    return request<ApiResponseWrapper<ScheduledTask[]>>('/api/monitoring/scheduled-tasks')
+    return request<ApiResponseWrapper<{
+      tasks: ScheduledTask[]
+      total: number
+      page: number
+      limit: number
+    }>>('/api/monitoring/scheduled-tasks')
   },
 
   // 获取任务执行日志
@@ -302,8 +318,10 @@ export const monitoringApi = {
   },
 
   // 获取数据库监控信息
-  getDatabaseStats: () => {
-    return request<ApiResponseWrapper<DatabaseStats>>('/api/monitoring/database')
+  getDatabaseStats: (page = 1, limit = 20) => {
+    return request<ApiResponseWrapper<DatabaseStats & { 
+      pagination?: { page: number; limit: number; total: number; totalPages: number } 
+    }>>(`/api/monitoring/database?page=${page}&limit=${limit}`)
   },
 
   // 获取服务状态监控
@@ -358,6 +376,13 @@ export const monitoringApi = {
     return request('/api/monitoring/cache/keys', {
       method: 'DELETE',
       data: { key }
+    })
+  },
+
+  // 分析表结构和性能
+  analyzeTable: (tableName: string) => {
+    return request(`/api/monitoring/database/analyze/${tableName}`, {
+      method: 'POST'
     })
   }
 }
