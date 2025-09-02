@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { energyPoolService } from '../services/energy-pool';
 import { tronService } from '../services/tron';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 获取账户信息

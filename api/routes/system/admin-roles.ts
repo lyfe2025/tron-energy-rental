@@ -10,7 +10,7 @@ import { authenticateToken, logOperation, requirePermission } from '../../middle
 import { handleValidationErrors } from '../../middleware/validation.js';
 import { RoleService } from '../../services/system/role.js';
 
-const router = Router();
+const router: Router = Router();
 
 // 所有路由都需要认证
 router.use(authenticateToken);

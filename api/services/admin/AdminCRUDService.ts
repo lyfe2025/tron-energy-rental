@@ -180,7 +180,7 @@ export class AdminCRUDService {
    * 更新管理员信息
    */
   static async updateAdmin(id: string, data: AdminUpdateData): Promise<Admin | null> {
-    const { username, email, status, department_id, position_id } = data;
+    const { username, email, status, department_id, position_id, role_id } = data;
 
     // 动态构建更新字段
     const updateFields: string[] = [];
@@ -253,6 +253,13 @@ export class AdminCRUDService {
       updateFields.push(`position_id = $${paramIndex}`);
       values.push(position_id);
       paramIndex++;
+    }
+
+    // 处理角色分配
+    if (role_id !== undefined) {
+      // 导入AdminRoleService
+      const { AdminRoleService } = await import('./AdminRoleService.js');
+      await AdminRoleService.assignRole(id, role_id);
     }
 
     if (updateFields.length === 0) {

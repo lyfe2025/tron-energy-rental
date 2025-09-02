@@ -4,7 +4,7 @@ import { energyDelegationService } from '../services/energy-delegation';
 // import { validateRequest } from '../middleware/validation';
 import { body, param, query } from 'express-validator';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 执行能量委托

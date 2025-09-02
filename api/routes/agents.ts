@@ -4,12 +4,12 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { AgentService } from '../services/agent.js';
+import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.js';
-import { handleValidationErrors, validatePagination } from '../middleware/validation.js';
-import { body, query, param } from 'express-validator';
+import { handleValidationErrors } from '../middleware/validation.js';
+import { AgentService } from '../services/agent.js';
 
-const router = Router();
+const router: Router = Router();
 
 // 应用认证中间件
 router.use(authenticateToken);

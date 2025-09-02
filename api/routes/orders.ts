@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { orderService } from '../services/order';
+import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { handleValidationErrors } from '../middleware/validation';
+import { orderService } from '../services/order';
 
 interface CreateOrderRequest {
   userId: number;
@@ -11,9 +12,8 @@ interface CreateOrderRequest {
   priceTrx: number;
   recipientAddress: string;
 }
-import { body, param, query } from 'express-validator';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 创建新订单

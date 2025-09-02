@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { paymentService } from '../services/payment';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 创建支付监控

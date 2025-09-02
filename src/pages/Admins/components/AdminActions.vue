@@ -1,5 +1,9 @@
 <template>
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <!-- 调试信息 -->
+    <div class="bg-yellow-100 p-2 text-sm mb-4">
+      🔍 AdminActions 组件已渲染 - 选中数量: {{ selectedCount }}
+    </div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <!-- 左侧：选择信息和批量操作 -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -76,7 +80,17 @@
           导出全部
         </button>
         
+        <!-- 临时测试按钮 -->
         <button
+          @click="testCreate"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          <Plus class="h-4 w-4 mr-2" />
+          测试新建管理员
+        </button>
+        
+        <button
+          v-if="canCreateAdmin"
           @click="$emit('create')"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
@@ -100,9 +114,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { Plus, UserCheck, UserX, Shield, Download, Trash2 } from 'lucide-vue-next';
+import { Download, Plus, Shield, Trash2, UserCheck, UserX } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import ConfirmDialog from '../../../components/ConfirmDialog.vue';
+import { useAuthStore } from '../../../stores/auth';
 
 interface Props {
   selectedIds: string[];
@@ -123,8 +138,33 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+// 权限检查
+const authStore = useAuthStore();
+const canCreateAdmin = computed(() => {
+  const isSuperAdmin = authStore.isSuperAdmin;
+  const isAdmin = authStore.isAdmin;
+  const user = authStore.user;
+  
+  // 调试信息
+  console.log('🔍 AdminActions 权限检查:', {
+    isSuperAdmin,
+    isAdmin,
+    user,
+    canCreate: isSuperAdmin || isAdmin
+  });
+  
+  return isSuperAdmin || isAdmin;
+});
+
 // 选中数量
 const selectedCount = computed(() => props.selectedIds.length);
+
+// 测试方法
+const testCreate = () => {
+  console.log('🔍 测试按钮被点击了！');
+  alert('测试按钮被点击了！');
+  emit('create');
+};
 
 // 确认对话框状态
 const confirmDialog = ref({

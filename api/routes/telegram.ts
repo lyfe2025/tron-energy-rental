@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { telegramBotService } from '../services/telegram-bot';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * Telegram Bot Webhook

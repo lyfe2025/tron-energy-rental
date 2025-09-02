@@ -67,6 +67,16 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       return;
     }
     
+    // 检查会话状态 - 验证用户是否被强制下线
+    const sessionValid = await checkSessionStatus(payload.id);
+    if (!sessionValid) {
+      res.status(403).json({
+        success: false,
+        message: '会话已失效，请重新登录'
+      });
+      return;
+    }
+    
     // 将用户信息和权限添加到请求对象中
     req.user = {
       ...payload,
@@ -158,6 +168,30 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
   
   next();
 };
+
+/**
+ * 检查用户会话状态
+ * 验证用户是否被强制下线
+ */
+async function checkSessionStatus(userId: string): Promise<boolean> {
+  const { query } = await import('../config/database.js');
+  
+  try {
+    // 查询用户的活跃会话
+    const result = await query(
+      'SELECT COUNT(*) as active_sessions FROM admin_sessions WHERE user_id = $1 AND is_active = true',
+      [userId]
+    );
+    
+    // 如果没有活跃会话，说明用户被强制下线
+    const activeSessionCount = parseInt(result.rows[0]?.active_sessions || '0');
+    return activeSessionCount > 0;
+  } catch (error) {
+    console.error('检查会话状态失败:', error);
+    // 出错时允许通过，避免影响正常用户
+    return true;
+  }
+}
 
 /**
  * 获取用户完整信息和权限

@@ -90,7 +90,7 @@
     />
     
     <!-- 权限配置弹窗 -->
-    <PermissionDialog
+    <AdminPermissionModal
       v-if="permissionModal.visible"
       :visible="permissionModal.visible"
       :admin="permissionModal.admin"
@@ -124,8 +124,8 @@ import AdminForm from './components/AdminForm.vue'
 import AdminList from './components/AdminList.vue'
 import AdminNetworkStatus from './components/AdminNetworkStatus.vue'
 import AdminPageHeader from './components/AdminPageHeader.vue'
+import AdminPermissionModal from './components/AdminPermissionModal.vue'
 import AdminSearch from './components/AdminSearch.vue'
-import PermissionDialog from './components/PermissionDialog.vue'
 import { useAdminPage } from './composables/useAdminPage'
 import { useAdminStore } from './composables/useAdminStore'
 

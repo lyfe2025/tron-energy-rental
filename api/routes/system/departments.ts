@@ -4,13 +4,13 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { DepartmentService } from '../../services/system/department.js';
+import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../../middleware/auth.js';
+import { logOperation, requirePermission } from '../../middleware/rbac.js';
 import { handleValidationErrors } from '../../middleware/validation.js';
-import { body, query, param } from 'express-validator';
-import { requirePermission, logOperation } from '../../middleware/rbac.js';
+import { DepartmentService } from '../../services/system/department.js';
 
-const router = Router();
+const router: Router = Router();
 
 // 所有路由都需要认证
 router.use(authenticateToken);

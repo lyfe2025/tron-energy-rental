@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { monitoringController } from '../controllers/MonitoringController.ts';
 import { authenticateToken, requireAdmin } from '../middleware/rbac.ts';
 
-const router = Router();
+const router: Router = Router();
 
 // 所有监控接口都需要认证
 router.use(authenticateToken);

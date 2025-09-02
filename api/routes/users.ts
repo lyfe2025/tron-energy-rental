@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { UserService } from '../services/user.js';
 import { handleValidationErrors } from '../middleware/validation.js';
+import { UserService } from '../services/user.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 获取用户列表

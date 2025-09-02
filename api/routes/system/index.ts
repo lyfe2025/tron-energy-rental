@@ -4,15 +4,15 @@
  */
 
 import { Router } from 'express';
+import adminRoleRoutes from './admin-roles.js';
 import departmentRoutes from './departments.js';
+import logRoutes from './logs.js';
+import menuRoutes from './menus.js';
+import permissionRoutes from './permissions.js';
 import positionRoutes from './positions.js';
 import roleRoutes from './roles.js';
-import menuRoutes from './menus.js';
-import adminRoleRoutes from './admin-roles.js';
-import logRoutes from './logs.js';
-import permissionRoutes from './permissions.js';
 
-const router = Router();
+const router: Router = Router();
 
 // 部门管理路由
 router.use('/departments', departmentRoutes);

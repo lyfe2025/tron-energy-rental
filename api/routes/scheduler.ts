@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { schedulerService } from '../services/scheduler';
+import { param } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { handleValidationErrors } from '../middleware/validation';
-import { body, param } from 'express-validator';
+import { schedulerService } from '../services/scheduler';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 获取调度器状态

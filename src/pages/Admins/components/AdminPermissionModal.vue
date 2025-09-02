@@ -101,7 +101,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <label
                 v-for="permission in group"
-                :key="permission.id"
+                :key="`${permission.id}-${selectedPermissions.includes(permission.id)}`"
                 class="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer"
                 :class="{
                   'bg-blue-50 border-blue-200': selectedPermissions.includes(permission.id),
@@ -109,10 +109,11 @@
                 }"
               >
                 <input
-                  v-model="selectedPermissions"
+                  :checked="selectedPermissions.includes(permission.id)"
                   :value="permission.id"
                   type="checkbox"
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  @change="handlePermissionChange(permission.id, $event)"
                 />
                 <div class="ml-3 flex-1">
                   <div class="text-sm font-medium text-gray-900">
@@ -173,9 +174,9 @@
 
 <script setup lang="ts">
 import { AlertCircle, X } from 'lucide-vue-next';
-import { computed, ref, watch, defineProps, defineEmits } from 'vue';
-import { useAdminStore } from '../composables/useAdminStore';
+import { computed, defineEmits, defineProps, ref, watch } from 'vue';
 import { AdminService } from '../../../services/adminService';
+import { useAdminStore } from '../composables/useAdminStore';
 import type { Admin, AdminPermission, AdminRoleInfo } from '../types';
 
 interface Props {
@@ -208,8 +209,8 @@ const groupedPermissions = computed(() => {
   const groups: Record<string, AdminPermission[]> = {};
   
   allPermissions.value.forEach(permission => {
-    // 使用 resource 字段进行分组，如果没有则默认为 'other'
-    const group = (permission as any).resource || 'other';
+    // 使用 category 字段进行分组，如果没有则默认为 'other'
+    const group = (permission as any).category || 'other';
     if (!groups[group]) {
       groups[group] = [];
     }
@@ -279,7 +280,16 @@ const loadPermissions = async () => {
       allPermissions.value = result.data.allPermissions || [];
       
       // 设置已选权限
-      selectedPermissions.value = result.data.selectedPermissions || [];
+      selectedPermissions.value = [...(result.data.selectedPermissions || [])];
+      
+      // 添加调试日志
+      console.debug('权限数据加载成功:', {
+        allPermissions: allPermissions.value,
+        selectedPermissions: selectedPermissions.value,
+        adminId: props.admin?.id,
+        selectedCount: selectedPermissions.value.length,
+        totalCount: allPermissions.value.length
+      });
     } else {
       throw new Error(result.error || '获取权限数据失败');
     }
@@ -312,9 +322,36 @@ const selectAllInGroup = (groupName: string, select: boolean) => {
 };
 
 // 清空所有权限
-const clearAllPermissions = () => {
-  selectedPermissions.value = [];
-};
+  const clearAllPermissions = () => {
+    selectedPermissions.value = [];
+  };
+  
+  // 处理权限变化
+  const handlePermissionChange = (permissionId: string, event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const isChecked = target.checked;
+    
+    console.debug('权限状态变化:', {
+      permissionId,
+      checked: isChecked,
+      currentSelected: selectedPermissions.value
+    });
+    
+    if (isChecked) {
+      // 添加权限（如果不存在）
+      if (!selectedPermissions.value.includes(permissionId)) {
+        selectedPermissions.value.push(permissionId);
+      }
+    } else {
+      // 移除权限
+      selectedPermissions.value = selectedPermissions.value.filter(id => id !== permissionId);
+    }
+    
+    console.debug('权限更新后:', {
+      selectedPermissions: selectedPermissions.value,
+      count: selectedPermissions.value.length
+    });
+  };
 
 // 保存权限配置
 const handleSave = async () => {
@@ -323,12 +360,28 @@ const handleSave = async () => {
   saving.value = true;
   
   try {
+    // 添加调试日志
+    console.debug('开始保存权限和角色:', {
+      adminId: props.admin.id,
+      selectedRole: selectedRole.value,
+      selectedPermissions: selectedPermissions.value,
+      permissionCount: selectedPermissions.value.length
+    });
+    
+    // 如果选择了角色，先分配角色
+    if (selectedRole.value) {
+      await adminStore.assignRole(props.admin.id, selectedRole.value);
+      console.debug('角色分配成功:', selectedRole.value);
+    }
+    
     // 分配权限
     await adminStore.assignPermissions(props.admin.id, selectedPermissions.value);
     
+    console.debug('权限保存成功');
     emit('saved');
     emit('update:visible', false);
   } catch (err) {
+    console.error('保存权限失败:', err);
     error.value = err instanceof Error ? err.message : '保存权限配置失败';
   } finally {
     saving.value = false;
