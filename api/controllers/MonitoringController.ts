@@ -307,10 +307,15 @@ export class MonitoringController {
       const result = await this.monitoringService.forceLogoutUserById(userId);
       
       // 记录操作日志
-      await this.monitoringService.logSystemAction(adminId, 'force_logout', {
-        targetUserId: userId,
-        affectedSessions: result.loggedOutSessions
-      });
+      try {
+        await this.monitoringService.logSystemAction(adminId, 'force_logout', {
+          targetUserId: userId,
+          affectedSessions: result.loggedOutSessions
+        });
+      } catch (logError) {
+        logger.error('记录强制下线操作日志失败:', logError);
+        // 不影响主要功能，继续执行
+      }
       
       res.json({
         success: true,

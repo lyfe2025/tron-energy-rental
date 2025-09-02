@@ -2,10 +2,10 @@
  * 定时任务监控模块
  * 负责定时任务的管理、执行和日志记录
  */
+import * as cron from 'node-cron';
 import { query } from '../../config/database.js';
 import { logger } from '../../utils/logger.js';
-import * as cron from 'node-cron';
-import type { ScheduledTask, TaskExecutionLog } from './types/monitoring.types.js';
+import type { ScheduledTask } from './types/monitoring.types.js';
 
 export class ScheduledTaskMonitor {
   /**
@@ -140,8 +140,8 @@ export class ScheduledTaskMonitor {
   async logSystemAction(adminId: string, actionType: string, actionData: any) {
     try {
       const result = await query(
-        'INSERT INTO admin_operation_logs (admin_id, operation, details, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
-        [adminId, actionType, JSON.stringify(actionData)]
+        'INSERT INTO operation_logs (admin_id, operation, request_params, module) VALUES ($1, $2, $3, $4) RETURNING *',
+        [adminId, actionType, JSON.stringify(actionData), 'monitoring']
       );
       return result.rows[0];
     } catch (error) {

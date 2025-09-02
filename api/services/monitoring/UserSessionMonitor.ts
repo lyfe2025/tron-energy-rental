@@ -141,7 +141,7 @@ export class UserSessionMonitor {
       const result = await query(
         `UPDATE admin_sessions 
          SET is_active = false, 
-             updated_at = NOW() 
+             last_activity = NOW() 
          WHERE admin_id = $1 
            AND is_active = true 
          RETURNING id, admin_id, ip_address, login_at`,

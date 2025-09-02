@@ -159,7 +159,12 @@ export class MonitoringService {
    * 记录系统操作
    */
   async logSystemAction(adminId: string, actionType: string, actionData: any) {
-    return this.scheduledTaskMonitor.logSystemAction(adminId, actionType, actionData);
+    try {
+      return await this.scheduledTaskMonitor.logSystemAction(adminId, actionType, actionData);
+    } catch (error) {
+      logger.error('MonitoringService.logSystemAction failed:', error);
+      throw error;
+    }
   }
 
   /**

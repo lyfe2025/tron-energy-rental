@@ -4,7 +4,6 @@
  */
 import { query } from '../../config/database.js';
 import { logger } from '../../utils/logger.js';
-import type { DatabaseStats } from './types/monitoring.types.js';
 
 export class DatabaseMonitor {
   /**
@@ -71,18 +70,61 @@ export class DatabaseMonitor {
         // 如果energy_pools表不存在，保持为0
       }
 
+      // 将表数据转换为前端期望的格式
+      const tables = tablesResult.rows.map(table => ({
+        tableName: table.tablename,
+        name: table.tablename, // 保持向后兼容
+        schema: table.schemaname,
+        rowCount: parseInt(table.live_tuples),
+        recordCount: parseInt(table.live_tuples), // 前端期望的字段名
+        tableSize: parseInt(table.table_size_bytes),
+        indexSize: parseInt(table.index_size_bytes),
+        size: table.table_size, // 前端期望的格式化大小
+        tableSizeFormatted: table.table_size,
+        indexSizeFormatted: table.index_size,
+        inserts: parseInt(table.inserts),
+        updates: parseInt(table.updates),
+        deletes: parseInt(table.deletes),
+        lastUpdated: new Date().toISOString() // 实际应该从pg_stat_user_tables获取
+      }));
+
       return {
+        // 前端期望的字段格式
+        tableCount: totalTables,
+        userCount: parseInt(userCountResult.rows[0].count),
+        orderCount: orderCount,
+        databaseSize: parseInt(sizeResult.rows[0].size_bytes),
+        databaseSizeFormatted: sizeResult.rows[0].size,
+        
+        // 连接信息
+        activeConnections: parseInt(connectionsResult.rows[0].total),
+        maxConnections: 100, // 默认值，可以通过查询 SHOW max_connections 获取
+        
+        // 版本信息
+        version: 'PostgreSQL 14.x',
+        
+        // 表详细信息
+        tables: tables,
+        
+        // 添加tableStats字段以匹配前端期望
+        tableStats: tables,
+        
+        // 分页信息
+        pagination: {
+          page,
+          limit,
+          total: totalTables,
+          totalPages: Math.ceil(totalTables / limit)
+        },
+        
+        // 慢查询日志（暂时为空）
+        slowQueries: [],
+        
+        // 为了向后兼容，添加旧的数据结构
         database: {
           activeConnections: parseInt(connectionsResult.rows[0].total),
           size: sizeResult.rows[0].size,
           sizeBytes: parseInt(sizeResult.rows[0].size_bytes)
-        },
-        tables: {
-          data: tablesResult.rows,
-          total: totalTables,
-          page,
-          limit,
-          totalPages: Math.ceil(totalTables / limit)
         },
         counts: {
           users: parseInt(userCountResult.rows[0].count),
