@@ -167,7 +167,7 @@ router.post('/', [
   body('username').isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').isEmail().withMessage('邮箱格式无效'),
   body('password').isString().isLength({ min: 6 }).withMessage('密码长度至少6位'),
-  body('role_id').isUUID().withMessage('角色ID必须是有效的UUID'),
+  body('role_id').isInt({ min: 1 }).withMessage('角色ID必须是有效的正整数'),
   body('department_id').optional().isInt({ min: 1 }).withMessage('部门ID必须是正整数'),
   body('position_id').optional().isInt({ min: 1 }).withMessage('岗位ID必须是正整数'),
   body('status').optional().isIn(['active', 'inactive']).withMessage('状态无效'),
@@ -201,35 +201,63 @@ router.put('/:id', [
   param('id').isUUID().withMessage('管理员ID必须是有效的UUID'),
   body('username').optional().isString().isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50之间'),
   body('email').optional().isEmail().withMessage('邮箱格式无效'),
-  body('role_id').optional().isUUID().withMessage('角色ID必须是有效的UUID'),
+  body('role_id').optional().isInt({ min: 1 }).withMessage('角色ID必须是有效的正整数'),
   body('department_id').optional().isInt({ min: 1 }).withMessage('部门ID必须是正整数'),
   body('position_id').optional().isInt({ min: 1 }).withMessage('岗位ID必须是正整数'),
   body('status').optional().isIn(['active', 'inactive']).withMessage('状态无效'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updateData = req.body;
+  
+  console.log('🔍 [API] 更新管理员请求:')
+  console.log('  管理员ID:', id)
+  console.log('  请求数据:', updateData)
+  console.log('  用户信息:', req.user)
+  console.log('  请求头:', req.headers)
+  
   try {
-    const { id } = req.params;
-    const updateData = req.body;
-    
+    console.log('🚀 [API] 开始调用 AdminService.updateAdmin...')
     const admin = await AdminService.updateAdmin(id, updateData);
+    console.log('✅ [API] AdminService 返回结果:', admin)
     
     if (!admin) {
+      console.warn('⚠️ [API] 管理员不存在, ID:', id)
       return res.status(404).json({
         success: false,
         error: '管理员不存在'
       });
     }
 
+    console.log('✅ [API] 管理员更新成功, 返回数据:', admin)
     res.json({
       success: true,
       data: admin,
       message: '管理员更新成功'
     });
   } catch (error) {
-    console.error('更新管理员失败:', error);
+    console.error('❌ [API] 更新管理员失败, 完整错误信息:', error)
+    console.error('❌ [API] 错误类型:', typeof error)
+    console.error('❌ [API] 错误名称:', error?.name)
+    console.error('❌ [API] 错误消息:', error?.message)
+    console.error('❌ [API] 错误堆栈:', error?.stack)
+    
+    // 特殊处理数据库错误
+    if (error?.code) {
+      console.error('❌ [API] 数据库错误代码:', error.code)
+      console.error('❌ [API] 数据库错误详情:', error.detail)
+      console.error('❌ [API] 数据库错误约束:', error.constraint)
+    }
+    
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : '更新管理员失败'
+      error: error instanceof Error ? error.message : '更新管理员失败',
+      debug: process.env.NODE_ENV === 'development' ? {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code,
+        detail: error?.detail
+      } : undefined
     });
   }
 });

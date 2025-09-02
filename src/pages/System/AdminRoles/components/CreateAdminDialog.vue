@@ -172,21 +172,21 @@
                 角色 <span class="text-red-500">*</span>
               </label>
               <select
-                v-model="form.roleIds"
-                multiple
+                v-model="form.roleId"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
+                <option value="">请选择角色</option>
                 <option
                   v-for="role in roles"
-                  :key="role.id"
-                  :value="role.id"
+                  :key="role.value"
+                  :value="role.value"
                 >
-                  {{ role.name }}
+                  {{ role.label }}
                 </option>
               </select>
-              <div v-if="errors.roleIds" class="mt-1 text-sm text-red-600">
-                {{ errors.roleIds }}
+              <div v-if="errors.roleId" class="mt-1 text-sm text-red-600">
+                {{ errors.roleId }}
               </div>
             </div>
           </div>
@@ -245,8 +245,6 @@
 import { AdminService } from '@/services/adminService'
 import { UserPlus, X } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
-import type { Role } from '../../Roles/types'
-
 interface CreateAdminForm {
   username: string
   email: string
@@ -255,14 +253,14 @@ interface CreateAdminForm {
   name: string
   phone: string
   positionId: number | null
-  roleIds: number[]
+  roleId: number | null
   status: 'active' | 'inactive'
 }
 
 interface Props {
   visible: boolean
   positions: Array<{ value: number; label: string }>
-  roles: Role[]
+  roles: Array<{ value: number; label: string }>
 }
 
 interface Emits {
@@ -285,7 +283,7 @@ const form = ref<CreateAdminForm>({
   name: '',
   phone: '',
   positionId: null,
-  roleIds: [],
+  roleId: null,
   status: 'active'
 })
 
@@ -333,8 +331,8 @@ const validateForm = (): boolean => {
     errors.value.positionId = '请选择岗位'
   }
   
-  if (!form.value.roleIds || form.value.roleIds.length === 0) {
-    errors.value.roleIds = '请选择角色'
+  if (!form.value.roleId) {
+    errors.value.roleId = '请选择角色'
   }
   
   return Object.keys(errors.value).length === 0
@@ -350,7 +348,7 @@ const resetForm = () => {
     name: '',
     phone: '',
     positionId: null,
-    roleIds: [],
+    roleId: null,
     status: 'active'
   }
   errors.value = {}
@@ -376,10 +374,17 @@ const handleSubmit = async () => {
       password: form.value.password,
       name: form.value.name,
       phone: form.value.phone,
-      positionId: form.value.positionId!,
-      roleIds: form.value.roleIds,
+      position_id: form.value.positionId!,
+      role_id: form.value.roleId!,
       status: form.value.status
     }
+    
+    console.log('🔍 [CreateAdminDialog] 表单数据:', form.value)
+    console.log('🔍 [CreateAdminDialog] 提交数据:', submitData)
+    console.log('🔍 [CreateAdminDialog] 数据类型检查:')
+    Object.entries(submitData).forEach(([key, value]) => {
+      console.log(`  ${key}: ${typeof value} = ${JSON.stringify(value)}`)
+    })
     
     // 调用API创建管理员
     await AdminService.createAdmin(submitData)

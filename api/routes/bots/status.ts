@@ -15,7 +15,7 @@ const router: Router = Router();
  * GET /api/bots/available
  * 权限：已认证用户
  */
-const getAvailableBots: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const getAvailableBots: RouteHandler = async (req: Request, res: Response) => {
   try {
     // 查询所有活跃的机器人
     const botsResult = await query(`
@@ -49,7 +49,7 @@ const getAvailableBots: RouteHandler = async (req: Request, res: Response): Prom
  * PATCH /api/bots/:id/status
  * 权限：管理员
  */
-const updateBotStatus: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const updateBotStatus: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body as BotStatusData;

@@ -15,7 +15,7 @@ const router: Router = Router();
  * 管理员登录
  * POST /api/auth/login
  */
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     
@@ -39,7 +39,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       await query(
         `INSERT INTO login_logs (username, login_time, ip_address, user_agent, status, login_type, failure_reason)
          VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6)`,
-        [email, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '用户不存在']
+        [email, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 0, 'admin', '用户不存在']
       );
       
       res.status(401).json({
@@ -57,7 +57,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       await query(
         `INSERT INTO login_logs (user_id, username, login_time, ip_address, user_agent, status, login_type, failure_reason)
          VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7)`,
-        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '账户已被禁用']
+        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 0, 'admin', '账户已被禁用']
       );
       
       res.status(401).json({
@@ -74,7 +74,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       await query(
         `INSERT INTO login_logs (user_id, username, login_time, ip_address, user_agent, status, login_type, failure_reason)
          VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7)`,
-        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 'failed', 'admin', '密码错误']
+        [user.id, user.username, req.ip || 'unknown', req.get('User-Agent') || 'unknown', 0, 'admin', '密码错误']
       );
       
       res.status(401).json({
@@ -167,7 +167,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
  * 管理员注册（仅限超级管理员）
  * POST /api/auth/register
  */
-router.post('/register', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/register', authenticateToken, async (req: Request, res: Response) => {
   try {
     // 只有管理员可以创建新的管理员账户
     if (req.user?.role !== 'admin') {
@@ -245,7 +245,7 @@ router.post('/register', authenticateToken, async (req: Request, res: Response):
  * 验证token
  * GET /api/auth/verify
  */
-router.get('/verify', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.get('/verify', authenticateToken, async (req: Request, res: Response) => {
   try {
     // 如果中间件通过，说明token有效
     res.status(200).json({
@@ -268,7 +268,7 @@ router.get('/verify', authenticateToken, async (req: Request, res: Response): Pr
  * 刷新token
  * POST /api/auth/refresh
  */
-router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh', async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
     
@@ -311,7 +311,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
  * 用户登出
  * POST /api/auth/logout
  */
-router.post('/logout', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/logout', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId || req.user?.id;
     
@@ -340,7 +340,7 @@ router.post('/logout', authenticateToken, async (req: Request, res: Response): P
  * 修改密码
  * POST /api/auth/change-password
  */
-router.post('/change-password', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/change-password', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user?.userId;

@@ -483,7 +483,7 @@ const fetchLogs = async () => {
       url: log.url,
       description: log.operation,
       ip_address: log.ip_address,
-      status: log.status === 201 ? 'success' : 'failed',
+      status: (log.status >= 200 && log.status < 300) ? 'success' : 'failed',
       execution_time: log.execution_time || 0,
       request_params: log.request_params || '',
       response_data: log.response_data || '',

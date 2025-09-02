@@ -15,6 +15,8 @@ export interface Admin {
   department_name?: string;
   position_id?: number;
   position_name?: string;
+  name?: string; // 真实姓名
+  phone?: string; // 手机号
   last_login?: string;
   notes?: string; // 添加缺失的notes属性
   created_at: string;
@@ -77,7 +79,7 @@ export interface CreateAdminRequest {
   name?: string; // 真实姓名
   phone?: string; // 手机号
   role?: AdminRole;
-  role_id?: string; // 支持动态角色分配
+  role_id?: number; // 支持动态角色分配，使用integer类型
   status?: AdminStatus;
   department_id?: number;
   departmentId?: number; // 兼容前端表单字段
@@ -92,7 +94,7 @@ export interface UpdateAdminRequest {
   email?: string;
   password?: string;
   role?: AdminRole;
-  role_id?: string; // 支持动态角色分配
+  role_id?: number; // 支持动态角色分配，使用integer类型
   status?: AdminStatus;
   department_id?: number;
   position_id?: number;

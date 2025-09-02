@@ -14,7 +14,7 @@ const router: Router = Router();
  * GET /api/bots/:id/users
  * 权限：管理员
  */
-const getBotUsers: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const getBotUsers: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { 

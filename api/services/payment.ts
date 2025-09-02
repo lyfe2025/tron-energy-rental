@@ -1,5 +1,4 @@
 import { query } from '../database/index';
-import { orderService } from './order';
 import { tronService } from './tron';
 import { UserService } from './user';
 
@@ -30,7 +29,6 @@ export interface RiskAssessment {
 }
 
 export class PaymentService {
-  private orderService: typeof orderService;
   private userService: UserService;
   private monitoringTasks: Map<string, NodeJS.Timeout> = new Map();
   
@@ -41,8 +39,13 @@ export class PaymentService {
   };
 
   constructor() {
-    this.orderService = orderService;
     this.userService = new UserService();
+  }
+
+  // 动态导入orderService以避免循环依赖
+  private async getOrderService() {
+    const { orderService } = await import('./order');
+    return orderService;
   }
 
   // 创建支付监控任务
@@ -186,7 +189,8 @@ export class PaymentService {
       );
 
       // 更新订单状态
-      await this.orderService.handlePaymentConfirmed(parseInt(orderId), txid, amount);
+      const orderService = await this.getOrderService();
+      await orderService.handlePaymentConfirmed(parseInt(orderId), txid, amount);
       
       console.log(`Payment confirmed for order ${orderId}: ${txid}`);
     } catch (error) {
@@ -206,7 +210,8 @@ export class PaymentService {
       );
 
       // 取消订单
-      await this.orderService.updateOrderStatus(parseInt(orderId), 'cancelled');
+      const orderService = await this.getOrderService();
+      await orderService.updateOrderStatus(parseInt(orderId), 'cancelled');
       
       console.log(`Payment timeout for order: ${orderId}`);
     } catch (error) {
@@ -225,7 +230,8 @@ export class PaymentService {
       }
 
       // 获取订单信息
-      const order = await this.orderService.getOrderById(parseInt(orderId));
+      const orderService = await this.getOrderService();
+      const order = await orderService.getOrderById(parseInt(orderId));
       if (!order) {
         console.error('Order not found:', orderId);
         return false;

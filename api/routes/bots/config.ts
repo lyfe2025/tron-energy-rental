@@ -14,7 +14,7 @@ const router: Router = Router();
  * PUT /api/bots/:id/config
  * 权限：管理员
  */
-const updateBotConfig: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const updateBotConfig: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { welcome_message, help_message, commands } = req.body as BotConfigData;

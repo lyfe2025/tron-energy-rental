@@ -15,7 +15,7 @@ const router: Router = Router();
  * GET /api/bots
  * 权限：管理员
  */
-const getBotsList: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const getBotsList: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { 
       page = 1, 
@@ -79,7 +79,7 @@ const getBotsList: RouteHandler = async (req: Request, res: Response): Promise<v
  * GET /api/bots/:id
  * 权限：管理员
  */
-const getBotDetails: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const getBotDetails: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -157,7 +157,7 @@ const getBotDetails: RouteHandler = async (req: Request, res: Response): Promise
  * POST /api/bots
  * 权限：管理员
  */
-const createBot: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const createBot: RouteHandler = async (req: Request, res: Response) => {
   try {
     const {
       name,
@@ -254,7 +254,7 @@ const createBot: RouteHandler = async (req: Request, res: Response): Promise<voi
  * PUT /api/bots/:id
  * 权限：管理员
  */
-const updateBot: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const updateBot: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body as UpdateBotData;
@@ -364,7 +364,7 @@ const updateBot: RouteHandler = async (req: Request, res: Response): Promise<voi
  * DELETE /api/bots/:id
  * 权限：管理员
  */
-const deleteBot: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const deleteBot: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     

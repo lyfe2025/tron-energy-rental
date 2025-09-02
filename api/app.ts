@@ -16,6 +16,7 @@ import ordersRoutes from './routes/orders.ts';
 import paymentRoutes from './routes/payment.ts';
 import priceConfigsRoutes from './routes/price-configs.ts';
 import schedulerRoutes from './routes/scheduler';
+import stakeRoutes from './routes/stake.ts';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
 import systemRoutes from './routes/system/index.js';
@@ -56,6 +57,7 @@ app.use('/api/tron', tronRoutes);
 app.use('/api/energy-delegation', energyDelegationRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/energy-pool', energyPoolRoutes);
+app.use('/api/energy-pool/stake', stakeRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 
 /**
@@ -107,6 +109,7 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/energy-delegation',
       '/api/scheduler',
       '/api/energy-pool',
+      '/api/energy-pool/stake',
       '/api/monitoring',
       '/api/health'
     ]

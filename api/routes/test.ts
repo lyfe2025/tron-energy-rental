@@ -10,7 +10,7 @@ const router: Router = Router();
  * 测试数据库连接
  * GET /api/test/db
  */
-router.get('/db', async (req: Request, res: Response): Promise<void> => {
+router.get('/db', async (req: Request, res: Response) => {
   try {
     // 测试查询用户表
     const result = await query('SELECT COUNT(*) as user_count FROM users');
@@ -37,7 +37,7 @@ router.get('/db', async (req: Request, res: Response): Promise<void> => {
  * 获取用户列表
  * GET /api/test/users
  */
-router.get('/users', async (req: Request, res: Response): Promise<void> => {
+router.get('/users', async (req: Request, res: Response) => {
   try {
     const result = await query('SELECT id, email, username, role, status, created_at FROM users LIMIT 10');
     

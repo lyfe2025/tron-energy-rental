@@ -85,6 +85,8 @@ import OperationLogs from './Operation/index.vue'
 
 // 导入统计数据hooks
 import { useLogs } from './composables/useLogs'
+// 导入监控API
+import { monitoringApi } from '@/api/monitoring'
 
 // 标签页配置
 const activeTab = ref('login')
@@ -104,6 +106,9 @@ const tabs = [
 // 使用统计数据hooks
 const { stats, statsLoading, statsError, loadStats } = useLogs()
 
+// 在线用户数
+const onlineUsersCount = ref(0)
+
 // 计算展示数据
 const displayStats = ref({
   todayLogins: 0,
@@ -111,15 +116,28 @@ const displayStats = ref({
   onlineUsers: 0
 })
 
+// 获取在线用户数
+const fetchOnlineUsers = async () => {
+  try {
+    const response = await monitoringApi.getOverview()
+    if (response.success && response.data) {
+      onlineUsersCount.value = response.data.onlineUsers || 0
+    }
+  } catch (error) {
+    console.error('获取在线用户数失败:', error)
+    onlineUsersCount.value = 0
+  }
+}
+
 // 更新展示数据
 const updateDisplayStats = () => {
   if (stats.value) {
     // 使用any类型处理后端实际返回的数据结构
     const data = stats.value as any
     displayStats.value = {
-      todayLogins: parseInt(data.loginStats?.today_logins || '0'),
-      todayOperations: parseInt(data.operationStats?.today_operations || '0'),
-      onlineUsers: parseInt(data.operationStats?.active_users || '0')
+      todayLogins: parseInt(data.login_logs?.today || '0'),
+      todayOperations: parseInt(data.operation_logs?.today || '0'),
+      onlineUsers: onlineUsersCount.value
     }
   }
 }
@@ -127,9 +145,17 @@ const updateDisplayStats = () => {
 // 监听stats变化
 watch(stats, updateDisplayStats, { immediate: true })
 
+// 监听在线用户数变化
+watch(onlineUsersCount, () => {
+  displayStats.value.onlineUsers = onlineUsersCount.value
+})
+
 // 组件挂载时获取数据
 onMounted(async () => {
-  await loadStats()
+  await Promise.all([
+    loadStats(),
+    fetchOnlineUsers()
+  ])
 })
 </script>
 

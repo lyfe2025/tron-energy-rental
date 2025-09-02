@@ -14,6 +14,10 @@ export interface Admin {
   status: string;
   department_id?: number;
   position_id?: number;
+  name?: string; // 真实姓名
+  phone?: string; // 手机号
+  position_name?: string; // 岗位名称
+  department_name?: string; // 部门名称
   created_at: Date;
   updated_at: Date;
   last_login?: Date;
@@ -35,12 +39,12 @@ export interface AdminCreateData {
   name?: string; // 真实姓名
   phone?: string; // 手机号
   role?: string;
-  role_id?: string;
+  role_id?: number; // 角色ID为integer类型
   status?: string;
   department_id?: number;
   departmentId?: number; // 兼容前端表单字段
   position_id?: number;
-  roleIds?: number[]; // 兼容前端表单字段
+  positionId?: number; // 兼容前端表单字段
 }
 
 export interface AdminUpdateData {

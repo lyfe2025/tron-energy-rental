@@ -14,7 +14,7 @@
           <div>
             <h3 class="text-lg font-semibold text-gray-900">用户权限详情</h3>
             <p class="text-sm text-gray-500">
-              查看用户 {{ user?.username }} 的所有权限
+              查看用户 {{ admin?.username }} 的所有权限
             </p>
           </div>
         </div>
@@ -47,8 +47,25 @@
           </button>
         </div>
 
+        <!-- 无权限状态（用户非活跃或无权限）-->
+        <div v-else-if="!permissionInfo && !loading && !error" class="flex flex-col items-center justify-center py-12">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield class="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">无权限信息</h3>
+            <p class="text-gray-500 mb-4">该管理员可能状态为非活跃或未分配任何角色权限</p>
+            <div class="text-sm text-gray-400">
+              <p>用户名: {{ admin?.username || '未知' }}</p>
+              <p>邮箱: {{ admin?.email || '未知' }}</p>
+              <p>状态: {{ admin?.status || '未知' }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- 权限内容 -->
         <div v-else-if="permissionInfo" class="p-6">
+
           <!-- 用户信息 -->
           <div class="mb-6 p-4 bg-gray-50 rounded-lg">
             <div class="flex items-center gap-3">
@@ -170,7 +187,7 @@
                     </div>
                   </div>
                   <div class="text-right">
-                    <div class="text-xs text-gray-500">{{ permission.resource }}</div>
+                    <div class="text-xs text-gray-600">{{ permission.resource }}</div>
                     <div class="text-xs text-gray-400">{{ permission.action }}</div>
                   </div>
                 </div>
@@ -200,18 +217,17 @@
               :key="permission.id"
               class="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
             >
-              <div class="flex items-center gap-3">
+                              <div class="flex items-center gap-3">
                 <Key class="w-4 h-4 text-gray-400" />
                 <div>
                   <div class="font-medium text-gray-900">{{ permission.name }}</div>
                   <div class="text-sm text-gray-500">{{ permission.key }}</div>
-                  <div v-if="permission.description" class="text-xs text-gray-400">
-                    {{ permission.description }}
+                  <div v-if="permission.resource" class="text-xs text-gray-400">
+                    {{ permission.resource }}
                   </div>
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-sm text-gray-600">{{ permission.resource }} - {{ permission.action }}</div>
                 <div class="flex items-center gap-1 text-xs">
                   <span
                     class="inline-flex items-center px-2 py-1 rounded-full"
@@ -243,13 +259,12 @@
                 <div>
                   <div class="font-medium text-gray-900">{{ permission.name }}</div>
                   <div class="text-sm text-gray-500">{{ permission.key }}</div>
-                  <div v-if="permission.description" class="text-xs text-gray-400">
-                    {{ permission.description }}
+                  <div v-if="permission.resource" class="text-xs text-gray-400">
+                    {{ permission.resource }}
                   </div>
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-sm text-gray-600">{{ permission.resource }} - {{ permission.action }}</div>
                 <div class="text-xs text-purple-600">直接分配</div>
               </div>
             </div>
@@ -275,19 +290,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { X, Shield, User, Users, Key, ChevronDown, Search } from 'lucide-vue-next'
+import { ChevronDown, Key, Search, Shield, User, Users, X } from 'lucide-vue-next'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAdminRoles } from '../composables/useAdminRoles'
-import type { AdminRoleInfo, AdminPermissionInfo } from '../types'
+import type { AdminPermissionInfo, AdminRoleInfo } from '../types'
 
 interface Props {
   visible: boolean
-  user?: AdminRoleInfo | null
+  admin?: AdminRoleInfo | null
   loading?: boolean
 }
 
 interface Emits {
   'update:visible': [visible: boolean]
+  'close': []
 }
 
 const props = defineProps<Props>()
@@ -310,6 +326,8 @@ const directPermissions = computed(() => {
   return permissionInfo.value.permissions.filter(p => p.source === 'direct')
 })
 
+
+
 const filteredPermissions = computed(() => {
   if (!permissionInfo.value) return []
   
@@ -329,13 +347,13 @@ const filteredPermissions = computed(() => {
 
 // 方法
 const loadPermissions = async () => {
-  if (!props.user) return
+  if (!props.admin) return
   
   try {
     loading.value = true
     error.value = null
     
-    const result = await getUserPermissions(props.user.admin_id)
+    const result = await getUserPermissions(props.admin.admin_id)
     if (result) {
       permissionInfo.value = result
     } else {
@@ -360,11 +378,20 @@ const toggleRoleExpanded = (roleId: number) => {
 
 const handleClose = () => {
   emit('update:visible', false)
+  emit('close')
 }
+
+// 生命周期钩子
+onMounted(() => {
+  // 如果组件挂载时就是可见的且有管理员数据，立即加载权限
+  if (props.visible && props.admin) {
+    loadPermissions()
+  }
+})
 
 // 监听器
 watch(() => props.visible, (visible) => {
-  if (visible && props.user) {
+  if (visible && props.admin) {
     // 重置状态
     permissionInfo.value = null
     error.value = null
@@ -373,6 +400,13 @@ watch(() => props.visible, (visible) => {
     permissionSearchQuery.value = ''
     
     // 加载权限信息
+    loadPermissions()
+  }
+})
+
+// 监听 admin 属性变化
+watch(() => props.admin, (admin) => {
+  if (props.visible && admin) {
     loadPermissions()
   }
 })

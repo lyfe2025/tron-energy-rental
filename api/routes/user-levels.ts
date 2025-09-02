@@ -13,7 +13,7 @@ const router: Router = Router();
  * GET /api/user-levels/:user_id/history
  * 权限：管理员
  */
-router.get('/:user_id/history', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get('/:user_id/history', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { user_id } = req.params;
     const { page = 1, limit = 20 } = req.query;
@@ -73,7 +73,7 @@ router.get('/:user_id/history', authenticateToken, requireAdmin, async (req: Req
  * POST /api/user-levels/:user_id/change
  * 权限：管理员
  */
-router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { user_id } = req.params;
     const { new_level, change_reason, effective_date } = req.body;
@@ -177,7 +177,7 @@ router.post('/:user_id/change', authenticateToken, requireAdmin, async (req: Req
  * POST /api/user-levels/batch-change
  * 权限：管理员
  */
-router.post('/batch-change', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.post('/batch-change', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { user_ids, new_level, change_reason } = req.body;
     const admin_id = req.user?.id;
@@ -291,7 +291,7 @@ router.post('/batch-change', authenticateToken, requireAdmin, async (req: Reques
  * GET /api/user-levels/stats
  * 权限：管理员
  */
-router.get('/stats', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { start_date, end_date } = req.query;
     

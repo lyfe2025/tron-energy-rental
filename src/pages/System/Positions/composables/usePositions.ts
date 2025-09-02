@@ -280,10 +280,8 @@ export function usePositions() {
       const positionList = await loadPositions(query)
       
       return positionList.map(position => ({
-        id: position.id,
-        name: position.name,
-        code: position.code,
-        department_id: position.department_id
+        value: position.id,
+        label: position.name
       }))
     } catch (err) {
       console.error('获取岗位选项失败:', err)

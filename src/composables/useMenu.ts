@@ -35,6 +35,7 @@ const iconMap: Record<string, () => Promise<any>> = {
   DollarSign: () => import('lucide-vue-next').then(m => m.DollarSign),
   Bot: () => import('lucide-vue-next').then(m => m.Bot),
   Fuel: () => import('lucide-vue-next').then(m => m.Fuel),
+  Zap: () => import('lucide-vue-next').then(m => m.Zap),
   UserCheck: () => import('lucide-vue-next').then(m => m.UserCheck),
   BarChart3: () => import('lucide-vue-next').then(m => m.BarChart3),
   Monitor: () => import('lucide-vue-next').then(m => m.Monitor),
@@ -211,7 +212,21 @@ export function useMenu() {
         name: '能量池管理',
         path: '/energy-pool',
         icon: 'Fuel',
-        permission: 'energy:pool'
+        permission: 'energy:pool',
+        children: [
+          {
+            id: 61,
+            name: '能量池账户管理',
+            path: '/energy-pool/accounts',
+            permission: 'energy:pool:accounts'
+          },
+          {
+            id: 62,
+            name: '账户质押管理',
+            path: '/energy-pool/stake',
+            permission: 'energy:pool:stake'
+          }
+        ]
       },
       {
         id: 7,

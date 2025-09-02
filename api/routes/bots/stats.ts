@@ -14,7 +14,7 @@ const router: Router = Router();
  * GET /api/bots/stats/overview
  * 权限：管理员
  */
-const getBotStatsOverview: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const getBotStatsOverview: RouteHandler = async (req: Request, res: Response) => {
   try {
     // 获取机器人统计
     const statsResult = await query(`

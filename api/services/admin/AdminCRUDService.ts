@@ -22,19 +22,19 @@ export class AdminCRUDService {
     let paramIndex = 1;
 
     if (search) {
-      conditions.push(`(username ILIKE $${paramIndex} OR email ILIKE $${paramIndex})`);
+      conditions.push(`(a.username ILIKE $${paramIndex} OR a.email ILIKE $${paramIndex})`);
       values.push(`%${search}%`);
       paramIndex++;
     }
 
     if (role) {
-      conditions.push(`role = $${paramIndex}`);
+      conditions.push(`a.role = $${paramIndex}`);
       values.push(role);
       paramIndex++;
     }
 
     if (status) {
-      conditions.push(`status = $${paramIndex}`);
+      conditions.push(`a.status = $${paramIndex}`);
       values.push(status);
       paramIndex++;
     }
@@ -44,7 +44,7 @@ export class AdminCRUDService {
     // 获取总数
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM admins
+      FROM admins a
       ${whereClause}
     `;
     const countResult = await pool.query(countQuery, values);
@@ -53,20 +53,26 @@ export class AdminCRUDService {
     // 获取数据
     const dataQuery = `
       SELECT 
-        id,
-        username,
-        email,
-        role,
-        status,
-        department_id,
-        position_id,
-        created_at,
-        updated_at,
-        last_login,
-        last_login_at
-      FROM admins
+        a.id,
+        a.username,
+        a.email,
+        a.role,
+        a.status,
+        a.department_id,
+        a.position_id,
+        a.name,
+        a.phone,
+        a.created_at,
+        a.updated_at,
+        a.last_login,
+        a.last_login_at,
+        p.name as position_name,
+        d.name as department_name
+      FROM admins a
+      LEFT JOIN positions p ON a.position_id = p.id
+      LEFT JOIN departments d ON p.department_id = d.id
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY a.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     values.push(limit, offset);
@@ -90,21 +96,25 @@ export class AdminCRUDService {
   static async getAdminById(id: string): Promise<Admin | null> {
     const query = `
       SELECT 
-        id,
-        username,
-        email,
-        status,
-        role,
-        department_id,
-        position_id,
-        name,
-        phone,
-        created_at,
-        updated_at,
-        last_login,
-        last_login_at
-      FROM admins
-      WHERE id = $1
+        a.id,
+        a.username,
+        a.email,
+        a.status,
+        a.role,
+        a.department_id,
+        a.position_id,
+        a.name,
+        a.phone,
+        a.created_at,
+        a.updated_at,
+        a.last_login,
+        a.last_login_at,
+        p.name as position_name,
+        d.name as department_name
+      FROM admins a
+      LEFT JOIN positions p ON a.position_id = p.id
+      LEFT JOIN departments d ON p.department_id = d.id
+      WHERE a.id = $1
     `;
     
     const result = await pool.query(query, [id]);
@@ -115,7 +125,7 @@ export class AdminCRUDService {
    * 创建管理员
    */
   static async createAdmin(data: AdminCreateData): Promise<Admin> {
-    const { username, email, password, status = 'active', department_id, position_id, name, phone, roleIds } = data;
+    const { username, email, password, status = 'active', department_id, position_id, name, phone, role_id } = data;
 
     // 检查用户名是否已存在
     const existingUsername = await pool.query(
@@ -139,7 +149,7 @@ export class AdminCRUDService {
     if (department_id) {
       const departmentExists = await pool.query(
         'SELECT id FROM departments WHERE id = $1 AND status = $2',
-        [department_id, 'active']
+        [department_id, 1]
       );
       if (departmentExists.rows.length === 0) {
         throw new Error('指定的部门不存在或已禁用');
@@ -150,7 +160,7 @@ export class AdminCRUDService {
     if (position_id) {
       const positionExists = await pool.query(
         'SELECT id FROM positions WHERE id = $1 AND status = $2',
-        [position_id, 'active']
+        [position_id, 1]
       );
       if (positionExists.rows.length === 0) {
         throw new Error('指定的岗位不存在或已禁用');
@@ -181,12 +191,10 @@ export class AdminCRUDService {
     const newAdmin = result.rows[0];
     
     // 处理角色分配
-    if (roleIds && roleIds.length > 0) {
+    if (role_id) {
       const { AdminRoleService } = await import('./AdminRoleService.js');
       // 为新创建的管理员分配角色
-      for (const roleId of roleIds) {
-        await AdminRoleService.assignRole(newAdmin.id, roleId.toString());
-      }
+      await AdminRoleService.assignRole(newAdmin.id, role_id.toString());
     }
     
     return newAdmin;
@@ -196,6 +204,14 @@ export class AdminCRUDService {
    * 更新管理员信息
    */
   static async updateAdmin(id: string, data: AdminUpdateData): Promise<Admin | null> {
+    console.log('🔍 [AdminCRUDService] 更新管理员请求:')
+    console.log('  管理员ID:', id)
+    console.log('  更新数据:', data)
+    console.log('  数据类型检查:')
+    Object.entries(data).forEach(([key, value]) => {
+      console.log(`    ${key}: ${typeof value} = ${JSON.stringify(value)}`)
+    })
+    
     const { username, email, status, department_id, position_id, role_id } = data;
 
     // 动态构建更新字段
@@ -244,7 +260,7 @@ export class AdminCRUDService {
         // 验证部门是否存在
         const departmentExists = await pool.query(
           'SELECT id FROM departments WHERE id = $1 AND status = $2',
-          [department_id, 'active']
+          [department_id, 1]
         );
         if (departmentExists.rows.length === 0) {
           throw new Error('指定的部门不存在或已禁用');
@@ -260,7 +276,7 @@ export class AdminCRUDService {
         // 验证岗位是否存在
         const positionExists = await pool.query(
           'SELECT id FROM positions WHERE id = $1 AND status = $2',
-          [position_id, 'active']
+          [position_id, 1]
         );
         if (positionExists.rows.length === 0) {
           throw new Error('指定的岗位不存在或已禁用');
@@ -273,9 +289,20 @@ export class AdminCRUDService {
 
     // 处理角色分配
     if (role_id !== undefined) {
-      // 导入AdminRoleService
-      const { AdminRoleService } = await import('./AdminRoleService.js');
-      await AdminRoleService.assignRole(id, role_id);
+      console.log('🔍 [AdminCRUDService] 开始处理角色分配:')
+      console.log('  管理员ID:', id)
+      console.log('  角色ID:', role_id)
+      console.log('  角色ID类型:', typeof role_id)
+      
+      try {
+        // 导入AdminRoleService
+        const { AdminRoleService } = await import('./AdminRoleService.js');
+        await AdminRoleService.assignRole(id, role_id);
+        console.log('✅ [AdminCRUDService] 角色分配成功')
+      } catch (roleError) {
+        console.error('❌ [AdminCRUDService] 角色分配失败:', roleError)
+        throw roleError;
+      }
     }
 
     if (updateFields.length === 0) {

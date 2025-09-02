@@ -179,7 +179,7 @@ async function checkSessionStatus(userId: string): Promise<boolean> {
   try {
     // 查询用户的活跃会话
     const result = await query(
-      'SELECT COUNT(*) as active_sessions FROM admin_sessions WHERE user_id = $1 AND is_active = true',
+      'SELECT COUNT(*) as active_sessions FROM admin_sessions WHERE admin_id = $1 AND is_active = true',
       [userId]
     );
     

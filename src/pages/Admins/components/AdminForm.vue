@@ -237,12 +237,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import { X, Eye, EyeOff } from 'lucide-vue-next';
-import type { Admin, CreateAdminRequest, UpdateAdminRequest } from '../types';
-import { useRoles } from '../../System/Roles/composables/useRoles';
+import { Eye, EyeOff, X } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useDepartments } from '../../System/Departments/composables/useDepartments';
 import { usePositions } from '../../System/Positions/composables/usePositions';
+import { useRoles } from '../../System/Roles/composables/useRoles';
+import type { Admin, CreateAdminRequest, UpdateAdminRequest } from '../types';
 
 interface Props {
   visible: boolean;
@@ -318,7 +318,7 @@ const fillForm = (admin: Admin) => {
     password: '',
     confirmPassword: '',
     role: admin.role,
-    role_id: admin.role_id,
+    role_id: admin.role_id ? Number(admin.role_id) : undefined,
     status: admin.status,
     department_id: admin.department_id || null,
     position_id: admin.position_id || null,

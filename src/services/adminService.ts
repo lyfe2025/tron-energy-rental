@@ -53,8 +53,19 @@ export class AdminService {
    * 更新管理员信息
    */
   static async updateAdmin(id: string, data: UpdateAdminRequest): Promise<Admin> {
-    const response = await apiClient.put<ApiResponse<AdminDetailResponse>>(`/api/admins/${id}`, data);
-    return response.data.data.admin;
+    console.log('🔍 [AdminService] 更新管理员请求:')
+    console.log('  管理员ID:', id)
+    console.log('  请求数据:', data)
+    console.log('  请求URL:', `/api/admins/${id}`)
+    
+    try {
+      const response = await apiClient.put<ApiResponse<AdminDetailResponse>>(`/api/admins/${id}`, data);
+      console.log('✅ [AdminService] 响应成功:', response.data)
+      return response.data.data.admin;
+    } catch (error) {
+      console.error('❌ [AdminService] 请求失败:', error)
+      throw error;
+    }
   }
 
   /**

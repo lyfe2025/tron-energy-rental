@@ -14,7 +14,7 @@ const router: Router = Router();
  * POST /api/bots/:id/test
  * 权限：管理员
  */
-const testBotConnection: RouteHandler = async (req: Request, res: Response): Promise<void> => {
+const testBotConnection: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     

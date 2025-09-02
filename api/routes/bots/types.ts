@@ -86,7 +86,7 @@ export interface BotDetailsResponse {
 }
 
 // 路由处理器类型
-export type RouteHandler = (req: Request, res: Response) => Promise<void>;
+export type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 
 // API响应基础接口
 export interface ApiResponse<T = any> {

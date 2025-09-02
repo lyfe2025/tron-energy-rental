@@ -58,10 +58,17 @@ const router = createRouter({
           meta: { roles: ['super_admin', 'admin'] }
         },
 
+        // 能量池管理路由
         {
-          path: 'energy-pool',
-          name: 'energy-pool',
+          path: 'energy-pool/accounts',
+          name: 'energy-pool-accounts',
           component: () => import('@/pages/EnergyPool.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'energy-pool/stake',
+          name: 'energy-pool-stake',
+          component: () => import('@/pages/EnergyPool/Stake.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {

@@ -197,11 +197,11 @@
 
 <script setup lang="ts">
 import { Edit, X } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
-import type { AdminRoleInfo } from '../types'
-import { useAdminRoles } from '../composables/useAdminRoles'
-import { usePositions } from '../../Positions/composables/usePositions'
+import { onMounted, ref, watch } from 'vue'
 import { useDepartments } from '../../Departments/composables/useDepartments'
+import { usePositions } from '../../Positions/composables/usePositions'
+import { useAdminRoles } from '../composables/useAdminRoles'
+import type { AdminRoleInfo } from '../types'
 
 interface Props {
   visible: boolean
@@ -280,57 +280,77 @@ const handleSubmit = () => {
   emit('submit', data)
 }
 
-const loadOptions = async () => {
+const loadOptions = async (): Promise<void> => {
   try {
-    // 加载角色选项
-    const roles = await getRoleOptions()
+    // 并行加载所有选项
+    const [roles, departments, positions] = await Promise.all([
+      getRoleOptions(),
+      getDepartmentOptions(),
+      getPositionOptions()
+    ])
+    
     roleOptions.value = roles
-    
-    // 加载部门选项
-    const departments = await getDepartmentOptions()
     departmentOptions.value = departments
-    
-    // 加载岗位选项
-    const positions = await getPositionOptions()
     positionOptions.value = positions
   } catch (err) {
     console.error('加载选项失败:', err)
+    throw err
   }
 }
 
 // 监听岗位变化，自动关联部门
 watch(() => form.value.position_id, (newPositionId) => {
-  if (newPositionId) {
-    const selectedPosition = positionOptions.value.find(p => p.id.toString() === newPositionId)
-    if (selectedPosition && selectedPosition.department_id) {
-      form.value.department_id = selectedPosition.department_id.toString()
+  if (newPositionId && positionOptions.value.length > 0) {
+    // 确保数据类型匹配，处理字符串和数字两种情况
+    const selectedPosition = positionOptions.value.find(p => {
+      if (!p || p.id === undefined || p.id === null) return false
+      if (newPositionId === undefined || newPositionId === null) return false
+      return String(p.id) === String(newPositionId)
+    })
+    
+    if (selectedPosition && selectedPosition.department_id !== undefined && selectedPosition.department_id !== null) {
+      form.value.department_id = String(selectedPosition.department_id)
+    } else {
+      // 清空部门选择
+      form.value.department_id = ''
     }
+  } else if (newPositionId === '' || newPositionId === null) {
+    // 如果清空岗位选择，也清空部门选择
+    form.value.department_id = ''
   }
-})
+}, { immediate: false })
 
 // 监听器
-watch(() => props.visible, (visible) => {
+watch(() => props.visible, async (visible) => {
   if (visible && props.admin) {
-    // 填充表单数据
-    form.value = {
-      username: props.admin.username || '',
-      email: props.admin.email || '',
-      role_id: props.admin.roles?.[0]?.id?.toString() || '',
-      department_id: props.admin.department_id?.toString() || '',
-      position_id: props.admin.position_id?.toString() || '',
-      status: props.admin.status || 'active'
+    try {
+      // 首先加载选项
+      await loadOptions()
+      
+      // 然后填充表单数据
+      form.value = {
+        username: props.admin.username || '',
+        email: props.admin.email || '',
+        role_id: props.admin.roles?.[0]?.id ? String(props.admin.roles[0].id) : '',
+        department_id: props.admin.department_id ? String(props.admin.department_id) : '',
+        position_id: props.admin.position_id ? String(props.admin.position_id) : '',
+        status: props.admin.status || 'active'
+      }
+      errors.value = {}
+    } catch (err) {
+      console.error('初始化表单失败:', err)
     }
-    errors.value = {}
-    
-    // 加载选项
-    loadOptions()
   }
 })
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
   if (props.visible) {
-    loadOptions()
+    try {
+      await loadOptions()
+    } catch (err) {
+      console.error('组件挂载时加载选项失败:', err)
+    }
   }
 })
 </script>

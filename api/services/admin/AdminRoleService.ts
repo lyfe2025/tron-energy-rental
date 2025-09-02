@@ -233,44 +233,60 @@ export class AdminRoleService {
    * 为管理员分配角色（确保每个管理员只能有一个角色）
    */
   static async assignRole(adminId: string, roleId: string): Promise<boolean> {
+    console.log('🔍 [AdminRoleService] 分配角色请求:')
+    console.log('  管理员ID:', adminId)
+    console.log('  角色ID:', roleId)
+    console.log('  角色ID类型:', typeof roleId)
+    
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
+      console.log('🔍 [AdminRoleService] 事务开始')
       
       // 检查管理员是否存在
+      console.log('🔍 [AdminRoleService] 检查管理员是否存在...')
       const adminExists = await client.query(
         'SELECT id FROM admins WHERE id = $1',
         [adminId]
       );
+      console.log('🔍 [AdminRoleService] 管理员存在检查结果:', adminExists.rows.length > 0)
       
       if (adminExists.rows.length === 0) {
         throw new Error('管理员不存在');
       }
 
       // 检查角色是否存在
+      console.log('🔍 [AdminRoleService] 检查角色是否存在...')
       const roleExists = await client.query(
         'SELECT id FROM roles WHERE id = $1 AND status = 1',
         [roleId]
       );
+      console.log('🔍 [AdminRoleService] 角色存在检查结果:', roleExists.rows.length > 0)
+      console.log('🔍 [AdminRoleService] 找到的角色:', roleExists.rows)
       
       if (roleExists.rows.length === 0) {
         throw new Error('角色不存在或已禁用');
       }
 
       // 先删除该管理员的所有现有角色（确保每个管理员只能有一个角色）
-      await client.query(
+      console.log('🔍 [AdminRoleService] 删除现有角色...')
+      const deleteResult = await client.query(
         'DELETE FROM admin_roles WHERE admin_id = $1',
         [adminId]
       );
+      console.log('🔍 [AdminRoleService] 删除的角色数量:', deleteResult.rowCount)
 
       // 分配新角色
-      await client.query(
+      console.log('🔍 [AdminRoleService] 分配新角色...')
+      const insertResult = await client.query(
         'INSERT INTO admin_roles (admin_id, role_id) VALUES ($1, $2)',
         [adminId, roleId]
       );
+      console.log('🔍 [AdminRoleService] 插入结果:', insertResult.rowCount)
 
       await client.query('COMMIT');
+      console.log('✅ [AdminRoleService] 事务提交成功')
       return true;
     } catch (error) {
       await client.query('ROLLBACK');

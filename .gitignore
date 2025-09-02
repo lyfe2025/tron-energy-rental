@@ -23,3 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .vite
+
+# Backup and temporary files
+*.bak
+*.tmp
+*.backup
+*~
+.*.swp
+.*.swo

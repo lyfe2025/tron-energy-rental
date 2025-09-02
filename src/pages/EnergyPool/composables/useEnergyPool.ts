@@ -145,7 +145,14 @@ export function useEnergyPool() {
     total_energy: number
   }) => {
     try {
-      const response = await energyPoolAPI.addAccount(accountData)
+      // 添加缺失的字段，使其符合EnergyPoolAccount类型
+      const completeAccountData = {
+        ...accountData,
+        status: 'active' as const,
+        available_energy: accountData.total_energy,
+        reserved_energy: 0
+      };
+      const response = await energyPoolAPI.addAccount(completeAccountData)
       if (response.data.success) {
         toast.success('账户添加成功')
         return response.data.data

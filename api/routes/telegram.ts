@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { telegramBotService } from '../services/telegram-bot';
+import telegramBotService from '../services/telegram-bot';
 
 const router: Router = Router();
 

@@ -8,6 +8,7 @@ export enum UserStatus {
 export interface AdminRoleInfo {
   admin_id: string
   username: string
+  name?: string
   email: string
   phone?: string
   avatar?: string
@@ -125,7 +126,7 @@ export interface AdminRoleListResponse {
   success: boolean
   message: string
   data: {
-    list: AdminRoleInfo[]
+    admins: AdminRoleInfo[]
     pagination: Pagination
   }
 }
@@ -189,7 +190,7 @@ export interface Pagination {
   page: number
   page_size: number
   total: number
-  pages: number
+  total_pages: number
 }
 
 // 错误响应
