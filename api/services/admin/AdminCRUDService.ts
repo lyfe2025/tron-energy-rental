@@ -57,7 +57,6 @@ export class AdminCRUDService {
         username,
         email,
         role,
-        role_id,
         status,
         department_id,
         position_id,
@@ -95,8 +94,11 @@ export class AdminCRUDService {
         username,
         email,
         status,
+        role,
         department_id,
         position_id,
+        name,
+        phone,
         created_at,
         updated_at,
         last_login,
@@ -113,7 +115,7 @@ export class AdminCRUDService {
    * 创建管理员
    */
   static async createAdmin(data: AdminCreateData): Promise<Admin> {
-    const { username, email, password, status = 'active', department_id, position_id } = data;
+    const { username, email, password, status = 'active', department_id, position_id, name, phone, roleIds } = data;
 
     // 检查用户名是否已存在
     const existingUsername = await pool.query(
@@ -159,21 +161,35 @@ export class AdminCRUDService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = `
-      INSERT INTO admins (username, email, password_hash, status, department_id, position_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO admins (username, email, password_hash, status, department_id, position_id, name, phone)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING 
         id,
         username,
         email,
         status,
+        role,
         department_id,
         position_id,
+        name,
+        phone,
         created_at,
         updated_at
     `;
     
-    const result = await pool.query(query, [username, email, hashedPassword, status, department_id, position_id]);
-    return result.rows[0];
+    const result = await pool.query(query, [username, email, hashedPassword, status, department_id, position_id, name, phone]);
+    const newAdmin = result.rows[0];
+    
+    // 处理角色分配
+    if (roleIds && roleIds.length > 0) {
+      const { AdminRoleService } = await import('./AdminRoleService.js');
+      // 为新创建的管理员分配角色
+      for (const roleId of roleIds) {
+        await AdminRoleService.assignRole(newAdmin.id, roleId.toString());
+      }
+    }
+    
+    return newAdmin;
   }
 
   /**
@@ -279,6 +295,7 @@ export class AdminCRUDService {
         username,
         email,
         status,
+        role,
         department_id,
         position_id,
         created_at,
@@ -304,6 +321,7 @@ export class AdminCRUDService {
         username,
         email,
         status,
+        role,
         department_id,
         position_id,
         created_at,

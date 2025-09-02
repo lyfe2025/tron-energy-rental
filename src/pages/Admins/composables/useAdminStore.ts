@@ -5,14 +5,12 @@
 import { ref } from 'vue';
 import { AdminService } from '../../../services/adminService';
 import type {
-  Admin,
-  AdminQuery,
-  CreateAdminRequest,
-  UpdateAdminRequest,
-  UpdateAdminStatusRequest,
-  AssignRoleRequest,
-  AdminRoleInfo,
-  AdminPagination
+    Admin,
+    AdminPagination,
+    AdminQuery,
+    AdminRoleInfo,
+    CreateAdminRequest,
+    UpdateAdminRequest
 } from '../types';
 
 // 管理员统计数据接口
@@ -259,11 +257,11 @@ export function useAdminStore() {
     }
   };
   
-  const assignRole = async (adminId: string, roleId: string) => {
+  const assignRole = async (adminId: string, roleId: number | string) => {
     try {
       loading.value = true;
       error.value = null;
-      await AdminService.assignRole(adminId, { role_id: roleId });
+      await AdminService.assignRole(adminId, { role_id: roleId.toString() });
       
       // 重新获取管理员详情以更新权限信息
       if (currentAdmin.value?.id === adminId) {

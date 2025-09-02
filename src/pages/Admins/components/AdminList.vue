@@ -130,6 +130,13 @@
                   <Shield class="h-4 w-4" />
                 </button>
                 <button
+                  @click="$emit('assign-role', admin)"
+                  class="text-orange-600 hover:text-orange-900"
+                  title="分配角色"
+                >
+                  <UserPlus class="h-4 w-4" />
+                </button>
+                <button
                   @click="$emit('delete', admin)"
                   class="text-red-600 hover:text-red-900"
                   title="删除"
@@ -229,6 +236,13 @@
                 <Shield class="h-4 w-4" />
               </button>
               <button
+                @click="$emit('assign-role', admin)"
+                class="p-2 text-orange-600 hover:bg-orange-50 rounded"
+                title="分配角色"
+              >
+                <UserPlus class="h-4 w-4" />
+              </button>
+              <button
                 @click="$emit('delete', admin)"
                 class="p-2 text-red-600 hover:bg-red-50 rounded"
                 title="删除"
@@ -301,7 +315,7 @@
 </template>
 
 <script setup lang="ts">
-import { Edit, Eye, Shield, Trash2, User } from 'lucide-vue-next';
+import { Edit, Eye, Shield, Trash2, User, UserPlus } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Admin, AdminPagination } from '../types';
 import { ADMIN_ROLE_LABELS, ADMIN_STATUS_LABELS } from '../types';
@@ -319,6 +333,7 @@ interface Emits {
   view: [admin: Admin];
   edit: [admin: Admin];
   permissions: [admin: Admin];
+  'assign-role': [admin: Admin];
   delete: [admin: Admin];
   'toggle-status': [admin: Admin];
 }

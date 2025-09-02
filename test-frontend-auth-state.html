@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端认证状态测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .status-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .status-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .status-value {
+            font-family: monospace;
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 前端认证状态测试</h1>
+    
+    <div class="container">
+        <h3>1. 模拟前端登录</h3>
+        <button onclick="simulateFrontendLogin()">模拟前端登录</button>
+        <button onclick="checkLocalStorage()">检查本地存储</button>
+        <button onclick="clearLocalStorage()">清除本地存储</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h3>2. 权限状态检查</h3>
+        <button onclick="checkPermissionState()">检查权限状态</button>
+        <button onclick="simulateAuthStore()">模拟AuthStore计算</button>
+        <div id="permissionResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h3>3. 前端页面访问测试</h3>
+        <button onclick="testAdminPageAccess()">测试管理员页面访问</button>
+        <button onclick="testAPIWithLocalToken()">使用本地Token测试API</button>
+        <div id="pageAccessResult" class="result"></div>
+    </div>
+    
+    <div class="container">
+        <h3>4. 实时状态监控</h3>
+        <div class="status-grid" id="statusGrid">
+            <!-- 状态项将动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentUser = null;
+        
+        // 模拟前端登录流程
+        async function simulateFrontendLogin() {
+            try {
+                document.getElementById('loginResult').innerHTML = 
+                    '<div class="info">正在模拟前端登录流程...</div>';
+                
+                // 1. 调用登录API
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tronrental.com',
+                        password: 'admin123456'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const { token, user } = data.data;
+                    currentToken = token;
+                    currentUser = user;
+                    
+                    // 2. 模拟前端存储逻辑
+                    localStorage.setItem('admin_token', token);
+                    localStorage.setItem('admin_user', JSON.stringify(user));
+                    
+                    // 3. 模拟AuthStore状态计算
+                    const authState = simulateAuthStoreState(token, user);
+                    
+                    document.getElementById('loginResult').innerHTML = 
+                        `<div class="success">
+                            <h4>✅ 前端登录模拟成功！</h4>
+                            <p><strong>用户:</strong> ${user.username}</p>
+                            <p><strong>角色:</strong> ${user.role}</p>
+                            <p><strong>权限数量:</strong> ${user.permissions?.length || 0}</p>
+                            <p><strong>Token已保存到localStorage</strong></p>
+                            
+                            <h5>AuthStore状态计算结果:</h5>
+                            <p>isAuthenticated: ${authState.isAuthenticated}</p>
+                            <p>isAdmin: ${authState.isAdmin}</p>
+                            <p>isSuperAdmin: ${authState.isSuperAdmin}</p>
+                            <p>canCreateAdmin: ${authState.canCreateAdmin}</p>
+                        </div>`;
+                    
+                    // 更新状态监控
+                    updateStatusMonitor();
+                } else {
+                    document.getElementById('loginResult').innerHTML = 
+                        `<div class="error">登录失败: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = 
+                    `<div class="error">登录异常: ${error.message}</div>`;
+            }
+        }
+        
+        // 模拟AuthStore状态计算
+        function simulateAuthStoreState(token, user) {
+            const hasToken = !!token;
+            const hasUser = !!user;
+            const isAuthenticated = hasToken && hasUser;
+            
+            const userRole = user?.role;
+            const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+            const isSuperAdmin = userRole === 'super_admin';
+            const canCreateAdmin = isSuperAdmin || isAdmin;
+            
+            return {
+                hasToken,
+                hasUser,
+                isAuthenticated,
+                userRole,
+                isAdmin,
+                isSuperAdmin,
+                canCreateAdmin
+            };
+        }
+        
+        // 检查本地存储
+        function checkLocalStorage() {
+            const token = localStorage.getItem('admin_token');
+            const userStr = localStorage.getItem('admin_user');
+            let user = null;
+            
+            try {
+                user = userStr ? JSON.parse(userStr) : null;
+            } catch (e) {
+                user = null;
+            }
+            
+            const authState = simulateAuthStoreState(token, user);
+            
+            document.getElementById('loginResult').innerHTML = 
+                `<div class="info">
+                    <h4>📦 本地存储状态检查</h4>
+                    <p><strong>Token存在:</strong> ${!!token}</p>
+                    <p><strong>Token长度:</strong> ${token ? token.length : 0}</p>
+                    <p><strong>用户信息存在:</strong> ${!!user}</p>
+                    <p><strong>用户角色:</strong> ${user?.role || 'N/A'}</p>
+                    
+                    <h5>AuthStore状态模拟:</h5>
+                    <p>isAuthenticated: ${authState.isAuthenticated}</p>
+                    <p>isAdmin: ${authState.isAdmin}</p>
+                    <p>isSuperAdmin: ${authState.isSuperAdmin}</p>
+                    <p>canCreateAdmin: ${authState.canCreateAdmin}</p>
+                </div>`;
+            
+            updateStatusMonitor();
+        }
+        
+        // 清除本地存储
+        function clearLocalStorage() {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            currentToken = null;
+            currentUser = null;
+            
+            document.getElementById('loginResult').innerHTML = 
+                '<div class="info">✅ 本地存储已清除</div>';
+            
+            updateStatusMonitor();
+        }
+        
+        // 检查权限状态
+        function checkPermissionState() {
+            const token = localStorage.getItem('admin_token');
+            const userStr = localStorage.getItem('admin_user');
+            let user = null;
+            
+            try {
+                user = userStr ? JSON.parse(userStr) : null;
+            } catch (e) {
+                user = null;
+            }
+            
+            if (!token || !user) {
+                document.getElementById('permissionResult').innerHTML = 
+                    '<div class="error">❌ 未找到有效的认证信息，请先登录</div>';
+                return;
+            }
+            
+            const authState = simulateAuthStoreState(token, user);
+            
+            document.getElementById('permissionResult').innerHTML = 
+                `<div class="success">
+                    <h4>🔑 权限状态详细分析</h4>
+                    
+                    <h5>基础状态:</h5>
+                    <p>Token存在: ${authState.hasToken}</p>
+                    <p>用户信息存在: ${authState.hasUser}</p>
+                    <p>认证状态: ${authState.isAuthenticated}</p>
+                    
+                    <h5>角色信息:</h5>
+                    <p>用户角色: ${authState.userRole}</p>
+                    <p>是否管理员: ${authState.isAdmin}</p>
+                    <p>是否超级管理员: ${authState.isSuperAdmin}</p>
+                    
+                    <h5>权限判断:</h5>
+                    <p><strong>canCreateAdmin: ${authState.canCreateAdmin}</strong></p>
+                    
+                    <h5>判断逻辑:</h5>
+                    <p>canCreateAdmin = isSuperAdmin || isAdmin</p>
+                    <p>canCreateAdmin = ${authState.isSuperAdmin} || ${authState.isAdmin}</p>
+                    <p>canCreateAdmin = ${authState.canCreateAdmin}</p>
+                    
+                    ${authState.canCreateAdmin ? 
+                        '<p style="color: green; font-weight: bold;">✅ 应该显示"新建管理员"按钮</p>' : 
+                        '<p style="color: red; font-weight: bold;">❌ 不应该显示"新建管理员"按钮</p>'
+                    }
+                </div>`;
+        }
+        
+        // 模拟AuthStore计算
+        function simulateAuthStore() {
+            const token = localStorage.getItem('admin_token');
+            const userStr = localStorage.getItem('admin_user');
+            let user = null;
+            
+            try {
+                user = userStr ? JSON.parse(userStr) : null;
+            } catch (e) {
+                user = null;
+            }
+            
+            // 完全模拟前端AuthStore的计算逻辑
+            const computed = {
+                isAuthenticated: () => {
+                    const hasToken = !!token;
+                    const hasUser = !!user;
+                    console.log('🔍 [AuthStore] 认证状态计算:', { hasToken, hasUser, token, user });
+                    return hasToken && hasUser;
+                },
+                isAdmin: () => {
+                    const userRole = user?.role;
+                    return userRole === 'admin' || userRole === 'super_admin';
+                },
+                isSuperAdmin: () => {
+                    const userRole = user?.role;
+                    return userRole === 'super_admin';
+                },
+                userRole: () => user?.role || null
+            };
+            
+            const isAuthenticated = computed.isAuthenticated();
+            const isAdmin = computed.isAdmin();
+            const isSuperAdmin = computed.isSuperAdmin();
+            const userRole = computed.userRole();
+            
+            // AdminActions.vue中的canCreateAdmin逻辑
+            const canCreateAdmin = isSuperAdmin || isAdmin;
+            
+            document.getElementById('permissionResult').innerHTML = 
+                `<div class="info">
+                    <h4>🧮 AuthStore计算模拟</h4>
+                    
+                    <h5>计算过程:</h5>
+                    <p>1. token存在: ${!!token}</p>
+                    <p>2. user存在: ${!!user}</p>
+                    <p>3. isAuthenticated = hasToken && hasUser = ${!!token} && ${!!user} = ${isAuthenticated}</p>
+                    <p>4. userRole = ${userRole}</p>
+                    <p>5. isAdmin = (role === 'admin' || role === 'super_admin') = ${isAdmin}</p>
+                    <p>6. isSuperAdmin = (role === 'super_admin') = ${isSuperAdmin}</p>
+                    <p>7. canCreateAdmin = isSuperAdmin || isAdmin = ${isSuperAdmin} || ${isAdmin} = ${canCreateAdmin}</p>
+                    
+                    <h5>最终结果:</h5>
+                    <p><strong>canCreateAdmin: ${canCreateAdmin}</strong></p>
+                    
+                    ${canCreateAdmin ? 
+                        '<p style="color: green; font-weight: bold;">✅ 前端应该显示"新建管理员"按钮</p>' : 
+                        '<p style="color: red; font-weight: bold;">❌ 前端不应该显示"新建管理员"按钮</p>'
+                    }
+                </div>`;
+        }
+        
+        // 测试管理员页面访问
+        async function testAdminPageAccess() {
+            try {
+                document.getElementById('pageAccessResult').innerHTML = 
+                    '<div class="info">正在测试管理员页面访问...</div>';
+                
+                // 打开管理员页面
+                const adminWindow = window.open('http://localhost:5173/admins', '_blank');
+                
+                document.getElementById('pageAccessResult').innerHTML = 
+                    `<div class="success">
+                        <h4>✅ 管理员页面访问测试</h4>
+                        <p>已在新窗口打开管理员页面</p>
+                        <p>请检查新窗口中是否显示"新建管理员"按钮</p>
+                        <p>如果未显示，可能是前端状态同步问题</p>
+                    </div>`;
+            } catch (error) {
+                document.getElementById('pageAccessResult').innerHTML = 
+                    `<div class="error">页面访问失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 使用本地Token测试API
+        async function testAPIWithLocalToken() {
+            const token = localStorage.getItem('admin_token');
+            
+            if (!token) {
+                document.getElementById('pageAccessResult').innerHTML = 
+                    '<div class="error">❌ 未找到本地Token，请先登录</div>';
+                return;
+            }
+            
+            try {
+                document.getElementById('pageAccessResult').innerHTML = 
+                    '<div class="info">正在使用本地Token测试API...</div>';
+                
+                const response = await fetch('http://localhost:3001/api/admins', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('pageAccessResult').innerHTML = 
+                        `<div class="success">
+                            <h4>✅ API访问成功</h4>
+                            <p>状态码: ${response.status}</p>
+                            <p>管理员数量: ${data.data.admins.length}</p>
+                            <p>Token有效性: ✅ 有效</p>
+                            <p>权限验证: ✅ 通过</p>
+                        </div>`;
+                } else {
+                    document.getElementById('pageAccessResult').innerHTML = 
+                        `<div class="error">API访问失败: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('pageAccessResult').innerHTML = 
+                    `<div class="error">API访问异常: ${error.message}</div>`;
+            }
+        }
+        
+        // 更新状态监控
+        function updateStatusMonitor() {
+            const token = localStorage.getItem('admin_token');
+            const userStr = localStorage.getItem('admin_user');
+            let user = null;
+            
+            try {
+                user = userStr ? JSON.parse(userStr) : null;
+            } catch (e) {
+                user = null;
+            }
+            
+            const authState = simulateAuthStoreState(token, user);
+            
+            const statusGrid = document.getElementById('statusGrid');
+            statusGrid.innerHTML = `
+                <div class="status-item">
+                    <div class="status-label">Token状态</div>
+                    <div class="status-value">${authState.hasToken ? '✅ 存在' : '❌ 不存在'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">用户信息</div>
+                    <div class="status-value">${authState.hasUser ? '✅ 存在' : '❌ 不存在'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">认证状态</div>
+                    <div class="status-value">${authState.isAuthenticated ? '✅ 已认证' : '❌ 未认证'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">用户角色</div>
+                    <div class="status-value">${authState.userRole || 'N/A'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">管理员权限</div>
+                    <div class="status-value">${authState.isAdmin ? '✅ 是' : '❌ 否'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">超级管理员</div>
+                    <div class="status-value">${authState.isSuperAdmin ? '✅ 是' : '❌ 否'}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">创建管理员权限</div>
+                    <div class="status-value" style="font-weight: bold; color: ${authState.canCreateAdmin ? 'green' : 'red'}">
+                        ${authState.canCreateAdmin ? '✅ 有权限' : '❌ 无权限'}
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">按钮显示预期</div>
+                    <div class="status-value" style="font-weight: bold; color: ${authState.canCreateAdmin ? 'green' : 'red'}">
+                        ${authState.canCreateAdmin ? '✅ 应显示' : '❌ 不应显示'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            updateStatusMonitor();
+        };
+    </script>
+</body>
+</html>

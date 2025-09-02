@@ -73,10 +73,31 @@ export class AdminService {
   }
 
   /**
+   * 重置管理员密码
+   */
+  static async resetAdminPassword(id: string, newPassword: string): Promise<void> {
+    await apiClient.patch(`/api/admins/${id}/password`, {
+      password: newPassword
+    });
+  }
+
+  /**
+   * 生成随机密码
+   */
+  static generateRandomPassword(length: number = 12): string {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  }
+
+  /**
    * 获取管理员角色列表
    */
   static async getAdminRoles(): Promise<AdminRoleListResponse> {
-    const response = await apiClient.get<ApiResponse<any>>('/api/admins/roles');
+    const response = await apiClient.get<ApiResponse<any>>('/api/system/admin-roles');
     // 后端返回的是 {success: true, data: roles}，需要包装成前端期望的格式
     return { roles: response.data.data };
   }
@@ -85,7 +106,7 @@ export class AdminService {
    * 获取所有可用权限列表
    */
   static async getAllPermissions(): Promise<{ permissions: AdminPermission[] }> {
-    const response = await apiClient.get<ApiResponse<{ permissions: AdminPermission[] }>>('/api/admins/permissions');
+    const response = await apiClient.get<ApiResponse<{ permissions: AdminPermission[] }>>('/api/system/permissions');
     return response.data.data;
   }
 
@@ -93,21 +114,34 @@ export class AdminService {
    * 为管理员分配角色权限
    */
   static async assignRole(adminId: string, data: AssignRoleRequest): Promise<void> {
-    await apiClient.post(`/api/admins/${adminId}/permissions`, data);
+    await apiClient.post('/api/system/admin-roles', {
+      admin_id: adminId,
+      operation: 'assign',
+      ...data
+    });
   }
 
   /**
    * 为管理员分配权限
    */
   static async assignPermissions(adminId: string, data: AssignPermissionsRequest): Promise<void> {
-    await apiClient.post(`/api/admins/${adminId}/permissions/batch`, data);
+    await apiClient.post('/api/system/admin-roles/batch', {
+      admin_id: adminId,
+      operation: 'assign',
+      ...data
+    });
   }
 
   /**
    * 撤销管理员角色权限
    */
-  static async revokeRole(adminId: string, permissionId: string): Promise<void> {
-    await apiClient.delete(`/api/admins/${adminId}/permissions/${permissionId}`);
+  static async revokeRole(adminId: string, roleId: string): Promise<void> {
+    await apiClient.delete('/api/system/admin-roles', {
+      data: {
+        admin_id: adminId,
+        role_ids: [roleId]
+      }
+    });
   }
 
   /**

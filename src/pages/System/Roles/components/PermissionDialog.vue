@@ -254,9 +254,17 @@ const loadRolePermissions = async () => {
   
   try {
     const rolePermissions = await getRolePermissions(props.role.id)
-    selectedPermissions.value = new Set(rolePermissions)
+    
+    // 确保 rolePermissions 是数组
+    if (Array.isArray(rolePermissions)) {
+      selectedPermissions.value = new Set(rolePermissions)
+    } else {
+      console.warn('权限数据不是数组:', rolePermissions)
+      selectedPermissions.value = new Set()
+    }
   } catch (err) {
     console.error('加载角色权限失败:', err)
+    selectedPermissions.value = new Set()
   }
 }
 
@@ -283,6 +291,20 @@ const toggleSelect = (nodeId: number, selected: boolean) => {
     return null
   }
 
+  // 找到节点的父节点
+  const findParentNode = (nodes: PermissionTreeNode[], targetId: number): PermissionTreeNode | null => {
+    for (const node of nodes) {
+      if (node.children) {
+        if (node.children.some(child => child.id === targetId)) {
+          return node
+        }
+        const found = findParentNode(node.children, targetId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   // 递归选中/取消选中所有子权限
   const toggleChildren = (node: PermissionTreeNode, isSelected: boolean) => {
     if (isSelected) {
@@ -298,31 +320,32 @@ const toggleSelect = (nodeId: number, selected: boolean) => {
     }
   }
 
-  // 检查并更新父权限状态
-  const updateParentStatus = (nodes: PermissionTreeNode[], targetId: number, parentNode?: PermissionTreeNode) => {
-    for (const node of nodes) {
-      if (node.children) {
-        // 检查当前节点的子节点
-        const childFound = node.children.find(child => child.id === targetId)
-        if (childFound) {
-          // 检查所有子节点是否都被选中
-          const allChildrenSelected = node.children.every(child => 
-            selectedPermissions.value.has(child.id)
-          )
-          
-          if (allChildrenSelected && selected) {
-            // 如果所有子节点都被选中，自动选中父节点
-            selectedPermissions.value.add(node.id)
-          } else if (!selected) {
-            // 如果有子节点被取消选中，取消选中父节点
-            selectedPermissions.value.delete(node.id)
-          }
-          return
-        }
-        
-        // 递归检查更深层的节点
-        updateParentStatus(node.children, targetId, node)
-      }
+  // 更新父权限状态
+  const updateParentStatus = (parentNode: PermissionTreeNode) => {
+    if (!parentNode.children) return
+    
+    // 检查所有子节点是否都被选中
+    const allChildrenSelected = parentNode.children.every(child => 
+      selectedPermissions.value.has(child.id)
+    )
+    
+    // 检查是否有任何子节点被选中
+    const anyChildSelected = parentNode.children.some(child => 
+      selectedPermissions.value.has(child.id)
+    )
+    
+    if (allChildrenSelected) {
+      // 如果所有子节点都被选中，选中父节点
+      selectedPermissions.value.add(parentNode.id)
+    } else {
+      // 如果不是所有子节点都被选中，取消选中父节点
+      selectedPermissions.value.delete(parentNode.id)
+    }
+    
+    // 递归更新上级父节点
+    const grandParent = findParentNode(permissions.value, parentNode.id)
+    if (grandParent) {
+      updateParentStatus(grandParent)
     }
   }
 
@@ -344,7 +367,10 @@ const toggleSelect = (nodeId: number, selected: boolean) => {
   }
 
   // 更新父权限状态
-  updateParentStatus(permissions.value, nodeId)
+  const parentNode = findParentNode(permissions.value, nodeId)
+  if (parentNode) {
+    updateParentStatus(parentNode)
+  }
 }
 
 const expandAll = () => {

@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.ts';
 import botsRoutes from './routes/bots/index.js';
 import energyDelegationRoutes from './routes/energy-delegation';
 import energyPoolRoutes from './routes/energy-pool.js';
+import monitoringRoutes from './routes/monitoring.ts';
 import ordersRoutes from './routes/orders.ts';
 import paymentRoutes from './routes/payment.ts';
 import priceConfigsRoutes from './routes/price-configs.ts';
@@ -23,7 +24,6 @@ import testRoutes from './routes/test.ts';
 import tronRoutes from './routes/tron.ts';
 import userLevelsRoutes from './routes/user-levels.ts';
 import usersRoutes from './routes/users.ts';
-import monitoringRoutes from './routes/monitoring.ts';
 
 
 // load env
@@ -51,8 +51,6 @@ app.use('/api/price-configs', priceConfigsRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/system', systemRoutes);
-app.use('/api/admin', systemRoutes);
-app.use('/api/admin-roles', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/energy-delegation', energyDelegationRoutes);

@@ -150,7 +150,26 @@ export class RoleService {
   /**
    * 获取角色权限
    */
-  static async getRolePermissions(roleId: number): Promise<Permission[]> {
+  /**
+   * 获取角色权限ID列表
+   */
+  static async getRolePermissions(roleId: number): Promise<number[]> {
+    const sql = `
+      SELECT rp.menu_id
+      FROM role_permissions rp
+      INNER JOIN menus m ON m.id = rp.menu_id
+      WHERE rp.role_id = $1 AND m.status = 1
+      ORDER BY rp.menu_id ASC
+    `;
+    
+    const result = await query(sql, [roleId]);
+    return result.rows.map(row => row.menu_id);
+  }
+
+  /**
+   * 获取角色权限详细信息
+   */
+  static async getRolePermissionDetails(roleId: number): Promise<Permission[]> {
     const sql = `
       SELECT m.id, m.name, m.permission, m.type, m.parent_id, m.path, m.component, 
              m.icon, m.sort_order, m.status, m.visible, m.created_at, m.updated_at

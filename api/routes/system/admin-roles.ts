@@ -8,6 +8,7 @@ import { body, param, query as validateQuery } from 'express-validator';
 import { query } from '../../config/database.js';
 import { authenticateToken, logOperation, requirePermission } from '../../middleware/rbac.js';
 import { handleValidationErrors } from '../../middleware/validation.js';
+import { AdminRoleService } from '../../services/admin/AdminRoleService.js';
 import { RoleService } from '../../services/system/role.js';
 
 const router: Router = Router();
@@ -184,8 +185,69 @@ router.get('/admin/:adminId', [
   try {
     const { adminId } = req.params;
     
-    const roles = await RoleService.getAdminRoles({ admin_id: adminId });
+    // 获取完整的用户角色和权限信息
+    const userInfo = await AdminRoleService.getUserRolesAndPermissions(adminId);
+    
+    if (!userInfo) {
+      return res.status(404).json({
+        success: false,
+        error: '管理员不存在或已禁用'
+      });
+    }
 
+    res.json({
+      success: true,
+      data: {
+        admin_id: userInfo.id,
+        username: userInfo.username,
+        email: userInfo.email,
+        default_role: userInfo.default_role,
+        department_id: userInfo.department_id,
+        position_id: userInfo.position_id,
+        roles: userInfo.roles,
+        permissions: userInfo.permissions,
+        role_count: userInfo.roles.length,
+        permission_count: userInfo.permissions.length,
+        direct_permissions: [] // 暂时为空，可以后续扩展
+      }
+    });
+  } catch (error) {
+    console.error('获取管理员权限信息失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取管理员权限信息失败'
+    });
+  }
+});
+
+/**
+ * 获取指定管理员的角色列表
+ * GET /api/system/admin-roles/admin/:adminId/roles
+ */
+router.get('/admin/:adminId/roles', [
+  requirePermission('system:user:view'),
+  param('adminId').isUUID().withMessage('管理员ID必须是有效的UUID'),
+  handleValidationErrors
+], async (req: Request, res: Response) => {
+  try {
+    const { adminId } = req.params;
+    
+    // 验证管理员是否存在
+    const adminResult = await query(
+      'SELECT id, username FROM admins WHERE id = $1',
+      [adminId]
+    );
+    
+    if (adminResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '管理员不存在'
+      });
+    }
+    
+    // 获取管理员的角色列表
+    const roles = await AdminRoleService.getAdminRoles(adminId);
+    
     res.json({
       success: true,
       data: roles

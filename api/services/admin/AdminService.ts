@@ -32,11 +32,15 @@ export interface AdminCreateData {
   username: string;
   email: string;
   password: string;
+  name?: string; // 真实姓名
+  phone?: string; // 手机号
   role?: string;
   role_id?: string;
   status?: string;
   department_id?: number;
+  departmentId?: number; // 兼容前端表单字段
   position_id?: number;
+  roleIds?: number[]; // 兼容前端表单字段
 }
 
 export interface AdminUpdateData {

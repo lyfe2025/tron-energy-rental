@@ -7,7 +7,7 @@
           <UserCheck class="w-6 h-6 text-purple-600" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">管理员角色管理</h1>
+          <h1 class="text-2xl font-bold text-gray-900">管理员管理</h1>
           <p class="text-sm text-gray-500">管理管理员的角色分配和权限配置</p>
         </div>
       </div>
@@ -33,14 +33,14 @@
             v-model="filterDepartment"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">全部部门</option>
-            <option
-              v-for="dept in departmentOptions"
-              :key="dept.value"
-              :value="dept.value"
-            >
-              {{ dept.label }}
-            </option>
+            <option value="">全部岗位</option>
+              <option
+                v-for="pos in positionOptions"
+                :key="pos.value"
+                :value="pos.value"
+              >
+                {{ pos.label }}
+              </option>
           </select>
           
           <select
@@ -74,6 +74,15 @@
           >
             <RefreshCw class="w-4 h-4" />
             刷新
+          </button>
+          
+          <button
+            v-if="canCreateAdmin"
+            @click="handleCreateAdmin"
+            class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <UserPlus class="w-4 h-4" />
+            新增管理员
           </button>
           
           <button
@@ -208,18 +217,51 @@
                 {{ adminRole.last_login_at ? formatDateTime(adminRole.last_login_at) : '从未登录' }}
               </td>
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                  <!-- 编辑按钮 -->
+                  <button
+                    @click="handleEditAdmin(adminRole)"
+                    class="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    title="编辑管理员"
+                  >
+                    <Edit class="w-4 h-4" />
+                  </button>
+                  
+                  <!-- 分配角色按钮 -->
                   <button
                     @click="handleAssignRoles(adminRole)"
-                    class="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    class="p-2 text-purple-600 hover:bg-purple-50 rounded"
+                    title="分配角色"
                   >
-                    分配角色
+                    <UserPlus class="w-4 h-4" />
                   </button>
+                  
+                  <!-- 查看权限按钮 -->
                   <button
                     @click="handleViewPermissions(adminRole)"
-                    class="text-green-600 hover:text-green-700 text-sm font-medium"
+                    class="p-2 text-green-600 hover:bg-green-50 rounded"
+                    title="查看权限"
                   >
-                    查看权限
+                    <Shield class="w-4 h-4" />
+                  </button>
+                  
+                  <!-- 重置密码按钮 -->
+                  <button
+                    @click="handleResetPassword(adminRole)"
+                    class="p-2 text-orange-600 hover:bg-orange-50 rounded"
+                    title="重置密码"
+                  >
+                    <Key class="w-4 h-4" />
+                  </button>
+                  
+                  <!-- 删除按钮 -->
+                  <button
+                    @click="handleDeleteAdmin(adminRole)"
+                    class="p-2 text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="删除管理员"
+                    :disabled="adminRole.admin_id === currentUserId"
+                  >
+                    <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -258,8 +300,7 @@
     <RoleAssignDialog
       v-if="assignDialogVisible"
       :visible="assignDialogVisible"
-      :user="currentAdmin"
-      :users="selectedAdminList"
+      :target-admins="selectedAdminList"
       :loading="assignLoading"
       @close="handleCloseAssignDialog"
       @submit="handleSubmitAssign"
@@ -272,19 +313,89 @@
       :admin="currentAdmin"
       @close="handleClosePermissionDialog"
     />
+    
+    <!-- 新增管理员对话框 -->
+    <CreateAdminDialog
+      v-model:visible="createAdminDialogVisible"
+      :positions="positionOptions"
+      :roles="roles"
+      @success="handleCreateSuccess"
+    />
+    
+    <!-- 编辑管理员对话框 -->
+    <EditAdminDialog
+      v-model:visible="showEditDialog"
+      :admin="editingAdmin"
+      :loading="loading"
+      @submit="handleEditSubmit"
+      @close="handleEditClose"
+    />
+
+    <!-- 重置密码确认对话框 -->
+    <ConfirmDialog
+      :visible="resetPasswordDialog.visible"
+      type="warning"
+      title="重置密码确认"
+      :message="'确定要重置管理员 ' + (resetPasswordDialog.admin?.username || '') + ' 的密码吗？系统将生成新的随机密码。'"
+      confirm-text="确定重置"
+      cancel-text="取消"
+      :loading="resetPasswordDialog.loading"
+      loading-text="重置中..."
+      @confirm="confirmResetPassword"
+      @cancel="cancelResetPassword"
+    />
+
+    <!-- 密码显示对话框 -->
+    <ConfirmDialog
+      :visible="showPasswordDialog.visible"
+      type="success"
+      title="密码重置成功"
+      :message="'管理员 ' + showPasswordDialog.username + ' 的新密码是：\n\n' + showPasswordDialog.password + '\n\n请妥善保管并及时通知该管理员修改密码。'"
+      confirm-text="我已记录"
+      :cancel-text="''"
+      @confirm="closePasswordDialog"
+      @cancel="closePasswordDialog"
+    />
+
+    <!-- 删除管理员确认对话框 -->
+    <ConfirmDialog
+      :visible="deleteAdminDialog.visible"
+      type="danger"
+      title="删除管理员确认"
+      :message="'确定要删除管理员 ' + (deleteAdminDialog.admin?.username || '') + ' 吗？'"
+      details="删除后该管理员将无法登录系统，此操作不可恢复！"
+      warning="请谨慎操作，删除后无法恢复"
+      confirm-text="确定删除"
+      cancel-text="取消"
+      :loading="deleteAdminDialog.loading"
+      loading-text="删除中..."
+      @confirm="confirmDeleteAdmin"
+      @cancel="cancelDeleteAdmin"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Search, RefreshCw, UserCheck, UserPlus, User } from 'lucide-vue-next'
-import { ElMessage } from 'element-plus'
-import { useAdminRoles } from './composables/useAdminRoles'
-import { useDepartments } from '../Departments/composables/useDepartments'
+import { useAuthStore } from '@/stores/auth'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Edit, Key, RefreshCw, Search, Shield, Trash2, User, UserCheck, UserPlus } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { usePositions } from '../Positions/composables/usePositions'
 import { useRoles } from '../Roles/composables/useRoles'
-import RoleAssignDialog from './components/RoleAssignDialog.vue'
+import AdminService from '../../../services/adminService'
+import CreateAdminDialog from './components/CreateAdminDialog.vue'
+import EditAdminDialog from './components/EditAdminDialog.vue'
 import PermissionViewDialog from './components/PermissionViewDialog.vue'
-import type { AdminRoleInfo, AdminRoleAssignRequest } from './types'
+import RoleAssignDialog from './components/RoleAssignDialog.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { useAdminRoles } from './composables/useAdminRoles'
+import type { AdminRoleAssignRequest, AdminRoleInfo } from './types'
+
+// 权限控制
+const authStore = useAuthStore()
+const canCreateAdmin = computed(() => authStore.isAdmin || authStore.isSuperAdmin)
+const canAssignRoles = computed(() => authStore.isAdmin || authStore.isSuperAdmin)
+const currentUserId = computed(() => authStore.user?.id)
 
 // 使用组合式函数
 const {
@@ -293,11 +404,13 @@ const {
   error,
   pagination,
   getAdminRoles,
+  getAdminRolesByAdminId,
   assignAdminRoles,
-  removeAdminRoles
+  removeAdminRoles,
+  batchOperateAdminRoles
 } = useAdminRoles()
 
-const { getDepartmentOptions } = useDepartments()
+const { getPositionOptions } = usePositions()
 const { getRoleOptions } = useRoles()
 
 // 状态
@@ -307,15 +420,43 @@ const filterRole = ref('')
 const selectedAdmins = ref<string[]>([])
 const currentAdmin = ref<AdminRoleInfo | null>(null)
 const selectedAdminList = ref<AdminRoleInfo[]>([])
+const editingAdmin = ref<AdminRoleInfo | null>(null)
 const assignDialogVisible = ref(false)
 const assignLoading = ref(false)
 const permissionDialogVisible = ref(false)
-const departmentOptions = ref<Array<{ value: number; label: string }>>([])
+const createAdminDialogVisible = ref(false)
+const showEditDialog = ref(false)
+const positionOptions = ref<Array<{ value: number; label: string }>>([])
 const roleOptions = ref<Array<{ value: number; label: string }>>([])
+const editDialogVisible = ref(false)
+const resetPasswordDialogVisible = ref(false)
+
+
 
 // 计算属性
 const isAllSelected = computed(() => {
   return adminRoles.value.length > 0 && selectedAdmins.value.length === adminRoles.value.length
+})
+
+const positions = computed(() => {
+  return positionOptions.value
+})
+
+const roles = computed(() => {
+  return roleOptions.value.map(role => ({
+    id: role.value,
+    name: role.label,
+    code: `ROLE_${role.value}`,
+    description: '',
+    status: 1,
+    type: 'custom',
+    sort_order: 0,
+    is_system: false,
+    permission_count: 0,
+    user_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }))
 })
 
 // 方法
@@ -372,6 +513,17 @@ const handleAssignRoles = (admin: AdminRoleInfo) => {
   assignDialogVisible.value = true
 }
 
+// 处理新增管理员
+const handleCreateAdmin = () => {
+  createAdminDialogVisible.value = true
+}
+
+// 处理创建成功
+const handleCreateSuccess = () => {
+  // 刷新管理员列表
+  handleRefresh()
+}
+
 const handleBatchAssign = () => {
   if (selectedAdmins.value.length === 0) return
   
@@ -393,13 +545,60 @@ const handleCloseAssignDialog = () => {
   selectedAdminList.value = []
 }
 
-const handleSubmitAssign = async (data: AdminRoleAssignRequest) => {
+const handleSubmitAssign = async (data: {
+  admin_ids: string[]
+  role_id: number
+  operation_type: 'assign' | 'remove' | 'replace'
+  reason?: string
+}) => {
   try {
     assignLoading.value = true
     
-    const success = await assignAdminRoles(data)
+    let result
     
-    if (success) {
+    // 处理replace操作：先移除所有角色，再分配新角色
+    if (data.operation_type === 'replace') {
+      // 先获取每个管理员的现有角色并移除
+      for (const adminId of data.admin_ids) {
+        try {
+          // 获取管理员现有角色
+          const existingRoles = await getAdminRolesByAdminId(adminId)
+          if (existingRoles && existingRoles.length > 0) {
+            const existingRoleIds = existingRoles.map(r => r.id)
+            // 移除现有角色
+            await batchOperateAdminRoles({
+              admin_ids: [adminId],
+              role_ids: existingRoleIds,
+              operation: 'remove'
+            })
+          }
+        } catch (error) {
+          console.warn(`移除管理员 ${adminId} 现有角色失败:`, error)
+        }
+      }
+      
+      // 然后分配新角色
+      const requestData = {
+        admin_ids: data.admin_ids,
+        role_ids: [data.role_id],
+        operation: 'assign' as const,
+        reason: data.reason
+      }
+      
+      result = await batchOperateAdminRoles(requestData)
+    } else {
+      // 普通的assign或remove操作
+      const requestData = {
+        admin_ids: data.admin_ids, // 保持UUID字符串格式
+        role_ids: [data.role_id], // 转换为数组格式
+        operation: data.operation_type, // 直接使用操作类型
+        reason: data.reason
+      }
+      
+      result = await batchOperateAdminRoles(requestData)
+    }
+    
+    if (result && result.success) {
       assignDialogVisible.value = false
       currentAdmin.value = null
       selectedAdminList.value = []
@@ -410,9 +609,13 @@ const handleSubmitAssign = async (data: AdminRoleAssignRequest) => {
         role_id: filterRole.value ? Number(filterRole.value) : undefined,
         page: pagination.page
       })
+      ElMessage.success('角色分配成功')
+    } else {
+      ElMessage.error('角色分配失败')
     }
   } catch (err) {
     console.error('分配角色失败:', err)
+    ElMessage.error('分配角色失败')
   } finally {
     assignLoading.value = false
   }
@@ -423,16 +626,174 @@ const handleClosePermissionDialog = () => {
   currentAdmin.value = null
 }
 
+// 处理编辑管理员
+const handleEditAdmin = (admin: AdminRoleInfo) => {
+  editingAdmin.value = admin
+  showEditDialog.value = true
+}
+
+const handleEditSubmit = async (data: any) => {
+  if (!editingAdmin.value) return
+  
+  try {
+    loading.value = true
+    
+    // 转换数据格式以匹配后端API要求
+    const updateData = {
+      username: data.username,
+      email: data.email,
+      role_id: data.role_id && data.role_id !== '' ? String(data.role_id) : undefined, // 转换为字符串UUID
+      department_id: data.department_id && data.department_id !== '' ? Number(data.department_id) : undefined, // 确保为数字
+      position_id: data.position_id && data.position_id !== '' ? Number(data.position_id) : undefined, // 确保为数字
+      status: data.status
+    }
+    
+    // 移除undefined值
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key as keyof typeof updateData] === undefined) {
+        delete updateData[key as keyof typeof updateData]
+      }
+    })
+    
+    console.log('提交的更新数据:', updateData) // 调试日志
+    
+    await AdminService.updateAdmin(editingAdmin.value.admin_id, updateData)
+    showEditDialog.value = false
+    editingAdmin.value = null
+    await handleRefresh()
+    ElMessage.success('管理员信息更新成功')
+  } catch (err) {
+    console.error('更新管理员失败:', err)
+    ElMessage.error(`更新管理员失败: ${err instanceof Error ? err.message : '未知错误'}`)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleEditClose = () => {
+  showEditDialog.value = false
+  editingAdmin.value = null
+}
+
+// 处理重置密码
+const resetPasswordDialog = ref({
+  visible: false,
+  admin: null as AdminRoleInfo | null,
+  loading: false
+})
+
+const showPasswordDialog = ref({
+  visible: false,
+  password: '',
+  username: ''
+})
+
+const handleResetPassword = (admin: AdminRoleInfo) => {
+  resetPasswordDialog.value = {
+    visible: true,
+    admin,
+    loading: false
+  }
+}
+
+const confirmResetPassword = async () => {
+  if (!resetPasswordDialog.value.admin) return
+  
+  try {
+    resetPasswordDialog.value.loading = true
+    
+    // 生成新密码
+    const newPassword = AdminService.generateRandomPassword(12)
+    
+    // 调用重置密码API
+    await AdminService.resetAdminPassword(resetPasswordDialog.value.admin.admin_id, newPassword)
+    
+    // 关闭确认对话框
+    resetPasswordDialog.value.visible = false
+    
+    // 显示新密码
+    showPasswordDialog.value = {
+      visible: true,
+      password: newPassword,
+      username: resetPasswordDialog.value.admin.username
+    }
+    
+    ElMessage.success('密码重置成功')
+  } catch (error) {
+    console.error('重置密码失败:', error)
+    ElMessage.error('重置密码失败')
+  } finally {
+    resetPasswordDialog.value.loading = false
+  }
+}
+
+const cancelResetPassword = () => {
+  resetPasswordDialog.value.visible = false
+  resetPasswordDialog.value.admin = null
+}
+
+const closePasswordDialog = () => {
+  showPasswordDialog.value.visible = false
+  showPasswordDialog.value.password = ''
+  showPasswordDialog.value.username = ''
+}
+
+// 处理删除管理员
+const deleteAdminDialog = ref({
+  visible: false,
+  admin: null as AdminRoleInfo | null,
+  loading: false
+})
+
+const handleDeleteAdmin = (admin: AdminRoleInfo) => {
+  // 防止删除自己
+  if (admin.admin_id === currentUserId.value) {
+    ElMessage.warning('不能删除自己的账号')
+    return
+  }
+  
+  deleteAdminDialog.value = {
+    visible: true,
+    admin,
+    loading: false
+  }
+}
+
+const confirmDeleteAdmin = async () => {
+  if (!deleteAdminDialog.value.admin) return
+  
+  try {
+    deleteAdminDialog.value.loading = true
+    
+    // 调用删除管理员API
+    await AdminService.deleteAdmin(deleteAdminDialog.value.admin.admin_id)
+    
+    deleteAdminDialog.value.visible = false
+    ElMessage.success('管理员删除成功')
+    await handleRefresh()
+  } catch (error) {
+    console.error('删除管理员失败:', error)
+    ElMessage.error('删除管理员失败')
+  } finally {
+    deleteAdminDialog.value.loading = false
+  }
+}
+
+const cancelDeleteAdmin = () => {
+  deleteAdminDialog.value.visible = false
+  deleteAdminDialog.value.admin = null
+}
+
 const loadOptions = async () => {
   try {
-    const [deptOptions, roleOptionsData] = await Promise.all([
-      getDepartmentOptions(),
+    const [posOptions, roleOptionsData] = await Promise.all([
+      getPositionOptions(),
       getRoleOptions()
     ])
     
-    departmentOptions.value = deptOptions.map(dept => ({
-      value: dept.id,
-      label: dept.name
+    positionOptions.value = posOptions.map(pos => ({
+      value: pos.id,
+      label: pos.name
     }))
     
     roleOptions.value = roleOptionsData.map(role => ({

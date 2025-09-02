@@ -74,11 +74,15 @@ export interface CreateAdminRequest {
   username: string;
   email: string;
   password: string;
+  name?: string; // 真实姓名
+  phone?: string; // 手机号
   role?: AdminRole;
   role_id?: string; // 支持动态角色分配
   status?: AdminStatus;
   department_id?: number;
+  departmentId?: number; // 兼容前端表单字段
   position_id?: number;
+  roleIds?: number[]; // 兼容前端表单字段
   notes?: string; // 添加缺失的notes属性
 }
 

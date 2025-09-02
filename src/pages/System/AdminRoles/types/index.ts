@@ -49,11 +49,17 @@ export interface AdminRoleQuery {
 
 // 管理员角色分配请求
 export interface AdminRoleAssignRequest {
-  admin_ids: string[]
+  admin_ids: number[]
   role_ids: number[]
   operation: 'assign' | 'remove' | 'replace'
   reason?: string
 }
+
+// Admin类型别名
+export type Admin = AdminRoleInfo
+
+// Role类型别名
+export type Role = RoleOption
 
 // 管理员角色分配响应
 export interface AdminRoleAssignResponse {
@@ -78,6 +84,8 @@ export interface AdminPermissionInfo {
   roles: Array<{
     id: number
     name: string
+    code?: string
+    description?: string
     permissions: Permission[]
   }>
 }
@@ -251,10 +259,14 @@ export interface AdminRoleImportResponse {
 
 // 角色选项
 export interface RoleOption {
-  value: number
-  label: string
+  id: number
+  name: string
+  code: string
+  disabled?: boolean
+  value?: number
+  label?: string
   description?: string
-  status: string
+  status?: string
 }
 
 // 部门选项

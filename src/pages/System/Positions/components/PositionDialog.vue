@@ -71,11 +71,17 @@
                 type="text"
                 required
                 placeholder="请输入岗位编码"
+                :disabled="isEdit"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                :class="{ 'border-red-500': errors.code }"
+                :class="{ 
+                  'border-red-500': errors.code,
+                  'bg-gray-100 text-gray-500 cursor-not-allowed': isEdit
+                }"
               />
               <p v-if="errors.code" class="mt-1 text-sm text-red-600">{{ errors.code }}</p>
-              <p class="mt-1 text-xs text-gray-500">岗位编码用于系统内部标识，建议使用英文大写字母和下划线</p>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ isEdit ? '岗位编码不可修改' : '岗位编码用于系统内部标识，建议使用英文大写字母和下划线' }}
+              </p>
             </div>
 
             <!-- 岗位描述 -->
@@ -205,6 +211,19 @@ const formData = ref({
 // 表单错误
 const errors = ref<Record<string, string>>({})
 
+// 重置表单函数（需要在watch之前定义）
+const resetForm = () => {
+  formData.value = {
+    name: '',
+    code: '',
+    description: '',
+    department_id: 0,
+    sort_order: 0,
+    status: 1
+  }
+  errors.value = {}
+}
+
 // 计算属性
 const isEdit = computed(() => !!props.position)
 
@@ -249,18 +268,7 @@ watch(
   }
 )
 
-// 重置表单
-const resetForm = () => {
-  formData.value = {
-    name: '',
-    code: '',
-    description: '',
-    department_id: 0,
-    sort_order: 0,
-    status: 1
-  }
-  errors.value = {}
-}
+
 
 // 验证表单
 const validateForm = (): boolean => {

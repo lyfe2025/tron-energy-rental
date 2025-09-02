@@ -1,0 +1,336 @@
+<template>
+  <div
+    v-if="visible"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    @click.self="handleClose"
+  >
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+      <!-- 对话框头部 -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <Edit class="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">编辑管理员</h3>
+            <p class="text-sm text-gray-500">
+              修改管理员 {{ admin?.username }} 的基本信息
+            </p>
+          </div>
+        </div>
+        <button
+          @click="handleClose"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X class="w-5 h-5" />
+        </button>
+      </div>
+
+      <!-- 对话框内容 -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <form @submit.prevent="handleSubmit" class="space-y-6">
+          <!-- 基本信息 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 用户名 -->
+            <div>
+              <label class="block text-sm font-medium text-gray-900 mb-2">
+                用户名 <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.username"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="请输入用户名"
+              />
+              <div v-if="errors.username" class="mt-1 text-sm text-red-600">
+                {{ errors.username }}
+              </div>
+            </div>
+
+            <!-- 邮箱 -->
+            <div>
+              <label class="block text-sm font-medium text-gray-900 mb-2">
+                邮箱 <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.email"
+                type="email"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="请输入邮箱地址"
+              />
+              <div v-if="errors.email" class="mt-1 text-sm text-red-600">
+                {{ errors.email }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 角色选择 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-900 mb-2">
+              角色 <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="form.role_id"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">请选择角色</option>
+              <option
+                v-for="role in roleOptions"
+                :key="role.id"
+                :value="role.id"
+                :disabled="role.disabled"
+              >
+                {{ role.name }}
+              </option>
+            </select>
+            <div v-if="errors.role_id" class="mt-1 text-sm text-red-600">
+              {{ errors.role_id }}
+            </div>
+          </div>
+
+          <!-- 部门和岗位 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 部门 -->
+            <div>
+              <label class="block text-sm font-medium text-gray-900 mb-2">
+                部门
+                <span class="text-xs text-gray-500 font-normal ml-1">(根据岗位自动关联)</span>
+              </label>
+              <select
+                v-model="form.department_id"
+                disabled
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+              >
+                <option value="">请选择部门</option>
+                <option
+                  v-for="department in departmentOptions"
+                  :key="department.id"
+                  :value="department.id"
+                >
+                  {{ department.name }}
+                </option>
+              </select>
+              <div class="mt-1 text-xs text-gray-500">
+                选择岗位后将自动关联对应部门
+              </div>
+              <div v-if="errors.department_id" class="mt-1 text-sm text-red-600">
+                {{ errors.department_id }}
+              </div>
+            </div>
+
+            <!-- 岗位 -->
+            <div>
+              <label class="block text-sm font-medium text-gray-900 mb-2">
+                岗位
+              </label>
+              <select
+                v-model="form.position_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">请选择岗位</option>
+                <option
+                  v-for="position in positionOptions"
+                  :key="position.id"
+                  :value="position.id"
+                >
+                  {{ position.name }}
+                </option>
+              </select>
+              <div v-if="errors.position_id" class="mt-1 text-sm text-red-600">
+                {{ errors.position_id }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 状态 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-900 mb-2">
+              状态
+            </label>
+            <div class="flex gap-4">
+              <label class="flex items-center">
+                <input
+                  v-model="form.status"
+                  type="radio"
+                  value="active"
+                  class="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-gray-700">正常</span>
+              </label>
+              <label class="flex items-center">
+                <input
+                  v-model="form.status"
+                  type="radio"
+                  value="inactive"
+                  class="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-gray-700">禁用</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- 对话框底部 -->
+      <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+        <button
+          @click="handleClose"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          取消
+        </button>
+        <button
+          @click="handleSubmit"
+          :disabled="loading"
+          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <div v-if="loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          {{ loading ? '保存中...' : '保存' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Edit, X } from 'lucide-vue-next'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { AdminRoleInfo } from '../types'
+import { useAdminRoles } from '../composables/useAdminRoles'
+import { usePositions } from '../../Positions/composables/usePositions'
+import { useDepartments } from '../../Departments/composables/useDepartments'
+
+interface Props {
+  visible: boolean
+  admin?: AdminRoleInfo | null
+  loading?: boolean
+}
+
+interface Emits {
+  close: []
+  submit: [data: any]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: false
+})
+
+const emit = defineEmits<Emits>()
+
+// 使用组合式函数
+const { getRoleOptions } = useAdminRoles()
+const { getPositionOptions } = usePositions()
+const { getDepartmentOptions } = useDepartments()
+
+// 状态
+const form = ref({
+  username: '',
+  email: '',
+  role_id: '',
+  department_id: '',
+  position_id: '',
+  status: 'active'
+})
+
+const errors = ref<Record<string, string>>({})
+const roleOptions = ref<any[]>([])
+const departmentOptions = ref<any[]>([])
+const positionOptions = ref<any[]>([])
+
+// 方法
+const validateForm = (): boolean => {
+  errors.value = {}
+  
+  if (!form.value.username.trim()) {
+    errors.value.username = '请输入用户名'
+    return false
+  }
+  
+  if (!form.value.email.trim()) {
+    errors.value.email = '请输入邮箱'
+    return false
+  }
+  
+  if (!form.value.role_id || form.value.role_id === '') {
+    errors.value.role_id = '请选择角色'
+    return false
+  }
+  
+  return true
+}
+
+const handleClose = () => {
+  emit('close')
+}
+
+const handleSubmit = () => {
+  if (!validateForm()) {
+    return
+  }
+  
+  const data = {
+    ...form.value,
+    department_id: form.value.department_id || null,
+    position_id: form.value.position_id || null
+  }
+  
+  emit('submit', data)
+}
+
+const loadOptions = async () => {
+  try {
+    // 加载角色选项
+    const roles = await getRoleOptions()
+    roleOptions.value = roles
+    
+    // 加载部门选项
+    const departments = await getDepartmentOptions()
+    departmentOptions.value = departments
+    
+    // 加载岗位选项
+    const positions = await getPositionOptions()
+    positionOptions.value = positions
+  } catch (err) {
+    console.error('加载选项失败:', err)
+  }
+}
+
+// 监听岗位变化，自动关联部门
+watch(() => form.value.position_id, (newPositionId) => {
+  if (newPositionId) {
+    const selectedPosition = positionOptions.value.find(p => p.id.toString() === newPositionId)
+    if (selectedPosition && selectedPosition.department_id) {
+      form.value.department_id = selectedPosition.department_id.toString()
+    }
+  }
+})
+
+// 监听器
+watch(() => props.visible, (visible) => {
+  if (visible && props.admin) {
+    // 填充表单数据
+    form.value = {
+      username: props.admin.username || '',
+      email: props.admin.email || '',
+      role_id: props.admin.roles?.[0]?.id?.toString() || '',
+      department_id: props.admin.department_id?.toString() || '',
+      position_id: props.admin.position_id?.toString() || '',
+      status: props.admin.status || 'active'
+    }
+    errors.value = {}
+    
+    // 加载选项
+    loadOptions()
+  }
+})
+
+// 生命周期
+onMounted(() => {
+  if (props.visible) {
+    loadOptions()
+  }
+})
+</script>

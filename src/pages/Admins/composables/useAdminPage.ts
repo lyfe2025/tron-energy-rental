@@ -49,6 +49,12 @@ export function useAdminPage() {
     admin: null as Admin | null
   })
 
+  // 角色分配弹窗状态
+  const roleAssignModal = ref({
+    visible: false,
+    admin: null as Admin | null
+  })
+
   // 确认对话框状态
   const confirmDialog = ref({
     visible: false,
@@ -340,6 +346,60 @@ export function useAdminPage() {
     }
   }
 
+  // 显示角色分配弹窗
+  const showRoleAssignModal = (admin: Admin) => {
+    roleAssignModal.value = {
+      visible: true,
+      admin
+    }
+  }
+
+  // 关闭角色分配弹窗
+  const closeRoleAssignModal = () => {
+    roleAssignModal.value = {
+      visible: false,
+      admin: null
+    }
+  }
+
+  // 处理角色分配
+  const handleRoleAssign = async (adminId: string, roleId: number, reason?: string) => {
+    try {
+      await adminStore.assignRole(adminId, roleId)
+      
+      if (adminStore.error.value) {
+        handleApiError(new Error(adminStore.error.value), '角色分配')
+        return
+      }
+      
+      toast.success('角色分配成功')
+      closeRoleAssignModal()
+      
+      // 刷新数据
+      await Promise.all([
+        adminStore.fetchAdmins(),
+        adminStore.fetchStats()
+      ])
+    } catch (error) {
+      handleApiError(error, '角色分配')
+    }
+  }
+
+  // 处理角色分配保存
+  const handleRoleAssignSaved = async () => {
+    try {
+      toast.success('角色分配成功')
+      closeRoleAssignModal()
+      await adminStore.fetchAdmins()
+      
+      if (adminStore.error.value) {
+        handleApiError(new Error(adminStore.error.value), '刷新管理员数据')
+      }
+    } catch (error) {
+      handleApiError(error, '刷新管理员数据')
+    }
+  }
+
   // 处理删除
   const handleDelete = (admin: Admin) => {
     confirmDialog.value = {
@@ -460,6 +520,7 @@ export function useAdminPage() {
     formModal,
     detailModal,
     permissionModal,
+    roleAssignModal,
     confirmDialog,
     
     // 方法
@@ -482,6 +543,10 @@ export function useAdminPage() {
     showPermissionModalFromDetail,
     closePermissionModal,
     handlePermissionSaved,
+    showRoleAssignModal,
+    closeRoleAssignModal,
+    handleRoleAssign,
+    handleRoleAssignSaved,
     handleDelete,
     handleBulkAction,
     closeConfirmDialog

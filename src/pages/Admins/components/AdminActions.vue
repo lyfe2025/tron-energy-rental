@@ -1,8 +1,13 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-    <!-- 调试信息 -->
-    <div class="bg-yellow-100 p-2 text-sm mb-4">
-      🔍 AdminActions 组件已渲染 - 选中数量: {{ selectedCount }}
+  <div class="admin-actions" style="border: 2px solid red; padding: 10px; margin: 10px;">
+    <!-- 强制显示的调试信息 -->
+    <div class="text-lg text-red-600 font-bold mb-4 bg-yellow-100 p-4 rounded">
+      🔥 AdminActions 组件强制渲染测试 🔥
+      <br>选中数量: {{ selectedCount }}
+      <br>权限状态: isSuperAdmin={{ authStore.isSuperAdmin }}, isAdmin={{ authStore.isAdmin }}
+      <br>canCreate={{ canCreateAdmin }}
+      <br>用户角色: {{ authStore.user?.role }}
+      <br>用户信息: {{ JSON.stringify(authStore.user) }}
     </div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <!-- 左侧：选择信息和批量操作 -->
@@ -89,13 +94,31 @@
           测试新建管理员
         </button>
         
+        <!-- 新建管理员按钮 -->
         <button
           v-if="canCreateAdmin"
-          @click="$emit('create')"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          @click="handleCreate"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus class="w-4 h-4 inline mr-2" />
+          新建管理员
+        </button>
+        
+        <!-- 权限调试按钮 -->
+        <button
+          @click="debugPermissions"
+          class="ml-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+        >
+          调试权限
+        </button>
+        
+        <!-- 强制显示的测试按钮 -->
+        <button
+          @click="handleCreateClick"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ml-2"
         >
           <Plus class="h-4 w-4 mr-2" />
-          新建管理员
+          测试新建按钮
         </button>
       </div>
     </div>
@@ -141,19 +164,17 @@ const emit = defineEmits<Emits>();
 // 权限检查
 const authStore = useAuthStore();
 const canCreateAdmin = computed(() => {
-  const isSuperAdmin = authStore.isSuperAdmin;
-  const isAdmin = authStore.isAdmin;
-  const user = authStore.user;
-  
-  // 调试信息
-  console.log('🔍 AdminActions 权限检查:', {
-    isSuperAdmin,
-    isAdmin,
-    user,
-    canCreate: isSuperAdmin || isAdmin
-  });
-  
-  return isSuperAdmin || isAdmin;
+  const result = authStore.isSuperAdmin || authStore.isAdmin
+  console.log('🔍 [AdminActions] 权限检查详细信息:', {
+    isSuperAdmin: authStore.isSuperAdmin,
+    isAdmin: authStore.isAdmin,
+    userRole: authStore.user?.role,
+    user: authStore.user,
+    authStore: authStore,
+    canCreate: result,
+    timestamp: new Date().toISOString()
+  })
+  return result
 });
 
 // 选中数量
@@ -165,6 +186,33 @@ const testCreate = () => {
   alert('测试按钮被点击了！');
   emit('create');
 };
+
+const handleCreate = () => {
+  console.log('🔍 [AdminActions] 触发创建事件')
+  emit('create')
+}
+
+const debugPermissions = () => {
+  console.log('🔍 [AdminActions] 权限调试详情:', {
+    authStore: authStore,
+    user: authStore.user,
+    role: authStore.user?.role,
+    isSuperAdmin: authStore.isSuperAdmin,
+    isAdmin: authStore.isAdmin,
+    canCreateAdmin: canCreateAdmin.value,
+    localStorage: {
+      token: localStorage.getItem('admin_token'),
+      user: localStorage.getItem('admin_user')
+    }
+  })
+}
+
+// 测试新建按钮点击
+const handleCreateClick = () => {
+  console.log('🔍 [AdminActions] 测试新建按钮被点击');
+  alert('测试新建按钮被点击！');
+  emit('create');
+}
 
 // 确认对话框状态
 const confirmDialog = ref({

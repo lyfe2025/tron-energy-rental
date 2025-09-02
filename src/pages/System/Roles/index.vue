@@ -399,10 +399,32 @@ const handlePermissionDialogClose = () => {
   selectedRole.value = null
 }
 
-const handlePermissionDialogSubmit = async () => {
-  permissionDialogVisible.value = false
-  selectedRole.value = null
-  loadRoles(query.value)
+const handlePermissionDialogSubmit = async (permissionIds: number[]) => {
+  if (!selectedRole.value?.id) {
+    console.error('没有选中的角色')
+    return
+  }
+
+  try {
+    // 调用权限配置API
+    const { configRolePermissions } = useRoles()
+    const success = await configRolePermissions({
+      role_id: selectedRole.value.id,
+      permission_ids: permissionIds
+    })
+
+    if (success) {
+      console.log('权限配置保存成功')
+      // 关闭对话框并刷新数据
+      permissionDialogVisible.value = false
+      selectedRole.value = null
+      loadRoles(query.value)
+    } else {
+      console.error('权限配置保存失败')
+    }
+  } catch (error) {
+    console.error('权限配置保存异常:', error)
+  }
 }
 
 const handleConfirmDialogClose = () => {

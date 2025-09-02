@@ -55,11 +55,17 @@
             v-model="form.code"
             type="text"
             placeholder="请输入部门编码"
+            :disabled="isEditing"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errors.code }"
+            :class="{ 
+              'border-red-500': errors.code,
+              'bg-gray-100 text-gray-500 cursor-not-allowed': isEditing
+            }"
             required
           />
-          <p class="text-gray-500 text-xs mt-1">部门编码用于系统内部标识，必须唯一</p>
+          <p class="text-gray-500 text-xs mt-1">
+            {{ isEditing ? '部门编码不可修改' : '部门编码用于系统内部标识，必须唯一' }}
+          </p>
           <p v-if="errors.code" class="text-red-500 text-xs mt-1">{{ errors.code }}</p>
         </div>
 

@@ -20,13 +20,22 @@
     <!-- 主内容区域 -->
     <div class="px-4 sm:px-6 lg:px-8 py-6">
       <!-- 统计卡片 -->
-      <div v-if="adminStore.stats" class="mb-8">
-        <StatCard
+      <div v-if="adminStore.stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div
           v-for="(card, index) in statCards"
           :key="index"
-          v-bind="card"
-          class="mb-4"
-        />
+          class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">{{ card.label }}</p>
+              <p class="text-2xl font-bold text-gray-900 mt-1">{{ card.value }}</p>
+            </div>
+            <div :class="[card.bgColor, 'p-3 rounded-lg']">
+              <component :is="card.icon" :class="[card.iconColor, 'w-6 h-6']" />
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- 管理员组件 -->
@@ -64,6 +73,7 @@
           @delete="handleDelete"
           @toggle-status="handleToggleStatus"
           @permissions="showPermissionModal"
+          @assign-role="showRoleAssignModal"
         />
       </div>
     </div>
@@ -98,6 +108,15 @@
       @saved="handlePermissionSaved"
     />
     
+    <!-- 角色分配弹窗 -->
+    <AdminRoleAssignDialog
+      v-if="roleAssignModal.visible"
+      :visible="roleAssignModal.visible"
+      :admin="roleAssignModal.admin"
+      @update:visible="closeRoleAssignModal"
+      @assign="handleRoleAssign"
+    />
+    
     <!-- 确认对话框 -->
     <ConfirmDialog
       v-if="confirmDialog.visible"
@@ -117,7 +136,7 @@ import { Shield, UserCheck, Users, UserX } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted } from 'vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import Layout from '../../components/Layout.vue'
-import StatCard from '../../components/StatCard.vue'
+// StatCard 组件已移除，使用内联统计卡片
 import AdminActions from './components/AdminActions.vue'
 import AdminDetailModal from './components/AdminDetailModal.vue'
 import AdminForm from './components/AdminForm.vue'
@@ -125,6 +144,7 @@ import AdminList from './components/AdminList.vue'
 import AdminNetworkStatus from './components/AdminNetworkStatus.vue'
 import AdminPageHeader from './components/AdminPageHeader.vue'
 import AdminPermissionModal from './components/AdminPermissionModal.vue'
+import AdminRoleAssignDialog from './components/AdminRoleAssignDialog.vue'
 import AdminSearch from './components/AdminSearch.vue'
 import { useAdminPage } from './composables/useAdminPage'
 import { useAdminStore } from './composables/useAdminStore'
@@ -145,6 +165,7 @@ const {
   formModal,
   detailModal,
   permissionModal,
+  roleAssignModal,
   confirmDialog,
   setupNetworkListeners,
   initData,
@@ -165,6 +186,10 @@ const {
   showPermissionModalFromDetail,
   closePermissionModal,
   handlePermissionSaved,
+  showRoleAssignModal,
+  closeRoleAssignModal,
+  handleRoleAssign,
+  handleRoleAssignSaved,
   handleDelete,
   handleBulkAction,
   closeConfirmDialog
