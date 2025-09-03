@@ -1,19 +1,15 @@
 <template>
-  <div class="p-6">
-    <!-- 页面标题 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">登录日志</h1>
-      <p class="text-gray-600 mt-1">查看用户登录记录和安全日志</p>
-    </div>
-
+  <div class="p-4">
     <!-- 搜索表单 -->
-    <LoginSearchForm
-      :search-form="searchForm"
-      :loading="loading"
-      @search="handleSearch"
-      @reset="handleReset"
-      @refresh="fetchLogs"
-    />
+    <div class="mb-4">
+      <LoginSearchForm
+        :search-form="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+        @refresh="fetchLogs"
+      />
+    </div>
 
     <!-- 日志表格 -->
     <LoginLogsTable
@@ -76,27 +72,12 @@ onMounted(() => {
 
 <style scoped>
 .login-logs {
-  padding: 24px;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.page-header p {
-  margin: 0;
-  color: #666;
+  padding: 16px;
 }
 
 .search-form {
   background: #fff;
-  padding: 24px;
+  padding: 20px;
   border-radius: 8px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

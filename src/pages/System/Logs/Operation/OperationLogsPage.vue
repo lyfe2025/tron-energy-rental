@@ -1,18 +1,14 @@
 <template>
-  <div class="operation-logs p-6">
-    <!-- 页面头部 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">操作日志</h1>
-      <p class="text-gray-600">查看系统操作记录</p>
-    </div>
-
+  <div class="operation-logs p-4">
     <!-- 搜索表单 -->
-    <LogSearchForm
-      :search-form="searchForm"
-      @search="handleSearch"
-      @reset="handleReset"
-      @refresh="handleRefresh"
-    />
+    <div class="mb-4">
+      <LogSearchForm
+        :search-form="searchForm"
+        @search="handleSearch"
+        @reset="handleReset"
+        @refresh="handleRefresh"
+      />
+    </div>
 
     <!-- 操作日志表格 -->
     <LogsTable
@@ -76,6 +72,6 @@ onMounted(() => {
 
 <style scoped>
 .operation-logs {
-  padding: 24px;
+  padding: 16px;
 }
 </style>
