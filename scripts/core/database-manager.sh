@@ -66,6 +66,104 @@ test_db_connection() {
     fi
 }
 
+# 数据库备份（兼容Navicat）
+backup_database_navicat() {
+    echo -e "\n${GREEN}${GEAR} === Navicat兼容数据库备份 ===${NC}"
+    
+    # 检查 pg_dump 工具
+    if ! check_pg_dump; then
+        return 1
+    fi
+    
+    # 加载数据库配置
+    if ! load_db_config; then
+        return 1
+    fi
+    
+    # 显示数据库信息
+    echo -e "${GREEN}${ARROW} 数据库信息:${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 主机: ${YELLOW}$DB_HOST:$DB_PORT${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 数据库: ${YELLOW}$DB_NAME${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 用户: ${YELLOW}$DB_USER${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 兼容性: ${YELLOW}Navicat/pgAdmin/图形化工具${NC}"
+    
+    # 测试数据库连接
+    if ! test_db_connection; then
+        echo -e "${RED}${CROSS_MARK} 数据库连接失败，无法进行备份${NC}"
+        return 1
+    fi
+    
+    # 生成备份文件名
+    local timestamp=$(date +"%Y%m%d_%H%M%S")
+    local backup_file="$BACKUP_DIR/db_backup_navicat_${DB_NAME}_${timestamp}.sql"
+    
+    echo -e "\n${GREEN}${ARROW} 开始创建Navicat兼容备份...${NC}"
+    echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
+    
+    # 设置密码环境变量
+    export PGPASSWORD="$DB_PASSWORD"
+    
+    # 执行备份（不包含数据库创建命令，兼容Navicat）
+    if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+        --verbose \
+        --no-owner \
+        --no-privileges \
+        --format=plain \
+        --encoding=UTF8 \
+        --file="$backup_file" 2>/dev/null; then
+        
+        # 在文件开头添加Navicat兼容说明
+        local temp_file="${backup_file}.tmp"
+        echo "-- Navicat兼容备份 ($(date))" > "$temp_file"
+        echo "-- 此文件可在Navicat等图形化工具中直接运行" >> "$temp_file"
+        echo "-- 请在目标数据库中执行，不包含数据库创建命令" >> "$temp_file"
+        echo "-- 生成工具: TronResourceDev项目管理脚本" >> "$temp_file"
+        echo "" >> "$temp_file"
+        cat "$backup_file" >> "$temp_file"
+        mv "$temp_file" "$backup_file"
+        
+        # 清除密码环境变量
+        unset PGPASSWORD
+        
+        # 获取备份文件大小
+        local file_size=$(du -h "$backup_file" | cut -f1)
+        
+        echo -e "${GREEN}${CHECK_MARK} Navicat兼容备份成功！${NC}"
+        echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
+        echo -e "${GREEN}${ARROW} 文件大小: ${YELLOW}$file_size${NC}"
+        echo -e "${GREEN}${ARROW} 备份时间: ${YELLOW}$(date)${NC}"
+        
+        # 显示备份内容摘要
+        echo -e "\n${GREEN}${GEAR} === Navicat兼容备份特点 ===${NC}"
+        echo -e "${GREEN}${ARROW} 兼容性特点:${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 不包含 CREATE DATABASE 语句"
+        echo -e "  ${GREEN}${ARROW}${NC} 不包含 DROP DATABASE 语句" 
+        echo -e "  ${GREEN}${ARROW}${NC} 不包含 \\connect 元命令"
+        echo -e "  ${GREEN}${ARROW}${NC} 可在Navicat中直接运行"
+        echo -e "\n${GREEN}${ARROW} 备份内容:${NC}"
+        echo -e "  ${GREEN}${ARROW}${NC} 完整的表结构和数据"
+        echo -e "  ${GREEN}${ARROW}${NC} 视图和函数定义"
+        echo -e "  ${GREEN}${ARROW}${NC} 触发器和序列"
+        echo -e "  ${GREEN}${ARROW}${NC} 索引和约束"
+        echo -e "\n${GREEN}${CHECK_MARK} 此备份文件可在任何PostgreSQL图形化工具中使用${NC}"
+        
+        return 0
+    else
+        # 清除密码环境变量
+        unset PGPASSWORD
+        
+        echo -e "${RED}${CROSS_MARK} Navicat兼容备份失败${NC}"
+        
+        # 删除可能的部分备份文件
+        if [ -f "$backup_file" ]; then
+            rm "$backup_file"
+            echo -e "${GREEN}${ARROW} 已清理失败的备份文件${NC}"
+        fi
+        
+        return 1
+    fi
+}
+
 # 数据库备份
 backup_database() {
     echo -e "\n${GREEN}${GEAR} === 数据库备份 ===${NC}"
@@ -382,11 +480,12 @@ restore_database() {
 manage_database() {
     while true; do
         echo -e "\n${GREEN}${GEAR} === 数据库备份管理 ===${NC}"
-        echo -e "  ${GREEN}${ARROW}${NC} 1) 创建新备份"
-        echo -e "  ${GREEN}${ARROW}${NC} 2) 查看历史备份"
-        echo -e "  ${GREEN}${ARROW}${NC} 3) 验证备份文件"
-        echo -e "  ${GREEN}${ARROW}${NC} 4) 恢复数据库"
-        echo -e "  ${GREEN}${ARROW}${NC} 5) 测试数据库连接"
+        echo -e "  ${GREEN}${ARROW}${NC} 1) 创建新备份（完整）"
+        echo -e "  ${GREEN}${ARROW}${NC} 2) 创建Navicat兼容备份"
+        echo -e "  ${GREEN}${ARROW}${NC} 3) 查看历史备份"
+        echo -e "  ${GREEN}${ARROW}${NC} 4) 验证备份文件"
+        echo -e "  ${GREEN}${ARROW}${NC} 5) 恢复数据库"
+        echo -e "  ${GREEN}${ARROW}${NC} 6) 测试数据库连接"
         echo -e "  ${GREEN}${ARROW}${NC} 0) 返回主菜单"
         echo ""
         read -p "  请选择: " backup_choice
@@ -396,15 +495,18 @@ manage_database() {
                 backup_database || true
                 ;;
             2)
-                list_backups || true
+                backup_database_navicat || true
                 ;;
             3)
-                verify_backup || true
+                list_backups || true
                 ;;
             4)
-                restore_database || true
+                verify_backup || true
                 ;;
             5)
+                restore_database || true
+                ;;
+            6)
                 test_db_connection || true
                 ;;
             0)
