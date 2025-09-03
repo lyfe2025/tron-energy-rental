@@ -24,6 +24,13 @@ dist-ssr
 *.sw?
 .vite
 
+# Environment variables - IMPORTANT: Keep .env.example for reference
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.template
+
 # Backup and temporary files
 *.bak
 *.tmp
@@ -31,3 +38,7 @@ dist-ssr
 *~
 .*.swp
 .*.swo
+
+# Database backups and sensitive data
+/backups/*.env
+/logs/*.log
