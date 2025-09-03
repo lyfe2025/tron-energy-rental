@@ -2,8 +2,8 @@
   <div class="energy-pool-page">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1 class="text-2xl font-bold text-gray-900">能量池管理</h1>
-      <p class="text-gray-600 mt-1">管理能量池账户、监控库存状态和配置自动调度</p>
+      <h1 class="text-2xl font-bold text-gray-900">能量池账户管理</h1>
+      <p class="text-gray-600 mt-1">统一管理能量池账户，实时监控能量状态和成本效益</p>
     </div>
 
     <!-- 今日消耗统计 -->
