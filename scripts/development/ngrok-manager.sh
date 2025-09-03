@@ -154,7 +154,11 @@ start_ngrok() {
     # 检查是否已经运行
     if curl -s $NGROK_API_URL > /dev/null 2>&1; then
         print_warning "ngrok 已经在运行"
+        echo
         show_ngrok_status
+        echo
+        print_info "如果需要重启 ngrok，请使用重启选项"
+        read -p "按回车键继续..."
         return 0
     fi
     
@@ -215,6 +219,73 @@ stop_ngrok() {
     
     echo
     read -p "按回车键继续..."
+}
+
+# 重启 ngrok
+restart_ngrok() {
+    print_title "重启 ngrok"
+    
+    # 检查本地服务是否运行
+    if ! curl -s http://localhost:$DEFAULT_PORT$HEALTH_ENDPOINT > /dev/null 2>&1; then
+        print_error "本地服务未运行，请先启动本地服务"
+        echo
+        print_info "启动命令: npm run restart 或 pnpm run restart"
+        echo
+        read -p "按回车键继续..."
+        return 1
+    fi
+    
+    print_info "正在重启 ngrok..."
+    
+    # 停止现有的 ngrok
+    local ngrok_pids=$(pgrep ngrok)
+    if [ ! -z "$ngrok_pids" ]; then
+        print_info "停止现有的 ngrok 进程..."
+        killall ngrok 2>/dev/null
+        sleep 2
+        
+        # 确认是否停止
+        if pgrep ngrok > /dev/null; then
+            print_warning "强制停止 ngrok 进程..."
+            killall -9 ngrok 2>/dev/null
+        fi
+        print_success "旧的 ngrok 进程已停止"
+    else
+        print_info "没有发现运行中的 ngrok 进程"
+    fi
+    
+    # 等待端口释放
+    sleep 1
+    
+    # 启动新的 ngrok
+    print_info "启动新的 ngrok (端口 $DEFAULT_PORT)..."
+    print_info "自动清除代理环境变量以避免 ERR_NGROK_9009 错误"
+    
+    # 使用 nohup 在后台启动 ngrok，清除代理环境变量
+    nohup env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy ngrok http $DEFAULT_PORT > /dev/null 2>&1 &
+    
+    print_info "等待 ngrok 启动..."
+    local max_attempts=10
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        sleep 2
+        if curl -s $NGROK_API_URL > /dev/null 2>&1; then
+            print_success "ngrok 重启成功！"
+            echo
+            show_ngrok_status
+            echo
+            read -p "按回车键继续..."
+            return 0
+        fi
+        print_info "等待中... ($attempt/$max_attempts)"
+        ((attempt++))
+    done
+    
+    print_error "ngrok 重启超时，请检查是否有错误"
+    echo
+    read -p "按回车键继续..."
+    return 1
 }
 
 # 显示 ngrok 状态
@@ -516,13 +587,14 @@ show_menu() {
     print_colored $GREEN "  2) 检查代理设置"
     print_colored $GREEN "  3) 启动 ngrok"
     print_colored $GREEN "  4) 停止 ngrok"
-    print_colored $GREEN "  5) 查看 ngrok 状态"
-    print_colored $GREEN "  6) 测试连接"
-    print_colored $GREEN "  7) 获取 ngrok URL"
-    print_colored $GREEN "  8) 设置 Telegram Webhook"
-    print_colored $GREEN "  9) 打开 ngrok 管理界面"
-    print_colored $GREEN " 10) 故障排除"
-    print_colored $RED   " 11) 退出"
+    print_colored $YELLOW "  5) 重启 ngrok"
+    print_colored $GREEN "  6) 查看 ngrok 状态"
+    print_colored $GREEN "  7) 测试连接"
+    print_colored $GREEN "  8) 获取 ngrok URL"
+    print_colored $GREEN "  9) 设置 Telegram Webhook"
+    print_colored $GREEN " 10) 打开 ngrok 管理界面"
+    print_colored $GREEN " 11) 故障排除"
+    print_colored $RED   " 12) 退出"
     echo
 }
 
@@ -530,7 +602,7 @@ show_menu() {
 main() {
     while true; do
         show_menu
-        read -p "请输入选项 (1-11): " choice
+        read -p "请输入选项 (1-12): " choice
         
         case $choice in
             1)
@@ -546,31 +618,34 @@ main() {
                 stop_ngrok
                 ;;
             5)
+                restart_ngrok
+                ;;
+            6)
                 show_ngrok_status
                 echo
                 read -p "按回车键继续..."
                 ;;
-            6)
+            7)
                 test_connections
                 ;;
-            7)
+            8)
                 get_ngrok_url
                 ;;
-            8)
+            9)
                 setup_telegram_webhook
                 ;;
-            9)
+            10)
                 open_ngrok_dashboard
                 ;;
-            10)
+            11)
                 troubleshoot
                 ;;
-            11)
+            12)
                 print_colored $CYAN "感谢使用 ngrok 管理工具！"
                 exit 0
                 ;;
             *)
-                print_error "无效选项，请输入 1-11"
+                print_error "无效选项，请输入 1-12"
                 sleep 2
                 ;;
         esac
