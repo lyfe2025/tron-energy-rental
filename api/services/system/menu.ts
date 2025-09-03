@@ -16,7 +16,7 @@ export interface Menu {
   icon?: string;
   sort_order: number;
   status: number;
-  visible?: boolean;
+  visible?: number; // 修改为number类型，因为数据库是integer
   created_at: Date;
   updated_at: Date;
   children?: Menu[];
@@ -32,7 +32,7 @@ export interface CreateMenuData {
   icon?: string;
   sort_order?: number;
   status?: number;
-  visible?: boolean;
+  visible?: number; // 修改为number类型，因为数据库是integer
 }
 
 export interface UpdateMenuData {
@@ -45,8 +45,7 @@ export interface UpdateMenuData {
   icon?: string;
   sort_order?: number;
   status?: number;
-  visible?: boolean;
-  description?: string;
+  visible?: number; // 修改为number类型，因为数据库是integer
 }
 
 export interface MenuQuery {
@@ -260,9 +259,9 @@ export class MenuService {
       updateFields.push(`status = $${paramIndex++}`);
       values.push(data.status);
     }
-    if (data.description !== undefined) {
-      updateFields.push(`description = $${paramIndex++}`);
-      values.push(data.description);
+    if (data.visible !== undefined) {
+      updateFields.push(`visible = $${paramIndex++}`);
+      values.push(data.visible);
     }
 
     updateFields.push(`updated_at = $${paramIndex++}`);

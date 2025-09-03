@@ -24,18 +24,12 @@ export interface Menu {
   path?: string
   component?: string
   icon?: string
-  icon_type: MenuIconType
   type: number
   status: number
   sort_order: number
   parent_id?: number
-  permission_key?: string
-  description?: string
-  is_hidden: boolean
-  is_cache: boolean
-  is_affix: boolean
-  redirect?: string
-  meta?: Record<string, any>
+  permission?: string  // 后端字段名是permission，不是permission_key
+  visible?: number     // 数据库字段，1表示可见，0表示隐藏
   created_at: string
   updated_at: string
 }
@@ -46,18 +40,12 @@ export interface CreateMenuRequest {
   path?: string
   component?: string
   icon?: string
-  icon_type: MenuIconType
   type: number
   status: number
   sort_order: number
   parent_id?: number
-  permission_key?: string
-  description?: string
-  is_hidden: boolean
-  is_cache: boolean
-  is_affix: boolean
-  redirect?: string
-  meta?: Record<string, any>
+  permission?: string  // 后端字段名是permission
+  visible?: number     // 数据库字段，1表示可见，0表示隐藏
 }
 
 // 更新菜单请求
@@ -66,18 +54,12 @@ export interface UpdateMenuRequest {
   path?: string
   component?: string
   icon?: string
-  icon_type?: MenuIconType
   type?: number
   status?: number
   sort_order?: number
   parent_id?: number
-  permission_key?: string
-  description?: string
-  is_hidden?: boolean
-  is_cache?: boolean
-  is_affix?: boolean
-  redirect?: string
-  meta?: Record<string, any>
+  permission?: string  // 后端字段名是permission
+  visible?: number     // 数据库字段，1表示可见，0表示隐藏
 }
 
 // 菜单查询参数
@@ -97,6 +79,16 @@ export interface MenuTreeNode extends Menu {
   children?: MenuTreeNode[]
   level?: number
   hasChildren?: boolean
+  
+  // 为了兼容前端表单，保留这些计算属性
+  readonly icon_type?: MenuIconType
+  readonly permission_key?: string
+  readonly is_hidden?: boolean
+  readonly description?: string
+  readonly is_cache?: boolean
+  readonly is_affix?: boolean
+  readonly redirect?: string
+  readonly meta?: Record<string, any>
 }
 
 // 菜单选项

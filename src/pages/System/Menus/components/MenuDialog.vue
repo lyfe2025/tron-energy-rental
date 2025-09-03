@@ -110,20 +110,116 @@
               <label class="block text-sm font-medium text-gray-700 mb-2">
                 图标
               </label>
-              <div class="flex gap-2">
-                <select
-                  v-model="form.icon_type"
-                  class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="lucide">Lucide</option>
-                  <option value="custom">自定义</option>
-                </select>
-                <input
-                  v-model="form.icon"
-                  type="text"
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  :placeholder="form.icon_type === 'lucide' ? '如：users' : '如：U'"
-                />
+              <div class="space-y-3">
+                <!-- 图标类型选择 -->
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">图标类型</label>
+                  <select
+                    v-model="form.icon_type"
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    @change="handleIconTypeChange"
+                  >
+                    <option value="lucide">Lucide图标</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </div>
+                
+                <!-- 图标选择 -->
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    {{ form.icon_type === 'lucide' ? '选择图标' : '输入图标' }}
+                  </label>
+                  
+                  <!-- Lucide图标选择 -->
+                  <select
+                    v-if="form.icon_type === 'lucide'"
+                    v-model="form.icon"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="">选择图标</option>
+                    
+                    <!-- 如果当前图标不在预定义列表中，添加当前图标选项 -->
+                    <optgroup v-if="form.icon && !isIconInPredefinedList(form.icon)" label="当前图标">
+                      <option :value="form.icon">{{ form.icon }} - 当前图标</option>
+                    </optgroup>
+                    
+                    <optgroup label="常用图标">
+                      <option value="Home">🏠 Home - 首页</option>
+                      <option value="LayoutDashboard">📊 LayoutDashboard - 仪表板</option>
+                      <option value="Users">👥 Users - 用户</option>
+                      <option value="User">👤 User - 用户</option>
+                      <option value="Settings">⚙️ Settings - 设置</option>
+                      <option value="Menu">📋 Menu - 菜单</option>
+                      <option value="FileText">📄 FileText - 文档</option>
+                      <option value="Folder">📁 Folder - 文件夹</option>
+                      <option value="Bot">🤖 Bot - 机器人</option>
+                    </optgroup>
+                    <optgroup label="系统管理">
+                      <option value="Shield">🛡️ Shield - 权限</option>
+                      <option value="Lock">🔒 Lock - 锁定</option>
+                      <option value="Key">🔑 Key - 密钥</option>
+                      <option value="UserCheck">✅ UserCheck - 用户验证</option>
+                      <option value="Database">💾 Database - 数据库</option>
+                      <option value="Server">🖥️ Server - 服务器</option>
+                    </optgroup>
+                    <optgroup label="业务功能">
+                      <option value="ShoppingCart">🛒 ShoppingCart - 购物车</option>
+                      <option value="DollarSign">💲 DollarSign - 金钱</option>
+                      <option value="CreditCard">💳 CreditCard - 信用卡</option>
+                      <option value="TrendingUp">📈 TrendingUp - 趋势上升</option>
+                      <option value="BarChart3">📊 BarChart3 - 柱状图</option>
+                      <option value="PieChart">🥧 PieChart - 饼图</option>
+                    </optgroup>
+                    <optgroup label="监控相关">
+                      <option value="Monitor">🖥️ Monitor - 监控</option>
+                      <option value="Activity">📊 Activity - 活动</option>
+                      <option value="Zap">⚡ Zap - 闪电</option>
+                      <option value="Wifi">📶 Wifi - 网络</option>
+                      <option value="Clock">🕐 Clock - 时钟</option>
+                      <option value="AlertTriangle">⚠️ AlertTriangle - 警告</option>
+                    </optgroup>
+                    <optgroup label="其他图标">
+                      <option value="Bell">🔔 Bell - 铃铛</option>
+                      <option value="Mail">📧 Mail - 邮件</option>
+                      <option value="MessageCircle">💬 MessageCircle - 消息</option>
+                      <option value="Calendar">📅 Calendar - 日历</option>
+                      <option value="Search">🔍 Search - 搜索</option>
+                      <option value="Plus">➕ Plus - 添加</option>
+                      <option value="Minus">➖ Minus - 减少</option>
+                      <option value="Edit">✏️ Edit - 编辑</option>
+                      <option value="Trash2">🗑️ Trash2 - 删除</option>
+                      <option value="Download">⬇️ Download - 下载</option>
+                      <option value="Upload">⬆️ Upload - 上传</option>
+                    </optgroup>
+                  </select>
+                  
+                  <!-- 自定义图标输入 -->
+                  <input
+                    v-else
+                    v-model="form.icon"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="输入自定义图标文字，如：U"
+                    maxlength="2"
+                  />
+                </div>
+                
+                <!-- 图标预览 -->
+                <div v-if="form.icon" class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <span class="text-xs text-gray-500">预览:</span>
+                  <component
+                    v-if="form.icon_type === 'lucide' && form.icon"
+                    :is="getLucideIcon(form.icon)"
+                    class="w-5 h-5 text-gray-700"
+                  />
+                  <span
+                    v-else-if="form.icon_type === 'custom' && form.icon"
+                    class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold bg-blue-500 text-white rounded"
+                  >
+                    {{ form.icon }}
+                  </span>
+                  <span class="text-sm text-gray-600">{{ form.icon }}</span>
+                </div>
               </div>
             </div>
             
@@ -294,16 +390,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
-import { X } from 'lucide-vue-next'
+import {
+    Activity, AlertTriangle, BarChart3, Bell, Bot, Calendar, Clock, CreditCard,
+    Database, DollarSign, Download, Edit, FileText, Folder, Home, Key,
+    LayoutDashboard, Lock, Mail, Menu, MessageCircle, Minus, Monitor,
+    PieChart, Plus, Search, Server, Settings, Shield, ShoppingCart,
+    Trash2,
+    TrendingUp,
+    Upload, User, UserCheck, Users, Wifi, X, Zap
+} from 'lucide-vue-next'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useMenus } from '../composables/useMenus'
 import type {
-  MenuTreeNode,
-  CreateMenuRequest,
-  UpdateMenuRequest,
-  MenuOption
+    CreateMenuRequest,
+    MenuOption,
+    MenuTreeNode,
+    UpdateMenuRequest
 } from '../types'
-import { MenuIconType, MenuType, MenuStatus } from '../types'
+import { MenuIconType, MenuStatus, MenuType } from '../types'
 
 // Props
 interface Props {
@@ -397,18 +501,63 @@ const loadForm = () => {
     form.path = props.menu.path || ''
     form.component = props.menu.component || ''
     form.icon = props.menu.icon || ''
-    form.icon_type = props.menu.icon_type
-    form.type = props.menu.type
-    form.status = props.menu.status
-    form.sort_order = props.menu.sort_order
+    
+    // 根据现有图标智能判断图标类型
+    if (props.menu.icon) {
+      // 检查是否是预定义的Lucide图标
+      if (isIconInPredefinedList(props.menu.icon)) {
+        form.icon_type = MenuIconType.LUCIDE
+      } else {
+        // 如果不是预定义图标，仍然可能是Lucide图标，但不在我们的列表中
+        // 根据图标名称的特征来判断：Lucide图标通常是驼峰命名且长度较长
+        if (props.menu.icon.length > 2 && /^[A-Z][a-zA-Z]+$/.test(props.menu.icon)) {
+          form.icon_type = MenuIconType.LUCIDE
+        } else {
+          form.icon_type = MenuIconType.CUSTOM
+        }
+      }
+    } else {
+      // 没有图标时默认为lucide类型
+      form.icon_type = MenuIconType.LUCIDE
+    }
+    
+    // 处理菜单类型：后端可能返回字符串或数字
+    let menuType = props.menu.type
+    if (typeof menuType === 'string') {
+      // 如果是字符串类型，转换为数字
+      switch (menuType) {
+        case 'menu':
+          form.type = 1
+          break
+        case 'button':
+          form.type = 2
+          break
+        case 'link':
+        case 'api':
+          form.type = 3
+          break
+        default:
+          form.type = 1 // 默认为菜单类型
+      }
+    } else {
+      // 如果是数字，直接使用
+      form.type = Number(menuType) || 1
+    }
+    
+    form.status = Number(props.menu.status) || 1
+    form.sort_order = Number(props.menu.sort_order) || 0
     form.parent_id = props.menu.parent_id || null
-    form.permission_key = props.menu.permission_key || ''
-    form.description = props.menu.description || ''
-    form.is_hidden = props.menu.is_hidden
-    form.is_cache = props.menu.is_cache
-    form.is_affix = props.menu.is_affix
-    form.redirect = props.menu.redirect || ''
-    form.meta = props.menu.meta || {}
+    // 后端字段名是permission，不是permission_key
+    form.permission_key = (props.menu as any).permission || ''
+    // 数据库中没有description字段
+    form.description = (props.menu as any).description || ''
+    // visible字段与is_hidden逻辑相反，1表示可见，0表示隐藏
+    form.is_hidden = (props.menu as any).visible === 0
+    // 数据库中没有is_cache和is_affix字段
+    form.is_cache = (props.menu as any).is_cache || false
+    form.is_affix = (props.menu as any).is_affix || false
+    form.redirect = (props.menu as any).redirect || ''
+    form.meta = (props.menu as any).meta || {}
   } else {
     // 新增模式
     resetForm()
@@ -421,10 +570,132 @@ const loadForm = () => {
 const loadMenuOptions = async () => {
   try {
     const excludeId = props.menu?.id
-    menuOptions.value = await getMenuOptions(excludeId)
+    const rawOptions = await getMenuOptions(excludeId)
+    // 转换数据格式：{id, name, parent_id} -> {value, label}，并构建树形结构
+    menuOptions.value = buildMenuOptionsTree(rawOptions)
   } catch (err) {
     console.error('加载菜单选项失败:', err)
   }
+}
+
+// 构建菜单选项树形结构
+const buildMenuOptionsTree = (options: any[]): MenuOption[] => {
+  const result: MenuOption[] = []
+  const optionsMap = new Map()
+  
+  // 先创建映射
+  options.forEach(option => {
+    optionsMap.set(option.id, {
+      value: option.id,
+      label: option.name,
+      parent_id: option.parent_id,
+      children: []
+    })
+  })
+  
+  // 构建树形结构
+  options.forEach(option => {
+    const menuOption = optionsMap.get(option.id)
+    if (option.parent_id && optionsMap.has(option.parent_id)) {
+      // 有父级菜单
+      const parent = optionsMap.get(option.parent_id)
+      parent.children = parent.children || []
+      parent.children.push({
+        value: menuOption.value,
+        label: `├─ ${menuOption.label}`,
+        children: []
+      })
+    } else {
+      // 顶级菜单
+      menuOption.label = menuOption.label
+      if (menuOption.children && menuOption.children.length > 0) {
+        menuOption.children.forEach((child: any) => {
+          child.label = `├─ ${child.label.replace('├─ ', '')}`
+        })
+      }
+      result.push(menuOption)
+    }
+  })
+  
+  // 只返回顶级菜单，子菜单会作为层级显示
+  const flatResult: MenuOption[] = []
+  
+  const addToFlat = (items: any[], level = 0) => {
+    const prefix = level === 0 ? '' : '　'.repeat(level) + '├─ '
+    items.forEach(item => {
+      flatResult.push({
+        value: item.value,
+        label: prefix + item.label.replace(/├─ /g, ''),
+        children: []
+      })
+      if (item.children && item.children.length > 0) {
+        addToFlat(item.children, level + 1)
+      }
+    })
+  }
+  
+  // 先按parent_id排序，顶级菜单在前
+  const sortedOptions = [...options].sort((a, b) => {
+    if (a.parent_id === null && b.parent_id !== null) return -1
+    if (a.parent_id !== null && b.parent_id === null) return 1
+    return a.id - b.id
+  })
+  
+  // 重新构建简单的层级显示
+  const topLevelMenus = sortedOptions.filter(option => option.parent_id === null)
+  
+  const buildHierarchy = (parentId: number | null, level = 0): MenuOption[] => {
+    const children = sortedOptions.filter(option => option.parent_id === parentId)
+    const result: MenuOption[] = []
+    
+    children.forEach(child => {
+      const prefix = level === 0 ? '' : '　'.repeat(level) + '├─ '
+      result.push({
+        value: child.id,
+        label: prefix + child.name,
+        children: []
+      })
+      result.push(...buildHierarchy(child.id, level + 1))
+    })
+    
+    return result
+  }
+  
+  return buildHierarchy(null)
+}
+
+// 图标相关方法
+const handleIconTypeChange = () => {
+  // 当图标类型改变时，清空图标值
+  form.icon = ''
+}
+
+// 预定义图标列表
+const getPredefinedIcons = () => {
+  return [
+    'Home', 'LayoutDashboard', 'Users', 'User', 'Settings', 'Menu', 'FileText', 'Folder', 'Bot',
+    'Shield', 'Lock', 'Key', 'UserCheck', 'Database', 'Server',
+    'ShoppingCart', 'DollarSign', 'CreditCard', 'TrendingUp', 'BarChart3', 'PieChart',
+    'Monitor', 'Activity', 'Zap', 'Wifi', 'Clock', 'AlertTriangle',
+    'Bell', 'Mail', 'MessageCircle', 'Calendar', 'Search', 'Plus', 'Minus', 'Edit', 'Trash2', 
+    'Download', 'Upload'
+  ]
+}
+
+const isIconInPredefinedList = (iconName: string) => {
+  return getPredefinedIcons().includes(iconName)
+}
+
+const getLucideIcon = (iconName: string) => {
+  const iconMap: Record<string, any> = {
+    Home, LayoutDashboard, Users, User, Settings, Menu, FileText, Folder, Bot,
+    Shield, Lock, Key, UserCheck, Database, Server,
+    ShoppingCart, DollarSign, CreditCard, TrendingUp, BarChart3, PieChart,
+    Monitor, Activity, Zap, Wifi, Clock, AlertTriangle,
+    Bell, Mail, MessageCircle, Calendar, Search, Plus, Minus, Edit, Trash2, 
+    Download, Upload
+  }
+  return iconMap[iconName] || Menu // 默认返回Menu图标
 }
 
 const handleClose = () => {
@@ -437,18 +708,14 @@ const handleSubmit = () => {
     path: form.path || undefined,
     component: form.component || undefined,
     icon: form.icon || undefined,
-    icon_type: form.icon_type,
     type: form.type,
     status: form.status,
     sort_order: form.sort_order,
     parent_id: form.parent_id || undefined,
-    permission_key: form.permission_key || undefined,
-    description: form.description || undefined,
-    is_hidden: form.is_hidden,
-    is_cache: form.is_cache,
-    is_affix: form.is_affix,
-    redirect: form.redirect || undefined,
-    meta: Object.keys(form.meta || {}).length > 0 ? form.meta : undefined
+    // 后端字段名是permission，不是permission_key
+    permission: form.permission_key || undefined,
+    // visible字段与is_hidden逻辑相反
+    visible: form.is_hidden ? 0 : 1
   }
   
   emit('submit', data)
