@@ -1,7 +1,7 @@
 <template>
-  <div class="operation-logs p-4">
+  <div class="space-y-6">
     <!-- 搜索表单 -->
-    <div class="mb-4">
+    <div class="bg-white rounded-lg shadow-sm p-6">
       <LogSearchForm
         :search-form="searchForm"
         @search="handleSearch"
@@ -11,21 +11,25 @@
     </div>
 
     <!-- 操作日志表格 -->
-    <LogsTable
-      :logs="logs"
-      :loading="loading"
-      :error="error"
-      @view-details="viewDetails"
-      @retry="fetchLogs"
-    />
+    <div class="bg-white rounded-lg shadow-sm">
+      <LogsTable
+        :logs="logs"
+        :loading="loading"
+        :error="error"
+        @view-details="viewDetails"
+        @retry="fetchLogs"
+      />
+    </div>
 
     <!-- 分页 -->
-    <LogPagination
-      :logs="logs"
-      :pagination="pagination"
-      @prev-page="prevPage"
-      @next-page="nextPage"
-    />
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <LogPagination
+        :logs="logs"
+        :pagination="pagination"
+        @prev-page="prevPage"
+        @next-page="nextPage"
+      />
+    </div>
 
     <!-- 详情弹窗 -->
     <LogDetailsDialog
@@ -71,7 +75,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.operation-logs {
-  padding: 16px;
-}
+/* 无需自定义样式，使用统一的卡片布局 */
 </style>

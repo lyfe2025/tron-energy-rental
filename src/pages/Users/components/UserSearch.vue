@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm p-6">
+  <div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
       <div class="flex-1 max-w-lg">
         <div class="relative">
@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Download } from 'lucide-vue-next'
+import { Download, Search } from 'lucide-vue-next'
 
 interface Props {
   searchQuery: string

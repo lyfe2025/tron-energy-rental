@@ -279,6 +279,6 @@ onMounted(() => {
 
 <style scoped>
 .price-config-page {
-  @apply max-w-7xl mx-auto p-6;
+  @apply p-6;
 }
 </style>

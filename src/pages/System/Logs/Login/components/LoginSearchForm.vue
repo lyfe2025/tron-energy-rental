@@ -1,6 +1,6 @@
 <template>
   <!-- 搜索和筛选 -->
-  <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200">
+  <div>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <!-- 用户名搜索 -->
       <div>

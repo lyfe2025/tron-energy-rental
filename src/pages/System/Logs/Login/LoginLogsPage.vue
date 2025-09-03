@@ -1,7 +1,7 @@
 <template>
-  <div class="p-4">
+  <div class="space-y-6">
     <!-- 搜索表单 -->
-    <div class="mb-4">
+    <div class="bg-white rounded-lg shadow-sm p-6">
       <LoginSearchForm
         :search-form="searchForm"
         :loading="loading"
@@ -12,17 +12,19 @@
     </div>
 
     <!-- 日志表格 -->
-    <LoginLogsTable
-      :logs="logs"
-      :loading="loading"
-      :error="error"
-      :pagination="pagination"
-      :format-date="formatDate"
-      @view-details="viewDetails"
-      @prev-page="prevPage"
-      @next-page="nextPage"
-      @retry="fetchLogs"
-    />
+    <div class="bg-white rounded-lg shadow-sm">
+      <LoginLogsTable
+        :logs="logs"
+        :loading="loading"
+        :error="error"
+        :pagination="pagination"
+        :format-date="formatDate"
+        @view-details="viewDetails"
+        @prev-page="prevPage"
+        @next-page="nextPage"
+        @retry="fetchLogs"
+      />
+    </div>
 
     <!-- 详情弹窗 -->
     <LoginDetailsDialog
@@ -71,21 +73,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.login-logs {
-  padding: 16px;
-}
-
-.search-form {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.table-container {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+/* 无需自定义样式，使用统一的卡片布局 */
 </style>

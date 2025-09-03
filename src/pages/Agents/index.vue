@@ -1,49 +1,47 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- 页面头部 -->
-    <div class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="py-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">代理商管理</h1>
-              <p class="mt-1 text-sm text-gray-600">
-                管理代理商账户、价格配置和业绩统计
-              </p>
-            </div>
-            <div class="flex items-center space-x-3">
-              <button
-                @click="handleRefresh"
-                :disabled="loading"
-                class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-              >
-                <RotateCcw :class="['w-4 h-4 mr-2', loading && 'animate-spin']" />
-                刷新
-              </button>
-            </div>
-          </div>
+  <div class="space-y-6">
+    <!-- 页面标题和操作 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">代理商管理</h1>
+          <p class="mt-1 text-sm text-gray-600">
+            管理代理商账户、价格配置和业绩统计
+          </p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button
+            @click="handleRefresh"
+            :disabled="loading"
+            class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+          >
+            <RotateCcw :class="['w-4 h-4 mr-2', loading && 'animate-spin']" />
+            刷新
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- 主要内容 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- 统计卡片 -->
-      <AgentStats
-        :stats="stats"
-        :loading="statsLoading"
-        class="mb-8"
-      />
+    <!-- 统计卡片 -->
+    <AgentStats
+      :stats="stats"
+      :loading="statsLoading"
+    />
 
-      <!-- 搜索和筛选 -->
+    <!-- 搜索和筛选 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
       <AgentSearch
         v-model:query="searchQuery"
         @search="handleSearch"
         @export="handleExport"
-        class="mb-6"
       />
+    </div>
 
-      <!-- 批量操作 -->
+    <!-- 批量操作 -->
+    <div 
+      v-if="selectedAgents.length > 0" 
+      class="bg-white rounded-lg shadow-sm p-6"
+    >
       <AgentActions
         :selected-agents="selectedAgents"
         :submitting="submitting"
@@ -54,8 +52,10 @@
         @batch-delete="handleBatchDelete"
         @export-selected="handleExportSelected"
       />
+    </div>
 
-      <!-- 代理商列表 -->
+    <!-- 代理商列表 -->
+    <div class="bg-white rounded-lg shadow-sm">
       <AgentList
         :agents="agents"
         :loading="loading"
@@ -101,22 +101,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
 import { RotateCcw } from 'lucide-vue-next';
 import { toast } from 'sonner';
-import { useAgentStore } from './composables/useAgentStore';
-import AgentStats from './components/AgentStats.vue';
-import AgentSearch from './components/AgentSearch.vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import AgentActions from './components/AgentActions.vue';
-import AgentList from './components/AgentList.vue';
-import AgentForm from './components/AgentForm.vue';
-import AgentPricingModal from './components/AgentPricingModal.vue';
 import AgentDetailModal from './components/AgentDetailModal.vue';
+import AgentForm from './components/AgentForm.vue';
+import AgentList from './components/AgentList.vue';
+import AgentPricingModal from './components/AgentPricingModal.vue';
+import AgentSearch from './components/AgentSearch.vue';
+import AgentStats from './components/AgentStats.vue';
+import { useAgentStore } from './composables/useAgentStore';
 import type {
-  Agent,
-  AgentQuery,
-  CreateAgentRequest,
-  UpdateAgentRequest
+    Agent,
+    AgentQuery,
+    CreateAgentRequest,
+    UpdateAgentRequest
 } from './types';
 
 // Store

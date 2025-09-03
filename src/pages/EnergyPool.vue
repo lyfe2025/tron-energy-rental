@@ -338,20 +338,20 @@
 
 <script setup lang="ts">
 import {
-  Battery,
-  CheckCircle,
-  Database,
-  DollarSign,
-  Edit,
-  Eye,
-  Lock,
-  Play,
-  Plus,
-  Power,
-  RefreshCw,
-  Trash2,
-  Wallet,
-  Zap
+    Battery,
+    CheckCircle,
+    Database,
+    DollarSign,
+    Edit,
+    Eye,
+    Lock,
+    Play,
+    Plus,
+    Power,
+    RefreshCw,
+    Trash2,
+    Wallet,
+    Zap
 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import AccountDetailsModal from './EnergyPool/components/AccountDetailsModal.vue'
@@ -490,7 +490,7 @@ onMounted(async () => {
 
 <style scoped>
 .energy-pool-page {
-  @apply p-6 max-w-7xl mx-auto;
+  @apply p-6;
 }
 
 .page-header {

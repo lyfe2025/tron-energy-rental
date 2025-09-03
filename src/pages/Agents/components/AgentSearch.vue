@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <div>
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <!-- 搜索框 -->
       <div class="flex-1 max-w-md">
@@ -128,16 +128,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import {
-  Search,
-  ChevronDown,
-  RotateCcw,
-  Download,
-  X
-} from 'lucide-vue-next';
-import { AGENT_STATUS_OPTIONS } from '@/pages/Agents/types';
 import type { AgentQuery } from '@/pages/Agents/types';
+import { AGENT_STATUS_OPTIONS } from '@/pages/Agents/types';
+import {
+    ChevronDown,
+    Download,
+    RotateCcw,
+    Search,
+    X
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Emits {
   search: [query: AgentQuery];

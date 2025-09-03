@@ -1,31 +1,29 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- 页面头部 -->
-    <div class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">用户管理</h1>
-            <p class="mt-1 text-sm text-gray-500">管理系统用户信息和权限</p>
-          </div>
-          <div class="flex space-x-3">
-            <button
-              @click="createUser"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <Plus class="-ml-1 mr-2 h-5 w-5" />
-              新增用户
-            </button>
-          </div>
+  <div class="space-y-6">
+    <!-- 页面标题和操作 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">用户管理</h1>
+          <p class="mt-1 text-sm text-gray-500">管理系统用户信息和权限</p>
+        </div>
+        <div class="flex space-x-3">
+          <button
+            @click="createUser"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Plus class="-ml-1 mr-2 h-5 w-5" />
+            新增用户
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- 用户统计 -->
-      <UserStats :user-stats="userStats" class="mb-8" />
+    <!-- 用户统计 -->
+    <UserStats :user-stats="userStats" />
 
-      <!-- 搜索和筛选 -->
+    <!-- 搜索和筛选 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
       <UserSearch
         :search-query="searchParams.query"
         :status-filter="searchParams.status"
@@ -36,12 +34,15 @@
         @update:type-filter="handleTypeFilter"
         @update:user-type-filter="handleUserTypeFilter"
         @export="batchExport"
-        class="mb-6"
       />
+    </div>
 
-      <!-- 批量操作 -->
+    <!-- 批量操作 -->
+    <div 
+      v-if="selectedCount > 0"
+      class="bg-white rounded-lg shadow-sm p-6"
+    >
       <UserActions
-        v-if="selectedCount > 0"
         :is-loading="isLoading"
         :selected-count="selectedCount"
         @batch-activate="batchActivate"
@@ -50,10 +51,11 @@
         @batch-export="batchExport"
         @batch-type-change="batchTypeChange"
         @clear-selection="clearSelection"
-        class="mb-6"
       />
+    </div>
 
-      <!-- 用户列表 -->
+    <!-- 用户列表 -->
+    <div class="bg-white rounded-lg shadow-sm">
       <UserList
         :users="users"
         :is-loading="isLoading"
@@ -231,7 +233,7 @@ onMounted(async () => {
 
 /* 响应式调整 */
 @media (max-width: 640px) {
-  .max-w-7xl {
+  .px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
   }

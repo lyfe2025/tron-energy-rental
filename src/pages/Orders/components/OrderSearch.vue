@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm p-6">
+  <div>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <!-- 搜索框 -->
       <div class="md:col-span-2">

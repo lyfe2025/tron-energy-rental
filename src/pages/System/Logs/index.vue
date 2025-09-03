@@ -1,51 +1,52 @@
 <template>
-  <div class="logs-page">
-    <div class="page-header">
-      <h1 class="text-2xl font-bold text-gray-900">日志管理</h1>
-      <p class="text-gray-600 mt-2">系统日志管理，包含登录日志和操作日志的查看与管理</p>
+  <div class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">日志管理</h1>
+        <p class="text-gray-600 mt-2">系统日志管理，包含登录日志和操作日志的查看与管理</p>
+      </div>
     </div>
 
     <!-- 统计数据 -->
-    <div class="quick-stats mt-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-lg border border-gray-200">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-blue-100">
-              <User class="w-6 h-6 text-blue-600" />
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-gray-900">{{ displayStats.todayLogins }}</div>
-              <div class="text-sm text-gray-600">今日登录次数</div>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-blue-100">
+            <User class="w-6 h-6 text-blue-600" />
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">{{ displayStats.todayLogins }}</div>
+            <div class="text-sm text-gray-600">今日登录次数</div>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg border border-gray-200">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-green-100">
-              <Activity class="w-6 h-6 text-green-600" />
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-gray-900">{{ displayStats.todayOperations }}</div>
-              <div class="text-sm text-gray-600">今日操作次数</div>
-            </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-green-100">
+            <Activity class="w-6 h-6 text-green-600" />
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">{{ displayStats.todayOperations }}</div>
+            <div class="text-sm text-gray-600">今日操作次数</div>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg border border-gray-200">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-purple-100">
-              <Users class="w-6 h-6 text-purple-600" />
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-gray-900">{{ displayStats.onlineUsers }}</div>
-              <div class="text-sm text-gray-600">在线用户数</div>
-            </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-purple-100">
+            <Users class="w-6 h-6 text-purple-600" />
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">{{ displayStats.onlineUsers }}</div>
+            <div class="text-sm text-gray-600">在线用户数</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 标签页导航 -->
-    <div class="mt-6">
+    <div class="bg-white rounded-lg shadow-sm p-6">
       <nav class="flex space-x-8 border-b border-gray-200">
         <button
           v-for="tab in tabs"
@@ -62,15 +63,15 @@
           {{ tab.name }}
         </button>
       </nav>
-    </div>
-
-    <!-- 标签页内容 -->
-    <div class="mt-6">
-      <!-- 登录日志 -->
-      <LoginLogs v-if="activeTab === 'login'" />
       
-      <!-- 操作日志 -->
-      <OperationLogs v-if="activeTab === 'operation'" />
+      <!-- 标签页内容 -->
+      <div class="mt-6">
+        <!-- 登录日志 -->
+        <LoginLogs v-if="activeTab === 'login'" />
+        
+        <!-- 操作日志 -->
+        <OperationLogs v-if="activeTab === 'operation'" />
+      </div>
     </div>
   </div>
 </template>
@@ -160,11 +161,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.logs-page {
-  padding: 20px;
-}
-
-.page-header {
-  margin-bottom: 30px;
-}
+/* 无需自定义样式，使用统一的卡片布局 */
 </style>
