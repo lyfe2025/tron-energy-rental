@@ -4,7 +4,6 @@
 import { computed, ref } from 'vue'
 import { usePositions } from '../../../Positions/composables/usePositions'
 import { useRoles } from '../../../Roles/composables/useRoles'
-import type { RoleOption } from '../../../Roles/types'
 
 export function useAdminFilters() {
   // 筛选状态
@@ -27,7 +26,13 @@ export function useAdminFilters() {
         getRoleOptions()
       ])
       
-      positionOptions.value = positions
+      // 转换岗位数据格式：从 {id, name} 转换为 {value, label}
+      positionOptions.value = positions.map((position: any) => ({
+        value: position.id,
+        label: position.name
+      }))
+      
+      // 转换角色数据格式：从 {id, name} 转换为 {value, label}  
       roleOptions.value = roles.map(role => ({
         value: role.id,
         label: role.name

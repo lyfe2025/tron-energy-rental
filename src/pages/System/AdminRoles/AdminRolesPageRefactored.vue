@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useAuthStore } from '@/stores/auth'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 // 导入拆分后的组件
 import AdminRolesList from './components/admin-list/AdminRolesList.vue'
@@ -108,9 +108,9 @@ import ResetPasswordDialog from './components/ResetPasswordDialog.vue'
 import RoleAssignDialog from './components/RoleAssignDialog.vue'
 
 // 导入主要业务逻辑
+import AdminService from '@/services/adminService'
 import { useAdminRolesPage } from './composables/split/useAdminRolesPage'
 import type { AdminRoleInfo } from './types'
-
 
 // 权限控制
 const authStore = useAuthStore()
@@ -183,13 +183,33 @@ const {
   handleAdminEditSuccess
 } = useAdminRolesPage()
 
-// 统计数据（可选，从API获取）
+// 统计数据（从API获取）
 const stats = ref({
   totalAdmins: 0,
   totalRoles: 0,
   totalAssignments: 0,
   recentAssignments: 0
 })
+
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    const adminStats = await AdminService.getAdminStats()
+    
+    // 将后端数据格式转换为前端期望格式
+    stats.value = {
+      totalAdmins: adminStats.total || 0,
+      totalRoles: (adminStats.by_role?.super_admin || 0) + 
+                  (adminStats.by_role?.admin || 0) + 
+                  (adminStats.by_role?.operator || 0),
+      totalAssignments: adminStats.active || 0, // 活跃管理员数量
+      recentAssignments: adminStats.recent_logins || 0 // 近期登录数量
+    }
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+    // 保持默认值
+  }
+}
 
 // 确认对话框状态
 const confirmDialog = reactive({
@@ -218,6 +238,11 @@ const handleDeleteAdminWithConfirm = (admin: AdminRoleInfo) => {
     }
   }
 }
+
+// 组件挂载时加载统计数据
+onMounted(async () => {
+  await loadStats()
+})
 </script>
 
 <style scoped>

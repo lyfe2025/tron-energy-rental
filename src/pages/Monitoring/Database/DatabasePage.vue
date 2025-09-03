@@ -23,21 +23,21 @@
 
     <!-- 表统计信息 -->
     <DatabaseTableList 
-      :db-stats="dbStats"
-      :loading="loading"
+      :db-stats="dbStats" 
       :table-pagination="tablePagination"
-      @show-table-details="showTableDetails"
+      :loading="loading"
+      @view-details="showTableDetails"
       @analyze-table="analyzeTable"
       @previous-page="previousPage"
       @next-page="nextPage"
     />
 
     <!-- 慢查询日志 -->
-    <SlowQueryLogs :slow-queries="dbStats?.slowQueries" />
+    <SlowQueryLogs :db-stats="dbStats" />
 
     <!-- 表详情对话框 -->
-    <TableDetailsModal 
-      :show="showTableDialog"
+    <TableDetailsModal
+      :visible="showTableDialog"
       :selected-table="selectedTable"
       @close="closeTableDialog"
     />
@@ -47,44 +47,42 @@
 <script setup lang="ts">
 import { RefreshCw } from 'lucide-vue-next'
 import { onMounted, onUnmounted } from 'vue'
+import DatabaseConnectionStatus from './components/DatabaseConnectionStatus.vue'
+import DatabaseStatsCards from './components/DatabaseStatsCards.vue'
+import DatabaseTableList from './components/DatabaseTableList.vue'
+import SlowQueryLogs from './components/SlowQueryLogs.vue'
+import TableDetailsModal from './components/TableDetailsModal.vue'
+import { useDatabaseMonitoring } from './composables/useDatabaseMonitoring'
+import { useTableAnalysis } from './composables/useTableAnalysis'
 
-// 导入组件
-import DatabaseConnectionStatus from './Database/components/DatabaseConnectionStatus.vue'
-import DatabaseStatsCards from './Database/components/DatabaseStatsCards.vue'
-import DatabaseTableList from './Database/components/DatabaseTableList.vue'
-import SlowQueryLogs from './Database/components/SlowQueryLogs.vue'
-import TableDetailsModal from './Database/components/TableDetailsModal.vue'
-
-// 导入 composable
-import { useDatabaseMonitoring } from './Database/composables/useDatabaseMonitoring'
-
-// 使用 composable
+// 数据库监控逻辑
 const {
-  // 状态
   loading,
   dbStatus,
   dbStats,
-  selectedTable,
-  showTableDialog,
   tablePagination,
-  
-  // 方法
   refreshData,
-  showTableDetails,
-  closeTableDialog,
-  analyzeTable,
   previousPage,
   nextPage,
-  initialize,
-  cleanup
+  startMonitoring,
+  stopMonitoring
 } = useDatabaseMonitoring()
+
+// 表分析逻辑
+const {
+  selectedTable,
+  showTableDialog,
+  showTableDetails,
+  closeTableDialog,
+  analyzeTable
+} = useTableAnalysis()
 
 // 生命周期
 onMounted(() => {
-  initialize()
+  startMonitoring()
 })
 
 onUnmounted(() => {
-  cleanup()
+  stopMonitoring()
 })
 </script>

@@ -63,15 +63,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <button
-                @click="$emit('show-table-details', {
-                  ...table,
-                  indexes: [],
-                  schema: 'public',
-                  estimatedRows: table.rowCount || 0,
-                  dataSize: typeof table.tableSize === 'number' ? `${table.tableSize} bytes` : '0 bytes',
-                  indexSize: typeof table.indexSize === 'string' ? table.indexSize : '0 bytes',
-                  lastUpdated: table.lastUpdated || new Date().toISOString()
-                })"
+                @click="$emit('view-details', table)"
                 class="text-indigo-600 hover:text-indigo-900 mr-3"
                 title="查看详情"
               >
@@ -141,7 +133,6 @@
 </template>
 
 <script setup lang="ts">
-import type { DatabaseStats, TableInfo } from '@/api/monitoring';
 import {
     BarChart3,
     ChevronLeft,
@@ -149,51 +140,25 @@ import {
     Eye,
     RefreshCw,
     Table
-} from 'lucide-vue-next';
+} from 'lucide-vue-next'
+import { useDatabaseStats } from '../composables/useDatabaseStats'
+import type { DatabaseStats, TableInfo, TablePagination } from '../types/database.types'
 
-defineProps<{
-  dbStats: DatabaseStats | null;
-  loading: boolean;
-  tablePagination: {
-    current: number;
-    pageSize: number;
-    total: number;
-  };
-}>()
+interface Props {
+  dbStats: DatabaseStats | null
+  tablePagination: TablePagination
+  loading: boolean
+}
 
-defineEmits<{
-  'show-table-details': [table: TableInfo]
+interface Emits {
+  'view-details': [table: TableInfo]
   'analyze-table': [tableName: string]
   'previous-page': []
   'next-page': []
-}>()
-
-// 格式化文件大小
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// 格式化数字
-const formatNumber = (num: number): string => {
-  return num.toLocaleString('zh-CN')
-}
+defineProps<Props>()
+defineEmits<Emits>()
 
-// 格式化日期时间
-const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+const { formatSize, formatNumber, formatDateTime } = useDatabaseStats()
 </script>

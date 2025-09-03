@@ -172,6 +172,15 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = errorMessage
   }
 
+  // 处理被强制下线
+  const handleForcedLogout = async (message?: string) => {
+    // 清除认证状态
+    await logout()
+    
+    // 设置错误信息
+    setError(message || '您的账户已被管理员强制下线，请重新登录。')
+  }
+
   // 从本地存储恢复用户信息
   const restoreUserFromStorage = () => {
     try {
@@ -212,6 +221,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     clearError,
     setError,
+    handleForcedLogout,
     restoreUserFromStorage,
   }
 })

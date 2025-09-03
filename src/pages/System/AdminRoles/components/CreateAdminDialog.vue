@@ -145,14 +145,13 @@
             <!-- 岗位 -->
             <div>
               <label class="block text-sm font-medium text-gray-900 mb-2">
-                岗位 <span class="text-red-500">*</span>
+                岗位
               </label>
               <select
                 v-model="form.positionId"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">请选择岗位</option>
+                <option value="">请选择岗位（可选）</option>
                 <option
                   v-for="position in positions"
                   :key="position.value"
@@ -327,13 +326,11 @@ const validateForm = (): boolean => {
     errors.value.phone = '请输入正确的手机号'
   }
   
-  if (!form.value.positionId) {
-    errors.value.positionId = '请选择岗位'
-  }
-  
   if (!form.value.roleId) {
     errors.value.roleId = '请选择角色'
   }
+  
+  // position_id 是可选的，不需要验证
   
   return Object.keys(errors.value).length === 0
 }
@@ -368,15 +365,23 @@ const handleSubmit = async () => {
     loading.value = true
     
     // 准备提交数据
-    const submitData = {
+    const submitData: any = {
       username: form.value.username,
       email: form.value.email,
       password: form.value.password,
       name: form.value.name,
       phone: form.value.phone,
-      position_id: form.value.positionId!,
-      role_id: form.value.roleId!,
       status: form.value.status
+    }
+    
+    // role_id 是必需的
+    if (form.value.roleId !== null) {
+      submitData.role_id = form.value.roleId
+    }
+    
+    // position_id 是可选的，只有选择了才发送
+    if (form.value.positionId !== null) {
+      submitData.position_id = form.value.positionId
     }
     
     console.log('🔍 [CreateAdminDialog] 表单数据:', form.value)
@@ -401,9 +406,31 @@ const handleSubmit = async () => {
   } catch (error: any) {
     console.error('创建管理员失败:', error)
     
+    // 处理不同类型的错误
+    let errorMessage = '创建管理员失败'
+    
+    if (error.response && error.response.data) {
+      const responseError = error.response.data.error
+      
+      // 处理数据库约束错误
+      if (typeof responseError === 'string') {
+        if (responseError.includes('admins_email_unique')) {
+          errorMessage = '邮箱已存在，请使用其他邮箱'
+        } else if (responseError.includes('admins_phone_unique')) {
+          errorMessage = '手机号已存在，请使用其他手机号'
+        } else if (responseError.includes('admins_username_unique')) {
+          errorMessage = '用户名已存在，请使用其他用户名'
+        } else {
+          errorMessage = responseError
+        }
+      }
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
     // 显示错误消息
     const event = new CustomEvent('show-message', {
-      detail: { type: 'error', message: error.message || '创建管理员失败' }
+      detail: { type: 'error', message: errorMessage }
     })
     window.dispatchEvent(event)
   } finally {

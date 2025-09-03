@@ -5,13 +5,13 @@
     </div>
     
     <div class="p-6">
-      <div v-if="!slowQueries || (Array.isArray(slowQueries) && slowQueries.length === 0) || (typeof slowQueries === 'number')" class="text-center py-8 text-gray-500">
+      <div v-if="!dbStats?.slowQueries || (Array.isArray(dbStats.slowQueries) && dbStats.slowQueries.length === 0) || (typeof dbStats.slowQueries === 'number')" class="text-center py-8 text-gray-500">
         暂无慢查询记录
       </div>
       
-      <div v-else-if="Array.isArray(slowQueries)" class="space-y-4">
+      <div v-else-if="Array.isArray(dbStats.slowQueries)" class="space-y-4">
         <div 
-          v-for="query in slowQueries" 
+          v-for="query in dbStats.slowQueries" 
           :key="query.id" 
           class="border rounded-lg p-4 hover:bg-gray-50"
         >
@@ -43,28 +43,14 @@
 
 <script setup lang="ts">
 import { Clock } from 'lucide-vue-next';
+import { useDatabaseStats } from '../composables/useDatabaseStats';
+import type { DatabaseStats } from '../types/database.types';
 
-interface SlowQuery {
-  id: string | number;
-  timestamp: string;
-  duration: number;
-  query: string;
+interface Props {
+  dbStats: DatabaseStats | null
 }
 
-defineProps<{
-  slowQueries: SlowQuery[] | number | undefined | null;
-}>()
+defineProps<Props>()
 
-// 格式化日期时间
-const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+const { formatDateTime } = useDatabaseStats()
 </script>

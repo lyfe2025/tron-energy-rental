@@ -196,6 +196,7 @@
 </template>
 
 <script setup lang="ts">
+import { AdminService } from '@/services/adminService'
 import { Edit, X } from 'lucide-vue-next'
 import { onMounted, ref, watch } from 'vue'
 import { useDepartments } from '../../Departments/composables/useDepartments'
@@ -211,7 +212,7 @@ interface Props {
 
 interface Emits {
   close: []
-  submit: [data: any]
+  success: []
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -239,6 +240,7 @@ const errors = ref<Record<string, string>>({})
 const roleOptions = ref<any[]>([])
 const departmentOptions = ref<any[]>([])
 const positionOptions = ref<any[]>([])
+const loading = ref(false)
 
 // 方法
 const validateForm = (): boolean => {
@@ -266,18 +268,55 @@ const handleClose = () => {
   emit('close')
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!validateForm()) {
     return
   }
   
-  const data = {
-    ...form.value,
-    department_id: form.value.department_id || null,
-    position_id: form.value.position_id || null
+  if (!props.admin?.admin_id) {
+    console.error('管理员ID不存在')
+    return
   }
   
-  emit('submit', data)
+  try {
+    loading.value = true
+    
+    // 准备提交数据
+    const submitData = {
+      username: form.value.username,
+      email: form.value.email,
+      role_id: form.value.role_id ? Number(form.value.role_id) : undefined,
+      department_id: form.value.department_id ? Number(form.value.department_id) : undefined,
+      position_id: form.value.position_id ? Number(form.value.position_id) : undefined,
+      status: form.value.status as 'active' | 'inactive'
+    }
+    
+    console.log('🔍 [EditAdminDialog] 提交数据:', submitData)
+    console.log('🔍 [EditAdminDialog] 管理员ID:', props.admin.admin_id)
+    
+    // 调用API更新管理员
+    await AdminService.updateAdmin(props.admin.admin_id, submitData)
+    
+    // 显示成功消息
+    const event = new CustomEvent('show-message', {
+      detail: { type: 'success', message: '管理员信息更新成功' }
+    })
+    window.dispatchEvent(event)
+    
+    emit('success')
+    handleClose()
+    
+  } catch (error: any) {
+    console.error('更新管理员失败:', error)
+    
+    // 显示错误消息
+    const event = new CustomEvent('show-message', {
+      detail: { type: 'error', message: error.message || '更新管理员失败' }
+    })
+    window.dispatchEvent(event)
+  } finally {
+    loading.value = false
+  }
 }
 
 const loadOptions = async (): Promise<void> => {

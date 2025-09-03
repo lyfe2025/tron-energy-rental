@@ -337,7 +337,7 @@ export class SystemConfigsValidation {
       const config = result.rows[0];
 
       // 管理员可以访问所有配置
-      if (userRole === 'admin') {
+      if (userRole === 'admin' || userRole === 'super_admin') {
         return { canAccess: true, config };
       }
 

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+  <div v-if="visible" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-2/3 max-w-4xl shadow-lg rounded-md bg-white">
       <div class="mt-3">
         <div class="flex items-center justify-between">
@@ -8,7 +8,6 @@
             <X class="h-5 w-5" />
           </button>
         </div>
-        
         <div class="mt-4" v-if="selectedTable">
           <div class="grid grid-cols-2 gap-6 mb-6">
             <div>
@@ -61,44 +60,21 @@
 </template>
 
 <script setup lang="ts">
-import type { TableInfo } from '@/api/monitoring';
-import { X } from 'lucide-vue-next';
+import { X } from 'lucide-vue-next'
+import { useDatabaseStats } from '../composables/useDatabaseStats'
+import type { TableInfo } from '../types/database.types'
 
-defineProps<{
-  show: boolean;
-  selectedTable: TableInfo | null;
-}>()
+interface Props {
+  visible: boolean
+  selectedTable: TableInfo | null
+}
 
-defineEmits<{
+interface Emits {
   close: []
-}>()
-
-// 格式化文件大小
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// 格式化数字
-const formatNumber = (num: number): string => {
-  return num.toLocaleString('zh-CN')
-}
+defineProps<Props>()
+defineEmits<Emits>()
 
-// 格式化日期时间
-const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+const { formatSize, formatNumber, formatDateTime } = useDatabaseStats()
 </script>

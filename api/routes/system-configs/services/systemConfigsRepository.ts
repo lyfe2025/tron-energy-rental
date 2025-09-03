@@ -7,15 +7,15 @@
 
 import { query } from '../../../config/database.js';
 import type {
-  BatchConfigItem,
-  ConfigCategoryStats,
-  CreateSystemConfigRequest,
-  PaginatedConfigHistory,
-  PaginatedSystemConfigs,
-  QueryBuilderParams,
-  SystemConfig,
-  SystemConfigQuery,
-  UpdateSystemConfigRequest
+    BatchConfigItem,
+    ConfigCategoryStats,
+    CreateSystemConfigRequest,
+    PaginatedConfigHistory,
+    PaginatedSystemConfigs,
+    QueryBuilderParams,
+    SystemConfig,
+    SystemConfigQuery,
+    UpdateSystemConfigRequest
 } from '../types/systemConfigs.types.js';
 
 export class SystemConfigsRepository {
@@ -90,7 +90,7 @@ export class SystemConfigsRepository {
     const params = [configKey];
 
     // 非管理员只能查看公开配置
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       sqlQuery += ' AND is_public = true';
     }
 
@@ -335,7 +335,7 @@ export class SystemConfigsRepository {
     `;
 
     // 非管理员只能查看公开配置
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       sqlQuery += ' WHERE is_public = true';
     }
 
@@ -382,7 +382,7 @@ export class SystemConfigsRepository {
     }
 
     // 非管理员只能查看公开配置
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       whereConditions.push(`is_public = true`);
     }
 

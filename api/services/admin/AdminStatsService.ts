@@ -56,11 +56,13 @@ export class AdminStatsService {
     // 角色分布统计
     const roleStatsQuery = `
       SELECT 
-        role,
+        r.code as role_code,
         COUNT(*) as count
-      FROM admins
-      WHERE status = 'active'
-      GROUP BY role
+      FROM admins a
+      INNER JOIN admin_roles ar ON a.id = ar.admin_id
+      INNER JOIN roles r ON ar.role_id = r.id
+      WHERE a.status = 'active' AND r.status = 1
+      GROUP BY r.code
     `;
     const roleStatsResult = await pool.query(roleStatsQuery);
     
@@ -70,9 +72,19 @@ export class AdminStatsService {
       operator: 0
     };
     
+    // 角色映射：将数据库中的角色映射到前端期望的三个类别
+    const roleMapping: { [key: string]: keyof typeof by_role } = {
+      'super_admin': 'super_admin',
+      'system_admin': 'admin',
+      'dept_admin': 'admin',
+      'admin': 'admin',
+      'operator': 'operator'
+    };
+    
     roleStatsResult.rows.forEach(row => {
-      if (row.role in by_role) {
-        by_role[row.role as keyof typeof by_role] = parseInt(row.count);
+      const mappedRole = roleMapping[row.role_code];
+      if (mappedRole) {
+        by_role[mappedRole] += parseInt(row.count);
       }
     });
 

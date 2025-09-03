@@ -217,16 +217,107 @@ export class DatabaseMonitor {
         [tableName]
       );
 
+      const stats = tableInfo.rows[0];
+      const sizeData = sizeInfo.rows[0];
+      const indexes = indexInfo.rows;
+      const columns = columnInfo.rows;
+
+      // 计算健康度评分
+      const healthScore = this.calculateHealthScore(stats, sizeData, indexes);
+      
+      // 生成优化建议
+      const recommendations = this.generateRecommendations(stats, sizeData, indexes, columns);
+
+      // 返回符合前端期望的 TableAnalysisResult 结构
       return {
-        tableInfo: tableInfo.rows[0],
-        sizeInfo: sizeInfo.rows[0],
-        indexes: indexInfo.rows,
-        columns: columnInfo.rows
+        tableName,
+        healthScore,
+        recommendations,
+        statistics: {
+          live_tuples: stats.live_tuples || 0,
+          dead_tuples: stats.dead_tuples || 0,
+          inserts: stats.inserts || 0,
+          updates: stats.updates || 0,
+          deletes: stats.deletes || 0,
+          last_vacuum: stats.last_vacuum,
+          last_autovacuum: stats.last_autovacuum,
+          last_analyze: stats.last_analyze,
+          last_autoanalyze: stats.last_autoanalyze
+        },
+        tableInfo: stats,
+        sizeInfo: sizeData,
+        indexes,
+        columns
       };
     } catch (error) {
       logger.error(`分析表 ${tableName} 失败:`, error);
       throw error;
     }
+  }
+
+  private calculateHealthScore(stats: any, sizeInfo: any, indexes: any[]): number {
+    let score = 100;
+    
+    // 检查死元组比例
+    const liveTuples = stats.live_tuples || 0;
+    const deadTuples = stats.dead_tuples || 0;
+    const totalTuples = liveTuples + deadTuples;
+    
+    if (totalTuples > 0) {
+      const deadRatio = deadTuples / totalTuples;
+      if (deadRatio > 0.2) score -= 30; // 死元组超过20%
+      else if (deadRatio > 0.1) score -= 15; // 死元组超过10%
+    }
+    
+    // 检查是否有索引
+    if (indexes.length === 0 && liveTuples > 1000) {
+      score -= 20; // 大表没有索引
+    }
+    
+    // 检查最近是否进行过分析
+    if (!stats.last_analyze && !stats.last_autoanalyze) {
+      score -= 15; // 从未分析过
+    }
+    
+    return Math.max(0, Math.min(100, score));
+  }
+  
+  private generateRecommendations(stats: any, sizeInfo: any, indexes: any[], columns: any[]): string[] {
+    const recommendations: string[] = [];
+    
+    // 检查死元组
+    const liveTuples = stats.live_tuples || 0;
+    const deadTuples = stats.dead_tuples || 0;
+    const totalTuples = liveTuples + deadTuples;
+    
+    if (totalTuples > 0) {
+      const deadRatio = deadTuples / totalTuples;
+      if (deadRatio > 0.2) {
+        recommendations.push('建议执行 VACUUM 清理死元组，死元组比例过高');
+      }
+    }
+    
+    // 检查索引
+    if (indexes.length === 0 && liveTuples > 1000) {
+      recommendations.push('建议为大表添加适当的索引以提高查询性能');
+    }
+    
+    // 检查分析统计
+    if (!stats.last_analyze && !stats.last_autoanalyze) {
+      recommendations.push('建议执行 ANALYZE 更新表统计信息');
+    }
+    
+    // 检查表大小
+    const tableSizeBytes = sizeInfo.table_size_bytes || 0;
+    if (tableSizeBytes > 1024 * 1024 * 1024) { // 1GB
+      recommendations.push('表大小较大，建议考虑分区或归档历史数据');
+    }
+    
+    if (recommendations.length === 0) {
+      recommendations.push('表状态良好，无需特殊优化');
+    }
+    
+    return recommendations;
   }
 
   /**

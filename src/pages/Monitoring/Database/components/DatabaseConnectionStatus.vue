@@ -43,15 +43,11 @@
 
 <script setup lang="ts">
 import { Database } from 'lucide-vue-next';
+import type { DatabaseStatus } from '../types/database.types';
 
-interface DatabaseStatus {
-  connected: boolean;
-  version: string;
-  activeConnections: number;
-  maxConnections: number;
+interface Props {
+  dbStatus: DatabaseStatus | null
 }
 
-defineProps<{
-  dbStatus: DatabaseStatus | null;
-}>()
+defineProps<Props>()
 </script>

@@ -8,16 +8,16 @@
 import { getClient, query } from '../../../config/database.js';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 import type {
-  BatchOperationResult,
-  BatchUpdateRequest,
-  ConfigCategoryStats,
-  CreateSystemConfigRequest,
-  PaginatedConfigHistory,
-  PaginatedSystemConfigs,
-  ResetConfigRequest,
-  SystemConfig,
-  SystemConfigQuery,
-  UpdateSystemConfigRequest
+    BatchOperationResult,
+    BatchUpdateRequest,
+    ConfigCategoryStats,
+    CreateSystemConfigRequest,
+    PaginatedConfigHistory,
+    PaginatedSystemConfigs,
+    ResetConfigRequest,
+    SystemConfig,
+    SystemConfigQuery,
+    UpdateSystemConfigRequest
 } from '../types/systemConfigs.types.js';
 import { SystemConfigsRepository } from './systemConfigsRepository.js';
 
@@ -178,7 +178,8 @@ export class SystemConfigsService {
    */
   async batchUpdateConfigs(
     batchData: BatchUpdateRequest, 
-    userId: string
+    userId: string,
+    userRole?: string
   ): Promise<BatchOperationResult> {
     // 验证批量更新请求
     const validation = SystemConfigsValidation.validateBatchUpdateRequest(batchData);
@@ -213,7 +214,7 @@ export class SystemConfigsService {
           }
 
           // 获取当前配置信息
-          const currentConfig = await this.repository.getConfigByKey(config.config_key);
+          const currentConfig = await this.repository.getConfigByKey(config.config_key, userRole);
           if (!currentConfig) {
             errors.push({ config_key: config.config_key, error: '配置不存在' });
             continue;
@@ -432,7 +433,7 @@ export class SystemConfigsService {
 
     // 获取可编辑配置数量
     let editableQuery = 'SELECT COUNT(*) FROM system_configs WHERE is_editable = true';
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       editableQuery += ' AND is_public = true';
     }
     

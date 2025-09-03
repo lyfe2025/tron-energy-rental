@@ -232,11 +232,20 @@ export class AdminRoleService {
   /**
    * 为管理员分配角色（确保每个管理员只能有一个角色）
    */
-  static async assignRole(adminId: string, roleId: string): Promise<boolean> {
+  static async assignRole(adminId: string, roleId: string | number): Promise<boolean> {
     console.log('🔍 [AdminRoleService] 分配角色请求:')
     console.log('  管理员ID:', adminId)
     console.log('  角色ID:', roleId)
     console.log('  角色ID类型:', typeof roleId)
+    
+    // 确保roleId是整数类型
+    const roleIdInt = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+    if (isNaN(roleIdInt)) {
+      throw new Error('角色ID必须是有效的整数');
+    }
+    
+    console.log('  转换后的角色ID:', roleIdInt)
+    console.log('  转换后的角色ID类型:', typeof roleIdInt)
     
     const client = await pool.connect();
     
@@ -260,7 +269,7 @@ export class AdminRoleService {
       console.log('🔍 [AdminRoleService] 检查角色是否存在...')
       const roleExists = await client.query(
         'SELECT id FROM roles WHERE id = $1 AND status = 1',
-        [roleId]
+        [roleIdInt]
       );
       console.log('🔍 [AdminRoleService] 角色存在检查结果:', roleExists.rows.length > 0)
       console.log('🔍 [AdminRoleService] 找到的角色:', roleExists.rows)
@@ -281,7 +290,7 @@ export class AdminRoleService {
       console.log('🔍 [AdminRoleService] 分配新角色...')
       const insertResult = await client.query(
         'INSERT INTO admin_roles (admin_id, role_id) VALUES ($1, $2)',
-        [adminId, roleId]
+        [adminId, roleIdInt]
       );
       console.log('🔍 [AdminRoleService] 插入结果:', insertResult.rowCount)
 
@@ -300,11 +309,17 @@ export class AdminRoleService {
   /**
    * 移除管理员角色
    */
-  static async removeRole(adminId: string, roleId: string): Promise<boolean> {
+  static async removeRole(adminId: string, roleId: string | number): Promise<boolean> {
     try {
+      // 确保roleId是整数类型
+      const roleIdInt = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+      if (isNaN(roleIdInt)) {
+        throw new Error('角色ID必须是有效的整数');
+      }
+      
       const result = await pool.query(
         'DELETE FROM admin_roles WHERE admin_id = $1 AND role_id = $2',
-        [adminId, roleId]
+        [adminId, roleIdInt]
       );
 
       return result.rowCount > 0;
@@ -338,7 +353,7 @@ export class AdminRoleService {
   /**
    * 批量更新管理员角色
    */
-  static async updateAdminRoles(adminId: string, roleIds: string[]): Promise<boolean> {
+  static async updateAdminRoles(adminId: string, roleIds: (string | number)[]): Promise<boolean> {
     const client = await pool.connect();
     
     try {
@@ -352,7 +367,16 @@ export class AdminRoleService {
 
       // 分配新角色
       if (roleIds.length > 0) {
-        const values = roleIds.map((roleId, index) => 
+        // 确保所有roleId都是整数类型
+        const roleIdsInt = roleIds.map(roleId => {
+          const roleIdInt = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+          if (isNaN(roleIdInt)) {
+            throw new Error(`角色ID必须是有效的整数: ${roleId}`);
+          }
+          return roleIdInt;
+        });
+        
+        const values = roleIdsInt.map((roleId, index) => 
           `($1, $${index + 2})`
         ).join(', ');
         
@@ -361,7 +385,7 @@ export class AdminRoleService {
           VALUES ${values}
         `;
         
-        await client.query(query, [adminId, ...roleIds]);
+        await client.query(query, [adminId, ...roleIdsInt]);
       }
 
       await client.query('COMMIT');
@@ -378,7 +402,13 @@ export class AdminRoleService {
   /**
    * 获取角色的权限列表
    */
-  static async getRolePermissions(roleId: string): Promise<any[]> {
+  static async getRolePermissions(roleId: string | number): Promise<any[]> {
+    // 确保roleId是整数类型
+    const roleIdInt = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+    if (isNaN(roleIdInt)) {
+      throw new Error('角色ID必须是有效的整数');
+    }
+    
     const query = `
       SELECT 
         m.id,
@@ -393,7 +423,7 @@ export class AdminRoleService {
       ORDER BY m.sort ASC
     `;
     
-    const result = await pool.query(query, [roleId]);
+    const result = await pool.query(query, [roleIdInt]);
     return result.rows;
   }
 }

@@ -189,7 +189,7 @@ export class SystemConfigsController {
         return;
       }
 
-      const result = await this.service.batchUpdateConfigs(batchData, String(userId));
+      const result = await this.service.batchUpdateConfigs(batchData, String(userId), req.user?.role);
 
       const response: ApiResponse = {
         success: true,

@@ -7,7 +7,7 @@
         </div>
         <div class="ml-4">
           <p class="text-sm font-medium text-gray-600">数据表数量</p>
-          <p class="text-2xl font-bold text-gray-900">{{ dbStats?.tableCount || 0 }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ formatNumber(dbStats?.tableCount || 0) }}</p>
         </div>
       </div>
     </div>
@@ -19,7 +19,7 @@
         </div>
         <div class="ml-4">
           <p class="text-sm font-medium text-gray-600">用户总数</p>
-          <p class="text-2xl font-bold text-gray-900">{{ dbStats?.userCount || 0 }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ formatNumber(dbStats?.userCount || 0) }}</p>
         </div>
       </div>
     </div>
@@ -31,7 +31,7 @@
         </div>
         <div class="ml-4">
           <p class="text-sm font-medium text-gray-600">订单总数</p>
-          <p class="text-2xl font-bold text-gray-900">{{ dbStats?.orderCount || 0 }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ formatNumber(dbStats?.orderCount || 0) }}</p>
         </div>
       </div>
     </div>
@@ -51,21 +51,15 @@
 </template>
 
 <script setup lang="ts">
-import type { DatabaseStats } from '@/api/monitoring';
 import { HardDrive, ShoppingCart, Table, Users } from 'lucide-vue-next';
+import { useDatabaseStats } from '../composables/useDatabaseStats';
+import type { DatabaseStats } from '../types/database.types';
 
-defineProps<{
-  dbStats: DatabaseStats | null;
-}>()
-
-// 格式化文件大小
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+interface Props {
+  dbStats: DatabaseStats | null
 }
+
+defineProps<Props>()
+
+const { formatSize, formatNumber } = useDatabaseStats()
 </script>

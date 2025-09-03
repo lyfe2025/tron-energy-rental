@@ -1,21 +1,21 @@
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import type {
-  Position,
-  PositionQuery,
-  CreatePositionRequest,
-  UpdatePositionRequest,
-  PositionListResponse,
-  PositionDetailResponse,
-  CreatePositionResponse,
-  UpdatePositionResponse,
-  DeletePositionResponse,
-  PositionStats,
-  PositionStatsResponse,
-  BatchPositionOperation,
-  BatchOperationResponse,
-  MovePositionRequest,
-  MovePositionResponse,
-  Pagination
+    BatchOperationResponse,
+    BatchPositionOperation,
+    CreatePositionRequest,
+    CreatePositionResponse,
+    DeletePositionResponse,
+    MovePositionRequest,
+    MovePositionResponse,
+    Pagination,
+    Position,
+    PositionDetailResponse,
+    PositionListResponse,
+    PositionQuery,
+    PositionStats,
+    PositionStatsResponse,
+    UpdatePositionRequest,
+    UpdatePositionResponse
 } from '../types'
 
 // API 基础路径
@@ -269,20 +269,36 @@ export function usePositions() {
   // 获取岗位选项（用于下拉框）
   const getPositionOptions = async (departmentId?: number) => {
     try {
-      const query: PositionQuery = {
-        status: 1 // 1表示启用状态
-      }
+      const token = localStorage.getItem('admin_token')
       
+      let url = `${API_BASE}/options`
       if (departmentId) {
-        query.department_id = departmentId
+        url += `?department_id=${departmentId}`
       }
       
-      const positionList = await loadPositions(query)
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
       
-      return positionList.map(position => ({
-        value: position.id,
-        label: position.name
-      }))
+      if (!data.success) {
+        throw new Error(data.message || '获取岗位选项失败')
+      }
+
+      // 如果指定了部门ID，则过滤岗位
+      if (departmentId) {
+        return data.data.filter((position: any) => position.department_id === departmentId)
+      }
+      
+      return data.data
     } catch (err) {
       console.error('获取岗位选项失败:', err)
       return []

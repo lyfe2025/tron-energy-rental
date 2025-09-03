@@ -361,6 +361,9 @@ router.get('/:id/permissions', [
     // 获取管理员权限
     const permissions = await AdminService.getAdminPermissions(id);
     
+    // 获取管理员的角色信息
+    const roles = await AdminRoleService.getAdminRoles(id);
+    
     // 获取所有可用权限以便前端显示（使用包含分组信息的权限数据）
     const allPermissions = await AdminRoleService.getPermissions();
     
@@ -375,6 +378,8 @@ router.get('/:id/permissions', [
       success: true,
       data: {
         adminId: id,
+        username: admin.username, // 添加用户名
+        roles: roles, // 添加角色信息
         allPermissions: allPermissionsWithGroup, // 前端期望的字段名
         selectedPermissions: permissions
       }

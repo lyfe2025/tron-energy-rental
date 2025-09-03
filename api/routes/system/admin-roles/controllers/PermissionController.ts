@@ -12,68 +12,42 @@ export class PermissionController {
    */
   static async getStats(req: Request, res: Response) {
     try {
-      // 获取各种统计数据
-      const [
-        totalAdmins,
+      // 获取活跃管理员数量
+      const activeAdminsQuery = 'SELECT COUNT(*) as count FROM admins WHERE status = $1';
+      const activeAdminsResult = await query(activeAdminsQuery, ['active']);
+      const activeAdmins = parseInt(activeAdminsResult.rows[0].count);
+
+      // 获取总角色数量
+      const totalRolesQuery = 'SELECT COUNT(*) as count FROM roles WHERE status = $1';
+      const totalRolesResult = await query(totalRolesQuery, [1]);
+      const totalRoles = parseInt(totalRolesResult.rows[0].count);
+
+      // 获取总权限数量
+      const totalPermissionsQuery = 'SELECT COUNT(*) as count FROM menus WHERE permission IS NOT NULL AND status = $1';
+      const totalPermissionsResult = await query(totalPermissionsQuery, [1]);
+      const totalPermissions = parseInt(totalPermissionsResult.rows[0].count);
+
+      // 获取角色分配数量
+      const roleAssignmentsQuery = 'SELECT COUNT(*) as count FROM admin_roles';
+      const roleAssignmentsResult = await query(roleAssignmentsQuery);
+      const roleAssignments = parseInt(roleAssignmentsResult.rows[0].count);
+
+      const stats = {
+        activeAdmins,
         totalRoles,
-        totalAssignments,
-        recentAssignments
-      ] = await Promise.all([
-        query('SELECT COUNT(*) as count FROM admins WHERE status = \'active\''),
-        query('SELECT COUNT(*) as count FROM roles WHERE status = \'active\''),
-        query('SELECT COUNT(*) as count FROM admin_roles'),
-        query(`
-          SELECT COUNT(*) as count 
-          FROM admin_roles 
-          WHERE created_at >= NOW() - INTERVAL '7 days'
-        `)
-      ]);
-
-      // 获取角色分布统计
-      const roleDistribution = await query(`
-        SELECT 
-          r.name as role_name,
-          COUNT(ar.admin_id) as admin_count
-        FROM roles r
-        LEFT JOIN admin_roles ar ON r.id = ar.role_id
-        WHERE r.status = 'active'
-        GROUP BY r.id, r.name
-        ORDER BY admin_count DESC
-      `);
-
-      // 获取部门分布统计
-      const departmentStats = await query(`
-        SELECT 
-          d.name as department_name,
-          COUNT(DISTINCT a.id) as admin_count,
-          COUNT(ar.admin_id) as role_assignments
-        FROM departments d
-        LEFT JOIN positions p ON d.id = p.department_id
-        LEFT JOIN admins a ON p.id = a.position_id AND a.status = 'active'
-        LEFT JOIN admin_roles ar ON a.id = ar.admin_id
-        GROUP BY d.id, d.name
-        ORDER BY admin_count DESC
-      `);
+        totalPermissions,
+        roleAssignments
+      };
 
       res.json({
         success: true,
-        data: {
-          overview: {
-            totalAdmins: parseInt(totalAdmins.rows[0].count),
-            totalRoles: parseInt(totalRoles.rows[0].count),
-            totalAssignments: parseInt(totalAssignments.rows[0].count),
-            recentAssignments: parseInt(recentAssignments.rows[0].count)
-          },
-          roleDistribution: roleDistribution.rows,
-          departmentStats: departmentStats.rows
-        }
+        data: stats
       });
     } catch (error) {
-      console.error('获取统计信息失败:', error);
+      console.error('获取统计数据失败:', error);
       res.status(500).json({
         success: false,
-        message: '获取统计信息失败',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: '获取统计数据失败'
       });
     }
   }
@@ -196,7 +170,7 @@ export class PermissionController {
           status,
           sort_order
         FROM roles
-        WHERE status = 'active'
+        WHERE status = 1
         ORDER BY sort_order ASC, id ASC
       `;
 

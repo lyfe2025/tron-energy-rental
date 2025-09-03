@@ -68,8 +68,23 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('admin_user');
       
       // 触发自定义事件，让应用知道需要处理认证问题
-      // 完全避免使用window.location，防止页面刷新
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    } else if (error.response?.status === 403) {
+      // 检查是否是会话失效（被强制下线）
+      const message = error.response?.data?.message || '';
+      if (message.includes('会话已失效') || message.includes('请重新登录')) {
+        // 被强制下线，清除本地存储
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        
+        // 触发被强制下线事件
+        window.dispatchEvent(new CustomEvent('auth:forced_logout', {
+          detail: {
+            message: message,
+            reason: 'forced_logout'
+          }
+        }));
+      }
     }
     
     return Promise.reject(error);

@@ -45,15 +45,15 @@ export const systemConfigsAPI = {
    * 获取所有设置配置（别名方法）
    */
   getAllSettingsConfigs: () => 
-    apiClient.get<ApiResponse<SystemConfig[]>>('/api/system/configs'),
+    apiClient.get<ApiResponse<SystemConfig[]>>('/api/system-configs/all-settings'),
 
   /**
    * 批量更新配置（别名方法）
    */
   updateConfigs: (configs: Array<{ config_key: string; config_value: any }>, changeReason?: string) => 
-    apiClient.post<ApiResponse<void>>('/api/system/configs/batch', { 
+    apiClient.put<ApiResponse<void>>('/api/system-configs/batch/update', { 
       configs, 
-      changeReason 
+      change_reason: changeReason 
     })
 };
 

@@ -4,7 +4,7 @@
  */
 import * as si from 'systeminformation';
 import { logger } from '../../utils/logger.js';
-import type { SystemInfo, Performance, MemoryUsage, DiskUsage } from './types/monitoring.types.js';
+import type { DiskUsage, MemoryUsage, Performance, SystemInfo } from './types/monitoring.types.js';
 
 export class SystemMonitor {
   /**
@@ -42,10 +42,13 @@ export class SystemMonitor {
       ]);
 
       // 计算内存使用情况
+      // 在macOS等系统中，available字段更准确地反映了实际可用内存
+      // used字段包含了缓存和缓冲区，这些实际上是可以释放的内存
+      const actualUsed = memory.total - memory.available;
       const memoryUsage: MemoryUsage = {
-        used: memory.used,
+        used: actualUsed,
         total: memory.total,
-        percentage: parseFloat(((memory.used / memory.total) * 100).toFixed(2))
+        percentage: parseFloat(((actualUsed / memory.total) * 100).toFixed(2))
       };
 
       // 获取主磁盘信息（通常是第一个磁盘）
