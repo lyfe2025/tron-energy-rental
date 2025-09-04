@@ -7,3 +7,4 @@ curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: applicati
 就要检查：前端调用的API路径与后端注册的路由是否匹配
 前端期望的数据结构与后端返回的数据结构是否匹配
 5.执行完后运行rm -rf node_modules/.cache && rm -rf dist && npm run check来验证所有TypeScript错误是否已修复
+6.前端服务运行在5173端口，后端运行在3001端口。
