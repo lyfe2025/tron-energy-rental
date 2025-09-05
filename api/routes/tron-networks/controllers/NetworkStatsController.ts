@@ -3,10 +3,10 @@
  * 包含：链参数获取、节点信息、区块信息、网络统计等功能
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
-import https from 'https';
 import http from 'http';
+import https from 'https';
 import { URL } from 'url';
+import { query } from '../../../config/database.js';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

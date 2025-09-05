@@ -314,12 +314,31 @@ export class SystemConfigsRepository {
     changeReason: string,
     userId: string
   ): Promise<void> {
+    console.log('📜 [配置历史] 开始记录配置历史:', {
+      configId,
+      oldValue,
+      newValue,
+      changeReason,
+      userId
+    });
+    
+    // 将字符串值转换为JSON格式以适应jsonb字段
+    const oldValueJson = JSON.stringify(oldValue);
+    const newValueJson = JSON.stringify(newValue);
+    
+    console.log('📜 [配置历史] JSON转换结果:', {
+      oldValueJson,
+      newValueJson
+    });
+    
     await query(
       `INSERT INTO system_config_history 
        (entity_type, entity_id, operation_type, old_value, new_value, change_reason, user_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      ['system_config', configId, 'update', oldValue, newValue, changeReason, userId]
+      ['system_config', configId, 'update', oldValueJson, newValueJson, changeReason, userId]
     );
+    
+    console.log('✅ [配置历史] 配置历史记录成功');
   }
 
   /**
