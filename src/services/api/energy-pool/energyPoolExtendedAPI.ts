@@ -13,20 +13,40 @@ export interface EnergyPoolStatistics {
   activeAccounts: number;
   totalEnergy: number;
   availableEnergy: number;
-  reservedEnergy: number;
+  totalBandwidth: number;
+  availableBandwidth: number;
   utilizationRate: number;
+  bandwidthUtilizationRate: number;
 }
 
 export interface EnergyPoolAccount {
   id: string;
   name: string;
   tron_address: string;
+  private_key_encrypted: string;
   total_energy: number;
   available_energy: number;
-  reserved_energy: number;
+  total_bandwidth: number;
+  available_bandwidth: number;
   status: 'active' | 'inactive' | 'maintenance';
+  account_type: 'own_energy' | 'agent_energy' | 'third_party';
+  priority: number;
+  cost_per_energy: number;
+  description?: string;
+  contact_info?: any;
+  daily_limit?: number;
+  monthly_limit?: number;
+  network_id?: string;
+  network_config?: {
+    id: string;
+    name: string;
+    type: string;
+    rpc_url: string;
+    chain_id?: string;
+  };
   created_at: string;
   updated_at: string;
+  last_updated_at?: string;
 }
 
 export interface TodayConsumption {
@@ -65,10 +85,24 @@ export const energyPoolExtendedAPI = {
     apiClient.get<ApiResponse<EnergyPoolStatistics>>('/api/energy-pool/statistics'),
 
   /**
-   * 获取能量池账户列表
+   * 获取可用的TRON网络列表
    */
-  getAccounts: () => 
-    apiClient.get<ApiResponse<EnergyPoolAccount[]>>('/api/energy-pool/accounts'),
+  getNetworks: () => 
+    apiClient.get<ApiResponse<Array<{
+      id: string;
+      name: string;
+      type: string;
+      rpc_url: string;
+      is_active: boolean;
+      health_status?: string;
+    }>>>('/api/energy-pool/networks'),
+
+  /**
+   * 获取能量池账户列表
+   * 支持网络过滤
+   */
+  getAccounts: (params?: { network_id?: string }) => 
+    apiClient.get<ApiResponse<EnergyPoolAccount[]>>('/api/energy-pool/accounts', { params }),
 
   /**
    * 刷新能量池状态
@@ -85,10 +119,77 @@ export const energyPoolExtendedAPI = {
     }),
 
   /**
-   * 添加能量池账户
+   * 验证TRON地址并获取账户信息
    */
-  addAccount: (accountData: Omit<EnergyPoolAccount, 'id' | 'created_at' | 'updated_at'>) => 
-    apiClient.post<ApiResponse<{ accountId: string }>>('/api/energy-pool/accounts', accountData),
+  validateTronAddress: (data: {
+    address: string
+    private_key?: string
+    network_id: string
+  }) => 
+    apiClient.post<ApiResponse<{
+      address: string
+      balance: number
+      usdtBalance: number
+      energy: {
+        total: number
+        available: number
+        used: number
+      }
+      bandwidth: any
+      frozenInfo: any[]
+      estimatedCostPerEnergy: number
+      networkInfo: {
+        id: string
+        name: string
+        type: string
+        rpcUrl: string
+      }
+      usdtInfo?: {
+        error?: string
+      }
+      contractInfo?: {
+        address: string
+        decimals: number
+        type: string
+        symbol: string
+        name: string
+      } | null
+      isValid: boolean
+    }>>('/api/energy-pool/accounts/validate-address', data),
+
+  /**
+   * 添加能量池账户（自动获取TRON数据）
+   */
+  addAccount: (accountData: {
+    network_id: string
+    name: string
+    tron_address: string
+    private_key_encrypted: string
+    account_type?: string
+    priority?: number
+    description?: string
+    daily_limit?: number
+    monthly_limit?: number
+    status?: string
+  }) => 
+    apiClient.post<ApiResponse<{ 
+      id: string
+      tronData: {
+        total_energy: number
+        available_energy: number
+        cost_per_energy: number
+        balance: number
+        frozen_balance: number
+      }
+    }>>('/api/energy-pool/accounts', accountData),
+
+  /**
+   * 获取单个能量池账户详情
+   */
+  getAccount: (id: string, includePrivateKey: boolean = false) => 
+    apiClient.get<ApiResponse<EnergyPoolAccount>>(`/api/energy-pool/accounts/${id}`, {
+      params: includePrivateKey ? { include_private_key: 'true' } : {}
+    }),
 
   /**
    * 更新能量池账户

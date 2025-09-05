@@ -15,13 +15,26 @@ export const setPrimaryNetwork: RouteHandler = async (req: Request, res: Respons
   try {
     const { id, networkId } = req.params;
     
-    // 检查配置是否存在
-    const configCheck = await query(
-      'SELECT id FROM bot_network_configs WHERE bot_id = $1 AND network_id = $2',
-      [id, networkId]
+    // 检查机器人是否存在并获取当前网络配置
+    const botResult = await query(
+      'SELECT id, network_configurations FROM telegram_bots WHERE id = $1',
+      [id]
     );
     
-    if (configCheck.rows.length === 0) {
+    if (botResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    const bot = botResult.rows[0];
+    const networkConfigs = bot.network_configurations || [];
+    
+    // 检查网络配置是否存在
+    const configExists = networkConfigs.some((config: any) => config.networkId === networkId);
+    if (!configExists) {
       res.status(404).json({
         success: false,
         message: '网络配置不存在'
@@ -29,16 +42,16 @@ export const setPrimaryNetwork: RouteHandler = async (req: Request, res: Respons
       return;
     }
     
-    // 将所有网络设为非主要
-    await query(
-      'UPDATE bot_network_configs SET is_primary = false WHERE bot_id = $1',
-      [id]
-    );
+    // 更新网络配置：将所有网络设为非主要，指定网络设为主要
+    const updatedConfigs = networkConfigs.map((config: any) => ({
+      ...config,
+      isPrimary: config.networkId === networkId
+    }));
     
-    // 设置指定网络为主要
+    // 更新机器人的网络配置
     await query(
-      'UPDATE bot_network_configs SET is_primary = true, updated_at = CURRENT_TIMESTAMP WHERE bot_id = $1 AND network_id = $2',
-      [id, networkId]
+      'UPDATE telegram_bots SET network_configurations = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [JSON.stringify(updatedConfigs), id]
     );
     
     // 记录配置变更历史
@@ -48,11 +61,11 @@ export const setPrimaryNetwork: RouteHandler = async (req: Request, res: Respons
         new_value, change_reason, user_id, ip_address
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
-        'bot_network_config',
-        configCheck.rows[0].id,
+        'telegram_bot',
+        id,
         'update',
-        'is_primary',
-        JSON.stringify({ is_primary: true }),
+        'network_configurations',
+        JSON.stringify({ primary_network: networkId }),
         '设置主要网络',
         req.user?.id || null,
         req.ip

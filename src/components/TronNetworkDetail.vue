@@ -90,6 +90,61 @@
           </div>
         </el-card>
 
+        <!-- 合约地址 -->
+        <el-card>
+          <template #header>
+            <div class="flex items-center">
+              <span class="text-lg font-medium">合约地址配置</span>
+              <el-tag class="ml-2" size="small" type="info">TRC20</el-tag>
+            </div>
+          </template>
+          
+          <div v-if="getContractAddresses().length > 0" class="space-y-4">
+            <div 
+              v-for="contract in getContractAddresses()" 
+              :key="contract.symbol"
+              class="border rounded-lg p-4 bg-gray-50"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <el-tag :type="contract.is_active ? 'success' : 'danger'" size="small" class="mr-2">
+                    {{ contract.symbol }}
+                  </el-tag>
+                  <span class="text-sm font-medium text-gray-700">{{ contract.name }}</span>
+                </div>
+                <el-tag size="small" type="info">{{ contract.decimals }}位精度</el-tag>
+              </div>
+              <div class="mb-2">
+                <label class="text-xs text-gray-500">合约地址</label>
+                <div class="flex items-center mt-1">
+                  <code class="flex-1 text-xs font-mono bg-white px-3 py-2 rounded border break-all">
+                    {{ contract.address }}
+                  </code>
+                  <el-button 
+                    size="small" 
+                    text 
+                    @click="copyToClipboard(contract.address)"
+                    class="ml-2"
+                  >
+                    复制
+                  </el-button>
+                </div>
+              </div>
+              <div v-if="contract.description" class="text-xs text-gray-600">
+                <label class="text-gray-500">描述：</label>{{ contract.description }}
+              </div>
+              <div v-if="contract.source" class="text-xs text-gray-500 mt-1">
+                <label class="text-gray-500">来源：</label>{{ contract.source }}
+              </div>
+            </div>
+          </div>
+          
+          <div v-else class="text-center py-8 text-gray-500">
+            <p class="text-sm">暂未配置任何合约地址</p>
+            <p class="text-xs mt-1">可通过编辑功能添加合约地址配置</p>
+          </div>
+        </el-card>
+
         <!-- 使用统计 -->
         <el-descriptions title="使用统计" :column="3" border>
           <el-descriptions-item label="关联机器人">
@@ -145,10 +200,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { networkApi } from '@/api/network'
-import type { TronNetwork, NetworkStats } from '@/types/network'
+import type { NetworkStats, TronNetwork } from '@/types/network'
+import { ElMessage } from 'element-plus'
+import { ref, watch } from 'vue'
+
+interface ContractAddress {
+  address: string
+  symbol: string
+  name: string
+  decimals: number
+  type: string
+  is_active: boolean
+  description?: string
+  source?: string
+}
 
 interface NetworkDetail {
   network: TronNetwork
@@ -278,6 +344,34 @@ const getStatusLabel = (status: string) => {
     case 'unhealthy': return '异常'
     case 'unknown': return '未知'
     default: return '未知'
+  }
+}
+
+const getContractAddresses = (): ContractAddress[] => {
+  if (!networkDetail.value?.network.config?.contract_addresses) {
+    return []
+  }
+  
+  const contracts: ContractAddress[] = []
+  const contractsObj = networkDetail.value.network.config.contract_addresses
+  
+  for (const [symbol, contractData] of Object.entries(contractsObj)) {
+    contracts.push({
+      symbol,
+      ...(contractData as ContractAddress)
+    })
+  }
+  
+  return contracts
+}
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制到剪贴板')
+  } catch (err) {
+    console.error('复制失败:', err)
+    ElMessage.error('复制失败')
   }
 }
 </script>

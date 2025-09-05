@@ -5,8 +5,8 @@
 import { Router, type Request, type Response } from 'express';
 import { query } from '../../config/database.js';
 import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
-import { buildWhereClause, buildUpdateFields, isValidBotToken } from './middleware.js';
-import type { RouteHandler, CreateBotData, UpdateBotData, PaginationParams } from './types.js';
+import { buildUpdateFields, buildWhereClause, isValidBotToken } from './middleware.js';
+import type { CreateBotData, PaginationParams, RouteHandler, UpdateBotData } from './types.js';
 
 const router: Router = Router();
 
@@ -102,16 +102,16 @@ const getBotDetails: RouteHandler = async (req: Request, res: Response) => {
       return;
     }
     
-    // 获取机器人用户统计
+    // 获取机器人用户统计 - 从users表统计有telegram_id的用户
     const userStatsResult = await query(
       `SELECT 
         COUNT(*) as total_bot_users,
         COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
         COUNT(CASE WHEN status = 'blocked' THEN 1 END) as blocked_users,
-        COUNT(CASE WHEN last_interaction_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as active_users_week
-       FROM bot_users 
-       WHERE bot_id = $1`,
-      [id]
+        COUNT(CASE WHEN updated_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as active_users_week
+       FROM users 
+       WHERE telegram_id IS NOT NULL`,
+      []
     );
     
     // 获取机器人订单统计
@@ -396,19 +396,7 @@ const deleteBot: RouteHandler = async (req: Request, res: Response) => {
       return;
     }
     
-    // 检查机器人是否有关联的用户
-    const userCheck = await query(
-      'SELECT COUNT(*) as count FROM bot_users WHERE bot_id = $1',
-      [id]
-    );
-    
-    if (parseInt(userCheck.rows[0].count) > 0) {
-      res.status(400).json({
-        success: false,
-        message: '该机器人有关联的用户，不能删除。请先处理相关用户或将机器人状态设为停用。'
-      });
-      return;
-    }
+    // 注意：bot_users表已删除，不再需要检查关联用户
     
     // 删除机器人
     await query('DELETE FROM telegram_bots WHERE id = $1', [id]);
@@ -427,7 +415,50 @@ const deleteBot: RouteHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * 获取机器人选择器列表（简化版，用于下拉选择）
+ * GET /api/bots/selector
+ * 权限：已认证用户即可
+ */
+const getBotsSelector: RouteHandler = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 [BotCRUD] 获取机器人选择器列表...');
+    
+    // 查询所有机器人的基本信息（用于选择器）
+    const botsQuery = `
+      SELECT 
+        id, 
+        bot_name as name, 
+        bot_username as username, 
+        is_active,
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status
+      FROM telegram_bots 
+      ORDER BY bot_name ASC
+    `;
+    
+    const botsResult = await query(botsQuery);
+    
+    console.log(`✅ [BotCRUD] 获取到 ${botsResult.rows.length} 个机器人供选择`);
+    
+    res.status(200).json({
+      success: true,
+      message: '获取机器人选择器列表成功',
+      data: {
+        bots: botsResult.rows
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [BotCRUD] 获取机器人选择器列表错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+};
+
 // 注册路由
+router.get('/selector', authenticateToken, getBotsSelector);  // 新增：选择器端点，只需认证
 router.get('/', authenticateToken, requireAdmin, getBotsList);
 router.get('/:id', authenticateToken, requireAdmin, getBotDetails);
 router.post('/', authenticateToken, requireAdmin, createBot);

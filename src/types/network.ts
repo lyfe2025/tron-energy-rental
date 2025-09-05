@@ -12,7 +12,22 @@ export interface TronNetwork {
   timeout_ms: number
   retry_count: number
   rate_limit_per_second: number  // 数据库中的字段名
-  config?: Record<string, any>  // 数据库中的jsonb字段
+  config?: {
+    contract_addresses?: {
+      [symbol: string]: {
+        address: string
+        symbol: string
+        name: string
+        decimals: number
+        type: string
+        is_active: boolean
+        description?: string
+        source?: string
+        added_at?: string
+      }
+    }
+    [key: string]: any
+  }  // 数据库中的jsonb字段
   health_check_url?: string  // 数据库中的字段名
   last_health_check?: string  // 数据库中的字段名
   health_status: 'unknown' | 'healthy' | 'unhealthy' | 'error'

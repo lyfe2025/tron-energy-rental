@@ -2,11 +2,11 @@ export function useStakeFormatters() {
   // 格式化TRX数量
   const formatTrx = (amount: number): string => {
     if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(2)}M TRX`
+      return `${(amount / 1000000).toFixed(6)}M TRX`
     } else if (amount >= 1000) {
-      return `${(amount / 1000).toFixed(2)}K TRX`
+      return `${(amount / 1000).toFixed(6)}K TRX`
     }
-    return `${amount.toFixed(2)} TRX`
+    return `${amount.toFixed(6)} TRX`
   }
 
   // 格式化能量数量

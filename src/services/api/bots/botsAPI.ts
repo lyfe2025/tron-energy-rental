@@ -114,16 +114,86 @@ export const botsAPI = {
     apiClient.get<ApiResponse<{ logs: unknown[] }>>(`/api/bots/${id}/logs`, { params }),
 
   /**
-   * 获取机器人网络配置
+   * 获取机器人当前网络配置（单网络模式）
    */
   getBotNetwork: (id: string) => 
     apiClient.get<ApiResponse<{ network: unknown }>>(`/api/bots/${id}/network`),
 
   /**
-   * 设置机器人网络配置
+   * 设置机器人网络配置（单网络模式）
    */
-  setBotNetwork: (id: string, networkId: string) => 
-    apiClient.put<ApiResponse<{ network: unknown }>>(`/api/bots/${id}/network`, { network_id: networkId })
+  setBotNetwork: (id: string, data: { 
+    network_id: string; 
+    config?: unknown; 
+    api_settings?: unknown; 
+    contract_addresses?: unknown; 
+    gas_settings?: unknown; 
+    monitoring_settings?: unknown; 
+  }) => 
+    apiClient.put<ApiResponse<{ network: unknown }>>(`/api/bots/${id}/network`, data),
+
+  /**
+   * 获取机器人网络配置列表（多网络模式 - 保持向后兼容）
+   */
+  getBotNetworks: (id: string) => 
+    apiClient.get<ApiResponse<{ bot_id: string; networks: unknown[] }>>(`/api/bots/${id}/networks`),
+
+  /**
+   * 为机器人添加网络配置（多网络模式）
+   */
+  addBotNetwork: (id: string, data: {
+    network_id: string;
+    is_primary?: boolean;
+    priority?: number;
+    config?: unknown;
+    api_settings?: unknown;
+    contract_addresses?: unknown;
+    gas_settings?: unknown;
+    monitoring_settings?: unknown;
+  }) => 
+    apiClient.post<ApiResponse<{ config: unknown }>>(`/api/bots/${id}/networks`, data),
+
+  /**
+   * 更新机器人网络配置
+   */
+  updateBotNetwork: (id: string, networkId: string, data: unknown) => 
+    apiClient.put<ApiResponse<{ config: unknown }>>(`/api/bots/${id}/networks/${networkId}`, data),
+
+  /**
+   * 删除机器人网络配置
+   */
+  deleteBotNetwork: (id: string, networkId: string) => 
+    apiClient.delete<ApiResponse<{ message: string }>>(`/api/bots/${id}/networks/${networkId}`),
+
+  /**
+   * 设置主要网络
+   */
+  setPrimaryNetwork: (id: string, networkId: string) => 
+    apiClient.patch<ApiResponse<{ message: string }>>(`/api/bots/${id}/networks/${networkId}/primary`),
+
+  /**
+   * 获取机器人扩展配置
+   */
+  getBotExtendedConfig: (id: string) => 
+    apiClient.get<ApiResponse<unknown>>(`/api/bots/${id}/extended-config`),
+
+  /**
+   * 更新机器人扩展配置
+   */
+  updateBotExtendedConfig: (id: string, data: unknown) => 
+    apiClient.put<ApiResponse<{ bot: unknown }>>(`/api/bots/${id}/extended-config`, data),
+
+  /**
+   * 机器人健康检查
+   */
+  performHealthCheck: (id: string) => 
+    apiClient.post<ApiResponse<unknown>>(`/api/bots/${id}/health-check`),
+
+  /**
+   * 获取机器人配置历史
+   */
+  getBotConfigHistory: (id: string, params?: { page?: number; limit?: number }) => 
+    apiClient.get<ApiResponse<{ history: unknown[]; pagination: unknown }>>(`/api/bots/${id}/config-history`, { params })
 };
 
 export default botsAPI;

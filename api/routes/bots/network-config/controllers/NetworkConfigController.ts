@@ -15,13 +15,13 @@ export const getBotNetworks: RouteHandler = async (req: Request, res: Response) 
   try {
     const { id } = req.params;
     
-    // 检查机器人是否存在
-    const botCheck = await query(
-      'SELECT id FROM telegram_bots WHERE id = $1',
+    // 检查机器人是否存在并获取网络配置
+    const botResult = await query(
+      'SELECT id, network_configurations FROM telegram_bots WHERE id = $1',
       [id]
     );
     
-    if (botCheck.rows.length === 0) {
+    if (botResult.rows.length === 0) {
       res.status(404).json({
         success: false,
         message: '机器人不存在'
@@ -29,27 +29,42 @@ export const getBotNetworks: RouteHandler = async (req: Request, res: Response) 
       return;
     }
     
-    // 获取机器人关联的网络配置
-    const networksResult = await query(
-      `SELECT 
-        bnc.id, bnc.bot_id, bnc.network_id, bnc.is_active, bnc.is_primary, bnc.priority,
-        bnc.config, bnc.api_settings, bnc.contract_addresses, bnc.gas_settings,
-        bnc.monitoring_settings, bnc.created_at, bnc.updated_at,
-        tn.name as network_name, tn.type as network_type, tn.rpc_url, tn.chain_id,
-        tn.explorer_url, tn.health_status as network_health_status, tn.is_active as network_is_active
-       FROM bot_network_configs bnc
-       JOIN tron_networks tn ON bnc.network_id = tn.id
-       WHERE bnc.bot_id = $1
-       ORDER BY bnc.priority ASC, bnc.created_at DESC`,
-      [id]
-    );
+    const bot = botResult.rows[0];
+    const networkConfigs = bot.network_configurations || [];
+    
+    // 如果有网络配置，获取网络详细信息
+    let networks = [];
+    if (networkConfigs.length > 0) {
+      const networkIds = networkConfigs.map((config: any) => config.network_id);
+      const networksResult = await query(
+        `SELECT id, name, type, rpc_url, chain_id, explorer_url, health_status, is_active
+         FROM tron_networks 
+         WHERE id = ANY($1::uuid[])`,
+        [networkIds]
+      );
+      
+      // 合并网络配置和网络信息
+      networks = networkConfigs.map((config: any) => {
+        const networkInfo = networksResult.rows.find((n: any) => n.id === config.network_id);
+        return {
+          ...config,
+          network_name: networkInfo?.name || 'Unknown',
+          network_type: networkInfo?.type || 'unknown',
+          rpc_url: networkInfo?.rpc_url || '',
+          chain_id: networkInfo?.chain_id || '',
+          explorer_url: networkInfo?.explorer_url || '',
+          network_health_status: networkInfo?.health_status || 'unknown',
+          network_is_active: networkInfo?.is_active || false
+        };
+      }).sort((a: any, b: any) => a.priority - b.priority);
+    }
     
     res.status(200).json({
       success: true,
       message: '机器人网络配置获取成功',
       data: {
         bot_id: id,
-        networks: networksResult.rows
+        networks: networks
       }
     });
     
@@ -92,7 +107,7 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
     
     // 检查机器人是否存在
     const botCheck = await query(
-      'SELECT id FROM telegram_bots WHERE id = $1',
+      'SELECT id, network_configurations FROM telegram_bots WHERE id = $1',
       [id]
     );
     
@@ -106,7 +121,7 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
     
     // 检查网络是否存在
     const networkCheck = await query(
-      'SELECT id, name FROM tron_networks WHERE id = $1',
+      'SELECT id, name, type, rpc_url FROM tron_networks WHERE id = $1',
       [network_id]
     );
     
@@ -118,13 +133,12 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
       return;
     }
     
-    // 检查是否已存在该网络配置
-    const existingConfig = await query(
-      'SELECT id FROM bot_network_configs WHERE bot_id = $1 AND network_id = $2',
-      [id, network_id]
-    );
+    const networkInfo = networkCheck.rows[0];
+    const currentConfigs = botCheck.rows[0].network_configurations || [];
     
-    if (existingConfig.rows.length > 0) {
+    // 检查是否已存在该网络配置
+    const existingConfig = currentConfigs.find((config: any) => config.network_id === network_id);
+    if (existingConfig) {
       res.status(400).json({
         success: false,
         message: '该机器人已配置此网络'
@@ -132,27 +146,33 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
       return;
     }
     
-    // 如果设置为主要网络，需要将其他网络的主要状态取消
-    if (is_primary) {
-      await query(
-        'UPDATE bot_network_configs SET is_primary = false WHERE bot_id = $1',
-        [id]
-      );
-    }
-    
-    // 创建网络配置
-    const newConfigResult = await query(
-      `INSERT INTO bot_network_configs (
-        bot_id, network_id, is_active, is_primary, priority,
-        config, api_settings, contract_addresses, gas_settings, monitoring_settings
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *`,
+    // 使用数据库函数添加网络配置
+    const result = await query(
+      `SELECT add_bot_network_config($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as success`,
       [
         id, network_id, true, is_primary, priority,
         JSON.stringify(config), JSON.stringify(api_settings),
         JSON.stringify(contract_addresses), JSON.stringify(gas_settings),
         JSON.stringify(monitoring_settings)
       ]
+    );
+    
+    if (!result.rows[0].success) {
+      res.status(500).json({
+        success: false,
+        message: '添加网络配置失败'
+      });
+      return;
+    }
+    
+    // 获取更新后的配置
+    const updatedBot = await query(
+      'SELECT network_configurations FROM telegram_bots WHERE id = $1',
+      [id]
+    );
+    
+    const newConfig = updatedBot.rows[0].network_configurations.find(
+      (config: any) => config.network_id === network_id
     );
     
     // 记录配置变更历史
@@ -163,9 +183,9 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         'bot_network_config',
-        newConfigResult.rows[0].id,
+        id,
         'create',
-        null,
+        'network_configurations',
         JSON.stringify(req.body),
         '添加机器人网络配置',
         req.user?.id || null,
@@ -177,7 +197,12 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
       success: true,
       message: '网络配置添加成功',
       data: {
-        config: newConfigResult.rows[0]
+        config: {
+          ...newConfig,
+          network_name: networkInfo.name,
+          network_type: networkInfo.type,
+          rpc_url: networkInfo.rpc_url
+        }
       }
     });
     
@@ -198,15 +223,35 @@ export const addBotNetwork: RouteHandler = async (req: Request, res: Response) =
 export const updateBotNetwork: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id, networkId } = req.params;
-    const updateData = req.body;
+    const {
+      is_active,
+      is_primary,
+      priority,
+      config,
+      api_settings,
+      contract_addresses,
+      gas_settings,
+      monitoring_settings
+    } = req.body;
     
-    // 检查配置是否存在
-    const configCheck = await query(
-      'SELECT id FROM bot_network_configs WHERE bot_id = $1 AND network_id = $2',
-      [id, networkId]
+    // 检查机器人是否存在并获取当前配置
+    const botCheck = await query(
+      'SELECT id, network_configurations FROM telegram_bots WHERE id = $1',
+      [id]
     );
     
-    if (configCheck.rows.length === 0) {
+    if (botCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    const currentConfigs = botCheck.rows[0].network_configurations || [];
+    const configIndex = currentConfigs.findIndex((config: any) => config.network_id === parseInt(networkId));
+    
+    if (configIndex === -1) {
       res.status(404).json({
         success: false,
         message: '网络配置不存在'
@@ -214,82 +259,80 @@ export const updateBotNetwork: RouteHandler = async (req: Request, res: Response
       return;
     }
     
-    // 如果设置为主要网络，需要将其他网络的主要状态取消
-    if (updateData.is_primary === true) {
-      await query(
-        'UPDATE bot_network_configs SET is_primary = false WHERE bot_id = $1 AND network_id != $2',
-        [id, networkId]
-      );
-    }
+    const currentConfig = currentConfigs[configIndex];
     
-    // 构建更新字段
-    const updateFields: string[] = [];
-    const updateValues: any[] = [];
-    let paramIndex = 1;
+    // 构建更新的配置对象
+    const updatedConfig = {
+      ...currentConfig,
+      ...(is_active !== undefined && { is_active }),
+      ...(is_primary !== undefined && { is_primary }),
+      ...(priority !== undefined && { priority }),
+      ...(config !== undefined && { config }),
+      ...(api_settings !== undefined && { api_settings }),
+      ...(contract_addresses !== undefined && { contract_addresses }),
+      ...(gas_settings !== undefined && { gas_settings }),
+      ...(monitoring_settings !== undefined && { monitoring_settings }),
+      updated_at: new Date().toISOString()
+    };
     
-    const allowedFields = [
-      'is_active', 'is_primary', 'priority', 'config',
-      'api_settings', 'contract_addresses', 'gas_settings', 'monitoring_settings'
-    ];
+    // 使用数据库函数更新网络配置
+    const result = await query(
+      `SELECT update_bot_network_config($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as success`,
+      [
+        id, networkId,
+        updatedConfig.is_active,
+        updatedConfig.is_primary,
+        updatedConfig.priority,
+        JSON.stringify(updatedConfig.config),
+        JSON.stringify(updatedConfig.api_settings),
+        JSON.stringify(updatedConfig.contract_addresses),
+        JSON.stringify(updatedConfig.gas_settings),
+        JSON.stringify(updatedConfig.monitoring_settings)
+      ]
+    );
     
-    for (const field of allowedFields) {
-      if (updateData[field] !== undefined) {
-        if (['config', 'api_settings', 'contract_addresses', 'gas_settings', 'monitoring_settings'].includes(field)) {
-          updateFields.push(`${field} = $${paramIndex}`);
-          updateValues.push(JSON.stringify(updateData[field]));
-        } else {
-          updateFields.push(`${field} = $${paramIndex}`);
-          updateValues.push(updateData[field]);
-        }
-        paramIndex++;
-      }
-    }
-    
-    if (updateFields.length === 0) {
-      res.status(400).json({
+    if (!result.rows[0].success) {
+      res.status(500).json({
         success: false,
-        message: '没有提供要更新的字段'
+        message: '更新网络配置失败'
       });
       return;
     }
     
-    // 添加更新时间
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(id, networkId);
+    // 获取更新后的配置
+    const updatedBot = await query(
+      'SELECT network_configurations FROM telegram_bots WHERE id = $1',
+      [id]
+    );
     
-    // 执行更新
-    const updateQuery = `
-      UPDATE bot_network_configs 
-      SET ${updateFields.join(', ')}
-      WHERE bot_id = $${paramIndex} AND network_id = $${paramIndex + 1}
-      RETURNING *
-    `;
-    
-    const updatedConfig = await query(updateQuery, updateValues);
+    const newConfig = updatedBot.rows[0].network_configurations.find(
+      (config: any) => config.network_id === parseInt(networkId)
+    );
     
     // 记录配置变更历史
     await query(
       `INSERT INTO system_config_history (
         entity_type, entity_id, operation_type, field_name,
-        new_value, change_reason, user_id, ip_address
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        old_value, new_value, change_reason, user_id, ip_address
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         'bot_network_config',
-        configCheck.rows[0].id,
+        id,
         'update',
-        null,
-        JSON.stringify(updateData),
+        Object.keys(req.body).join(','),
+        JSON.stringify(currentConfig),
+        JSON.stringify(req.body),
         '更新机器人网络配置',
         req.user?.id || null,
         req.ip
       ]
     );
     
-    res.status(200).json({
+    res.json({
       success: true,
       message: '网络配置更新成功',
       data: {
-        config: updatedConfig.rows[0]
+        config: newConfig
       }
     });
     
@@ -311,13 +354,24 @@ export const deleteBotNetwork: RouteHandler = async (req: Request, res: Response
   try {
     const { id, networkId } = req.params;
     
-    // 检查配置是否存在
-    const configCheck = await query(
-      'SELECT id, is_primary FROM bot_network_configs WHERE bot_id = $1 AND network_id = $2',
-      [id, networkId]
+    // 检查机器人是否存在并获取当前配置
+    const botCheck = await query(
+      'SELECT id, network_configurations FROM telegram_bots WHERE id = $1',
+      [id]
     );
     
-    if (configCheck.rows.length === 0) {
+    if (botCheck.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    const currentConfigs = botCheck.rows[0].network_configurations || [];
+    const configIndex = currentConfigs.findIndex((config: any) => config.network_id === parseInt(networkId));
+    
+    if (configIndex === -1) {
       res.status(404).json({
         success: false,
         message: '网络配置不存在'
@@ -325,30 +379,30 @@ export const deleteBotNetwork: RouteHandler = async (req: Request, res: Response
       return;
     }
     
-    const config = configCheck.rows[0];
+    const config = currentConfigs[configIndex];
     
     // 检查是否为主要网络
-    if (config.is_primary) {
-      // 检查是否还有其他网络配置
-      const otherNetworksResult = await query(
-        'SELECT COUNT(*) as count FROM bot_network_configs WHERE bot_id = $1 AND network_id != $2',
-        [id, networkId]
-      );
-      
-      if (parseInt(otherNetworksResult.rows[0].count) > 0) {
-        res.status(400).json({
-          success: false,
-          message: '不能删除主要网络配置，请先设置其他网络为主要网络'
-        });
-        return;
-      }
+    if (config.is_primary && currentConfigs.length > 1) {
+      res.status(400).json({
+        success: false,
+        message: '不能删除主要网络配置，请先设置其他网络为主要网络'
+      });
+      return;
     }
     
-    // 删除配置
-    await query(
-      'DELETE FROM bot_network_configs WHERE bot_id = $1 AND network_id = $2',
+    // 使用数据库函数删除网络配置
+    const result = await query(
+      `SELECT remove_bot_network_config($1, $2) as success`,
       [id, networkId]
     );
+    
+    if (!result.rows[0].success) {
+      res.status(500).json({
+        success: false,
+        message: '删除网络配置失败'
+      });
+      return;
+    }
     
     // 记录配置变更历史
     await query(
@@ -358,17 +412,17 @@ export const deleteBotNetwork: RouteHandler = async (req: Request, res: Response
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         'bot_network_config',
-        config.id,
+        id,
         'delete',
-        null,
-        JSON.stringify({ network_id: networkId }),
+        'network_configurations',
+        JSON.stringify(config),
         '删除机器人网络配置',
         req.user?.id || null,
         req.ip
       ]
     );
     
-    res.status(200).json({
+    res.json({
       success: true,
       message: '网络配置删除成功'
     });

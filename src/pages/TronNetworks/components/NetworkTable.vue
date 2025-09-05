@@ -41,6 +41,27 @@
       
       <el-table-column prop="rpc_url" label="RPC地址" min-width="200" show-overflow-tooltip />
       
+      <el-table-column label="合约地址" min-width="360" show-overflow-tooltip>
+        <template #default="{ row }">
+          <div class="space-y-1">
+            <div 
+              v-if="getUSDTContract(row)" 
+              class="flex items-center text-sm"
+            >
+              <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full mr-2 flex-shrink-0">
+                USDT
+              </span>
+              <code class="text-xs text-gray-600 font-mono bg-gray-50 px-2 py-1 rounded break-all">
+                {{ getUSDTContract(row) }}
+              </code>
+            </div>
+            <div v-else class="text-xs text-gray-400">
+              未配置合约地址
+            </div>
+          </div>
+        </template>
+      </el-table-column>
+      
       <el-table-column prop="health_status" label="连接状态" width="100">
         <template #default="{ row }">
           <el-tag :type="getStatusTagType(row.health_status)" size="small">
@@ -136,6 +157,20 @@ interface TronNetwork {
   description?: string
   created_at: string
   updated_at: string
+  // 合约地址配置
+  config?: {
+    contract_addresses?: {
+      [key: string]: {
+        address: string
+        symbol: string
+        name: string
+        decimals: number
+        type: string
+        is_active: boolean
+        description?: string
+      }
+    }
+  }
   // 前端扩展字段
   connection_status?: 'connected' | 'connecting' | 'disconnected'
   latency?: number
@@ -198,6 +233,13 @@ const getStatusLabel = (status: string) => {
     case 'unknown': return '未知'
     default: return '未知'
   }
+}
+
+const getUSDTContract = (network: TronNetwork) => {
+  if (!network.config?.contract_addresses?.USDT) {
+    return null
+  }
+  return network.config.contract_addresses.USDT.address
 }
 </script>
 

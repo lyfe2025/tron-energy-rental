@@ -22,10 +22,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">优先级</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">配置网络</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总能量</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">可用能量</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成本/能量</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -102,17 +99,8 @@
                 </button>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ formatEnergy(account.total_energy) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ formatEnergy(account.available_energy) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ account.cost_per_energy }} TRX
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div class="flex items-center justify-end space-x-2">
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+              <div class="flex items-center justify-center space-x-2">
                 <!-- 维护中状态显示特殊按钮 -->
                 <button
                   v-if="account.status === 'maintenance'"
@@ -142,21 +130,7 @@
                 >
                   <Play class="h-4 w-4" />
                 </button>
-                <button
-                  @click="$emit('manageNetworks', account)"
-                  class="text-blue-600 hover:text-blue-900"
-                  title="网络管理"
-                >
-                  <Network class="h-4 w-4" />
-                </button>
-                <button
-                  @click="$emit('syncAccount', account)"
-                  :disabled="loading.sync"
-                  class="text-orange-600 hover:text-orange-900 disabled:opacity-50"
-                  title="同步账户"
-                >
-                  <RefreshCw :class="['h-4 w-4', { 'animate-spin': loading.sync && syncingAccountId === account.id }]" />
-                </button>
+
                 <button
                   @click="$emit('editAccount', account)"
                   class="text-indigo-600 hover:text-indigo-900"
@@ -196,15 +170,13 @@
 <script setup lang="ts">
 import NetworkStatus from '@/components/NetworkStatus.vue'
 import {
-    Database,
-    Edit,
-    Eye,
-    Network,
-    Play,
-    Power,
-    RefreshCw,
-    Trash2,
-    Wallet
+  Database,
+  Edit,
+  Eye,
+  Play,
+  Power,
+  Trash2,
+  Wallet
 } from 'lucide-vue-next'
 import type { EnergyPoolAccount } from '../composables/useEnergyPool'
 
@@ -213,7 +185,6 @@ interface Props {
   selectedAccounts: string[]
   isAllSelected: boolean
   loading: any
-  syncingAccountId: string | null
   formatEnergy: (value: number) => string
   formatAddress: (address: string) => string
   getStatusClass: (status: string) => string
@@ -230,8 +201,7 @@ defineEmits<{
   handleAccountNetworkSetting: [account: EnergyPoolAccount]
   confirmDisableAccount: [account: EnergyPoolAccount]
   confirmEnableAccount: [account: EnergyPoolAccount]
-  manageNetworks: [account: EnergyPoolAccount]
-  syncAccount: [account: EnergyPoolAccount]
+
   editAccount: [account: EnergyPoolAccount]
   viewDetails: [account: EnergyPoolAccount]
   confirmDeleteAccount: [account: EnergyPoolAccount]

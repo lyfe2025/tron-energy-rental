@@ -16,8 +16,8 @@ import usersRoutes from './users.js';
 import statsRoutes from './stats.js';
 import testRoutes from './test.js';
 
-// 初始化Telegram机器人服务
-initializeTelegramBotService();
+// 初始化Telegram机器人服务 - 临时禁用以减少日志噪音
+// initializeTelegramBotService();
 
 const router: Router = Router();
 

@@ -104,8 +104,8 @@
         </div>
       </div>
 
-      <!-- 操作按钮 -->
-      <div v-if="showSelector" class="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
+      <!-- 操作按钮 - 仅在非直接选择模式下显示 -->
+      <div v-if="showSelector && !directSelection" class="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
         <button
           @click="cancelSelection"
           class="px-4 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
@@ -142,10 +142,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { Network, Search, Check } from 'lucide-vue-next'
 import { networkApi } from '@/api/network'
 import type { TronNetwork } from '@/types/network'
+import { Check, Network, Search } from 'lucide-vue-next'
+import { computed, onMounted, ref, watch } from 'vue'
 
 interface Props {
   modelValue?: string | null
@@ -156,6 +156,7 @@ interface Props {
   filterActive?: boolean // 是否只显示活跃网络
   placeholder?: string
   disabled?: boolean
+  directSelection?: boolean // 是否直接选择，不需要确认步骤
 }
 
 interface Emits {
@@ -166,7 +167,8 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   searchable: true,
   filterActive: true,
-  placeholder: '请选择网络'
+  placeholder: '请选择网络',
+  directSelection: false
 })
 
 const emit = defineEmits<Emits>()
@@ -181,7 +183,15 @@ const tempSelectedNetwork = ref<string | null>(null)
 
 // 计算属性
 const selectedNetwork = computed(() => {
-  return networks.value.find(n => n.id === props.modelValue) || null
+  const network = networks.value.find(n => n.id === props.modelValue) || null
+  console.log('🔍 [NetworkSelector] selectedNetwork计算:', {
+    modelValue: props.modelValue,
+    networksCount: networks.value.length,
+    networks: networks.value.map(n => ({ id: n.id, name: n.name })),
+    foundNetwork: network ? { id: network.id, name: network.name } : null,
+    showSelector: showSelector.value
+  })
+  return network
 })
 
 const filteredNetworks = computed(() => {
@@ -217,12 +227,18 @@ const loadNetworks = async () => {
   try {
     loading.value = true
     error.value = null
+    console.log('🔍 [NetworkSelector] 开始加载网络列表...')
     const response = await networkApi.getNetworks()
+    console.log('🔍 [NetworkSelector] API响应:', response.data)
     // 修复：后端返回的数据结构是 {data: {networks: [...], pagination: {...}}}
     networks.value = Array.isArray(response.data?.networks) ? response.data.networks : []
+    console.log('✅ [NetworkSelector] 网络列表加载完成:', {
+      count: networks.value.length,
+      networks: networks.value.map(n => ({ id: n.id, name: n.name, type: n.type }))
+    })
   } catch (err: any) {
     error.value = err.message || '加载网络列表失败'
-    console.error('加载网络列表失败:', err)
+    console.error('❌ [NetworkSelector] 加载网络列表失败:', err)
   } finally {
     loading.value = false
   }
@@ -233,6 +249,14 @@ const selectNetwork = (network: TronNetwork) => {
     return
   }
   
+  // 直接选择模式：点击即选择
+  if (props.directSelection) {
+    emit('update:modelValue', network.id)
+    emit('change', network)
+    return
+  }
+  
+  // 原有的确认模式逻辑
   if (showSelector.value) {
     tempSelectedNetwork.value = network.id
   } else {
@@ -283,9 +307,38 @@ const getNetworkTypeLabel = (type: string) => {
 }
 
 // 监听器
-watch(() => props.modelValue, (newValue) => {
+watch(() => props.modelValue, (newValue, oldValue) => {
+  console.log('🔍 [NetworkSelector] modelValue变化:', {
+    newValue,
+    oldValue,
+    showSelector: showSelector.value
+  })
   if (showSelector.value) {
     tempSelectedNetwork.value = newValue
+  }
+})
+
+// 监听网络数据加载完成后，重新检查是否应该显示选择器
+watch(() => [networks.value.length, props.modelValue], ([networksLength, modelValue]) => {
+  console.log('🔍 [NetworkSelector] watch触发 - 网络数据变化:', {
+    networksLength,
+    modelValue,
+    showSelector: showSelector.value,
+    networks: networks.value.map(n => ({ id: n.id, name: n.name }))
+  })
+  // 如果网络数据已加载完成且有modelValue，检查是否需要重置showSelector状态
+  if (typeof networksLength === 'number' && networksLength > 0 && modelValue) {
+    const foundNetwork = networks.value.find(n => n.id === modelValue)
+    console.log('🔍 [NetworkSelector] 查找网络结果:', {
+      modelValue,
+      foundNetwork: foundNetwork ? { id: foundNetwork.id, name: foundNetwork.name } : null,
+      showSelector: showSelector.value
+    })
+    if (foundNetwork && showSelector.value) {
+      // 找到匹配的网络且当前显示选择器，切换到显示已选择的网络
+      console.log('✅ [NetworkSelector] 切换到显示已选择的网络:', foundNetwork.name)
+      showSelector.value = false
+    }
   }
 })
 

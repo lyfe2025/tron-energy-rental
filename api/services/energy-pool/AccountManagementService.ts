@@ -7,7 +7,8 @@ export interface EnergyPoolAccount {
   private_key_encrypted: string;
   total_energy: number;
   available_energy: number;
-  reserved_energy: number;
+  total_bandwidth: number;
+  available_bandwidth: number;
   cost_per_energy?: number; // 这个字段在数据库中不存在，需要计算或添加
   status: 'active' | 'inactive' | 'maintenance';
   last_updated_at: Date;
@@ -19,6 +20,7 @@ export interface EnergyPoolAccount {
   contact_info?: any;
   daily_limit?: number;
   monthly_limit?: number;
+  network_id?: string;
 }
 
 export class AccountManagementService {
@@ -31,9 +33,24 @@ export class AccountManagementService {
    */
   async getActivePoolAccounts(): Promise<EnergyPoolAccount[]> {
     const sql = `
-      SELECT *, 0.001 as cost_per_energy FROM energy_pools 
-      WHERE status = $1
-      ORDER BY priority ASC, created_at ASC, id ASC
+      SELECT 
+        ep.*,
+        0.001 as cost_per_energy,
+        CASE 
+          WHEN ep.network_id IS NOT NULL THEN
+            json_build_object(
+              'id', tn.id,
+              'name', tn.name,
+              'type', tn.network_type,
+              'rpc_url', tn.rpc_url,
+              'chain_id', tn.chain_id
+            )
+          ELSE NULL
+        END as network_config
+      FROM energy_pools ep
+      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
+      WHERE ep.status = $1
+      ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
     `;
     const result = await query(sql, ['active']);
     return result.rows;
@@ -44,12 +61,26 @@ export class AccountManagementService {
    */
   async getAllPoolAccounts(): Promise<EnergyPoolAccount[]> {
     const sql = `
-      SELECT *, 0.001 as cost_per_energy FROM energy_pools 
-      ORDER BY priority ASC, created_at ASC, id ASC
+      SELECT 
+        ep.*,
+        0.001 as cost_per_energy,
+        CASE 
+          WHEN ep.network_id IS NOT NULL THEN
+            json_build_object(
+              'id', tn.id,
+              'name', tn.name,
+              'type', tn.network_type,
+              'rpc_url', tn.rpc_url,
+              'chain_id', tn.chain_id
+            )
+          ELSE NULL
+        END as network_config
+      FROM energy_pools ep
+      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
+      ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
     `;
     const result = await query(sql, []);
     
-    // 直接返回数据库中的原始状态值，不进行错误的状态映射
     return result.rows;
   }
 
@@ -57,7 +88,25 @@ export class AccountManagementService {
    * 获取能量池账户详情
    */
   async getPoolAccountById(id: string): Promise<EnergyPoolAccount | null> {
-    const sql = 'SELECT *, 0.001 as cost_per_energy FROM energy_pools WHERE id = $1';
+    const sql = `
+      SELECT 
+        ep.*,
+        0.001 as cost_per_energy,
+        CASE 
+          WHEN ep.network_id IS NOT NULL THEN
+            json_build_object(
+              'id', tn.id,
+              'name', tn.name,
+              'type', tn.network_type,
+              'rpc_url', tn.rpc_url,
+              'chain_id', tn.chain_id
+            )
+          ELSE NULL
+        END as network_config
+      FROM energy_pools ep
+      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
+      WHERE ep.id = $1
+    `;
     const result = await query(sql, [id]);
     return result.rows[0] || null;
   }
@@ -216,22 +265,50 @@ export class AccountManagementService {
    */
   async addPoolAccount(accountData: Omit<EnergyPoolAccount, 'id' | 'last_updated_at' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; message: string; accountId?: string }> {
     try {
+      console.log('🔍 [AccountManagement] 准备插入账户数据:', accountData);
+      
+      // 首先检查TRON地址是否已存在
+      const existingAccountSql = `
+        SELECT id, name, tron_address, status, created_at 
+        FROM energy_pools 
+        WHERE tron_address = $1
+      `;
+      
+      const existingResult = await query(existingAccountSql, [accountData.tron_address]);
+      
+      if (existingResult.rows.length > 0) {
+        const existingAccount = existingResult.rows[0];
+        console.log('⚠️ [AccountManagement] 发现重复的TRON地址:', {
+          existingId: existingAccount.id,
+          existingName: existingAccount.name,
+          tronAddress: accountData.tron_address,
+          status: existingAccount.status,
+          createdAt: existingAccount.created_at
+        });
+        
+        return {
+          success: false,
+          message: `此TRON地址已经存在于能量池中。现有账户名称：「${existingAccount.name}」，状态：${existingAccount.status}，创建时间：${new Date(existingAccount.created_at).toLocaleString('zh-CN')}。请检查是否重复添加，或使用不同的TRON地址。`
+        };
+      }
+      
       const sql = `
         INSERT INTO energy_pools (
           name, tron_address, private_key_encrypted, total_energy, available_energy, 
-          reserved_energy, status, account_type, priority, cost_per_energy,
-          description, contact_info, daily_limit, monthly_limit
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          status, account_type, priority, cost_per_energy,
+          description, contact_info, daily_limit, monthly_limit,
+          staked_trx_energy, staked_trx_bandwidth, delegated_energy, delegated_bandwidth,
+          pending_unfreeze_energy, pending_unfreeze_bandwidth, total_bandwidth, available_bandwidth, network_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING id
       `;
       
-      const result = await query(sql, [
+      const values = [
         accountData.name,
         accountData.tron_address,
         accountData.private_key_encrypted,
         accountData.total_energy,
         accountData.available_energy,
-        accountData.reserved_energy,
         accountData.status,
         accountData.account_type || 'own_energy',
         accountData.priority || 1,
@@ -239,8 +316,24 @@ export class AccountManagementService {
         accountData.description || null,
         accountData.contact_info || null,
         accountData.daily_limit || null,
-        accountData.monthly_limit || null
-      ]);
+        accountData.monthly_limit || null,
+        0, // staked_trx_energy
+        0, // staked_trx_bandwidth  
+        0, // delegated_energy
+        0, // delegated_bandwidth
+        0, // pending_unfreeze_energy
+        0, // pending_unfreeze_bandwidth
+        accountData.total_bandwidth || 0, // total_bandwidth
+        accountData.available_bandwidth || 0, // available_bandwidth
+        accountData.network_id || null // network_id
+      ];
+      
+      console.log('📝 [AccountManagement] 执行SQL:', sql);
+      console.log('📊 [AccountManagement] 参数值:', values);
+      
+      const result = await query(sql, values);
+      
+      console.log('✅ [AccountManagement] 插入成功，返回ID:', result.rows[0].id);
       
       return {
         success: true,
@@ -248,8 +341,53 @@ export class AccountManagementService {
         accountId: result.rows[0].id
       };
     } catch (error) {
-      console.error('Failed to add pool account:', error);
-      return { success: false, message: 'Failed to add pool account' };
+      console.error('❌ [AccountManagement] 插入账户失败:', error);
+      console.error('❌ [AccountManagement] 错误详情:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint,
+        position: error.position
+      });
+      
+      // 处理特定的数据库错误
+      if (error.code === '23505' && error.constraint === 'energy_pools_tron_address_key') {
+        // 唯一性约束违规 - 虽然我们已经预先检查了，但可能存在竞争条件
+        return {
+          success: false,
+          message: '此TRON地址已经存在于能量池中，请使用不同的地址或检查是否重复添加。'
+        };
+      } else if (error.code === '23505') {
+        // 其他唯一性约束错误
+        return {
+          success: false,
+          message: `数据重复冲突：${error.detail || error.message}`
+        };
+      } else if (error.code === '23514') {
+        // 检查约束错误
+        return {
+          success: false,
+          message: `数据验证失败：${error.detail || error.message}`
+        };
+      } else if (error.code === '23502') {
+        // 非空约束错误
+        return {
+          success: false,
+          message: `缺少必需字段：${error.detail || error.message}`
+        };
+      } else if (error.code === '23503') {
+        // 外键约束错误
+        return {
+          success: false,
+          message: `关联数据不存在：${error.detail || error.message}`
+        };
+      }
+      
+      // 通用错误处理
+      return { 
+        success: false, 
+        message: `添加能量池账户失败：${error.message}` 
+      };
     }
   }
 
@@ -263,8 +401,10 @@ export class AccountManagementService {
       activeAccounts: number;
       totalEnergy: number;
       availableEnergy: number;
-      reservedEnergy: number;
+      totalBandwidth: number;
+      availableBandwidth: number;
       utilizationRate: number;
+      bandwidthUtilizationRate: number;
     };
     message?: string;
   }> {
@@ -275,7 +415,8 @@ export class AccountManagementService {
           COUNT(CASE WHEN status = 'active' THEN 1 END) as active_accounts,
           COALESCE(SUM(total_energy), 0) as total_energy,
           COALESCE(SUM(available_energy), 0) as available_energy,
-          COALESCE(SUM(reserved_energy), 0) as reserved_energy
+          COALESCE(SUM(total_bandwidth), 0) as total_bandwidth,
+          COALESCE(SUM(available_bandwidth), 0) as available_bandwidth
         FROM energy_pools
       `;
       
@@ -285,6 +426,10 @@ export class AccountManagementService {
       const utilizationRate = stats.total_energy > 0 
         ? ((stats.total_energy - stats.available_energy) / stats.total_energy) * 100 
         : 0;
+        
+      const bandwidthUtilizationRate = stats.total_bandwidth > 0 
+        ? ((stats.total_bandwidth - stats.available_bandwidth) / stats.total_bandwidth) * 100 
+        : 0;
       
       return {
         success: true,
@@ -293,8 +438,10 @@ export class AccountManagementService {
           activeAccounts: parseInt(stats.active_accounts),
           totalEnergy: parseInt(stats.total_energy),
           availableEnergy: parseInt(stats.available_energy),
-          reservedEnergy: parseInt(stats.reserved_energy),
-          utilizationRate: Math.round(utilizationRate * 100) / 100
+          totalBandwidth: parseInt(stats.total_bandwidth),
+          availableBandwidth: parseInt(stats.available_bandwidth),
+          utilizationRate: Math.round(utilizationRate * 100) / 100,
+          bandwidthUtilizationRate: Math.round(bandwidthUtilizationRate * 100) / 100
         }
       };
     } catch (error) {

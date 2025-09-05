@@ -319,12 +319,20 @@ class ConfigCacheService extends EventEmitter {
       // 从数据库获取
       const result = await query(
         `SELECT 
-          bnc.bot_id, bnc.network_id, bnc.is_primary, bnc.config,
-          tn.name as network_name, tn.type as network_type, tn.rpc_url
-         FROM bot_network_configs bnc
-         JOIN tron_networks tn ON bnc.network_id = tn.id
-         WHERE bnc.bot_id = $1 AND tn.is_active = true
-         ORDER BY bnc.is_primary DESC, tn.name`,
+          tb.id as bot_id,
+          (nc->>'network_id')::uuid as network_id,
+          (nc->>'is_primary')::boolean as is_primary,
+          nc as config,
+          tn.name as network_name,
+          tn.type as network_type,
+          tn.rpc_url
+         FROM telegram_bots tb
+         CROSS JOIN LATERAL jsonb_array_elements(tb.network_configurations) AS nc
+         JOIN tron_networks tn ON (nc->>'network_id')::uuid = tn.id
+         WHERE tb.id = $1 
+           AND tn.is_active = true
+           AND (nc->>'is_active')::boolean = true
+         ORDER BY (nc->>'is_primary')::boolean DESC, tn.name`,
         [botId]
       );
 
@@ -497,7 +505,7 @@ class ConfigCacheService extends EventEmitter {
         memory_info: info,
         keyspace_info: keyspace,
         cache_counts: {
-          bot_configs: botConfigKeys.length,
+          telegram_bots: botConfigKeys.length,
           network_configs: networkConfigKeys.length,
           pool_configs: poolConfigKeys.length,
           system_configs: systemConfigKeys.length,

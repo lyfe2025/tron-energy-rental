@@ -46,7 +46,7 @@ export const getConfigTypeText = (type: string): string => {
     energy_pool: '能量池配置',
     system: '系统配置',
     system_config: '系统配置',
-    bot_network_config: '机器人网络配置'
+    bot_network_config: '机器人网络配置（已合并）'
   }
   return typeMap[type] || type
 }

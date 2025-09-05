@@ -136,8 +136,10 @@ export class EnergyPoolService {
       activeAccounts: number;
       totalEnergy: number;
       availableEnergy: number;
-      reservedEnergy: number;
+      totalBandwidth: number;
+      availableBandwidth: number;
       utilizationRate: number;
+      bandwidthUtilizationRate: number;
     };
     message?: string;
   }> {

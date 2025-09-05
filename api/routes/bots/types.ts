@@ -12,6 +12,7 @@ export interface Bot {
   webhook_url?: string;
   total_users: number;
   total_orders: number;
+  network_configurations?: BotNetworkConfiguration[];
   created_at: string;
   updated_at: string;
 }
@@ -107,11 +108,13 @@ export interface NetworkConfig {
   updated_at: string;
 }
 
-// 机器人网络配置关联接口
-export interface BotNetworkConfig {
+// 机器人网络配置接口（合并后的JSONB数组元素）
+export interface BotNetworkConfiguration {
   id: string;
-  bot_id: string;
   network_id: string;
+  network_name: string;
+  network_type: string;
+  rpc_url: string;
   is_active: boolean;
   is_primary: boolean;
   priority: number;
@@ -120,8 +123,41 @@ export interface BotNetworkConfig {
   contract_addresses: Record<string, string>;
   gas_settings: Record<string, any>;
   monitoring_settings: Record<string, any>;
+  last_sync_at?: string;
+  sync_status: 'pending' | 'success' | 'error';
+  error_count: number;
+  last_error?: string;
+  last_error_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+// 添加/更新网络配置的请求接口
+export interface AddBotNetworkConfigRequest {
+  bot_id: string;
+  network_id: string;
+  is_active?: boolean;
+  is_primary?: boolean;
+  priority?: number;
+  config?: Record<string, any>;
+  api_settings?: Record<string, any>;
+  contract_addresses?: Record<string, string>;
+  gas_settings?: Record<string, any>;
+  monitoring_settings?: Record<string, any>;
+}
+
+// 更新网络配置的请求接口
+export interface UpdateBotNetworkConfigRequest {
+  bot_id: string;
+  config_id: string;
+  is_active?: boolean;
+  is_primary?: boolean;
+  priority?: number;
+  config?: Record<string, any>;
+  api_settings?: Record<string, any>;
+  contract_addresses?: Record<string, string>;
+  gas_settings?: Record<string, any>;
+  monitoring_settings?: Record<string, any>;
 }
 
 // 机器人健康检查接口

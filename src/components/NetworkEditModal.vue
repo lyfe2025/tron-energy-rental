@@ -115,17 +115,132 @@
         </div>
       </div>
 
+      <!-- 合约地址配置 -->
+      <div class="bg-gray-50 p-4 rounded-lg mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium flex items-center">
+            <FileText class="w-4 h-4 mr-2 text-green-600" />
+            合约地址配置
+          </h3>
+          <el-button size="small" @click="addContract">
+            <Plus class="w-4 h-4 mr-1" />
+            添加合约
+          </el-button>
+        </div>
+        
+        <div v-if="contractAddresses.length === 0" class="text-center py-4 text-gray-500">
+          <p class="text-sm">暂未配置合约地址</p>
+          <p class="text-xs">点击「添加合约」开始配置</p>
+        </div>
+        
+        <div v-else class="space-y-3">
+          <div 
+            v-for="(contract, index) in contractAddresses" 
+            :key="index"
+            class="border rounded-lg p-3 bg-white"
+          >
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center space-x-2">
+                <el-tag size="small" :type="contract.is_active ? 'success' : 'danger'">
+                  {{ contract.symbol || 'TOKEN' }}
+                </el-tag>
+                <span class="text-sm font-medium">{{ contract.name || '未命名' }}</span>
+              </div>
+              <el-button 
+                size="small" 
+                type="danger" 
+                text 
+                @click="removeContract(index)"
+              >
+                <X class="w-4 h-4" />
+              </el-button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <label class="text-xs text-gray-500">代币符号</label>
+                <el-input 
+                  v-model="contract.symbol" 
+                  size="small" 
+                  placeholder="如: USDT"
+                  maxlength="10"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-gray-500">代币名称</label>
+                <el-input 
+                  v-model="contract.name" 
+                  size="small" 
+                  placeholder="如: Tether USD"
+                />
+              </div>
+            </div>
+            
+            <div class="mb-2">
+              <label class="text-xs text-gray-500">合约地址</label>
+              <el-input 
+                v-model="contract.address" 
+                size="small" 
+                placeholder="34字符的TRON合约地址"
+                maxlength="34"
+                show-word-limit
+              />
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3 mb-2">
+              <div>
+                <label class="text-xs text-gray-500">精度</label>
+                <el-input-number 
+                  v-model="contract.decimals" 
+                  size="small" 
+                  :min="0" 
+                  :max="18" 
+                  class="w-full"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-gray-500">类型</label>
+                <el-select v-model="contract.type" size="small" class="w-full">
+                  <el-option label="TRC20" value="TRC20" />
+                  <el-option label="TRC10" value="TRC10" />
+                </el-select>
+              </div>
+              <div class="flex items-end">
+                <el-checkbox v-model="contract.is_active" size="small">
+                  启用
+                </el-checkbox>
+              </div>
+            </div>
+            
+            <div>
+              <label class="text-xs text-gray-500">描述</label>
+              <el-input 
+                v-model="contract.description" 
+                size="small" 
+                placeholder="合约描述信息"
+                type="textarea"
+                :rows="1"
+                maxlength="100"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 描述 -->
-      <el-form-item label="描述">
-        <el-input
-          v-model="form.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入网络描述（可选）"
-          maxlength="200"
-          show-word-limit
-        />
-      </el-form-item>
+      <div class="w-full">
+        <el-form-item label="描述">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入网络描述（可选）"
+            maxlength="200"
+            show-word-limit
+            class="w-full"
+          />
+        </el-form-item>
+      </div>
 
       <!-- 测试结果 -->
       <div v-if="testResult" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -211,12 +326,23 @@
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Activity, Network, Settings, Zap } from 'lucide-vue-next'
+import { Activity, FileText, Network, Plus, Settings, X, Zap } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 
 interface Props {
   visible: boolean
   networkData?: any | null  // 使用any类型以兼容不同的网络数据结构
+}
+
+interface ContractAddress {
+  symbol: string
+  name: string
+  address: string
+  decimals: number
+  type: string
+  is_active: boolean
+  description?: string
+  source?: string
 }
 
 interface Emits {
@@ -232,6 +358,9 @@ const submitting = ref(false)
 const testing = ref(false)
 const showAdvanced = ref(false)
 const testResult = ref<any>(null)
+
+// 合约地址管理
+const contractAddresses = ref<ContractAddress[]>([])
 
 const form = ref({
   name: '',
@@ -291,8 +420,56 @@ watch(() => props.networkData, (newData) => {
       rate_limit: newData.rate_limit || newData.rate_limit_per_second || 10,
       is_default: newData.is_default || false
     })
+    
+    // 加载合约地址配置
+    loadContractAddresses(newData)
+  } else if (!newData) {
+    // 重置合约地址
+    contractAddresses.value = []
   }
 }, { immediate: true })
+
+// 加载合约地址配置
+const loadContractAddresses = (networkData: any) => {
+  const contracts: ContractAddress[] = []
+  
+  if (networkData?.config?.contract_addresses) {
+    for (const [symbol, contractData] of Object.entries(networkData.config.contract_addresses)) {
+      const data = contractData as any
+      contracts.push({
+        symbol,
+        name: data.name || '',
+        address: data.address || '',
+        decimals: data.decimals || 6,
+        type: data.type || 'TRC20',
+        is_active: data.is_active ?? true,
+        description: data.description || '',
+        source: data.source || ''
+      })
+    }
+  }
+  
+  contractAddresses.value = contracts
+}
+
+// 添加新合约
+const addContract = () => {
+  contractAddresses.value.push({
+    symbol: 'USDT',
+    name: 'Tether USD',
+    address: '',
+    decimals: 6,
+    type: 'TRC20',
+    is_active: true,
+    description: '',
+    source: '手动添加'
+  })
+}
+
+// 移除合约
+const removeContract = (index: number) => {
+  contractAddresses.value.splice(index, 1)
+}
 
 // 重置表单
 watch(() => props.visible, (visible) => {
@@ -314,6 +491,8 @@ watch(() => props.visible, (visible) => {
       rate_limit: 10,
       is_default: false
     })
+    // 重置合约地址
+    contractAddresses.value = []
   }
   if (!visible) {
     testResult.value = null
@@ -379,6 +558,24 @@ const handleSubmit = async () => {
 
   submitting.value = true
   try {
+    // 准备合约地址配置
+    const contractConfig: { [key: string]: any } = {}
+    contractAddresses.value.forEach(contract => {
+      if (contract.symbol && contract.address) {
+        contractConfig[contract.symbol] = {
+          address: contract.address,
+          symbol: contract.symbol,
+          name: contract.name,
+          decimals: contract.decimals,
+          type: contract.type,
+          is_active: contract.is_active,
+          description: contract.description,
+          source: contract.source,
+          added_at: new Date().toISOString()
+        }
+      }
+    })
+
     const submitData = {
       name: form.value.name,
       network_type: form.value.network_type,
@@ -396,7 +593,10 @@ const handleSubmit = async () => {
       health_check_url: form.value.health_check_url,
       rate_limit_per_second: form.value.rate_limit,
       rate_limit: form.value.rate_limit,
-      is_default: form.value.is_default
+      is_default: form.value.is_default,
+      config: {
+        contract_addresses: contractConfig
+      }
     }
 
     let response

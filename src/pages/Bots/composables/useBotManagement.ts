@@ -90,7 +90,7 @@ export function useBotManagement() {
   
   // 计算属性
   const filteredBots = computed(() => {
-    return bots.value.filter(bot => {
+    const filtered = bots.value.filter(bot => {
       const matchesSearch = !filters.value.searchQuery || 
         bot.name.toLowerCase().includes(filters.value.searchQuery.toLowerCase()) ||
         bot.username.toLowerCase().includes(filters.value.searchQuery.toLowerCase())
@@ -98,6 +98,13 @@ export function useBotManagement() {
       const matchesStatus = !filters.value.statusFilter || bot.status === filters.value.statusFilter
       
       return matchesSearch && matchesStatus
+    })
+
+    // 固定排序：按创建时间降序（最新的在前）
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return dateB - dateA // 降序排列，最新的在前
     })
   })
   
@@ -257,22 +264,19 @@ export function useBotManagement() {
   }
   
   const editBot = (bot: Bot) => {
-    // 跳转到配置页面进行编辑
-    window.open(`/config/bots/${bot.id}/edit`, '_blank')
-    toast.info('请在配置页面编辑机器人')
+    // 现在使用弹窗进行编辑
+    toast.info('请使用机器人卡片上的编辑按钮进行编辑')
   }
   
-  // 跳转到机器人配置页面
+  // 跳转到机器人管理页面
   const goToConfig = () => {
-    // 使用router跳转到配置页面
-    window.open('/config/bots', '_blank')
-    toast.info('请在配置页面创建和编辑机器人')
+    // 已经在机器人管理页面了，不需要跳转
+    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
   }
   
-  // 保存功能已移至配置页面
+  // 保存功能现在使用弹窗
   const saveBot = async () => {
-    toast.info('请在配置页面进行机器人的创建和编辑')
-    goToConfig()
+    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
   }
   
   const toggleBotStatus = async (bot: Bot) => {

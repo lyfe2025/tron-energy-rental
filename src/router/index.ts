@@ -60,36 +60,6 @@ const router = createRouter({
 
         // 配置管理路由
         {
-          path: 'config',
-          name: 'config',
-          redirect: '/config/bots',
-          meta: { roles: ['super_admin', 'admin'] }
-        },
-        {
-          path: 'config/bots',
-          name: 'config-bots',
-          component: () => import('@/pages/BotManagement/index.vue'),
-          meta: { roles: ['super_admin', 'admin'] }
-        },
-        {
-          path: 'config/bots/create',
-          name: 'config-bots-create',
-          component: () => import('@/pages/BotManagement/BotForm.vue'),
-          meta: { roles: ['super_admin', 'admin'] }
-        },
-        {
-          path: 'config/bots/:id/edit',
-          name: 'config-bots-edit',
-          component: () => import('@/pages/BotManagement/BotForm.vue'),
-          meta: { roles: ['super_admin', 'admin'] }
-        },
-        {
-          path: 'config/bots/:id/networks',
-          name: 'config-bots-networks',
-          component: () => import('@/pages/BotManagement/BotNetworks.vue'),
-          meta: { roles: ['super_admin', 'admin'] }
-        },
-        {
           path: 'config/networks',
           name: 'config-networks',
           component: () => import('@/pages/TronNetworks/index.vue'),

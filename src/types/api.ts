@@ -128,6 +128,9 @@ export interface UpdateBotData {
   address?: string
   type?: string
   description?: string
+  webhook_url?: string
+  welcome_message?: string
+  help_message?: string
   min_order_amount?: number
   max_order_amount?: number
   status?: 'active' | 'inactive' | 'maintenance'

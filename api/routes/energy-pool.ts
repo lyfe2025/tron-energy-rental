@@ -1,7 +1,302 @@
 import { Router } from 'express';
+import { query } from '../database';
 import { energyPoolService } from '../services/energy-pool';
+import { tronService } from '../services/tron/TronService';
 
 const router: Router = Router();
+
+/**
+ * 使用TronGrid API获取USDT余额（备选方案）
+ */
+async function getUSDTBalanceFromTronGrid(address: string, rpcUrl: string, contractAddress: string): Promise<{ success: boolean; balance: number; error?: string }> {
+  try {
+    const axios = (await import('axios')).default;
+    
+    // 构建TronGrid API端点
+    let gridApiUrl;
+    if (rpcUrl.includes('shasta')) {
+      gridApiUrl = 'https://api.shasta.trongrid.io';
+    } else if (rpcUrl.includes('nile')) {
+      gridApiUrl = 'https://nile.trongrid.io';
+    } else {
+      gridApiUrl = 'https://api.trongrid.io';
+    }
+    
+    console.log('🌐 [TronGrid] 使用TronGrid API查询USDT余额:', { address, contractAddress, gridApiUrl });
+    
+    // 使用v1 API获取账户完整信息，包含TRC20余额  
+    const response = await axios.get(`${gridApiUrl}/v1/accounts/${address}`, {
+      headers: {
+        'TRON-PRO-API-KEY': process.env.TRON_API_KEY || ''
+      },
+      timeout: 10000
+    });
+    
+    console.log('📊 [TronGrid] TronGrid v1 API响应:', JSON.stringify(response.data, null, 2));
+    
+    if (response.data && response.data.success && response.data.data && response.data.data.length > 0) {
+      const accountData = response.data.data[0];
+      
+      // 查找TRC20余额
+      if (accountData.trc20 && Array.isArray(accountData.trc20)) {
+        for (const trc20Token of accountData.trc20) {
+          // trc20Token是对象，键是合约地址，值是余额
+          if (trc20Token[contractAddress]) {
+            const balance = Number(trc20Token[contractAddress]) / Math.pow(10, 6); // USDT 6位小数
+            console.log('✅ [TronGrid] 找到USDT余额:', balance);
+            return { success: true, balance: balance };
+          }
+        }
+      }
+      
+      console.log('ℹ️ [TronGrid] 未找到指定USDT合约的余额');
+      return { success: true, balance: 0 };
+    }
+    
+    console.log('⚠️ [TronGrid] TronGrid API响应格式异常');
+    return { success: false, balance: 0, error: 'TronGrid API response invalid' };
+    
+  } catch (error) {
+    console.error('❌ [TronGrid] TronGrid API调用失败:', error.message);
+    return { success: false, balance: 0, error: error.message };
+  }
+}
+
+/**
+ * 从数据库获取指定网络的USDT合约地址配置
+ * @param networkId - 网络ID
+ * @returns 合约地址信息
+ */
+async function getNetworkUSDTContract(networkId: string): Promise<{ 
+  address: string | null; 
+  decimals: number;
+  symbol?: string;
+  type?: string;
+  name?: string;
+}> {
+  try {
+    console.log('🔍 [Contract] 获取网络合约地址:', networkId);
+    
+    const contractResult = await query(
+      'SELECT * FROM get_network_contract_address($1, $2)',
+      [networkId, 'USDT']
+    );
+    
+    if (contractResult.rows.length > 0) {
+      const contract = contractResult.rows[0];
+      console.log('✅ [Contract] 找到USDT合约:', {
+        address: contract.address,
+        decimals: contract.decimals,
+        symbol: contract.symbol,
+        type: contract.type,
+        name: contract.name
+      });
+      return {
+        address: contract.address,
+        decimals: contract.decimals || 6,
+        symbol: contract.symbol || 'USDT',
+        type: contract.type || 'TRC20',
+        name: contract.name || 'USDT'
+      };
+    }
+    
+    console.warn('⚠️ [Contract] 未找到网络USDT合约地址:', networkId);
+    return { address: null, decimals: 6, symbol: 'USDT', type: 'TRC20', name: 'USDT' };
+  } catch (error) {
+    console.error('❌ [Contract] 获取网络合约地址失败:', error);
+    return { address: null, decimals: 6, symbol: 'USDT', type: 'TRC20', name: 'USDT' };
+  }
+}
+
+/**
+ * 新版USDT余额获取函数 - 从数据库获取合约地址配置
+ * @param address - TRON账户地址
+ * @param networkId - 网络ID
+ */
+async function getUSDTBalanceFromDatabase(address: string, networkId: string): Promise<{ success: boolean; balance: number; error?: string }> {
+  try {
+    console.log('🔍 [USDT Balance New] 开始获取USDT余额:', { address, networkId });
+    
+    // 获取网络信息
+    const networkResult = await query(
+      'SELECT name, network_type, rpc_url FROM tron_networks WHERE id = $1 AND is_active = true',
+      [networkId]
+    );
+    
+    if (networkResult.rows.length === 0) {
+      return {
+        success: false,
+        balance: 0,
+        error: 'Network not found or inactive'
+      };
+    }
+    
+    const network = networkResult.rows[0];
+    
+    // 获取USDT合约地址配置
+    const usdtContract = await getNetworkUSDTContract(networkId);
+    if (!usdtContract.address) {
+      console.warn('⚠️ [USDT Balance New] USDT合约地址未配置，返回0余额');
+      return {
+        success: true,
+        balance: 0,
+        error: `USDT contract not configured for network: ${network.name}`
+      };
+    }
+    
+    console.log('✅ [USDT Balance New] 使用数据库配置:', {
+      networkName: network.name,
+      contractAddress: usdtContract.address,
+      decimals: usdtContract.decimals
+    });
+    
+    // 使用TronGrid API获取余额
+    return await getUSDTBalanceFromTronGrid(address, network.rpc_url, usdtContract.address);
+    
+  } catch (error) {
+    console.error('❌ [USDT Balance New] 获取USDT余额失败:', error);
+    return {
+      success: false,
+      balance: 0,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 获取USDT余额的函数
+ */
+async function getUSDTBalance(address: string, rpcUrl: string): Promise<{ success: boolean; balance: number; error?: string }> {
+  try {
+    console.log('🔍 [USDT Balance] 开始获取USDT余额:', { address, rpcUrl });
+    
+    // 使用ES模块方式导入TronWeb
+    const tronWebModule = await import('tronweb');
+    
+    // 获取正确的TronWeb构造函数
+    let TronWeb;
+    if (typeof tronWebModule.default === 'function') {
+      TronWeb = tronWebModule.default;
+    } else if (typeof tronWebModule.TronWeb === 'function') {
+      TronWeb = tronWebModule.TronWeb;
+    } else {
+      console.error('❌ [USDT Balance] TronWeb导入失败:', {
+        defaultType: typeof tronWebModule.default,
+        TronWebType: typeof tronWebModule.TronWeb,
+        keys: Object.keys(tronWebModule)
+      });
+      return {
+        success: true, // 不影响主流程
+        balance: 0,
+        error: "TronWeb library not available"
+      };
+    }
+    
+    console.log('✅ [USDT Balance] TronWeb导入成功');
+    
+    // 创建TronWeb实例
+    const tronWeb = new TronWeb({
+      fullHost: rpcUrl,
+      headers: { "TRON-PRO-API-KEY": process.env.TRON_API_KEY || '' }
+    });
+    
+    // 验证地址格式
+    if (!tronWeb.isAddress(address)) {
+      console.error('❌ [USDT Balance] 无效的TRON地址:', address);
+      return {
+        success: false,
+        balance: 0,
+        error: 'Invalid TRON address'
+      };
+    }
+    
+    // 根据网络类型选择USDT合约地址
+    let usdtContractAddress;
+    if (rpcUrl.includes('shasta')) {
+      // Shasta测试网USDT合约 (使用常见的测试USDT合约)
+      usdtContractAddress = 'TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL';
+      console.log('🌐 [USDT Balance] 使用Shasta测试网USDT合约');
+    } else if (rpcUrl.includes('nile')) {
+      // Nile测试网USDT合约 (实际使用的USDT合约地址)
+      usdtContractAddress = 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf'; 
+      console.log('🌐 [USDT Balance] 使用Nile测试网USDT合约');
+    } else {
+      // 主网USDT合约
+      usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+      console.log('🌐 [USDT Balance] 使用主网USDT合约');
+    }
+    
+    try {
+      // 获取合约实例
+      const contract = await tronWeb.contract().at(usdtContractAddress);
+      console.log('✅ [USDT Balance] 合约实例创建成功');
+      
+      // 调用 balanceOf 方法获取余额
+      const balance = await contract.balanceOf(address).call();
+      console.log('📊 [USDT Balance] 原始余额数据:', balance);
+      
+      // USDT有6位小数，需要除以10^6
+      let usdtBalance = 0;
+      if (balance) {
+        if (typeof balance.toNumber === 'function') {
+          usdtBalance = balance.toNumber() / Math.pow(10, 6);
+        } else if (typeof balance === 'string' || typeof balance === 'number') {
+          usdtBalance = Number(balance) / Math.pow(10, 6);
+        } else if (balance._hex) {
+          usdtBalance = parseInt(balance._hex, 16) / Math.pow(10, 6);
+        } else if (balance.toString) {
+          usdtBalance = Number(balance.toString()) / Math.pow(10, 6);
+        }
+      }
+      
+      console.log('✅ [USDT Balance] 计算后的USDT余额:', usdtBalance);
+      
+      return {
+        success: true,
+        balance: usdtBalance
+      };
+      
+    } catch (contractError) {
+      console.error('❌ [USDT Balance] 合约调用失败:', contractError.message);
+      
+      // 对于测试网络，使用TronGrid API作为备选方案
+      if (rpcUrl.includes('shasta') || rpcUrl.includes('nile')) {
+        console.log('📝 [USDT Balance] 合约调用失败，尝试使用TronGrid API查询测试网USDT余额');
+        try {
+          const gridBalance = await getUSDTBalanceFromTronGrid(address, rpcUrl, usdtContractAddress);
+          if (gridBalance.success) {
+            return gridBalance;
+          }
+        } catch (gridError) {
+          console.error('❌ [USDT Balance] TronGrid API也失败了:', gridError);
+        }
+        
+        // 如果所有方法都失败，返回0余额但不显示错误（测试网络可能确实没有USDT余额）
+        console.log('📝 [USDT Balance] 测试网络USDT查询失败，返回0余额');
+        return {
+          success: true,
+          balance: 0
+        };
+      }
+      
+      throw contractError;
+    }
+    
+  } catch (error) {
+    console.error('❌ [USDT Balance] 获取USDT余额失败:', {
+      address,
+      rpcUrl,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    return {
+      success: true, // 不影响主流程
+      balance: 0,
+      error: `USDT balance unavailable: ${error.message}`
+    };
+  }
+}
 
 /**
  * 获取能量池统计信息
@@ -50,13 +345,28 @@ router.get('/today-consumption', async (req, res) => {
 
 /**
  * 获取所有能量池账户（包括已停用的）
+ * 支持网络过滤参数
  */
 router.get('/accounts', async (req, res) => {
   try {
+    const { network_id } = req.query;
+    
+    console.log('🔍 [EnergyPool] 获取账户列表，网络过滤:', network_id);
+    
     const accounts = await energyPoolService.getAllPoolAccounts();
     
+    // 应用网络过滤
+    let filteredAccounts = accounts;
+    if (network_id) {
+      console.log('🔍 [EnergyPool] 应用网络过滤:', network_id);
+      filteredAccounts = accounts.filter(account => 
+        account.network_id === network_id
+      );
+      console.log(`🔍 [EnergyPool] 网络过滤结果: ${filteredAccounts.length}/${accounts.length} 个账户`);
+    }
+    
     // 隐藏私钥信息
-    const safeAccounts = accounts.map(account => ({
+    const safeAccounts = filteredAccounts.map(account => ({
       ...account,
       private_key_encrypted: '***'
     }));
@@ -75,11 +385,55 @@ router.get('/accounts', async (req, res) => {
 });
 
 /**
+ * 获取可用的TRON网络列表
+ */
+router.get('/networks', async (req, res) => {
+  try {
+    console.log('🌐 [EnergyPool] 获取可用网络列表');
+    
+    const sql = `
+      SELECT id, name, network_type, rpc_url, is_active, health_status, config
+      FROM tron_networks 
+      WHERE is_active = true 
+      ORDER BY 
+        CASE WHEN network_type = 'mainnet' THEN 1 ELSE 2 END,
+        name
+    `;
+    
+    const result = await query(sql);
+    const networks = result.rows.map(network => ({
+      id: network.id,
+      name: network.name,
+      type: network.network_type,
+      rpc_url: network.rpc_url,
+      is_active: network.is_active,
+      health_status: network.health_status,
+      config: network.config // 包含合约地址配置信息
+    }));
+    
+    console.log(`🌐 [EnergyPool] 返回 ${networks.length} 个可用网络`);
+    
+    res.json({
+      success: true,
+      data: networks
+    });
+  } catch (error) {
+    console.error('Get networks error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get networks'
+    });
+  }
+});
+
+/**
  * 获取特定能量池账户详情
  */
 router.get('/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { include_private_key } = req.query;
+    
     const account = await energyPoolService.getPoolAccountById(id);
     
     if (!account) {
@@ -89,15 +443,23 @@ router.get('/accounts/:id', async (req, res) => {
       });
     }
     
-    // 隐藏私钥信息
-    const safeAccount = {
-      ...account,
-      private_key_encrypted: '***'
-    };
+    // 根据查询参数决定是否隐藏私钥信息
+    let responseAccount;
+    if (include_private_key === 'true') {
+      // 编辑模式：返回真实私钥
+      console.log('🔒 [EnergyPool] 编辑模式：返回完整账户信息（包含私钥）');
+      responseAccount = account;
+    } else {
+      // 普通查看模式：隐藏私钥
+      responseAccount = {
+        ...account,
+        private_key_encrypted: '***'
+      };
+    }
     
     res.json({
       success: true,
-      data: safeAccount
+      data: responseAccount
     });
   } catch (error) {
     console.error('Get pool account error:', error);
@@ -255,46 +617,449 @@ router.post('/confirm-usage', async (req, res) => {
 });
 
 /**
- * 添加新的能量池账户
+ * 验证TRON地址并获取账户信息
+ */
+router.post('/accounts/validate-address', async (req, res) => {
+  try {
+    const { address, private_key, network_id } = req.body;
+    
+    console.log('🔍 [ValidateAddress] 接收到验证请求:', {
+      address,
+      private_key: private_key ? `${private_key.substring(0, 8)}...` : 'undefined',
+      network_id,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!address) {
+      console.log('❌ [ValidateAddress] 地址为空');
+      return res.status(400).json({
+        success: false,
+        message: 'TRON地址不能为空'
+      });
+    }
+
+    if (!network_id) {
+      console.log('❌ [ValidateAddress] 网络ID为空');
+      return res.status(400).json({
+        success: false,
+        message: '请先选择TRON网络'
+      });
+    }
+    
+    // 获取网络配置
+    console.log('🔍 [ValidateAddress] 查询网络配置:', network_id);
+    const networkResult = await query(
+      'SELECT name, network_type, rpc_url, is_active, health_status FROM tron_networks WHERE id = $1',
+      [network_id]
+    );
+    
+    console.log('🔍 [ValidateAddress] 网络查询结果:', {
+      found: networkResult.rows.length > 0,
+      network: networkResult.rows[0] || null
+    });
+    
+    if (networkResult.rows.length === 0) {
+      console.log('❌ [ValidateAddress] 网络不存在');
+      return res.status(400).json({
+        success: false,
+        message: '指定的网络不存在'
+      });
+    }
+    
+    const network = networkResult.rows[0];
+    
+    if (!network.is_active) {
+      console.log('❌ [ValidateAddress] 网络未激活:', network.name);
+      return res.status(400).json({
+        success: false,
+        message: `网络 ${network.name} 当前不可用`
+      });
+    }
+    
+    // 验证地址格式
+    console.log('🔍 [ValidateAddress] 开始验证地址格式:', address);
+    try {
+      const isValidAddress = tronService.isValidAddress(address);
+      console.log('🔍 [ValidateAddress] 地址验证结果:', isValidAddress);
+      
+      if (!isValidAddress) {
+        console.log('❌ [ValidateAddress] 地址格式无效');
+        return res.status(400).json({
+          success: false,
+          message: '无效的TRON地址格式'
+        });
+      }
+    } catch (error) {
+      console.error('❌ [ValidateAddress] 地址验证抛出异常:', error);
+      return res.status(400).json({
+        success: false,
+        message: `地址验证失败: ${error.message}`
+      });
+    }
+    
+    // 验证私钥格式（如果提供）
+    if (private_key) {
+      console.log('🔍 [ValidateAddress] 验证私钥格式:', `${private_key.substring(0, 8)}...`);
+      if (!/^[0-9a-fA-F]{64}$/.test(private_key)) {
+        console.log('❌ [ValidateAddress] 私钥格式无效');
+        return res.status(400).json({
+          success: false,
+          message: '无效的私钥格式（需要64位十六进制字符）'
+        });
+      }
+      console.log('✅ [ValidateAddress] 私钥格式验证通过');
+    }
+    
+    // 创建基于指定网络的TronService实例
+    console.log('🔍 [ValidateAddress] 创建网络专用TronService实例:', {
+      rpcUrl: network.rpc_url,
+      networkName: network.name,
+      hasPrivateKey: !!private_key
+    });
+    
+    let networkTronService;
+    try {
+      const { TronService } = await import('../services/tron/TronService');
+      networkTronService = new TronService({
+        fullHost: network.rpc_url,
+        privateKey: private_key,
+        solidityNode: network.rpc_url,
+        eventServer: network.rpc_url
+      });
+      console.log('✅ [ValidateAddress] TronService实例创建成功');
+    } catch (error) {
+      console.error('❌ [ValidateAddress] 创建TronService失败:', error);
+      return res.status(400).json({
+        success: false,
+        message: `初始化TRON服务失败: ${error.message}`
+      });
+    }
+    
+    // 获取账户资源信息
+    console.log('🔍 [ValidateAddress] 开始获取账户信息...');
+    const [accountInfo, resourceInfo, usdtBalance] = await Promise.all([
+      networkTronService.getAccount(address),
+      networkTronService.getAccountResources(address),
+      getUSDTBalanceFromDatabase(address, network_id)
+    ]);
+    
+    console.log('🔍 [ValidateAddress] 账户信息获取结果:', {
+      accountSuccess: accountInfo?.success,
+      resourceSuccess: resourceInfo?.success,
+      usdtSuccess: usdtBalance?.success
+    });
+    
+    if (!accountInfo.success) {
+      return res.status(400).json({
+        success: false,
+        message: `获取账户信息失败: ${accountInfo.error}`
+      });
+    }
+    
+    if (!resourceInfo.success) {
+      return res.status(400).json({
+        success: false,
+        message: `获取账户资源信息失败: ${resourceInfo.error}`
+      });
+    }
+    
+    // 获取合约地址信息
+    const contractInfo = await getNetworkUSDTContract(network_id);
+    console.log('🔍 [ValidateAddress] 获取合约地址信息:', contractInfo);
+    console.log('🔍 [ValidateAddress] 即将返回的contractInfo:', contractInfo.address ? {
+      address: contractInfo.address,
+      decimals: contractInfo.decimals,
+      type: contractInfo.type || 'TRC20',
+      symbol: contractInfo.symbol || 'USDT',
+      name: contractInfo.name || 'USDT'
+    } : null);
+    
+    // 计算单位成本（简化版本，基于默认值）
+    const totalFrozen = accountInfo.data.frozen?.reduce((sum, f) => sum + (f.frozen_balance || 0), 0) || 0;
+    const energyLimit = resourceInfo.data.energy.limit || 0;
+    let costPerEnergy = 0.001; // 默认成本
+    
+    if (totalFrozen > 0 && energyLimit > 0) {
+      // 基于冻结TRX计算成本（简化计算）
+      costPerEnergy = (totalFrozen / 1000000) / energyLimit; // TRX转换为SUN并计算
+    }
+    
+    const result = {
+      address: address,
+      balance: accountInfo.data.balance || 0,
+      usdtBalance: Number((usdtBalance.balance || 0).toFixed(6)), // 保证六位小数，与USDT合约精度一致
+      energy: {
+        total: energyLimit,
+        available: resourceInfo.data.energy.available,
+        used: resourceInfo.data.energy.used
+      },
+      bandwidth: {
+        total: resourceInfo.data.bandwidth.limit || 0,
+        available: resourceInfo.data.bandwidth.available || 0,
+        used: resourceInfo.data.bandwidth.used || 0
+      },
+      frozenInfo: accountInfo.data.frozen || [],
+      estimatedCostPerEnergy: Number(costPerEnergy.toFixed(6)), // 保证六位小数精度
+      contractInfo: contractInfo.address ? {
+        address: contractInfo.address,
+        decimals: contractInfo.decimals,
+        type: contractInfo.type || 'TRC20',
+        symbol: contractInfo.symbol || 'USDT',
+        name: contractInfo.name || 'USDT'
+      } : null,
+      networkInfo: {
+        id: network_id,
+        name: network.name,
+        type: network.network_type,
+        rpcUrl: network.rpc_url
+      },
+      isValid: true,
+      usdtInfo: usdtBalance.error ? { error: usdtBalance.error } : null // 添加USDT错误信息
+    };
+    
+    res.json({
+      success: true,
+      data: result,
+      message: '账户验证成功'
+    });
+    
+  } catch (error) {
+    console.error('❌ [ValidateAddress] 验证TRON地址出现未捕获异常:', error);
+    console.error('❌ [ValidateAddress] 异常详情:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: `验证TRON地址失败: ${error.message}`
+    });
+  }
+});
+
+/**
+ * 添加新的能量池账户（自动获取TRON数据）
  */
 router.post('/accounts', async (req, res) => {
   try {
     const {
+      network_id,
       name,
       tron_address,
       private_key_encrypted,
-      total_energy,
-      available_energy,
+      account_type = 'own_energy',
+      priority = 50,
+      description,
+      daily_limit,
+      monthly_limit,
       status = 'active'
     } = req.body;
     
-    if (!name || !tron_address || !private_key_encrypted || !total_energy) {
+    // 验证必需字段
+    if (!name || !tron_address || !private_key_encrypted) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, tron_address, private_key_encrypted, total_energy'
+        message: '缺少必需字段: name, tron_address, private_key_encrypted'
       });
     }
     
-    const accountId = await energyPoolService.addPoolAccount({
-      name,
+    // 验证TRON地址格式
+    if (!tronService.isValidAddress(tron_address)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的TRON地址格式'
+      });
+    }
+    
+    // 验证私钥格式
+    if (!/^[0-9a-fA-F]{64}$/.test(private_key_encrypted)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的私钥格式（需要64位十六进制字符）'
+      });
+    }
+    
+    console.log(`🔍 [EnergyPool] 开始获取TRON账户信息: ${tron_address}`);
+    
+    // 从TRON网络获取账户信息
+    const [accountInfo, resourceInfo] = await Promise.all([
+      tronService.getAccount(tron_address),
+      tronService.getAccountResources(tron_address)
+    ]);
+    
+    if (!accountInfo.success) {
+      console.log(`❌ [EnergyPool] 获取账户信息失败: ${accountInfo.error}`);
+      return res.status(400).json({
+        success: false,
+        message: `获取账户信息失败: ${accountInfo.error}`
+      });
+    }
+    
+    if (!resourceInfo.success) {
+      console.log(`❌ [EnergyPool] 获取资源信息失败: ${resourceInfo.error}`);
+      return res.status(400).json({
+        success: false,
+        message: `获取账户资源信息失败: ${resourceInfo.error}`
+      });
+    }
+    
+    // 计算能量相关数据
+    const energyLimit = resourceInfo.data.energy.limit || 0;
+    const availableEnergy = resourceInfo.data.energy.available || 0;
+    
+    // 计算单位成本
+    const totalFrozen = accountInfo.data.frozen?.reduce((sum, f) => sum + (f.frozen_balance || 0), 0) || 0;
+    let costPerEnergy = 0.001; // 默认成本
+    
+    if (totalFrozen > 0 && energyLimit > 0) {
+      // 基于冻结TRX计算成本（简化计算）
+      costPerEnergy = (totalFrozen / 1000000) / energyLimit;
+    }
+    
+    console.log(`✅ [EnergyPool] TRON账户信息获取成功:`, {
+      total_energy: energyLimit,
+      available_energy: availableEnergy,
+      cost_per_energy: costPerEnergy
+    });
+    
+    // 创建账户数据
+    const accountData = {
+      name: name.trim(),
       tron_address,
       private_key_encrypted,
-      total_energy,
-      available_energy: available_energy || total_energy,
+      total_energy: energyLimit,
+      available_energy: availableEnergy,
       reserved_energy: 0,
-      status
-    });
+      total_bandwidth: resourceInfo.data.bandwidth.limit || 0,
+      available_bandwidth: resourceInfo.data.bandwidth.available || 0,
+      cost_per_energy: costPerEnergy,
+      status,
+      account_type,
+      priority,
+      description: description?.trim() || null,
+      daily_limit,
+      monthly_limit,
+      network_id: network_id || null
+    };
+    
+    console.log(`💾 [EnergyPool] 准备保存账户数据:`, accountData);
+    
+    const result = await energyPoolService.addPoolAccount(accountData);
+    
+    console.log(`📝 [EnergyPool] addPoolAccount结果:`, result);
+    
+    if (!result.success) {
+      console.log(`❌ [EnergyPool] 保存到数据库失败: ${result.message}`);
+      return res.status(500).json({
+        success: false,
+        message: result.message
+      });
+    }
+    
+    const accountId = result.accountId;
     
     res.status(201).json({
       success: true,
-      data: { id: accountId },
-      message: 'Pool account added successfully'
+      data: { 
+        id: accountId,
+        tronData: {
+          total_energy: energyLimit,
+          available_energy: availableEnergy,
+          cost_per_energy: costPerEnergy,
+          balance: accountInfo.data.balance,
+          frozen_balance: totalFrozen
+        }
+      },
+      message: '能量池账户添加成功，已自动获取TRON网络数据'
     });
   } catch (error) {
     console.error('Add pool account error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to add pool account'
+    });
+  }
+});
+
+/**
+ * 修复私钥占位符（管理员专用）
+ */
+router.post('/accounts/fix-private-keys', async (req, res) => {
+  try {
+    const { accounts } = req.body;
+    
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '请提供要修复的账户列表'
+      });
+    }
+    
+    const results = [];
+    
+    for (const account of accounts) {
+      const { id, private_key_encrypted } = account;
+      
+      if (!id || !private_key_encrypted) {
+        results.push({
+          id,
+          success: false,
+          message: '缺少ID或私钥'
+        });
+        continue;
+      }
+      
+      // 验证私钥格式
+      if (!/^[0-9a-fA-F]{64}$/.test(private_key_encrypted)) {
+        results.push({
+          id,
+          success: false,
+          message: '私钥格式无效（需要64位十六进制）'
+        });
+        continue;
+      }
+      
+      try {
+        const updateResult = await energyPoolService.updatePoolAccount(id, {
+          private_key_encrypted: private_key_encrypted
+        });
+        
+        results.push({
+          id,
+          success: updateResult.success,
+          message: updateResult.message
+        });
+      } catch (error) {
+        results.push({
+          id,
+          success: false,
+          message: error.message
+        });
+      }
+    }
+    
+    const successCount = results.filter(r => r.success).length;
+    const failedCount = results.length - successCount;
+    
+    res.status(200).json({
+      success: true,
+      message: `私钥修复完成：成功 ${successCount} 个，失败 ${failedCount} 个`,
+      data: {
+        results,
+        summary: {
+          total: results.length,
+          success: successCount,
+          failed: failedCount
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('修复私钥失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '修复私钥失败'
     });
   }
 });

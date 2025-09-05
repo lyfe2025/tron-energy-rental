@@ -53,23 +53,7 @@ const CONFIG_TABLES = {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `,
-  bot_configs: `
-    CREATE TABLE IF NOT EXISTS bot_configs (
-      id SERIAL PRIMARY KEY,
-      bot_name VARCHAR(100) NOT NULL,
-      bot_token TEXT NOT NULL,
-      webhook_url TEXT,
-      is_active BOOLEAN DEFAULT true,
-      is_default BOOLEAN DEFAULT false,
-      allowed_users TEXT[],
-      admin_users TEXT[],
-      config JSONB,
-      description TEXT,
-      created_by INTEGER,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `
+  // bot_configs表已迁移到telegram_bots表，不再需要单独创建
 };
 
 // 默认系统配置

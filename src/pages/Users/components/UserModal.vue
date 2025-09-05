@@ -132,6 +132,17 @@
           </div>
           
           <div>
+            <BotSelector
+              v-model="formData.bot_id"
+              label="关联机器人"
+              :disabled="mode === 'view'"
+              :required="false"
+              placeholder="请选择关联的机器人（可选）"
+              description="选择用户通过哪个机器人注册，留空表示非机器人注册用户"
+            />
+          </div>
+          
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               状态
             </label>
@@ -267,22 +278,6 @@
           </div>
         </div>
         
-        <!-- 备注 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            备注
-          </label>
-          <textarea
-            v-model="formData.remark"
-            :readonly="mode === 'view'"
-            :class="[
-              'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
-              mode === 'view' ? 'bg-gray-50 text-gray-500' : 'border-gray-300'
-            ]"
-            rows="3"
-            placeholder="请输入备注信息"
-          ></textarea>
-        </div>
         
         <!-- 操作按钮 -->
         <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -309,6 +304,7 @@
 </template>
 
 <script setup lang="ts">
+import BotSelector from '@/components/BotSelector.vue'
 import { Loader2, X } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import type { User, UserFormData } from '../types/user.types'
@@ -335,6 +331,8 @@ const formData = ref<UserFormData>({
   telegram_id: undefined,
   username: '',
   email: '',
+  first_name: '',
+  last_name: '',
   phone: '',
   login_type: '',
   user_type: '',
@@ -344,7 +342,14 @@ const formData = ref<UserFormData>({
   trx_balance: 0,
   password: '',
   confirmPassword: '',
-  remark: '',
+  bot_id: '',
+  tron_address: '',
+  total_orders: 0,
+  total_energy_used: 0,
+  referral_code: '',
+  referred_by: '',
+  agent_id: '',
+  commission_rate: 0,
   created_at: '',
   updated_at: '',
   last_login: ''
@@ -360,6 +365,8 @@ watch(
         telegram_id: newUser.telegram_id,
         username: newUser.username,
         email: newUser.email,
+        first_name: newUser.first_name || '',
+        last_name: newUser.last_name || '',
         phone: newUser.phone || '',
         login_type: newUser.login_type || '',
         user_type: newUser.user_type || '',
@@ -369,7 +376,14 @@ watch(
         trx_balance: Number(newUser.trx_balance) || 0,
         password: '',
         confirmPassword: '',
-        remark: newUser.remark || '',
+        bot_id: newUser.bot_id || '',
+        tron_address: newUser.tron_address || '',
+        total_orders: newUser.total_orders || 0,
+        total_energy_used: newUser.total_energy_used || 0,
+        referral_code: newUser.referral_code || '',
+        referred_by: newUser.referred_by || '',
+        agent_id: newUser.agent_id || '',
+        commission_rate: 0,
         created_at: newUser.created_at,
         updated_at: newUser.updated_at,
         last_login: newUser.last_login || ''
@@ -390,7 +404,7 @@ watch(
         trx_balance: 0,
         password: '',
         confirmPassword: '',
-        remark: '',
+        bot_id: '',
         created_at: '',
         updated_at: '',
         last_login: ''

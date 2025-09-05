@@ -46,6 +46,15 @@
           <option value="premium">套餐用户</option>
         </select>
         
+        <BotSelector
+          :modelValue="botFilter"
+          @update:modelValue="$emit('update:botFilter', $event)"
+          placeholder="全部机器人"
+          :required="false"
+          :show-only-active="false"
+          class="min-w-[160px]"
+        />
+        
         <button
           @click="$emit('export')"
           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -59,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+import BotSelector from '@/components/BotSelector.vue'
 import { Download, Search } from 'lucide-vue-next'
 
 interface Props {
@@ -66,6 +76,7 @@ interface Props {
   statusFilter: string
   typeFilter: string
   userTypeFilter: string
+  botFilter: string
 }
 
 interface Emits {
@@ -73,6 +84,7 @@ interface Emits {
   'update:statusFilter': [value: string]
   'update:typeFilter': [value: string]
   'update:userTypeFilter': [value: string]
+  'update:botFilter': [value: string]
   'export': []
 }
 

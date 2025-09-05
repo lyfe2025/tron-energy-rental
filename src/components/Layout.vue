@@ -229,9 +229,6 @@ const pageTitleMap: Record<string, string> = {
   
   // 配置管理页面标题
   '/config': '配置管理',
-  '/config/bots': '机器人配置管理',
-  '/config/bots/create': '创建机器人',
-  '/config/bots/edit': '编辑机器人',
   '/config/networks': 'TRON网络管理',
   '/config/energy-pools': '能量池配置管理',
   '/config/history': '配置变更历史',

@@ -15,6 +15,7 @@ router.get('/', [
   query('search').optional().isString().withMessage('搜索关键词必须是字符串'),
   query('status').optional().isIn(['active', 'banned']).withMessage('状态筛选无效'),
   query('user_type').optional().isIn(['normal', 'vip', 'premium']).withMessage('用户类型筛选无效'),
+  query('bot_filter').optional().isUUID().withMessage('机器人筛选必须是有效的UUID'),
   handleValidationErrors
 ], async (req: Request, res: Response) => {
   try {
@@ -23,13 +24,15 @@ router.get('/', [
     const search = req.query.search as string;
     const status = req.query.status as string;
     const userType = req.query.user_type as string;
+    const botFilter = req.query.bot_filter as string;
 
     const result = await UserService.getUsers({
       page,
       limit,
       search,
       status,
-      user_type: userType
+      user_type: userType,
+      bot_filter: botFilter
     });
 
     res.json({
@@ -126,6 +129,7 @@ router.post('/', [
   body('usdt_balance').optional().isFloat({ min: 0 }).withMessage('USDT余额必须是非负数'),
   body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
   body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  body('bot_id').optional().isUUID().withMessage('机器人ID必须是有效的UUID'),
   body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
   body('status').optional().isIn(['active', 'banned']).withMessage('状态无效'),
   handleValidationErrors
@@ -162,6 +166,7 @@ router.put('/:id', [
   body('usdt_balance').optional().isFloat({ min: 0 }).withMessage('USDT余额必须是非负数'),
   body('trx_balance').optional().isFloat({ min: 0 }).withMessage('TRX余额必须是非负数'),
   body('agent_id').optional().isUUID().withMessage('代理商ID必须是有效的UUID'),
+  body('bot_id').optional().isUUID().withMessage('机器人ID必须是有效的UUID'),
   body('commission_rate').optional().isFloat({ min: 0, max: 1 }).withMessage('佣金比例必须在0-1之间'),
   body('status').optional().isIn(['active', 'banned']).withMessage('状态无效'),
   handleValidationErrors
@@ -184,11 +189,17 @@ router.put('/:id', [
       data: user,
       message: '用户更新成功'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('更新用户失败:', error);
-    res.status(500).json({
+    
+    // 根据错误类型返回适当的状态码
+    const statusCode = error.statusCode || 500;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    res.status(statusCode).json({
       success: false,
-      error: '更新用户失败'
+      error: statusCode === 400 ? errorMessage : '更新用户失败',
+      details: errorMessage
     });
   }
 });

@@ -44,11 +44,12 @@ export function useUserActions() {
           status: formData.status,
           balance: formData.balance,
           password: formData.password,
-          remark: formData.remark,
           // 根据登录类型设置特有字段
           telegram_id: formData.login_type === 'telegram' ? formData.telegram_id || Math.floor(Math.random() * 1000000000) : undefined,
           first_name: formData.login_type === 'telegram' ? formData.first_name || formData.username : undefined,
           last_name: formData.login_type === 'telegram' ? formData.last_name || '' : undefined,
+          // 机器人关联字段
+          bot_id: formData.bot_id || undefined,
           // agent_id 和 commission_rate 已移除，因为 agent 不再是 user_type 的选项
         }
         await userService.createUser(createParams)
@@ -61,11 +62,19 @@ export function useUserActions() {
           phone: formData.phone,
           status: formData.status as any,
           balance: formData.balance,
-          remark: formData.remark,
+          usdt_balance: formData.usdt_balance,
+          trx_balance: formData.trx_balance,
           // 根据类型更新特有字段
           first_name: formData.first_name,
           last_name: formData.last_name,
-          commission_rate: formData.commission_rate
+          commission_rate: formData.commission_rate,
+          // 完整的用户字段
+          tron_address: formData.tron_address || undefined,
+          referral_code: formData.referral_code || undefined,
+          referred_by: formData.referred_by || undefined,
+          agent_id: formData.agent_id || undefined,
+          // 机器人关联字段
+          bot_id: formData.bot_id || undefined
         }
         if (formData.password) {
           updateParams.password = formData.password
@@ -76,9 +85,12 @@ export function useUserActions() {
       closeModal()
       await loadUsers(searchParams)
       await loadUserStats()
-    } catch (error) {
+    } catch (error: any) {
       console.error('保存用户失败:', error)
-      // 这里可以添加错误提示
+      
+      // 显示友好的错误消息
+      const errorMessage = error?.friendlyMessage || error?.response?.data?.details || error?.response?.data?.error || error?.message || '保存用户失败'
+      toast.error(errorMessage)
     } finally {
       isSubmitting.value = false
     }

@@ -44,14 +44,6 @@
         <Network class="h-4 w-4 mr-1" />
         批量设置网络
       </button>
-      <button
-        @click="$emit('batchSync')"
-        :disabled="loading.batch"
-        class="flex items-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
-      >
-        <RefreshCw class="h-4 w-4 mr-1" />
-        批量同步
-      </button>
     </div>
   </div>
 </template>
@@ -78,7 +70,6 @@ defineEmits<{
   batchEnable: []
   batchDisable: []
   showBatchNetworkModal: []
-  batchSync: []
 }>()
 </script>
 

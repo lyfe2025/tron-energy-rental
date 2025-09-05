@@ -46,6 +46,7 @@ export interface UserSearchParams {
   type?: string;
   user_type?: string;
   agent_id?: string;
+  bot_filter?: string;  // 新增：机器人筛选
   date_range?: {
     start?: string;
     end?: string;
@@ -65,18 +66,26 @@ export interface UserCreateData {
   user_type?: 'regular' | 'vip' | 'premium';
   agent_id?: string;
   status?: 'active' | 'inactive' | 'banned';
+  bot_id?: string;
 }
 
 export interface UserUpdateData {
   username?: string;
   email?: string;
   phone?: string;
-  telegram_username?: string;
-  wallet_address?: string;
+  first_name?: string;
+  last_name?: string;
+  tron_address?: string;
   status?: 'active' | 'inactive' | 'banned';
-  type?: 'user' | 'agent';
   user_type?: 'regular' | 'vip' | 'premium';
   agent_id?: string;
+  bot_id?: string;
+  balance?: number;
+  usdt_balance?: number;
+  trx_balance?: number;
+  referral_code?: string;
+  referred_by?: string;
+  password?: string;
 }
 
 // 导入分离后的服务

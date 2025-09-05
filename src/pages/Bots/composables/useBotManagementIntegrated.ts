@@ -1,4 +1,5 @@
 import { botsAPI } from '@/services/api/bots/botsAPI'
+import { apiClient } from '@/services/api/core/apiClient'
 import { toast } from 'sonner'
 import { computed, ref } from 'vue'
 
@@ -9,6 +10,18 @@ interface BotNetwork {
   chain_id: string
 }
 
+interface CurrentNetwork {
+  id: string
+  name: string
+  type: string
+  chain_id: string
+  status: string
+  rpc_url: string
+  is_primary: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 interface BotConfig {
   id: string
   name: string
@@ -16,11 +29,14 @@ interface BotConfig {
   token: string
   is_active: boolean
   networks?: BotNetwork[]
+  current_network?: CurrentNetwork | null
   template?: string
   created_at: string
   updated_at: string
   updating?: boolean
   showMenu?: boolean
+  total_users?: number
+  total_orders?: number
 }
 
 interface Network {
@@ -94,7 +110,12 @@ export function useBotManagement() {
       )
     }
     
-    return result
+    // 固定排序：按创建时间降序（最新的在前）
+    return result.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return dateB - dateA // 降序排列，最新的在前
+    })
   })
 
   // 获取机器人列表
@@ -115,17 +136,86 @@ export function useBotManagement() {
       if (response.data?.success && response.data?.data) {
         // 转换API数据格式为配置页面所需格式
         const apiData = response.data.data.bots || []
-        bots.value = apiData.map((bot: any) => ({
+        const botsWithoutNetwork = apiData.map((bot: any) => ({
           id: bot.id,
           name: bot.name || '',
           username: bot.username || '',
           token: bot.token || '',
           is_active: bot.status === 'active',
           template: bot.type || 'custom',
-          networks: [], // 后续可以从API获取关联的网络
+          networks: [], // 临时设置为空数组
+          current_network: null, // 初始化为null
           created_at: bot.created_at || '',
-          updated_at: bot.updated_at || ''
+          updated_at: bot.updated_at || '',
+          total_users: 0, // 初始化为0，后续通过统计API获取
+          total_orders: 0 // 初始化为0，后续通过统计API获取
         }))
+        
+        // 为每个机器人获取网络配置和统计数据
+        const botsWithNetworkAndStats = await Promise.all(
+          botsWithoutNetwork.map(async (bot: any) => {
+            try {
+              console.log(`🔍 [BotList] 获取机器人 ${bot.name} (${bot.id}) 的配置和统计...`)
+              
+              // 并行获取网络配置和统计数据
+              const [networkResponse, statsResponse] = await Promise.allSettled([
+                botsAPI.getBotNetwork(bot.id),
+                // 使用apiClient调用统计API（自动处理认证）
+                apiClient.get(`/api/bots/${bot.id}/statistics`).then(res => res.data).catch(err => {
+                  console.warn(`获取机器人 ${bot.name} 统计失败:`, err)
+                  return { success: false, data: null }
+                })
+              ])
+              
+              // 处理网络配置
+              if (networkResponse.status === 'fulfilled' && 
+                  networkResponse.value?.data?.success && 
+                  networkResponse.value.data.data?.network) {
+                const networkData = networkResponse.value.data.data.network as any
+                console.log(`🔍 [BotList] 机器人 ${bot.name} 网络数据:`, networkData)
+                
+                bot.current_network = {
+                  id: networkData.network_id || networkData.id,
+                  name: networkData.network_name || networkData.name || '',
+                  type: networkData.network_type || networkData.type || 'mainnet',
+                  chain_id: networkData.chain_id || '',
+                  status: networkData.is_active ? 'active' : 'inactive',
+                  rpc_url: networkData.rpc_url || '',
+                  is_primary: networkData.is_primary || false,
+                  created_at: networkData.created_at,
+                  updated_at: networkData.updated_at
+                }
+                console.log(`✅ [BotList] 机器人 ${bot.name} 网络配置已设置:`, bot.current_network)
+              } else {
+                console.log(`⚠️ [BotList] 机器人 ${bot.name} 未配置网络`)
+                bot.current_network = null
+              }
+              
+              // 处理统计数据
+              if (statsResponse.status === 'fulfilled' && 
+                  statsResponse.value?.success && 
+                  statsResponse.value.data?.statistics) {
+                const statsData = statsResponse.value.data.statistics
+                bot.total_users = statsData.total_users || 0
+                bot.total_orders = statsData.total_orders || 0
+                console.log(`✅ [BotList] 机器人 ${bot.name} 统计数据:`, {
+                  total_users: bot.total_users,
+                  total_orders: bot.total_orders
+                })
+              } else {
+                console.log(`⚠️ [BotList] 机器人 ${bot.name} 统计数据获取失败，使用默认值`)
+              }
+              
+            } catch (error) {
+              console.warn(`❌ [BotList] 获取机器人 ${bot.id} 配置失败:`, error)
+              // 网络配置不存在时保持current_network为null，这是正常情况
+              bot.current_network = null
+            }
+            return bot
+          })
+        )
+        
+        bots.value = botsWithNetworkAndStats
         
         const paginationData = response.data.data.pagination as any
         total.value = paginationData?.total || bots.value.length
@@ -186,15 +276,17 @@ export function useBotManagement() {
   const handleToggleStatus = async (bot: BotConfig) => {
     try {
       bot.updating = true
-      const newStatus = bot.is_active ? 'active' : 'inactive'
+      const newStatus = bot.is_active ? 'inactive' : 'active' // 修复：切换到相反状态
       
       // 调用API切换状态
       await botsAPI.updateBotStatus(bot.id, newStatus)
       
-      toast.success(`机器人已${bot.is_active ? '启用' : '禁用'}`)
+      // 修复：更新本地状态
+      bot.is_active = newStatus === 'active'
+      
+      toast.success(`机器人已${newStatus === 'active' ? '启用' : '禁用'}`)
     } catch (error) {
       console.error('更新状态失败:', error)
-      bot.is_active = !bot.is_active // 回滚状态
       toast.error('更新状态失败')
     } finally {
       bot.updating = false

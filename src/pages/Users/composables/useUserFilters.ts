@@ -14,6 +14,7 @@ export function useUserFilters() {
     login_type: '',
     type: '',
     user_type: '',
+    bot_filter: '',
     dateRange: {
       start: '',
       end: ''
@@ -53,6 +54,11 @@ export function useUserFilters() {
       // 用户角色过滤
       if (searchParams.user_type) {
         result = result.filter(user => user.user_type === searchParams.user_type)
+      }
+
+      // 机器人过滤
+      if (searchParams.bot_filter) {
+        result = result.filter(user => user.bot_id === searchParams.bot_filter)
       }
 
       // 日期范围过滤
@@ -117,6 +123,12 @@ export function useUserFilters() {
     loadUsers(searchParams)
   }
 
+  const handleBotFilter = (botId: string, loadUsers: (searchParams: any) => Promise<void>, handlePageChange: (page: number) => void) => {
+    searchParams.bot_filter = botId
+    handlePageChange(1)
+    loadUsers(searchParams)
+  }
+
   const handleDateRangeFilter = (start: string, end: string, loadUsers: (searchParams: any) => Promise<void>, handlePageChange: (page: number) => void) => {
     searchParams.dateRange.start = start
     searchParams.dateRange.end = end
@@ -129,6 +141,7 @@ export function useUserFilters() {
     searchParams.status = ''
     searchParams.type = ''
     searchParams.user_type = ''
+    searchParams.bot_filter = ''
     searchParams.dateRange.start = ''
     searchParams.dateRange.end = ''
     handlePageChange(1)
@@ -149,6 +162,7 @@ export function useUserFilters() {
     handleStatusFilter,
     handleTypeFilter,
     handleUserTypeFilter,
+    handleBotFilter,
     handleDateRangeFilter,
     clearFilters
   }

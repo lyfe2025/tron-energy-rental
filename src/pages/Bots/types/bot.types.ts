@@ -33,6 +33,8 @@ export interface Bot {
   last_message_at?: string
   created_at?: string
   updated_at?: string
+  // 网络配置数组（合并后的字段）
+  network_configurations?: BotNetworkConfiguration[]
   // 添加缺失的属性
   stats?: {
     total_orders: number
@@ -101,3 +103,54 @@ export interface BotCommand {
 }
 
 export type BotModalMode = 'view' | 'edit' | 'create'
+
+// 机器人网络配置接口（与后端保持一致）
+export interface BotNetworkConfiguration {
+  id: string
+  network_id: string
+  network_name: string
+  network_type: string
+  rpc_url: string
+  is_active: boolean
+  is_primary: boolean
+  priority: number
+  config: Record<string, any>
+  api_settings: Record<string, any>
+  contract_addresses: Record<string, string>
+  gas_settings: Record<string, any>
+  monitoring_settings: Record<string, any>
+  last_sync_at?: string
+  sync_status: 'pending' | 'success' | 'error'
+  error_count: number
+  last_error?: string
+  last_error_at?: string
+  created_at: string
+  updated_at: string
+}
+
+// 网络配置操作请求接口
+export interface AddBotNetworkConfigRequest {
+  bot_id: string
+  network_id: string
+  is_active?: boolean
+  is_primary?: boolean
+  priority?: number
+  config?: Record<string, any>
+  api_settings?: Record<string, any>
+  contract_addresses?: Record<string, string>
+  gas_settings?: Record<string, any>
+  monitoring_settings?: Record<string, any>
+}
+
+export interface UpdateBotNetworkConfigRequest {
+  bot_id: string
+  config_id: string
+  is_active?: boolean
+  is_primary?: boolean
+  priority?: number
+  config?: Record<string, any>
+  api_settings?: Record<string, any>
+  contract_addresses?: Record<string, string>
+  gas_settings?: Record<string, any>
+  monitoring_settings?: Record<string, any>
+}

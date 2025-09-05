@@ -48,9 +48,46 @@
           </span>
         </div>
         
+        <!-- 网络配置 -->
         <div class="flex items-center justify-between text-sm">
-          <span class="text-gray-500">关联网络:</span>
-          <span class="font-medium">{{ bot.networks?.length || 0 }} 个</span>
+          <span class="text-gray-500">网络配置:</span>
+          <div class="flex items-center gap-2">
+            <span 
+              v-if="bot.current_network"
+              class="px-2 py-1 text-xs font-medium rounded-full"
+              :class="getNetworkStatusColor(bot.current_network.status)"
+            >
+              {{ bot.current_network.name }}
+            </span>
+            <span 
+              v-else 
+              class="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              未配置
+            </span>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-500">网络状态:</span>
+          <div class="flex items-center gap-2">
+            <div 
+              v-if="bot.current_network"
+              class="flex items-center gap-1"
+            >
+              <div 
+                class="w-2 h-2 rounded-full"
+                :class="bot.current_network.status === 'active' ? 'bg-green-500' : 'bg-red-500'"
+              ></div>
+              <span class="text-xs font-medium">
+                {{ bot.current_network.status === 'active' ? '正常' : '异常' }}
+              </span>
+              <span class="text-xs text-gray-500">
+                ({{ getNetworkTypeText(bot.current_network.type) }})
+              </span>
+            </div>
+            <span v-else class="text-xs text-gray-500">--</span>
+          </div>
         </div>
         
         <div class="flex items-center justify-between text-sm">
@@ -61,34 +98,29 @@
         </div>
         
         <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-500">总用户数:</span>
+          <span class="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full">
+            {{ bot.total_users || 0 }}
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-500">总订单数:</span>
+          <span class="px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-full">
+            {{ bot.total_orders || 0 }}
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between text-sm">
           <span class="text-gray-500">创建时间:</span>
-          <span class="text-gray-700">{{ formatDate(bot.created_at) }}</span>
+          <span class="text-gray-700 text-xs">{{ formatDateToSeconds(bot.created_at) }}</span>
         </div>
         
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-500">最后更新:</span>
-          <span class="text-gray-700">{{ formatDate(bot.updated_at) }}</span>
+          <span class="text-gray-700 text-xs">{{ formatDateToSeconds(bot.updated_at) }}</span>
         </div>
-      </div>
 
-      <!-- 网络标签 -->
-      <div v-if="bot.networks?.length" class="mt-4">
-        <div class="text-xs text-gray-500 mb-2">关联网络:</div>
-        <div class="flex flex-wrap gap-1">
-          <span
-            v-for="network in bot.networks.slice(0, 3)"
-            :key="network.id"
-            class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full"
-          >
-            {{ network.name }}
-          </span>
-          <span
-            v-if="bot.networks.length > 3"
-            class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full"
-          >
-            +{{ bot.networks.length - 3 }}
-          </span>
-        </div>
       </div>
     </div>
 
@@ -103,11 +135,11 @@
           编辑
         </button>
         <button
-          @click="$emit('networks', bot)"
+          @click="$emit('configure-network', bot)"
           class="px-2 py-1 text-xs text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
         >
           <Network class="w-3 h-3" />
-          网络
+          网络配置
         </button>
       </div>
       <div class="relative">
@@ -153,14 +185,16 @@
 </template>
 
 <script setup lang="ts">
-import { formatDate } from '@/utils/date'
 import { Bot, Edit, MoreHorizontal, Network } from 'lucide-vue-next'
 
 // 类型定义
-interface BotNetwork {
+interface CurrentNetwork {
   id: string
   name: string
-  chain_id: string
+  type: string
+  status: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface BotConfig {
@@ -169,12 +203,14 @@ interface BotConfig {
   username: string
   token: string
   is_active: boolean
-  networks?: BotNetwork[]
+  current_network?: CurrentNetwork
   template?: string
   created_at: string
   updated_at: string
   updating?: boolean
   showMenu?: boolean
+  total_users?: number
+  total_orders?: number
 }
 
 // Props
@@ -190,7 +226,7 @@ interface Emits {
   'select': [id: string, selected: boolean]
   'toggle-status': [bot: BotConfig]
   'edit': [bot: BotConfig]
-  'networks': [bot: BotConfig]
+  'configure-network': [bot: BotConfig]
   'dropdown-command': [command: string, bot: BotConfig]
 }
 
@@ -223,6 +259,44 @@ const getTemplateLabel = (template: string) => {
     custom: '自定义'
   }
   return templateMap[template] || '自定义'
+}
+
+const getNetworkTypeText = (type: string) => {
+  switch (type) {
+    case 'mainnet': return '主网'
+    case 'testnet': return '测试网'
+    case 'devnet': return '开发网'
+    default: return type
+  }
+}
+
+const getNetworkStatusColor = (status: string) => {
+  switch (status) {
+    case 'active': return 'text-green-700 bg-green-100'
+    case 'inactive': return 'text-red-700 bg-red-100'
+    default: return 'text-gray-700 bg-gray-100'
+  }
+}
+
+// 格式化日期到秒级精度
+const formatDateToSeconds = (dateString?: string) => {
+  if (!dateString) return '--'
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return '--'
+    
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch {
+    return '--'
+  }
 }
 </script>
 

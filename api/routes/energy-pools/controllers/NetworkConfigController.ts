@@ -225,9 +225,23 @@ export const getPoolCurrentNetwork: RouteHandler = async (req: Request, res: Res
   try {
     const { id } = req.params;
     
+    console.log(`🔍 [NetworkConfig] 获取能量池网络配置，ID: ${id}`);
+    
     // 检查能量池是否存在
-    const poolCheck = await query('SELECT id FROM energy_pools WHERE id = $1', [id]);
-    if (poolCheck.rows.length === 0) {
+    const poolResult = await query(`
+      SELECT 
+        id,
+        name,
+        tron_address,
+        status,
+        created_at,
+        updated_at
+      FROM energy_pools 
+      WHERE id = $1
+    `, [id]);
+    
+    if (poolResult.rows.length === 0) {
+      console.log(`❌ [NetworkConfig] 能量池不存在，ID: ${id}`);
       res.status(404).json({
         success: false,
         message: '能量池不存在'
@@ -235,82 +249,90 @@ export const getPoolCurrentNetwork: RouteHandler = async (req: Request, res: Res
       return;
     }
     
-    // 获取能量池的网络配置
+    const poolData = poolResult.rows[0];
+    console.log(`✅ [NetworkConfig] 找到能量池: ${poolData.name}`);
+    
+    // 获取能量池账户的实际网络配置
     const networkResult = await query(`
       SELECT 
-        ep.id,
-        ep.name,
-        ep.account_name,
-        ep.account_alias,
         ep.network_id,
-        ep.config,
-        ep.api_settings,
-        ep.monitoring_settings,
-        ep.security_settings,
-        ep.status,
-        ep.created_at,
-        ep.updated_at,
-        tn.name as network_name,
-        tn.type as network_type,
+        tn.id,
+        tn.name,
+        tn.network_type,
         tn.rpc_url,
-        tn.is_active as network_is_active
+        tn.is_active
       FROM energy_pools ep
       LEFT JOIN tron_networks tn ON ep.network_id = tn.id
       WHERE ep.id = $1
     `, [id]);
     
-    const poolData = networkResult.rows[0];
-    
-    if (!poolData.network_id) {
-      res.status(200).json({
-        success: true,
-        message: '能量池尚未配置网络',
-        data: {
-          pool: {
-            id: poolData.id,
-            name: poolData.name,
-            account_name: poolData.account_name,
-            account_alias: poolData.account_alias,
-            status: poolData.status
-          },
-          network: null
+    let networkInfo = null;
+    if (networkResult.rows.length > 0) {
+      const networkData = networkResult.rows[0];
+      if (networkData.network_id && networkData.id) {
+        // 账户有配置网络
+        networkInfo = {
+          network_id: networkData.id,
+          network_name: networkData.name,
+          network_type: networkData.network_type,
+          rpc_url: networkData.rpc_url,
+          network_is_active: networkData.is_active
+        };
+        console.log(`✅ [NetworkConfig] 使用账户配置的网络: ${networkData.name}`);
+      } else {
+        // 账户没有配置网络，使用默认网络
+        console.log(`⚠️ [NetworkConfig] 账户未配置网络，查找默认网络`);
+        const defaultNetworkResult = await query(`
+          SELECT 
+            id,
+            name,
+            network_type,
+            rpc_url,
+            is_active
+          FROM tron_networks 
+          WHERE is_default = true 
+          LIMIT 1
+        `);
+        
+        if (defaultNetworkResult.rows.length > 0) {
+          const defaultNetwork = defaultNetworkResult.rows[0];
+          networkInfo = {
+            network_id: defaultNetwork.id,
+            network_name: defaultNetwork.name,
+            network_type: defaultNetwork.network_type,
+            rpc_url: defaultNetwork.rpc_url,
+            network_is_active: defaultNetwork.is_active
+          };
+          console.log(`✅ [NetworkConfig] 使用默认网络: ${defaultNetwork.name}`);
         }
-      });
-      return;
+      }
+    } else {
+      console.log(`⚠️ [NetworkConfig] 查询网络配置失败`);
     }
     
     res.status(200).json({
       success: true,
-      message: '获取能量池网络配置成功',
+      message: networkInfo ? '获取能量池网络配置成功' : '能量池尚未配置网络',
       data: {
         pool: {
           id: poolData.id,
           name: poolData.name,
-          account_name: poolData.account_name,
-          account_alias: poolData.account_alias,
+          tron_address: poolData.tron_address,
           status: poolData.status,
-          config: poolData.config,
-          api_settings: poolData.api_settings,
-          monitoring_settings: poolData.monitoring_settings,
-          security_settings: poolData.security_settings,
           created_at: poolData.created_at,
           updated_at: poolData.updated_at
         },
-        network: {
-          network_id: poolData.network_id,
-          network_name: poolData.network_name,
-          network_type: poolData.network_type,
-          rpc_url: poolData.rpc_url,
-          network_is_active: poolData.network_is_active
-        }
+        network_id: networkInfo?.network_id || null,
+        network: networkInfo
       }
     });
     
   } catch (error) {
-    console.error('获取能量池网络配置错误:', error);
+    console.error('💥 [NetworkConfig] 获取能量池网络配置错误:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: '服务器内部错误',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -323,10 +345,13 @@ export const getPoolCurrentNetwork: RouteHandler = async (req: Request, res: Res
 export const setPoolNetwork: RouteHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { network_id, config, api_settings, monitoring_settings, security_settings } = req.body;
+    const { network_id } = req.body;
+    
+    console.log(`🔍 [NetworkConfig] 设置能量池网络配置，Pool ID: ${id}, Network ID: ${network_id}`);
     
     // 验证必需字段
     if (!network_id) {
+      console.log(`❌ [NetworkConfig] 网络ID缺失`);
       res.status(400).json({
         success: false,
         message: '网络ID是必需的'
@@ -335,8 +360,18 @@ export const setPoolNetwork: RouteHandler = async (req: Request, res: Response) 
     }
     
     // 检查能量池是否存在
-    const poolCheck = await query('SELECT id, name FROM energy_pools WHERE id = $1', [id]);
-    if (poolCheck.rows.length === 0) {
+    const poolResult = await query(`
+      SELECT 
+        id, 
+        name, 
+        tron_address, 
+        status 
+      FROM energy_pools 
+      WHERE id = $1
+    `, [id]);
+    
+    if (poolResult.rows.length === 0) {
+      console.log(`❌ [NetworkConfig] 能量池不存在，ID: ${id}`);
       res.status(404).json({
         success: false,
         message: '能量池不存在'
@@ -344,83 +379,115 @@ export const setPoolNetwork: RouteHandler = async (req: Request, res: Response) 
       return;
     }
     
-    // 检查网络是否存在且活跃
-    const networkCheck = await query(
-      'SELECT id, name, type FROM tron_networks WHERE id = $1 AND is_active = true',
-      [network_id]
-    );
+    const poolData = poolResult.rows[0];
+    console.log(`✅ [NetworkConfig] 找到能量池: ${poolData.name}`);
     
-    if (networkCheck.rows.length === 0) {
+    // 检查网络是否存在且活跃
+    const networkResult = await query(`
+      SELECT 
+        id, 
+        name, 
+        network_type, 
+        rpc_url, 
+        is_active 
+      FROM tron_networks 
+      WHERE id = $1
+    `, [network_id]);
+    
+    if (networkResult.rows.length === 0) {
+      console.log(`❌ [NetworkConfig] 网络不存在，ID: ${network_id}`);
       res.status(400).json({
         success: false,
-        message: '指定的网络不存在或未激活'
+        message: '指定的网络不存在'
       });
       return;
     }
     
-    // 使用数据库函数设置能量池网络配置
-    const result = await query(
-      'SELECT set_energy_pool_network($1, $2, $3, $4, $5, $6) as success',
-      [
-        id,
-        network_id,
-        config ? JSON.stringify(config) : null,
-        api_settings ? JSON.stringify(api_settings) : null,
-        monitoring_settings ? JSON.stringify(monitoring_settings) : null,
-        security_settings ? JSON.stringify(security_settings) : null
-      ]
+    const networkData = networkResult.rows[0];
+    
+    if (!networkData.is_active) {
+      console.log(`⚠️ [NetworkConfig] 网络未激活: ${networkData.name}`);
+      res.status(400).json({
+        success: false,
+        message: '指定的网络未激活'
+      });
+      return;
+    }
+    
+    console.log(`✅ [NetworkConfig] 找到网络: ${networkData.name} (${networkData.network_type})`);
+    
+    // 将网络ID保存到能量池表中
+    console.log(`💾 [NetworkConfig] 保存网络配置到数据库`);
+    
+    const updateResult = await query(
+      'UPDATE energy_pools SET network_id = $1, updated_at = NOW() WHERE id = $2',
+      [network_id, id]
     );
     
-    // 记录配置变更历史
-    await query(
-      `INSERT INTO system_config_history (
-        entity_type, entity_id, operation_type, changed_fields,
-        new_values, change_reason, changed_by, ip_address
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        'energy_pool',
-        id,
-        'set_network',
-        ['network_id', 'config', 'api_settings', 'monitoring_settings', 'security_settings'],
-        JSON.stringify({ network_id, config, api_settings, monitoring_settings, security_settings }),
-        '设置能量池网络配置',
-        req.user?.id || 'system',
-        req.ip
-      ]
-    );
+    if (updateResult.rowCount === 0) {
+      console.log(`❌ [NetworkConfig] 更新能量池网络配置失败，可能能量池不存在`);
+      res.status(404).json({
+        success: false,
+        message: '更新失败，能量池不存在'
+      });
+      return;
+    }
     
-    // 获取设置后的网络配置
-    const newConfigResult = await query(`
-      SELECT 
-        ep.id,
-        ep.name,
-        ep.account_name,
-        ep.network_id,
-        ep.config,
-        ep.api_settings,
-        ep.monitoring_settings,
-        ep.security_settings,
-        ep.updated_at,
-        tn.name as network_name,
-        tn.type as network_type
-      FROM energy_pools ep
-      JOIN tron_networks tn ON ep.network_id = tn.id
-      WHERE ep.id = $1
-    `, [id]);
+    console.log(`✅ [NetworkConfig] 网络配置已成功保存到数据库`);
+    
+    // 可选：记录配置变更到历史表（如果存在）
+    try {
+      await query(
+        `INSERT INTO system_config_history (
+          entity_type, entity_id, operation_type, changed_fields,
+          new_values, change_reason, changed_by, ip_address
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          'energy_pool',
+          id,
+          'set_network',
+          ['network_id'],
+          JSON.stringify({ network_id, pool_name: poolData.name, network_name: networkData.name }),
+          '设置能量池网络配置',
+          req.user?.id || 'system',
+          req.ip || 'unknown'
+        ]
+      );
+      console.log(`📝 [NetworkConfig] 记录配置变更历史成功`);
+    } catch (historyError) {
+      console.warn(`⚠️ [NetworkConfig] 记录配置变更历史失败:`, historyError);
+      // 不因为历史记录失败而中断主要流程
+    }
     
     res.status(200).json({
       success: true,
       message: '能量池网络配置设置成功',
       data: {
-        pool: newConfigResult.rows[0]
+        pool: {
+          id: poolData.id,
+          name: poolData.name,
+          tron_address: poolData.tron_address,
+          status: poolData.status
+        },
+        network: {
+          id: networkData.id,
+          name: networkData.name,
+          network_type: networkData.network_type,
+          rpc_url: networkData.rpc_url,
+          is_active: networkData.is_active
+        },
+        message: '网络配置已更新并保存到数据库'
       }
     });
     
+    console.log(`✅ [NetworkConfig] 网络配置设置完成`);
+    
   } catch (error) {
-    console.error('设置能量池网络配置错误:', error);
+    console.error('💥 [NetworkConfig] 设置能量池网络配置错误:', error);
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: '服务器内部错误',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

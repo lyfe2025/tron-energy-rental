@@ -302,12 +302,12 @@ import {
     Eye,
     FileText,
     MoreVertical,
-    Plus,
     Power,
     RotateCcw,
     Settings,
     Wifi
 } from 'lucide-vue-next';
+import { toast } from 'sonner';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -368,9 +368,12 @@ const toggleBotMenu = (botId: string) => {
   emit('toggle-menu', botId)
 }
 
-// 跳转到配置页面
+// 提示使用弹窗功能
 const goToConfig = (botId?: string) => {
-  const url = botId ? `/config/bots/${botId}/edit` : '/config/bots'
-  window.open(url, '_blank')
+  if (botId) {
+    toast.info('请使用机器人卡片上的编辑按钮进行编辑')
+  } else {
+    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
+  }
 }
 </script>

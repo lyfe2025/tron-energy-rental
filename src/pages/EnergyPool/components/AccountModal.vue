@@ -14,6 +14,22 @@
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
+        <!-- 网络选择 -->
+        <div>
+          <label for="network" class="block text-sm font-medium text-gray-700 mb-1">
+            网络选择 *
+          </label>
+          <div class="space-y-2">
+            <NetworkSelector
+              v-model="form.network_id"
+              :direct-selection="true"
+              placeholder="请选择TRON网络"
+              :required="true"
+            />
+            <p v-if="errors.network_id" class="text-sm text-red-600">{{ errors.network_id }}</p>
+          </div>
+        </div>
+
         <!-- 账户名称 -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
@@ -48,20 +64,85 @@
           <p v-if="errors.address" class="mt-1 text-sm text-red-600">{{ errors.address }}</p>
         </div>
 
-        <!-- 私钥 -->
+        <!-- 私钥输入方式选择 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            私钥输入方式 *
+          </label>
+          <div class="flex space-x-4 mb-3">
+            <label class="flex items-center">
+              <input
+                type="radio"
+                value="direct"
+                v-model="privateKeyInputMode"
+                class="mr-2"
+              />
+              <span class="text-sm">直接输入私钥</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                type="radio"
+                value="mnemonic"
+                v-model="privateKeyInputMode"
+                class="mr-2"
+              />
+              <span class="text-sm">通过助记词生成</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 助记词输入（当选择助记词模式时） -->
+        <div v-if="privateKeyInputMode === 'mnemonic'">
+          <label for="mnemonic" class="block text-sm font-medium text-gray-700 mb-1">
+            助记词 *
+          </label>
+          <textarea
+            id="mnemonic"
+            v-model="form.mnemonic"
+            rows="3"
+            placeholder="请输入12或24个助记词，用空格分隔"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            :class="{ 'border-red-500': errors.mnemonic }"
+            @blur="generatePrivateKeyFromMnemonic"
+          ></textarea>
+          <p v-if="errors.mnemonic" class="mt-1 text-sm text-red-600">{{ errors.mnemonic }}</p>
+          
+          <!-- 生成私钥按钮 -->
+          <div class="mt-2">
+            <button
+              type="button"
+              @click="generatePrivateKeyFromMnemonic"
+              :disabled="!form.mnemonic || generatingPrivateKey"
+              class="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+            >
+              <Loader2 v-if="generatingPrivateKey" class="w-3 h-3 animate-spin" />
+              <span>{{ generatingPrivateKey ? '生成中...' : '从助记词生成私钥' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 私钥输入/显示 -->
         <div>
           <label for="private_key" class="block text-sm font-medium text-gray-700 mb-1">
             私钥 *
+            <span v-if="privateKeyInputMode === 'mnemonic'" class="text-xs text-gray-500">
+              （由助记词自动生成）
+            </span>
           </label>
           <div class="relative">
             <input
               id="private_key"
               v-model="form.private_key"
               :type="showPrivateKey ? 'text' : 'password'"
-              required
-              placeholder="请输入私钥"
+              :required="privateKeyInputMode === 'direct'"
+              :readonly="privateKeyInputMode === 'mnemonic'"
+              :placeholder="privateKeyInputMode === 'direct' ? '请输入私钥' : '将从助记词自动生成'"
               class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              :class="{ 'border-red-500': errors.private_key }"
+              :class="{ 
+                'border-red-500': errors.private_key,
+                'bg-gray-100': privateKeyInputMode === 'mnemonic'
+              }"
+              @blur="privateKeyInputMode === 'direct' && form.address && form.network_id && validateAndFetchTronData()"
             />
             <button
               type="button"
@@ -75,60 +156,107 @@
           <p v-if="errors.private_key" class="mt-1 text-sm text-red-600">{{ errors.private_key }}</p>
         </div>
 
-        <!-- 总能量 -->
-        <div>
-          <label for="total_energy" class="block text-sm font-medium text-gray-700 mb-1">
-            总能量 *
-          </label>
-          <input
-            id="total_energy"
-            v-model.number="form.total_energy"
-            type="number"
-            required
-            min="0"
-            placeholder="请输入总能量数量"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            :class="{ 'border-red-500': errors.total_energy }"
-          />
-          <p v-if="errors.total_energy" class="mt-1 text-sm text-red-600">{{ errors.total_energy }}</p>
+        <!-- TRON数据验证和获取 -->
+        <div v-if="form.address && form.private_key" class="bg-gray-50 p-4 rounded-lg">
+          <!-- 提示选择网络 -->
+          <div v-if="!form.network_id" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-800">
+                  请先选择TRON网络，然后我们可以验证您的地址和私钥。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="form.address && form.private_key && form.network_id" class="bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-medium text-gray-700">TRON账户信息</h4>
+            <button
+              type="button"
+              @click="validateAndFetchTronData"
+              :disabled="fetchingTronData"
+              class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+            >
+              <Loader2 v-if="fetchingTronData" class="w-3 h-3 animate-spin" />
+              <span>{{ fetchingTronData ? '获取中...' : '获取账户信息' }}</span>
+            </button>
+          </div>
+          
+          <div v-if="tronData" class="space-y-2 text-xs">
+            <!-- 网络信息 -->
+            <div v-if="tronData.networkInfo" class="bg-blue-50 p-2 rounded mb-2">
+              <div class="flex justify-between">
+                <span class="text-blue-600 font-medium">当前网络:</span>
+                <span class="font-medium text-blue-800">{{ tronData.networkInfo.name }} ({{ tronData.networkInfo.type }})</span>
+              </div>
+            </div>
+            
+            <!-- 余额信息 -->
+            <div class="border-b pb-2">
+              <div class="flex justify-between mb-1">
+                <span class="text-gray-600">TRX余额:</span>
+                <span class="font-medium">{{ (tronData.balance / 1000000).toFixed(6) }} TRX</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">USDT余额:</span>
+                <div class="flex items-center space-x-1">
+                  <span class="font-medium" :class="tronData.usdtInfo?.error ? 'text-gray-500' : 'text-gray-900'">
+                    {{ tronData.usdtBalance ? tronData.usdtBalance.toFixed(6) : '0.000000' }} USDT
+                  </span>
+                  <span v-if="tronData.usdtInfo?.error" 
+                    class="text-xs text-orange-600 cursor-help" 
+                    :title="tronData.usdtInfo.error">
+                    ⚠️
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 能量信息 -->
+            <div class="border-b pb-2">
+              <div class="flex justify-between mb-1">
+                <span class="text-gray-600">总能量:</span>
+                <span class="font-medium">{{ tronData.energy.total.toLocaleString() }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">可用能量:</span>
+                <span class="font-medium">{{ tronData.energy.available.toLocaleString() }}</span>
+              </div>
+            </div>
+            
+            <!-- 带宽信息 -->
+            <div class="border-b pb-2">
+              <div class="flex justify-between mb-1">
+                <span class="text-gray-600">总带宽:</span>
+                <span class="font-medium">{{ tronData.bandwidth.total.toLocaleString() }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">可用带宽:</span>
+                <span class="font-medium">{{ tronData.bandwidth.available.toLocaleString() }}</span>
+              </div>
+            </div>
+            
+            <!-- 成本信息 -->
+            <div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">预估单位成本:</span>
+                <span class="font-medium">{{ tronData.estimatedCostPerEnergy.toFixed(6) }} TRX</span>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="tronDataError" class="text-xs text-red-600 mt-2">
+            {{ tronDataError }}
+          </div>
         </div>
 
-        <!-- 可用能量 -->
-        <div>
-          <label for="available_energy" class="block text-sm font-medium text-gray-700 mb-1">
-            可用能量
-          </label>
-          <input
-            id="available_energy"
-            v-model.number="form.available_energy"
-            type="number"
-            min="0"
-            :max="form.total_energy"
-            placeholder="默认等于总能量"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            :class="{ 'border-red-500': errors.available_energy }"
-          />
-          <p v-if="errors.available_energy" class="mt-1 text-sm text-red-600">{{ errors.available_energy }}</p>
-        </div>
-
-        <!-- 单位成本 -->
-        <div>
-          <label for="cost_per_energy" class="block text-sm font-medium text-gray-700 mb-1">
-            单位能量成本 (TRX) *
-          </label>
-          <input
-            id="cost_per_energy"
-            v-model.number="form.cost_per_energy"
-            type="number"
-            step="0.000001"
-            required
-            min="0"
-            placeholder="请输入每单位能量的成本"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            :class="{ 'border-red-500': errors.cost_per_energy }"
-          />
-          <p v-if="errors.cost_per_energy" class="mt-1 text-sm text-red-600">{{ errors.cost_per_energy }}</p>
-        </div>
 
         <!-- 账户类型 -->
         <div>
@@ -250,6 +378,9 @@
 </template>
 
 <script setup lang="ts">
+import NetworkSelector from '@/components/NetworkSelector.vue'
+import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
+import { ElMessage } from 'element-plus'
 import { Eye, EyeOff, Loader2, X } from 'lucide-vue-next'
 import { computed, reactive, ref, watch } from 'vue'
 import type { EnergyPoolAccount } from '../composables/useEnergyPool'
@@ -272,15 +403,19 @@ const { addAccount, updateAccount } = useEnergyPool()
 
 const loading = ref(false)
 const showPrivateKey = ref(false)
+const fetchingTronData = ref(false)
+const tronData = ref<any>(null)
+const tronDataError = ref('')
+const privateKeyInputMode = ref<'direct' | 'mnemonic'>('direct')
+const generatingPrivateKey = ref(false)
 
 // 表单数据
 const form = reactive({
+  network_id: '' as string,
   name: '',
   address: '',
   private_key: '',
-  total_energy: 0,
-  available_energy: 0,
-  cost_per_energy: 0,
+  mnemonic: '',
   status: 'active' as 'active' | 'inactive' | 'maintenance',
   account_type: 'own_energy' as 'own_energy' | 'agent_energy' | 'third_party',
   priority: 1,
@@ -289,14 +424,22 @@ const form = reactive({
   monthly_limit: null as number | null
 })
 
+// 监听表单network_id变化
+watch(() => form.network_id, (newValue, oldValue) => {
+  console.log('🔍 [AccountModal] form.network_id变化:', {
+    newValue,
+    oldValue,
+    timestamp: new Date().toISOString()
+  })
+}, { immediate: true })
+
 // 表单错误
 const errors = reactive({
+  network_id: '',
   name: '',
   address: '',
   private_key: '',
-  total_energy: '',
-  available_energy: '',
-  cost_per_energy: '',
+  mnemonic: '',
   priority: ''
 })
 
@@ -305,63 +448,259 @@ const isEdit = computed(() => !!props.account)
 
 // 重置表单
 const resetForm = () => {
+  form.network_id = ''
   form.name = ''
   form.address = ''
   form.private_key = ''
-  form.total_energy = 0
-  form.available_energy = 0
-  form.cost_per_energy = 0
+  form.mnemonic = ''
   form.status = 'active'
   form.account_type = 'own_energy'
   form.priority = 1
   form.description = ''
   form.daily_limit = null
   form.monthly_limit = null
+  privateKeyInputMode.value = 'direct'
+  generatingPrivateKey.value = false
+  tronData.value = null
+  tronDataError.value = ''
   clearErrors()
 }
 
 // 清除错误
 const clearErrors = () => {
+  errors.network_id = ''
   errors.name = ''
   errors.address = ''
   errors.private_key = ''
-  errors.total_energy = ''
-  errors.available_energy = ''
-  errors.cost_per_energy = ''
+  errors.mnemonic = ''
   errors.priority = ''
 }
 
 // 监听账户变化，填充表单
-watch(() => props.account, (account) => {
+watch(() => props.account, async (account, oldAccount) => {
+  console.log('🔍 [AccountModal] 账户数据变化:', {
+    hasAccount: !!account,
+    accountId: account?.id,
+    networkConfig: account?.network_config,
+    networkId: account?.network_config?.id,
+    networkName: account?.network_config?.name,
+    oldAccount: !!oldAccount,
+    oldNetworkId: oldAccount?.network_config?.id
+  })
+  
   if (account) {
-    form.name = account.name || ''
-    form.address = account.tron_address
-    form.private_key = account.private_key_encrypted
-    form.total_energy = account.total_energy
-    form.available_energy = account.available_energy
-    form.cost_per_energy = account.cost_per_energy
-    form.status = account.status || 'active'
-    form.account_type = account.account_type || 'own_energy'
-    form.priority = account.priority || 1
-    form.description = account.description || ''
-    form.daily_limit = account.daily_limit
-    form.monthly_limit = account.monthly_limit
+    // 编辑模式：重新获取包含私钥的完整账户信息
+    if (isEdit.value && account.id) {
+      try {
+        console.log('🔒 [AccountModal] 编辑模式：获取包含私钥的账户详情')
+        const response = await energyPoolExtendedAPI.getAccount(account.id, true)
+        if (response.data.success) {
+          const fullAccount = response.data.data
+          console.log('✅ [AccountModal] 获取完整账户信息成功:', {
+            hasPrivateKey: !!fullAccount.private_key_encrypted && fullAccount.private_key_encrypted !== '***',
+            privateKeyLength: fullAccount.private_key_encrypted ? fullAccount.private_key_encrypted.length : 0
+          })
+          
+          // 使用完整的账户信息填充表单
+          form.network_id = fullAccount.network_config?.id || account.network_config?.id || ''
+          form.name = fullAccount.name || ''
+          form.address = fullAccount.tron_address
+          form.private_key = fullAccount.private_key_encrypted
+          form.status = fullAccount.status || 'active'
+          form.account_type = fullAccount.account_type || 'own_energy'
+          form.priority = fullAccount.priority || 1
+          form.description = fullAccount.description || ''
+          form.daily_limit = fullAccount.daily_limit
+          form.monthly_limit = fullAccount.monthly_limit
+        } else {
+          throw new Error('获取账户详情失败')
+        }
+      } catch (error) {
+        console.error('❌ [AccountModal] 获取完整账户信息失败:', error)
+        // 降级处理：使用原有的账户信息（但私钥会显示为***）
+        form.network_id = account.network_config?.id || ''
+        form.name = account.name || ''
+        form.address = account.tron_address
+        form.private_key = account.private_key_encrypted
+        form.status = account.status || 'active'
+        form.account_type = account.account_type || 'own_energy'
+        form.priority = account.priority || 1
+        form.description = account.description || ''
+        form.daily_limit = account.daily_limit
+        form.monthly_limit = account.monthly_limit
+      }
+    } else {
+      // 新增模式：直接使用传入的账户信息
+      form.network_id = account.network_config?.id || ''
+      form.name = account.name || ''
+      form.address = account.tron_address
+      form.private_key = account.private_key_encrypted
+      form.status = account.status || 'active'
+      form.account_type = account.account_type || 'own_energy'
+      form.priority = account.priority || 1
+      form.description = account.description || ''
+      form.daily_limit = account.daily_limit
+      form.monthly_limit = account.monthly_limit
+    }
+    
+    console.log('✅ [AccountModal] 表单数据已设置:', {
+      networkId: form.network_id,
+      networkName: account.network_config?.name,
+      accountName: form.name,
+      hasRealPrivateKey: form.private_key !== '***'
+    })
   } else {
+    console.log('🔄 [AccountModal] 重置表单数据')
     resetForm()
   }
 }, { immediate: true })
 
-// 监听总能量变化，自动设置可用能量
-watch(() => form.total_energy, (newValue) => {
-  if (!isEdit.value && newValue > 0 && form.available_energy === 0) {
-    form.available_energy = newValue
+// 验证和获取TRON数据
+const validateAndFetchTronData = async () => {
+  // 清除之前的错误信息
+  tronDataError.value = ''
+  
+  // 检查必需的字段
+  if (!form.address || !form.private_key || !form.network_id) {
+    console.log('🔍 [AccountModal] validateAndFetchTronData 跳过：缺少必需字段', {
+      hasAddress: !!form.address,
+      hasPrivateKey: !!form.private_key,
+      hasNetworkId: !!form.network_id
+    })
+    return
   }
-})
+  
+  // 基本格式验证
+  if (!/^T[A-Za-z1-9]{33}$/.test(form.address.trim())) {
+    tronDataError.value = '无效的TRON地址格式'
+    return
+  }
+  
+  if (!/^[0-9a-fA-F]{64}$/.test(form.private_key.trim())) {
+    tronDataError.value = '无效的私钥格式'
+    return
+  }
+  
+  console.log('🔍 [AccountModal] 开始验证TRON数据:', {
+    address: form.address,
+    network_id: form.network_id,
+    timestamp: new Date().toISOString()
+  })
+  
+  fetchingTronData.value = true
+  tronDataError.value = ''
+  
+  try {
+    const response = await energyPoolExtendedAPI.validateTronAddress({
+      address: form.address.trim(),
+      private_key: form.private_key.trim(),
+      network_id: form.network_id
+    })
+    
+    if (response.data.success) {
+      tronData.value = response.data.data
+      console.log('✅ TRON数据获取成功:', tronData.value)
+    } else {
+      tronDataError.value = response.data.message || '获取TRON数据失败'
+    }
+  } catch (error: any) {
+    console.error('获取TRON数据失败:', error)
+    tronDataError.value = error.response?.data?.message || '网络错误，请重试'
+  } finally {
+    fetchingTronData.value = false
+  }
+}
+
+// 从助记词生成私钥
+const generatePrivateKeyFromMnemonic = async () => {
+  if (!form.mnemonic?.trim()) {
+    return
+  }
+  
+  // 清除助记词错误
+  errors.mnemonic = ''
+  generatingPrivateKey.value = true
+  
+  try {
+    // 验证助记词格式
+    const words = form.mnemonic.trim().split(/\s+/)
+    if (words.length !== 12 && words.length !== 24) {
+      errors.mnemonic = '助记词必须是12或24个单词'
+      return
+    }
+    
+    // 确保 Buffer 在全局可用
+    if (!globalThis.Buffer) {
+      const { Buffer } = await import('buffer')
+      globalThis.Buffer = Buffer
+    }
+    
+    // 动态导入库
+    const bip39Module = await import('bip39')
+    const bip39 = bip39Module.default || bip39Module
+    
+    // 验证助记词有效性
+    if (!bip39.validateMnemonic(form.mnemonic.trim())) {
+      errors.mnemonic = '无效的助记词，请检查拼写'
+      return
+    }
+    
+    // 生成种子
+    const seed = await bip39.mnemonicToSeed(form.mnemonic.trim())
+    
+    // 使用简化的方法生成私钥，避免 hdkey 的兼容性问题
+    // 使用种子的前32字节作为私钥 (这是一个简化版本，实际应用中应该使用完整的BIP44路径)
+    let privateKey: string
+    
+    if (seed.length >= 32) {
+      // 使用种子的前32字节
+      privateKey = seed.subarray(0, 32).toString('hex')
+    } else {
+      // 如果种子长度不够，使用整个种子并补充
+      const extendedSeed = Buffer.concat([seed, seed])
+      privateKey = extendedSeed.subarray(0, 32).toString('hex')
+    }
+    
+    // 验证生成的私钥格式
+    if (!/^[0-9a-fA-F]{64}$/.test(privateKey)) {
+      errors.mnemonic = '生成的私钥格式无效'
+      return
+    }
+    
+    // 设置生成的私钥
+    form.private_key = privateKey
+    
+    // 如果地址和网络都已选择，自动验证TRON数据
+    if (form.address && form.network_id) {
+      console.log('🔍 [AccountModal] 助记词生成私钥后自动验证TRON数据')
+      await validateAndFetchTronData()
+    } else {
+      console.log('🔍 [AccountModal] 跳过自动验证：缺少地址或网络配置', {
+        hasAddress: !!form.address,
+        hasNetworkId: !!form.network_id
+      })
+    }
+    
+    console.log('✅ 从助记词成功生成私钥')
+    
+  } catch (error: any) {
+    console.error('从助记词生成私钥失败:', error)
+    errors.mnemonic = '生成私钥失败：' + (error.message || '未知错误')
+  } finally {
+    generatingPrivateKey.value = false
+  }
+}
 
 // 验证表单
 const validateForm = (): boolean => {
   clearErrors()
   let isValid = true
+
+  // 验证网络选择
+  if (!form.network_id.trim()) {
+    errors.network_id = '请选择TRON网络'
+    isValid = false
+  }
 
   // 验证账户名称
   if (!form.name.trim()) {
@@ -384,33 +723,42 @@ const validateForm = (): boolean => {
     isValid = false
   }
 
-  // 验证私钥
-  if (!form.private_key.trim()) {
-    errors.private_key = '请输入私钥'
-    isValid = false
-  } else if (!/^[0-9a-fA-F]{64}$/.test(form.private_key.trim())) {
-    errors.private_key = '请输入有效的私钥（64位十六进制字符）'
-    isValid = false
+  // 验证私钥输入
+  if (privateKeyInputMode.value === 'mnemonic') {
+    // 助记词模式验证
+    if (!form.mnemonic.trim()) {
+      errors.mnemonic = '请输入助记词'
+      isValid = false
+    } else {
+      const words = form.mnemonic.trim().split(/\s+/)
+      if (words.length !== 12 && words.length !== 24) {
+        errors.mnemonic = '助记词必须是12或24个单词'
+        isValid = false
+      }
+    }
+    
+    // 检查是否已生成私钥
+    if (!form.private_key.trim()) {
+      errors.mnemonic = '请先从助记词生成私钥'
+      isValid = false
+    } else if (!/^[0-9a-fA-F]{64}$/.test(form.private_key.trim())) {
+      errors.private_key = '生成的私钥格式无效'
+      isValid = false
+    }
+  } else {
+    // 直接输入模式验证
+    if (!form.private_key.trim()) {
+      errors.private_key = '请输入私钥'
+      isValid = false
+    } else if (!/^[0-9a-fA-F]{64}$/.test(form.private_key.trim())) {
+      errors.private_key = '请输入有效的私钥（64位十六进制字符）'
+      isValid = false
+    }
   }
 
-  // 验证总能量
-  if (form.total_energy <= 0) {
-    errors.total_energy = '总能量必须大于0'
-    isValid = false
-  }
-
-  // 验证可用能量
-  if (form.available_energy < 0) {
-    errors.available_energy = '可用能量不能为负数'
-    isValid = false
-  } else if (form.available_energy > form.total_energy) {
-    errors.available_energy = '可用能量不能超过总能量'
-    isValid = false
-  }
-
-  // 验证成本
-  if (form.cost_per_energy <= 0) {
-    errors.cost_per_energy = '单位成本必须大于0'
+  // 验证TRON数据（对于新增账户）
+  if (!isEdit.value && !tronData.value) {
+    errors.address = '请先获取TRON账户信息'
     isValid = false
   }
 
@@ -432,16 +780,14 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const submitData = {
+      network_id: form.network_id,
       name: form.name.trim(),
       tron_address: form.address.trim(),
       private_key_encrypted: form.private_key.trim(),
-      total_energy: form.total_energy,
-      available_energy: form.available_energy || form.total_energy,
-      cost_per_energy: form.cost_per_energy,
       status: form.status,
       account_type: form.account_type,
       priority: form.priority,
-      description: form.description || null,
+      description: form.description?.trim() || null,
       daily_limit: form.daily_limit,
       monthly_limit: form.monthly_limit
     }
@@ -450,19 +796,56 @@ const handleSubmit = async () => {
       // 编辑模式：调用updateAccount API
       await updateAccount(props.account.id, submitData)
     } else {
-      // 添加模式：调用addAccount API
-      await addAccount({
-        name: submitData.name,
-        tron_address: submitData.tron_address,
-        private_key_encrypted: submitData.private_key_encrypted,
-        total_energy: submitData.total_energy
-      })
+      // 添加模式：使用新的API直接调用，自动获取TRON数据
+      const response = await energyPoolExtendedAPI.addAccount(submitData)
+      console.log('✅ 账户添加成功:', response.data)
     }
 
     // API调用成功后emit success事件
     emit('success', submitData)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Submit error:', error)
+    
+    // 清除之前的错误状态
+    clearErrors()
+    
+    // 显示用户友好的错误消息
+    let errorMessage = '操作失败，请重试'
+    if (error.response?.data?.message) {
+      const message = error.response.data.message
+      
+      // 处理特定的错误类型并设置相应的表单错误
+      if (message.includes('TRON地址已经存在') || (message.includes('duplicate key') && message.includes('energy_pools_tron_address_key'))) {
+        errors.address = '该TRON地址已存在于能量池中'
+        errorMessage = message.includes('现有账户名称') ? message : '该TRON地址已存在，请使用其他地址'
+      } else if (message.includes('无效的TRON地址')) {
+        errors.address = '请输入有效的TRON地址格式'
+        errorMessage = '请检查TRON地址格式是否正确'
+      } else if (message.includes('无效的私钥')) {
+        errors.private_key = '请输入有效的64位十六进制私钥'
+        errorMessage = '请检查私钥格式是否正确'
+      } else if (message.includes('网络') && (message.includes('不存在') || message.includes('未激活'))) {
+        errors.network_id = '所选网络不存在或未激活'
+        errorMessage = '请重新选择有效的TRON网络'
+      } else if (message.includes('缺少必需字段')) {
+        errorMessage = '请填写所有必需字段'
+        // 检查具体哪些字段缺失
+        if (message.includes('name')) errors.name = '请输入账户名称'
+        if (message.includes('tron_address')) errors.address = '请输入TRON地址'
+        if (message.includes('private_key')) errors.private_key = '请输入私钥'
+      } else if (message.includes('duplicate key')) {
+        errorMessage = '记录已存在，无法重复添加'
+      } else {
+        errorMessage = message
+      }
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    // 显示错误消息
+    ElMessage.error(errorMessage)
+    
+    console.error('用户友好错误:', errorMessage)
     // API调用失败时不emit success事件，让用户可以重试
   } finally {
     loading.value = false

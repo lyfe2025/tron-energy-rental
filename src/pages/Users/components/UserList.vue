@@ -32,6 +32,9 @@
                 用户角色
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                关联机器人
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状态
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -100,6 +103,16 @@
                   {{ getUserTypeText(user.user_type) }}
                 </span>
               </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <div v-if="user.bot_name" class="flex items-center">
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span class="text-gray-900">{{ user.bot_name }}</span>
+                  </div>
+                  <span class="text-gray-500 text-xs ml-1">(@{{ user.bot_username }})</span>
+                </div>
+                <span v-else class="text-gray-400 text-xs">未关联</span>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span 
                   :class="[
@@ -148,7 +161,8 @@
                     </button>
                     <div 
                       v-if="showUserMenu === user.id"
-                      class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
+                      class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl border border-gray-200"
+                      style="z-index: 9999; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);"
                     >
                       <div class="py-1">
                         <button
@@ -242,6 +256,11 @@
             <div>
               <span class="text-gray-500">用户角色:</span>
               <span class="ml-1 font-medium">{{ getUserTypeText(user.user_type) }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">关联机器人:</span>
+              <span v-if="user.bot_name" class="ml-1 font-medium">{{ user.bot_name }}</span>
+              <span v-else class="ml-1 text-gray-400 text-xs">未关联</span>
             </div>
             <div>
               <span class="text-gray-500">USDT余额:</span>

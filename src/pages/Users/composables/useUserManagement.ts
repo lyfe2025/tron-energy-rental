@@ -8,15 +8,15 @@ import { useUserData, type StatCard } from './useUserData'
 import { useUserFilters } from './useUserFilters'
 import { useUserUI } from './useUserUI'
 import {
-  formatCurrency,
-  formatDate,
-  formatDateTime,
-  getStatusColor,
-  getStatusText,
-  getTypeColor,
-  getTypeText,
-  getUserTypeColor,
-  getUserTypeText
+    formatCurrency,
+    formatDate,
+    formatDateTime,
+    getStatusColor,
+    getStatusText,
+    getTypeColor,
+    getTypeText,
+    getUserTypeColor,
+    getUserTypeText
 } from './userFormatUtils'
 
 // 导出类型以确保外部可访问
@@ -60,6 +60,10 @@ export function useUserManagement() {
 
   const handleUserTypeFilter = (userType: string) => {
     userFilters.handleUserTypeFilter(userType, loadUsersWithParams, userData.handlePageChange)
+  }
+
+  const handleBotFilter = (botId: string) => {
+    userFilters.handleBotFilter(botId, loadUsersWithParams, userData.handlePageChange)
   }
 
   const handleDateRangeFilter = (start: string, end: string) => {
@@ -219,6 +223,7 @@ export function useUserManagement() {
     handleStatusFilter,
     handleTypeFilter,
     handleUserTypeFilter,
+    handleBotFilter,
     handleDateRangeFilter,
     clearFilters,
     

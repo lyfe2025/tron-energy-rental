@@ -41,14 +41,26 @@ const getBotExtendedConfig: RouteHandler = async (req: Request, res: Response) =
     // 获取机器人关联的网络配置
     const networkConfigsResult = await query(
       `SELECT 
-        bnc.id, bnc.network_id, bnc.is_active, bnc.is_primary, bnc.priority,
-        bnc.config, bnc.api_settings, bnc.contract_addresses, bnc.gas_settings,
-        bnc.monitoring_settings, tn.name as network_name, tn.type as network_type,
-        tn.rpc_url, tn.chain_id, tn.health_status as network_health_status
-       FROM bot_network_configs bnc
-       JOIN tron_networks tn ON bnc.network_id = tn.id
-       WHERE bnc.bot_id = $1
-       ORDER BY bnc.priority ASC`,
+        (nc->>'id')::UUID as id,
+        (nc->>'network_id')::UUID as network_id,
+        (nc->>'is_active')::BOOLEAN as is_active,
+        (nc->>'is_primary')::BOOLEAN as is_primary,
+        (nc->>'priority')::INTEGER as priority,
+        nc as config,
+        nc->'api_settings' as api_settings,
+        nc->'contract_addresses' as contract_addresses,
+        nc->'gas_settings' as gas_settings,
+        nc->'monitoring_settings' as monitoring_settings,
+        tn.name as network_name,
+        tn.network_type as network_type,
+        tn.rpc_url,
+        tn.chain_id,
+        tn.health_status as network_health_status
+       FROM telegram_bots tb
+       CROSS JOIN LATERAL jsonb_array_elements(tb.network_configurations) AS nc
+       LEFT JOIN tron_networks tn ON (nc->>'network_id')::UUID = tn.id
+       WHERE tb.id = $1
+       ORDER BY (nc->>'priority')::INTEGER ASC`,
       [id]
     );
     
@@ -238,9 +250,10 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
       // 检查关联的网络连接状态
       const networkConfigsResult = await query(
         `SELECT tn.id, tn.name, tn.rpc_url, tn.health_check_url
-         FROM bot_network_configs bnc
-         JOIN tron_networks tn ON bnc.network_id = tn.id
-         WHERE bnc.bot_id = $1 AND bnc.is_active = true`,
+         FROM telegram_bots tb
+         CROSS JOIN LATERAL jsonb_array_elements(tb.network_configurations) AS nc
+         JOIN tron_networks tn ON (nc->>'network_id')::UUID = tn.id
+         WHERE tb.id = $1 AND (nc->>'is_active')::BOOLEAN = true`,
         [id]
       );
       

@@ -33,10 +33,13 @@ declare global {
  * 验证请求中的JWT token并获取用户权限信息
  */
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  console.log('🔍 [Auth] 收到请求:', req.method, req.path);
   const authHeader = req.headers.authorization;
+  console.log('🔍 [Auth] Authorization header:', authHeader ? 'Bearer ***' : 'undefined');
   const token = extractTokenFromHeader(authHeader);
   
   if (!token) {
+    console.log('❌ [Auth] Token缺失');
     res.status(401).json({
       success: false,
       message: '访问被拒绝，需要提供认证token'

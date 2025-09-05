@@ -85,6 +85,40 @@ apiClient.interceptors.response.use(
           }
         }));
       }
+    } else if (error.response?.status === 400) {
+      // 客户端请求错误（业务逻辑错误）
+      const clientMessage = error.response?.data?.error || error.response?.data?.details || '请求参数错误';
+      console.warn('🔍 [API Client] 客户端错误:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: clientMessage,
+        data: error.response?.data
+      });
+      
+      // 为错误对象添加友好的错误信息
+      error.friendlyMessage = clientMessage;
+    } else if (error.response?.status === 500) {
+      // 服务器内部错误处理
+      const serverMessage = error.response?.data?.details || error.response?.data?.message || error.response?.data?.error || '服务器内部错误';
+      console.error('🔍 [API Client] 服务器错误:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: serverMessage,
+        data: error.response?.data
+      });
+      
+      // 为错误对象添加友好的错误信息
+      error.friendlyMessage = serverMessage;
+      
+      // 触发服务器错误事件，供全局错误处理使用
+      window.dispatchEvent(new CustomEvent('api:server_error', {
+        detail: {
+          status: 500,
+          message: serverMessage,
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      }));
     }
     
     return Promise.reject(error);

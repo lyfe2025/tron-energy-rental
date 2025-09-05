@@ -88,11 +88,11 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <div>
           <span class="text-gray-600">1000能量:</span>
-          <span class="font-medium ml-1">{{ (1000 * localSettings.energyBasePrice).toFixed(3) }} TRX</span>
+          <span class="font-medium ml-1">{{ (1000 * localSettings.energyBasePrice).toFixed(6) }} TRX</span>
         </div>
         <div>
           <span class="text-gray-600">10MB带宽:</span>
-          <span class="font-medium ml-1">{{ (10485760 * localSettings.bandwidthBasePrice).toFixed(3) }} TRX</span>
+          <span class="font-medium ml-1">{{ (10485760 * localSettings.bandwidthBasePrice).toFixed(6) }} TRX</span>
         </div>
         <div>
           <span class="text-gray-600">紧急订单:</span>

@@ -44,7 +44,16 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'), // ✅ 定义 @ = src
+        crypto: 'crypto-browserify',
+        stream: 'stream-browserify',
+        buffer: 'buffer',
       },
+    },
+    define: {
+      global: 'globalThis',
+    },
+    optimizeDeps: {
+      include: ['buffer', 'crypto-browserify', 'stream-browserify'],
     },
     server: {
       proxy: {

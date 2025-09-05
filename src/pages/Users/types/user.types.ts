@@ -26,6 +26,9 @@ export interface User {
   login_count?: number
   remark?: string
   agent_id?: string | null
+  bot_id?: string | null  // 新增：关联的机器人ID
+  bot_name?: string | null  // 新增：机器人名称（用于显示）
+  bot_username?: string | null  // 新增：机器人用户名（用于显示）
   created_at: string
   updated_at: string
 }
@@ -126,9 +129,15 @@ export interface UserFormData {
   trx_balance?: number
   password?: string
   confirmPassword?: string
-  remark?: string
   agent_id?: string
+  bot_id?: string  // 新增：关联的机器人ID
   commission_rate?: number
+  // 完善所有数据库字段
+  tron_address?: string
+  total_orders?: number
+  total_energy_used?: number
+  referral_code?: string
+  referred_by?: string
   created_at: string
   updated_at: string
   last_login?: string
@@ -154,6 +163,7 @@ export interface UserSearchParams {
   status: AllUserStatus | ''
   login_type: 'telegram' | 'admin' | 'both' | ''
   user_type?: 'normal' | 'vip' | 'premium' | ''
+  bot_filter?: string  // 新增：机器人筛选
   dateRange: {
     start: string
     end: string
@@ -222,6 +232,8 @@ export interface CreateUserParams {
   // 代理商特有字段
   name?: string
   commission_rate?: number
+  // 机器人关联字段
+  bot_id?: string
 }
 
 // 用户更新参数接口
@@ -235,12 +247,18 @@ export interface UpdateUserParams {
   phone?: string
   status?: 'active' | 'inactive' | 'banned'
   balance?: number
+  usdt_balance?: number
+  trx_balance?: number
   password?: string
-  remark?: string
+  tron_address?: string
+  referral_code?: string
+  referred_by?: string
   // 代理商特有字段
   name?: string
   commission_rate?: number
   agent_id?: string
+  // 机器人关联字段
+  bot_id?: string
 }
 
 // 密码重置参数接口

@@ -49,6 +49,39 @@
                 </button>
               </div>
             </div>
+            <div v-if="realTimeData" class="md:col-span-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">TRX余额</label>
+              <p class="text-sm text-gray-900">{{ (realTimeData.balance / 1000000).toFixed(6) }} TRX</p>
+            </div>
+            <div v-if="realTimeData" class="md:col-span-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">USDT余额</label>
+              <div class="flex items-center space-x-2">
+                <p class="text-sm text-gray-900" :class="realTimeData.usdtInfo?.error ? 'text-gray-500' : 'text-gray-900'">
+                  {{ realTimeData.usdtBalance ? realTimeData.usdtBalance.toFixed(6) : '0.000000' }} USDT
+                </p>
+                <span v-if="realTimeData.usdtInfo?.error" 
+                  class="text-xs text-orange-600 cursor-help px-1 py-0.5 bg-orange-50 rounded" 
+                  :title="realTimeData.usdtInfo.error">
+                  ⚠️
+                </span>
+              </div>
+            </div>
+            
+            <!-- 合约地址信息 -->
+            <div v-if="realTimeData?.contractInfo" class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">USDT合约地址</label>
+              <div class="bg-gray-50 rounded p-2 flex items-center justify-between">
+                <code class="text-xs font-mono text-gray-700">
+                  {{ realTimeData.contractInfo.address }}
+                </code>
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs text-gray-500">{{ realTimeData.contractInfo.decimals }}位精度</span>
+                  <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                    {{ realTimeData.contractInfo.symbol }}
+                  </span>
+                </div>
+              </div>
+            </div>
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">最后更新时间</label>
               <p class="text-sm text-gray-900">{{ formatDate(account.last_updated_at) }}</p>
@@ -58,20 +91,36 @@
 
         <!-- 能量信息 -->
         <div class="bg-blue-50 rounded-lg p-4">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">能量信息</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">能量信息</h3>
+            <button
+              @click="fetchRealTimeData"
+              :disabled="loadingRealTimeData"
+              class="flex items-center space-x-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            >
+              <RefreshCw :class="{ 'animate-spin': loadingRealTimeData }" class="w-4 h-4" />
+              <span>{{ loadingRealTimeData ? '获取中...' : '刷新' }}</span>
+            </button>
+          </div>
+          
+          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ formatEnergy(Number(account.total_energy)) }}</div>
+              <div class="text-2xl font-bold text-blue-600">{{ formatEnergy(realTimeData.energy.total) }}</div>
               <div class="text-sm text-gray-600">总能量</div>
             </div>
             <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">{{ formatEnergy(Number(account.available_energy)) }}</div>
+              <div class="text-2xl font-bold text-green-600">{{ formatEnergy(realTimeData.energy.available) }}</div>
               <div class="text-sm text-gray-600">可用能量</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-orange-600">{{ formatEnergy(Number(account.reserved_energy)) }}</div>
-              <div class="text-sm text-gray-600">预留能量</div>
-            </div>
+          </div>
+          
+          <div v-else-if="loadingRealTimeData" class="flex items-center justify-center py-8">
+            <RefreshCw class="animate-spin w-6 h-6 text-gray-400 mr-2" />
+            <span class="text-gray-500">正在获取实时数据...</span>
+          </div>
+          
+          <div v-else class="text-center py-4 text-gray-500">
+            暂无实时数据
           </div>
           
           <!-- 能量使用率 -->
@@ -89,20 +138,59 @@
           </div>
         </div>
 
+        <!-- 带宽信息 -->
+        <div class="bg-purple-50 rounded-lg p-4">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">带宽信息</h3>
+          
+          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-purple-600">{{ formatEnergy(realTimeData.bandwidth.total) }}</div>
+              <div class="text-sm text-gray-600">总带宽</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-indigo-600">{{ formatEnergy(realTimeData.bandwidth.available) }}</div>
+              <div class="text-sm text-gray-600">可用带宽</div>
+            </div>
+          </div>
+          
+          <div v-else class="text-center py-4 text-gray-500">
+            暂无实时数据
+          </div>
+          
+          <!-- 带宽使用率 -->
+          <div class="mt-4">
+            <div class="flex justify-between text-sm text-gray-600 mb-1">
+              <span>带宽使用率</span>
+              <span>{{ bandwidthUsagePercentage }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                class="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                :style="{ width: `${bandwidthUsagePercentage}%` }"
+              ></div>
+            </div>
+          </div>
+        </div>
+
         <!-- 成本信息 -->
         <div class="bg-green-50 rounded-lg p-4">
           <h3 class="text-lg font-medium text-gray-900 mb-4">成本信息</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">单位能量成本</label>
-              <p class="text-lg font-semibold text-green-600">{{ Number(account.cost_per_energy).toFixed(6) }} TRX</p>
+              <label class="block text-sm font-medium text-gray-700 mb-1">预估单位成本</label>
+              <p class="text-lg font-semibold text-green-600">{{ realTimeData.estimatedCostPerEnergy.toFixed(6) }} TRX</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">预估总价值</label>
               <p class="text-lg font-semibold text-green-600">
-                {{ (Number(account.total_energy) * Number(account.cost_per_energy)).toFixed(2) }} TRX
+                {{ (realTimeData.energy.total * realTimeData.estimatedCostPerEnergy).toFixed(6) }} TRX
               </p>
             </div>
+          </div>
+          
+          <div v-else class="text-center py-4 text-gray-500">
+            暂无实时数据
           </div>
         </div>
 
@@ -132,9 +220,10 @@
 </template>
 
 <script setup lang="ts">
-import { Check, Copy, Edit, X } from 'lucide-vue-next'
+import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
+import { Check, Copy, Edit, RefreshCw, X } from 'lucide-vue-next'
 import { toast } from 'sonner'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { EnergyPoolAccount } from '../composables/useEnergyPool'
 
 interface Props {
@@ -153,12 +242,74 @@ const emit = defineEmits<Emits>()
 // 复制状态管理
 const copyStatus = ref<'idle' | 'success' | 'error'>('idle')
 
-// 计算能量使用率
+// 实时TRON数据状态
+const realTimeData = ref<{
+  balance: number
+  usdtBalance: number
+  energy: { total: number; available: number; used: number }
+  bandwidth: { total: number; available: number; used: number }
+  estimatedCostPerEnergy: number
+  usdtInfo?: { error?: string }
+  contractInfo?: {
+    address: string
+    decimals: number
+    type: string
+    symbol: string
+    name: string
+  } | null
+} | null>(null)
+const loadingRealTimeData = ref(false)
+
+// 计算能量使用率 - 使用实时数据
 const usagePercentage = computed(() => {
-  if (!props.account || Number(props.account.total_energy) === 0) return 0
-  const used = Number(props.account.total_energy) - Number(props.account.available_energy)
-  return Math.round((used / Number(props.account.total_energy)) * 100)
+  if (!realTimeData.value?.energy || realTimeData.value.energy.total === 0) return 0
+  const used = realTimeData.value.energy.used
+  return Math.round((used / realTimeData.value.energy.total) * 100)
 })
+
+// 计算带宽使用率 - 使用实时数据
+const bandwidthUsagePercentage = computed(() => {
+  if (!realTimeData.value?.bandwidth || realTimeData.value.bandwidth.total === 0) return 0
+  const used = realTimeData.value.bandwidth.used
+  return Math.round((used / realTimeData.value.bandwidth.total) * 100)
+})
+
+// 获取实时TRON数据
+const fetchRealTimeData = async () => {
+  if (!props.account) return
+
+  loadingRealTimeData.value = true
+  try {
+    const response = await energyPoolExtendedAPI.validateTronAddress({
+      address: props.account.tron_address,
+      private_key: '', // 空私钥，只获取账户信息
+      network_id: props.account.network_id || ''
+    })
+
+    if (response.data.success && response.data.data) {
+      // 可选：用于调试的日志
+      // console.log('🔍 [AccountDetailsModal] API返回的数据:', response.data.data)
+      // console.log('🔍 [AccountDetailsModal] contractInfo详情:', (response.data.data as any).contractInfo)
+      
+      realTimeData.value = {
+        balance: response.data.data.balance,
+        usdtBalance: response.data.data.usdtBalance || 0,
+        energy: response.data.data.energy,
+        bandwidth: response.data.data.bandwidth,
+        estimatedCostPerEnergy: response.data.data.estimatedCostPerEnergy || 0.001,
+        usdtInfo: response.data.data.usdtInfo,
+        contractInfo: (response.data.data as any).contractInfo
+      }
+    } else {
+      toast.error('获取实时数据失败: ' + response.data.message)
+    }
+  } catch (error) {
+    console.error('Failed to fetch real-time data:', error)
+    toast.error('获取实时数据失败，请检查网络连接')
+  } finally {
+    loadingRealTimeData.value = false
+  }
+}
 
 // 复制到剪贴板
 const copyToClipboard = async (text: string) => {
@@ -182,6 +333,13 @@ const copyToClipboard = async (text: string) => {
     }, 2000)
   }
 }
+
+// 监听模态框开启状态，自动获取实时数据
+watch(() => props.isOpen, async (newValue) => {
+  if (newValue && props.account) {
+    await fetchRealTimeData()
+  }
+}, { immediate: true })
 
 // 格式化能量数值
 const formatEnergy = (energy: number): string => {

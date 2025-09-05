@@ -55,7 +55,7 @@ export const getNetworksList: RouteHandler = async (req: Request, res: Response)
         id, name, network_type as type, rpc_url, api_key, chain_id, block_explorer_url as explorer_url,
         is_active, is_default, priority, timeout_ms, retry_count,
         rate_limit_per_second as rate_limit, health_status, last_health_check as last_check_at,
-        description, created_at, updated_at
+        description, created_at, updated_at, config
       FROM tron_networks 
       ${whereClause}
       ORDER BY priority ASC, created_at DESC
@@ -124,7 +124,14 @@ export const getNetworkDetails: RouteHandler = async (req: Request, res: Respons
     
     // 获取使用此网络的机器人数量
     const botCountResult = await query(
-      `SELECT COUNT(*) as bot_count FROM bot_network_configs WHERE network_id = $1`,
+      `SELECT COUNT(*) as bot_count FROM telegram_bots 
+       WHERE is_active = true 
+       AND network_configurations IS NOT NULL 
+       AND EXISTS (
+         SELECT 1 FROM jsonb_array_elements(network_configurations) AS config 
+         WHERE (config->>'networkId')::uuid = $1 
+         AND (config->>'isActive')::boolean IS NOT FALSE
+       )`,
       [id]
     );
     
@@ -488,7 +495,14 @@ export const deleteNetwork: RouteHandler = async (req: Request, res: Response) =
     
     // 检查是否有关联的机器人配置
     const botConfigCheck = await query(
-      'SELECT COUNT(*) as count FROM bot_network_configs WHERE network_id = $1',
+      `SELECT COUNT(*) as count FROM telegram_bots 
+       WHERE is_active = true 
+       AND network_configurations IS NOT NULL 
+       AND EXISTS (
+         SELECT 1 FROM jsonb_array_elements(network_configurations) AS config 
+         WHERE (config->>'networkId')::uuid = $1 
+         AND (config->>'isActive')::boolean IS NOT FALSE
+       )`,
       [id]
     );
     

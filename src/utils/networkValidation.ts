@@ -36,16 +36,23 @@ export const validateNetworkConfig = async (
     timeout = 10000
   } = options
 
+  console.log(`🔍 [NetworkValidation] 开始验证网络配置，ID: ${networkId}, 选项:`, options)
+
   try {
     // 1. 检查网络是否存在
     const networkResponse = await networkApi.getNetwork(networkId)
     const network = networkResponse.data
 
+    console.log(`🔍 [NetworkValidation] 获取网络信息:`, network)
+
     if (!network) {
+      console.log(`❌ [NetworkValidation] 网络不存在，ID: ${networkId}`)
       result.isValid = false
       result.errors.push('网络不存在')
       return result
     }
+
+    console.log(`✅ [NetworkValidation] 找到网络: ${network.name} (${network.network_type})`)
 
     // 2. 检查网络基本配置
     if (!network.rpc_url) {
@@ -59,42 +66,46 @@ export const validateNetworkConfig = async (
 
     // 3. 检查网络连接性
     if (checkConnectivity) {
-      try {
-        const connectivityResult = await Promise.race([
-          // 暂时跳过网络连接测试，直接基于网络状态判断
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('连接超时')), timeout)
-          )
-        ]) as any
-
-        if (!connectivityResult.data.success) {
-          result.isValid = false
-          result.errors.push(`网络连接失败: ${connectivityResult.data.error || '未知错误'}`)
-        }
-      } catch (error: any) {
-        result.isValid = false
-        result.errors.push(`网络连接测试失败: ${error.message}`)
+      // 基于网络状态进行简单验证，而不是实际连接测试
+      if (!network.is_active) {
+        result.warnings.push('网络当前处于非活跃状态，可能影响使用')
       }
+
+      // 检查健康状态
+      if (network.health_status === 'unhealthy') {
+        result.warnings.push('网络健康状态异常，建议检查网络配置')
+      } else if (network.health_status === 'error') {
+        result.isValid = false
+        result.errors.push('网络健康检查失败，无法使用此网络')
+      } else if (network.health_status === 'unknown') {
+        result.warnings.push('网络健康状态未知，可能是新配置的网络')
+      }
+
+      console.log(`✅ [NetworkValidation] 网络连接性检查完成，网络: ${network.name}，状态: ${network.health_status}, 活跃: ${network.is_active}`)
     }
 
     // 4. 检查网络兼容性
     if (checkCompatibility) {
-      if (!['mainnet', 'testnet', 'private'].includes(network.type)) {
+      const networkType = network.network_type || network.type || ''
+      if (!['mainnet', 'testnet', 'private'].includes(networkType)) {
         result.errors.push('只支持TRON网络类型')
         return result
       }
 
       // 检查是否为主网或测试网
-      if (network.name.toLowerCase().includes('mainnet')) {
+      if (network.name.toLowerCase().includes('mainnet') || networkType === 'mainnet') {
         result.warnings.push('使用主网进行测试可能产生实际费用，请谨慎操作')
       }
     }
 
   } catch (error: any) {
+    console.error('💥 [NetworkValidation] 验证过程中发生错误:', error)
     result.isValid = false
     result.errors.push(`验证过程中发生错误: ${error.message}`)
   }
 
+  console.log(`🏁 [NetworkValidation] 验证完成，结果: ${result.isValid ? '通过' : '失败'}，错误: ${result.errors.length}，警告: ${result.warnings.length}`)
+  
   return result
 }
 

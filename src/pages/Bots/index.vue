@@ -1,181 +1,300 @@
 <template>
   <div class="p-6">
-    <!-- Header -->
+    <!-- 页面头部 -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">机器人管理</h1>
-        <p class="text-gray-600 mt-1">管理和监控您的TRON机器人</p>
+        <p class="text-gray-600 mt-1">管理和监控您的TRON机器人配置和网络设置</p>
       </div>
       <div class="flex gap-3 mt-4 sm:mt-0">
         <button
           @click="refreshData"
-          :disabled="isLoading"
+          :disabled="loading"
           class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          <RotateCcw :class="{ 'animate-spin': isLoading }" class="w-4 h-4" />
+          <RefreshCw :class="{ 'animate-spin': loading }" class="w-4 h-4" />
           刷新
         </button>
         <button
-          @click="goToConfig"
+          @click="exportData"
+          class="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+        >
+          <Download class="w-4 h-4" />
+          导出
+        </button>
+        <button
+          @click="showCreateModal = true"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
-          <Settings class="w-4 h-4" />
-          配置机器人
+          <Plus class="w-4 h-4" />
+          创建机器人
         </button>
       </div>
     </div>
 
-    <!-- 调试信息 -->
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-      <h3 class="text-lg font-medium text-yellow-800 mb-2">调试信息</h3>
-      <div class="text-sm text-yellow-700">
-        <p>加载状态: {{ isLoading ? '加载中...' : '已完成' }}</p>
-        <p>机器人数量: {{ bots.length }}</p>
-        <p>筛选后数量: {{ filteredBots.length }}</p>
-        <p>分页后数量: {{ paginatedBots.length }}</p>
-        <p>API基础URL: {{ apiBaseUrl }}</p>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <BotStats :bot-stats="botStats" class="mb-6" />
-
-    <!-- Search and Filters -->
-    <BotSearch
-      :filters="filters"
-      @update:filters="filters = $event"
-      @export="exportData"
-      @reset="filters = { searchQuery: '', statusFilter: '', typeFilter: '' }"
-      class="mb-6"
-    />
-
-    <!-- Bot List -->
-    <BotList
-      :bots="bots"
+    <!-- 搜索和筛选 -->
+    <BotFilters
+      v-model="searchForm"
+      :networks="networks"
       :selected-bots="selectedBots"
-      :loading="isLoading"
-      :show-bot-menu="showBotMenu"
-      :current-page="pagination.currentPage"
-      :page-size="pagination.pageSize"
-      :filtered-bots="filteredBots"
-      :paginated-bots="paginatedBots"
-      :get-status-text="getStatusText"
-      :get-status-color="getStatusColor"
-      :format-address="formatAddress"
-      :format-type="formatType"
-      :format-currency="formatCurrency"
-      :format-date-time="formatDateTime"
-      :format-username="formatUsername"
-      :format-token="formatToken"
-      :format-bot-status="formatStatus"
-      :format-date="formatDate"
-      :pagination="pagination"
-      @update:selectedBots="selectedBots = $event"
-      @view="viewBot"
-      @edit="editBot"
-      @toggle-status="toggleBotStatus"
-      @recharge="rechargeBalance"
-      @test-connection="testConnection"
-      @view-logs="viewLogs"
-      @reset="resetBot"
-      @create="goToConfig"
-      @page-change="pagination.currentPage = $event"
-      @toggle-menu="showBotMenu = showBotMenu === $event ? null : $event"
-      @close-menu="showBotMenu = null"
-    />
-
-    <!-- Batch Actions -->
-    <BotActions
-      :selected-bots="selectedBots"
-      @batch-start="batchStart"
-      @batch-stop="batchStop"
-      @batch-test="batchTest"
+      @search="handleSearch"
+      @reset="resetSearch"
+      @batch-enable="handleBatchEnable"
+      @batch-disable="handleBatchDisable"
       @clear-selection="clearSelection"
     />
 
-    <!-- Bot Modal -->
-    <BotModal
-      :show="showBotModal"
-      :mode="modalMode"
-      :bot="selectedBot"
-      :form="botForm"
-      :is-saving="isSaving"
-      :format-status="formatStatus"
-      :get-status-color="getStatusColor"
-      @close="showBotModal = false"
-      @edit="editBot"
-      @test-connection="testConnection"
-      @submit="saveBot"
+    <!-- 机器人卡片列表 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" :class="{ 'opacity-50': loading }">
+      <BotCard
+        v-for="bot in filteredBots"
+        :key="bot.id"
+        :bot="bot"
+        :is-selected="selectedBots.includes(bot.id)"
+        @select="handleSelectBot"
+        @toggle-status="handleToggleStatus"
+        @edit="handleEdit"
+        @configure-network="handleConfigureNetwork"
+        @dropdown-command="handleDropdownCommand"
+      />
+    </div>
+
+    <!-- 空状态 -->
+    <div v-if="!loading && filteredBots.length === 0" class="text-center py-12">
+      <Bot class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <h3 class="text-lg font-medium text-gray-900 mb-2">暂无机器人</h3>
+      <p class="text-gray-500 mb-4">开始创建您的第一个Telegram机器人配置</p>
+      <button
+        @click="showCreateModal = true"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+      >
+        <Plus class="w-4 h-4" />
+        创建机器人
+      </button>
+    </div>
+
+    <!-- 分页 -->
+    <div v-if="total > pageSize" class="flex justify-center mt-8">
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-700">
+          共 {{ total }} 条记录
+        </span>
+        <div class="flex gap-1">
+          <button
+            @click="handleCurrentChange(currentPage - 1)"
+            :disabled="currentPage <= 1"
+            class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <span class="px-3 py-1 text-sm text-gray-700">
+            第 {{ currentPage }} / {{ Math.ceil(total / pageSize) }} 页
+          </span>
+          <button
+            @click="handleCurrentChange(currentPage + 1)"
+            :disabled="currentPage >= Math.ceil(total / pageSize)"
+            class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 创建机器人弹窗 -->
+    <BotCreateModal
+      v-model:visible="showCreateModal"
+      :available-networks="availableNetworks"
+      @create="handleCreateBot"
+    />
+
+    <!-- 编辑机器人弹窗 -->
+    <BotEditModal
+      v-model:visible="showEditModal"
+      :bot-data="selectedBot"
+      @save="handleUpdateBot"
+    />
+
+    <!-- 网络配置弹窗 -->
+    <NetworkConfigModal
+      v-model:visible="showNetworkModal"
+      entity-type="bot"
+      :entity-data="selectedBot ? { id: selectedBot.id, name: selectedBot.name } : null"
+      @success="handleNetworkUpdated"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { RotateCcw, Settings } from 'lucide-vue-next'
-import BotActions from './components/BotActions.vue'
-import BotList from './components/BotList.vue'
-import BotModal from './components/BotModal.vue'
-import BotSearch from './components/BotSearch.vue'
-import BotStats from './components/BotStats.vue'
-import { useBotManagement } from './composables/useBotManagement'
+import { botsAPI } from '@/services/api/bots/botsAPI'
+import { ElMessage } from 'element-plus'
+import { Bot, Download, Plus, RefreshCw } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import BotCard from './components/BotCard.vue'
+import BotCreateModal from './components/BotCreateModal.vue'
+import BotEditModal from './components/BotEditModal.vue'
+import BotFilters from './components/BotFilters.vue'
+import NetworkConfigModal from '@/components/NetworkConfigModal.vue'
+import { useBotManagement } from './composables/useBotManagementIntegrated'
 
+// 弹窗状态
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showNetworkModal = ref(false)
+const selectedBot = ref<any>(null)
+
+// 可用网络列表（转换为创建弹窗所需的格式）
+const availableNetworks = computed(() => {
+  return networks.value.map(network => ({
+    id: network.id,
+    name: network.name,
+    network_type: network.chain_id ? 'mainnet' : 'testnet', // 简单的转换逻辑
+    is_active: true
+  }))
+})
+
+// 使用组合式函数
 const {
-  // 响应式数据
-  isLoading,
-  isSaving,
+  // 状态
+  loading,
   bots,
+  networks,
   selectedBots,
-  showBotMenu,
-  showBotModal,
-  modalMode,
-  selectedBot,
-  filters,
-  pagination,
-  botForm,
-  botStats,
+  currentPage,
+  pageSize,
+  total,
+  searchForm,
   
   // 计算属性
   filteredBots,
-  paginatedBots,
   
-  // 格式化函数
-  formatDateTime,
-  formatCurrency,
-  formatAddress,
-  formatType,
-  getStatusText,
-  getStatusColor,
-  formatStatus,
-  getTypeColor,
-  formatUsername,
-  formatToken,
-  formatDate,
-  
-  // 机器人操作
-  viewBot,
-  editBot,
-  goToConfig,
-  saveBot,
-  toggleBotStatus,
-  testConnection,
-  rechargeBalance,
-  viewLogs,
-  resetBot,
+  // 方法
   refreshData,
-  
-  // 批量操作
-  batchStart,
-  batchStop,
-  batchTest,
+  handleSearch,
+  resetSearch,
+  handleToggleStatus,
+  handleDropdownCommand,
+  handleCurrentChange,
+  handleSelectBot,
   clearSelection,
-  
-  // 其他功能
+  handleBatchEnable,
+  handleBatchDisable,
   exportData
 } = useBotManagement()
 
-// 获取API基础URL用于调试
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+// 页面特有方法
+const handleEdit = (bot: any) => {
+  selectedBot.value = bot
+  showEditModal.value = true
+}
 
-// Lifecycle
-// useBotManagement already handles onMounted and onUnmounted
+const handleConfigureNetwork = (bot: any) => {
+  selectedBot.value = bot
+  showNetworkModal.value = true
+}
+
+const handleCreateBot = async (data: any) => {
+  try {
+    const createData = {
+      name: data.name,
+      username: data.username,
+      token: data.token,
+      description: data.description,
+      webhook_url: data.webhook_url,
+      welcome_message: data.welcome_message,
+      help_message: data.help_message,
+      status: data.is_active ? 'active' : 'inactive'
+    }
+    
+    const response = await botsAPI.createBot(createData)
+    
+    if (response.data?.success) {
+      // 如果选择了网络，为机器人配置网络
+      if (data.network_id) {
+        const botId = response.data.data?.bot?.id
+        if (botId) {
+          await botsAPI.setBotNetwork(botId, { network_id: data.network_id })
+        }
+      }
+      
+      showCreateModal.value = false
+      await refreshData()
+      ElMessage.success('机器人创建成功')
+    } else {
+      throw new Error(response.data?.message || '创建失败')
+    }
+  } catch (error: any) {
+    console.error('创建机器人失败:', error)
+    ElMessage.error(error.message || '创建机器人失败')
+  }
+}
+
+const handleUpdateBot = async (data: any) => {
+  try {
+    const response = await botsAPI.updateBot(data.id, {
+      name: data.name,
+      token: data.token,
+      description: data.description,
+      webhook_url: data.webhook_url,
+      welcome_message: data.welcome_message,
+      help_message: data.help_message,
+      status: data.status
+    })
+    
+    if (response.data?.success) {
+      showEditModal.value = false
+      selectedBot.value = null
+      await refreshData()
+      ElMessage.success('机器人更新成功')
+    } else {
+      throw new Error(response.data?.message || '更新失败')
+    }
+  } catch (error: any) {
+    console.error('更新机器人失败:', error)
+    ElMessage.error(error.message || '更新机器人失败')
+  }
+}
+
+const handleNetworkUpdated = async () => {
+  await refreshData()
+}
+
+// 生命周期
+onMounted(() => {
+  refreshData()
+})
 </script>
+
+<style scoped>
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+</style>

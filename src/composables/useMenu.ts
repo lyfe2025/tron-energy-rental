@@ -297,12 +297,6 @@ export function useMenu() {
         permission: 'config:view',
         children: [
           {
-            id: 161,
-            name: '机器人配置',
-            path: '/config/bots',
-            permission: 'config:bot:list'
-          },
-          {
             id: 162,
             name: 'TRON网络管理',
             path: '/config/networks',

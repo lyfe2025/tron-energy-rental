@@ -9,7 +9,8 @@ interface EnergyPoolAccount {
   private_key_encrypted: string
   total_energy: number
   available_energy: number
-  reserved_energy: number
+  total_bandwidth: number
+  available_bandwidth: number
   cost_per_energy: number
   status: 'active' | 'inactive' | 'maintenance'
   last_updated_at: string
@@ -21,6 +22,7 @@ interface EnergyPoolAccount {
   contact_info?: any
   daily_limit?: number
   monthly_limit?: number
+  network_id?: string
   associated_networks?: Array<{ id: string; name: string }>
   network_config?: {
     id: string
@@ -36,8 +38,11 @@ interface EnergyPoolStatistics {
   activeAccounts: number
   totalEnergy: number
   availableEnergy: number
-  reservedEnergy: number
+  totalBandwidth: number
+  availableBandwidth: number
   averageCost: number
+  utilizationRate: number
+  bandwidthUtilizationRate: number
 }
 
 export function useEnergyPool() {
@@ -48,8 +53,11 @@ export function useEnergyPool() {
     activeAccounts: 0,
     totalEnergy: 0,
     availableEnergy: 0,
-    reservedEnergy: 0,
-    averageCost: 0
+    totalBandwidth: 0,
+    availableBandwidth: 0,
+    averageCost: 0,
+    utilizationRate: 0,
+    bandwidthUtilizationRate: 0
   })
 
   const accounts = ref<EnergyPoolAccount[]>([])
@@ -58,7 +66,6 @@ export function useEnergyPool() {
     statistics: false,
     accounts: false,
     refresh: false,
-    sync: false,
     batch: false
   })
 
@@ -81,10 +88,12 @@ export function useEnergyPool() {
   }
 
   // 加载账户列表
-  const loadAccounts = async () => {
+  const loadAccounts = async (networkId?: string) => {
     loading.accounts = true
     try {
-      const response = await energyPoolAPI.getAccounts()
+      console.log('🔍 [useEnergyPool] 加载账户列表，网络过滤:', networkId);
+      const params = networkId ? { network_id: networkId } : undefined;
+      const response = await energyPoolAPI.getAccounts(params)
       if (response.data.success && response.data.data) {
         // 转换API数据以匹配EnergyPoolAccount类型
         accounts.value = response.data.data.map((account: any) => {
@@ -94,6 +103,7 @@ export function useEnergyPool() {
             priority: account.priority || 50
           }
         })
+        console.log(`✅ [useEnergyPool] 加载了 ${accounts.value.length} 个账户`);
       }
     } catch (error) {
       console.error('Failed to load accounts:', error)
@@ -149,16 +159,23 @@ export function useEnergyPool() {
 
   // 添加账户
   const addAccount = async (accountData: {
+    network_id: string
     name: string
     tron_address: string
     private_key_encrypted: string
     total_energy: number
+    account_type?: string
+    priority?: number
+    description?: string
+    daily_limit?: number
+    monthly_limit?: number
+    status?: string
   }) => {
     try {
       // 添加缺失的字段，使其符合EnergyPoolAccount类型
       const completeAccountData = {
         ...accountData,
-        status: 'active' as const,
+        status: accountData.status || 'active',
         available_energy: accountData.total_energy,
         reserved_energy: 0
       };
@@ -177,6 +194,7 @@ export function useEnergyPool() {
 
   // 更新账户
   const updateAccount = async (id: string, updates: Partial<{
+    network_id: string
     name: string
     tron_address: string
     private_key_encrypted: string
@@ -366,6 +384,31 @@ export function useEnergyPool() {
     return isEnabled ? '已启用' : '已停用'
   }
 
+  // 加载可用网络列表
+  const loadNetworks = async () => {
+    try {
+      console.log('🌐 [useEnergyPool] 加载网络列表');
+      const response = await energyPoolAPI.getNetworks()
+      if (response.data.success && response.data.data) {
+        const networks = response.data.data.map((network: any) => ({
+          id: network.id,
+          name: network.name,
+          type: network.type,
+          rpc_url: network.rpc_url,
+          is_active: network.is_active,
+          health_status: network.health_status
+        }));
+        console.log(`🌐 [useEnergyPool] 加载了 ${networks.length} 个网络`);
+        return networks;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to load networks:', error)
+      toast.error('加载网络列表失败')
+      return [];
+    }
+  }
+
   return {
     statistics,
     accounts,
@@ -373,6 +416,7 @@ export function useEnergyPool() {
     todayConsumption,
     loadStatistics,
     loadAccounts,
+    loadNetworks,
     loadTodayConsumption,
     refreshStatus,
     optimizeAllocation,

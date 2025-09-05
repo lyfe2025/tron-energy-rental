@@ -71,7 +71,8 @@ export const validateConfig = (configType: string) => {
           schema = ConfigValidationSchemas.telegramBot;
           break;
         case 'bot_network_config':
-          schema = ConfigValidationSchemas.botNetworkConfig;
+          // bot_network_config已合并到telegram_bots表，使用telegram_bot验证规则
+          schema = ConfigValidationSchemas.telegramBot;
           break;
         case 'system_config':
           schema = ConfigValidationSchemas.systemConfig;

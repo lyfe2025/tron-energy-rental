@@ -37,7 +37,7 @@ export class AllocationService {
           // 更新数据库
           await accountManagementService.updatePoolAccount(account.id, {
             total_energy: totalEnergy,
-            available_energy: availableEnergy - account.reserved_energy,
+            available_energy: availableEnergy,
             last_updated_at: new Date()
           });
           

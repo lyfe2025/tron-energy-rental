@@ -30,7 +30,6 @@
       @batch-enable="batchEnable"
       @batch-disable="batchDisable"
       @show-batch-network-modal="showBatchNetworkModal = true"
-      @batch-sync="batchSync"
     />
 
     <!-- 账户列表表格 -->
@@ -39,7 +38,6 @@
       :selected-accounts="selectedAccounts"
       :is-all-selected="isAllSelected"
       :loading="loading"
-      :syncing-account-id="syncingAccountId"
       :format-energy="formatEnergy"
       :format-address="formatAddress"
       :get-status-class="getStatusClass"
@@ -51,8 +49,7 @@
       @handle-account-network-setting="handleAccountNetworkSetting"
       @confirm-disable-account="confirmDisableAccount"
       @confirm-enable-account="confirmEnableAccount"
-      @manage-networks="manageNetworks"
-      @sync-account="syncAccount"
+
       @edit-account="editAccount"
       @view-details="viewDetails"
       @confirm-delete-account="confirmDeleteAccount"
@@ -151,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 // 组件导入
 import EnergyPoolActions from './components/EnergyPoolActions.vue'
@@ -176,6 +173,7 @@ const {
   todayConsumption,
   loadStatistics,
   loadAccounts,
+  loadNetworks,
   refreshStatus,
   loadTodayConsumption,
   enableAccount,
@@ -199,7 +197,7 @@ const showDetailsModal = ref(false)
 const showDeleteConfirm = ref(false)
 const showEnableConfirm = ref(false)
 const showDisableConfirm = ref(false)
-const showNetworkModal = ref(false)
+
 const showBatchNetworkModal = ref(false)
 const showAccountNetworkModal = ref(false)
 const selectedAccount = ref<EnergyPoolAccount | null>(null)
@@ -212,12 +210,14 @@ const selectedAccounts = ref<string[]>([])
 const searchQuery = ref('')
 const statusFilter = ref('')
 const networkFilter = ref('')
-const syncingAccountId = ref<string | null>(null)
-const availableNetworks = ref([
-  { id: '1', name: 'Mainnet' },
-  { id: '2', name: 'Shasta Testnet' },
-  { id: '3', name: 'Nile Testnet' }
-])
+const availableNetworks = ref<Array<{
+  id: string;
+  name: string;
+  type: string;
+  rpc_url: string;
+  is_active: boolean;
+  health_status?: string;
+}>>([])
 
 // 计算属性
 const filteredAccounts = computed(() => {
@@ -275,7 +275,7 @@ const handleDeleteAccount = async () => {
     await deleteAccount(accountToDelete.value.id)
     showDeleteConfirm.value = false
     accountToDelete.value = null
-    await loadAccounts()
+    await loadAccounts(networkFilter.value || undefined)
     await loadStatistics()
   } catch (error) {
     console.error('Failed to delete account:', error)
@@ -317,16 +317,22 @@ const handleToggleAccount = async () => {
   }
 }
 
+// 监听网络过滤器变化，重新加载账户数据
+watch(networkFilter, (newNetworkId) => {
+  console.log('🔍 [EnergyPool] 网络过滤器变化:', newNetworkId);
+  loadAccounts(newNetworkId || undefined);
+});
+
 const handleAccountAdded = () => {
   showAddModal.value = false
-  loadAccounts()
+  loadAccounts(networkFilter.value || undefined)
   loadStatistics()
 }
 
 const handleAccountUpdated = () => {
   showEditModal.value = false
   selectedAccount.value = null
-  loadAccounts()
+  loadAccounts(networkFilter.value || undefined)
   loadStatistics()
 }
 
@@ -363,26 +369,8 @@ const resetFilters = () => {
   networkFilter.value = ''
 }
 
-const manageNetworks = (account: EnergyPoolAccount) => {
-  selectedAccount.value = account
-  showNetworkModal.value = true
-}
 
-const syncAccount = async (account: EnergyPoolAccount) => {
-  syncingAccountId.value = account.id
-  loading.sync = true
-  try {
-    // 模拟同步操作
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    await loadAccounts()
-    await loadStatistics()
-  } catch (error) {
-    console.error('Failed to sync account:', error)
-  } finally {
-    loading.sync = false
-    syncingAccountId.value = null
-  }
-}
+
 
 const batchEnable = async () => {
   loading.batch = true
@@ -391,7 +379,7 @@ const batchEnable = async () => {
       await enableAccount(accountId)
     }
     selectedAccounts.value = []
-    await loadAccounts()
+    await loadAccounts(networkFilter.value || undefined)
     await loadStatistics()
   } catch (error) {
     console.error('Failed to batch enable accounts:', error)
@@ -407,7 +395,7 @@ const batchDisable = async () => {
       await disableAccount(accountId)
     }
     selectedAccounts.value = []
-    await loadAccounts()
+    await loadAccounts(networkFilter.value || undefined)
     await loadStatistics()
   } catch (error) {
     console.error('Failed to batch disable accounts:', error)
@@ -416,25 +404,8 @@ const batchDisable = async () => {
   }
 }
 
-const batchSync = async () => {
-  loading.batch = true
-  try {
-    for (const accountId of selectedAccounts.value) {
-      await syncAccount({ id: accountId } as EnergyPoolAccount)
-    }
-    selectedAccounts.value = []
-  } catch (error) {
-    console.error('Failed to batch sync accounts:', error)
-  } finally {
-    loading.batch = false
-  }
-}
 
-const handleNetworkUpdated = () => {
-  showNetworkModal.value = false
-  selectedAccount.value = null
-  loadAccounts()
-}
+
 
 const handleAccountNetworkSetting = (account: EnergyPoolAccount) => {
   selectedAccount.value = account
@@ -444,21 +415,33 @@ const handleAccountNetworkSetting = (account: EnergyPoolAccount) => {
 const handleAccountNetworkUpdated = () => {
   showAccountNetworkModal.value = false
   selectedAccount.value = null
-  loadAccounts()
+  loadAccounts(networkFilter.value || undefined)
 }
 
 const handleBatchNetworkUpdated = () => {
   showBatchNetworkModal.value = false
   selectedAccounts.value = []
-  loadAccounts()
+  loadAccounts(networkFilter.value || undefined)
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadStatistics(),
-    loadAccounts(),
-    loadTodayConsumption()
-  ])
+  console.log('🚀 [EnergyPool] 页面初始化');
+  
+  try {
+    // 首先加载网络列表
+    const networks = await loadNetworks();
+    availableNetworks.value = networks;
+    console.log('🌐 [EnergyPool] 网络列表加载完成:', networks.length);
+    
+    // 并行加载其他数据（账户数据不使用网络过滤，显示所有账户）
+    await Promise.all([
+      loadStatistics(),
+      loadAccounts(), // 初始加载显示所有账户
+      loadTodayConsumption()
+    ]);
+  } catch (error) {
+    console.error('❌ [EnergyPool] 页面初始化失败:', error);
+  }
 })
 </script>
 

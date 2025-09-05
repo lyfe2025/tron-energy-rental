@@ -13,7 +13,7 @@ export class UserCRUDService {
    * 获取用户列表
    */
   static async getUsers(params: UserSearchParams) {
-    const { page, limit, search, status, login_type, type, user_type, agent_id, date_range } = params;
+    const { page, limit, search, status, login_type, type, user_type, agent_id, bot_filter, date_range } = params;
     const offset = (page - 1) * limit;
 
     // 构建查询条件
@@ -57,6 +57,12 @@ export class UserCRUDService {
       paramIndex++;
     }
 
+    if (bot_filter) {
+      conditions.push(`u.bot_id = $${paramIndex}`);
+      values.push(bot_filter);
+      paramIndex++;
+    }
+
     if (date_range?.start) {
       conditions.push(`u.created_at >= $${paramIndex}`);
       values.push(date_range.start);
@@ -85,10 +91,13 @@ export class UserCRUDService {
       SELECT 
         u.*,
         a.agent_code,
-        au.username as agent_username
+        au.username as agent_username,
+        tb.bot_name,
+        tb.bot_username
       FROM users u
       LEFT JOIN agents a ON u.agent_id = a.id
       LEFT JOIN users au ON a.user_id = au.id
+      LEFT JOIN telegram_bots tb ON u.bot_id = tb.id
       ${whereClause}
       ORDER BY u.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -128,10 +137,13 @@ export class UserCRUDService {
       SELECT 
         u.*,
         a.agent_code,
-        au.username as agent_username
+        au.username as agent_username,
+        tb.bot_name,
+        tb.bot_username
       FROM users u
       LEFT JOIN agents a ON u.agent_id = a.id
       LEFT JOIN users au ON a.user_id = au.id
+      LEFT JOIN telegram_bots tb ON u.bot_id = tb.id
       WHERE u.id = $1
     `;
     
@@ -235,6 +247,7 @@ export class UserCRUDService {
       type = 'user',
       user_type = 'regular',
       agent_id,
+      bot_id,
       status = 'active'
     } = data;
 
@@ -290,18 +303,16 @@ export class UserCRUDService {
 
     const query = `
       INSERT INTO users (
-        username, email, phone, telegram_id, telegram_username, 
-        wallet_address, password_hash, login_type, type, user_type, 
-        agent_id, status, balance, frozen_balance
+        username, email, phone, telegram_id, password_hash, 
+        login_type, user_type, agent_id, bot_id, status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 0, 0)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
     
     const result = await pool.query(query, [
-      username, email, phone, telegram_id, telegram_username,
-      wallet_address, hashedPassword, login_type, type, user_type,
-      agent_id, status
+      username, email, phone, telegram_id, hashedPassword,
+      login_type, user_type, agent_id, bot_id, status
     ]);
 
     return this.getUserById(result.rows[0].id);
@@ -311,7 +322,12 @@ export class UserCRUDService {
    * 更新用户信息
    */
   static async updateUser(id: string, data: UserUpdateData): Promise<User | null> {
-    const { username, email, phone, telegram_username, wallet_address, status, type, user_type, agent_id } = data;
+    const { 
+      username, email, phone, first_name, last_name, 
+      tron_address, status, user_type, agent_id, bot_id,
+      balance, usdt_balance, trx_balance, referral_code, referred_by, 
+      password 
+    } = data;
 
     // 动态构建更新字段
     const updateFields: string[] = [];
@@ -325,7 +341,9 @@ export class UserCRUDService {
         [username, id]
       );
       if (existingUsername.rows.length > 0) {
-        throw new Error('用户名已存在');
+        const error = new Error('用户名已存在');
+        (error as any).statusCode = 400;
+        throw error;
       }
       updateFields.push(`username = $${paramIndex}`);
       values.push(username);
@@ -340,7 +358,9 @@ export class UserCRUDService {
           [email, id]
         );
         if (existingEmail.rows.length > 0) {
-          throw new Error('邮箱已存在');
+          const error = new Error('邮箱已存在');
+          (error as any).statusCode = 400;
+          throw error;
         }
       }
       updateFields.push(`email = $${paramIndex}`);
@@ -354,15 +374,22 @@ export class UserCRUDService {
       paramIndex++;
     }
 
-    if (telegram_username !== undefined) {
-      updateFields.push(`telegram_username = $${paramIndex}`);
-      values.push(telegram_username);
+    if (first_name !== undefined) {
+      updateFields.push(`first_name = $${paramIndex}`);
+      values.push(first_name);
       paramIndex++;
     }
 
-    if (wallet_address !== undefined) {
-      updateFields.push(`wallet_address = $${paramIndex}`);
-      values.push(wallet_address);
+    if (last_name !== undefined) {
+      updateFields.push(`last_name = $${paramIndex}`);
+      values.push(last_name);
+      paramIndex++;
+    }
+
+
+    if (tron_address !== undefined) {
+      updateFields.push(`tron_address = $${paramIndex}`);
+      values.push(tron_address || null);
       paramIndex++;
     }
 
@@ -372,11 +399,6 @@ export class UserCRUDService {
       paramIndex++;
     }
 
-    if (type !== undefined) {
-      updateFields.push(`type = $${paramIndex}`);
-      values.push(type);
-      paramIndex++;
-    }
 
     if (user_type !== undefined) {
       updateFields.push(`user_type = $${paramIndex}`);
@@ -385,7 +407,7 @@ export class UserCRUDService {
     }
 
     if (agent_id !== undefined) {
-      if (agent_id !== null) {
+      if (agent_id !== null && agent_id !== '') {
         // 验证代理商是否存在
         const agentExists = await pool.query(
           'SELECT id FROM agents WHERE id = $1 AND status = $2',
@@ -396,7 +418,64 @@ export class UserCRUDService {
         }
       }
       updateFields.push(`agent_id = $${paramIndex}`);
-      values.push(agent_id);
+      values.push(agent_id || null);
+      paramIndex++;
+    }
+
+    if (bot_id !== undefined) {
+      if (bot_id !== null && bot_id !== '') {
+        // 验证机器人是否存在
+        const botExists = await pool.query(
+          'SELECT id FROM telegram_bots WHERE id = $1',
+          [bot_id]
+        );
+        if (botExists.rows.length === 0) {
+          const error = new Error('指定的机器人不存在');
+          (error as any).statusCode = 400;
+          throw error;
+        }
+      }
+      updateFields.push(`bot_id = $${paramIndex}`);
+      values.push(bot_id || null);
+      paramIndex++;
+    }
+
+    if (balance !== undefined) {
+      updateFields.push(`balance = $${paramIndex}`);
+      values.push(balance);
+      paramIndex++;
+    }
+
+    if (usdt_balance !== undefined) {
+      updateFields.push(`usdt_balance = $${paramIndex}`);
+      values.push(usdt_balance);
+      paramIndex++;
+    }
+
+    if (trx_balance !== undefined) {
+      updateFields.push(`trx_balance = $${paramIndex}`);
+      values.push(trx_balance);
+      paramIndex++;
+    }
+
+    if (referral_code !== undefined) {
+      updateFields.push(`referral_code = $${paramIndex}`);
+      values.push(referral_code || null);
+      paramIndex++;
+    }
+
+    if (referred_by !== undefined) {
+      updateFields.push(`referred_by = $${paramIndex}`);
+      values.push(referred_by || null);
+      paramIndex++;
+    }
+
+
+    if (password !== undefined) {
+      // 加密密码
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push(`password_hash = $${paramIndex}`);
+      values.push(hashedPassword);
       paramIndex++;
     }
 

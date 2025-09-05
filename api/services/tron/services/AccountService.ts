@@ -34,6 +34,16 @@ export class AccountService {
   async getAccountResources(address: string): Promise<ServiceResponse<ResourceData>> {
     try {
       const resources = await this.tronWeb.trx.getAccountResources(address);
+      
+      // 计算完整的带宽信息：包含免费带宽(600) + 质押获得的带宽
+      const freeNetLimit = resources.freeNetLimit || 600; // TRON每日免费带宽
+      const stakedNetLimit = resources.NetLimit || 0; // 质押获得的带宽
+      const totalBandwidth = freeNetLimit + stakedNetLimit; // 总带宽
+      
+      // 带宽使用情况计算
+      const netUsed = resources.NetUsed || 0;
+      const availableBandwidth = totalBandwidth - netUsed;
+      
       return {
         success: true,
         data: {
@@ -43,9 +53,9 @@ export class AccountService {
             available: (resources.EnergyLimit || 0) - (resources.EnergyUsed || 0)
           },
           bandwidth: {
-            used: resources.NetUsed || 0,
-            limit: resources.NetLimit || 0,
-            available: (resources.NetLimit || 0) - (resources.NetUsed || 0)
+            used: netUsed,
+            limit: totalBandwidth, // 修正：包含免费带宽的总带宽
+            available: availableBandwidth // 修正：基于总带宽计算的可用带宽
           }
         }
       };

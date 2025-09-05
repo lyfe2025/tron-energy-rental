@@ -29,10 +29,12 @@
         :status-filter="searchParams.status"
         :type-filter="searchParams.type"
         :user-type-filter="searchParams.user_type || ''"
+        :bot-filter="searchParams.bot_filter || ''"
         @update:search-query="handleSearch"
         @update:status-filter="handleStatusFilter"
         @update:type-filter="handleTypeFilter"
         @update:user-type-filter="handleUserTypeFilter"
+        @update:bot-filter="handleBotFilter"
         @export="batchExport"
       />
     </div>
@@ -173,6 +175,7 @@ const {
   handleStatusFilter,
   handleTypeFilter,
   handleUserTypeFilter,
+  handleBotFilter,
   handleDateRangeFilter,
   clearFilters,
   

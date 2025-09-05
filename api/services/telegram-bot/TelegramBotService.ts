@@ -124,7 +124,7 @@ export class TelegramBotService {
    */
   private setupConfigChangeListener(): void {
     configService.onConfigChange(async (event) => {
-      if (event.type === 'telegram_bots' || event.type === 'bot_network_configs') {
+      if (event.type === 'telegram_bots') {
         console.log('检测到机器人配置变更，重新加载配置...');
         await this.reloadConfiguration();
       }

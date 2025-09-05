@@ -30,11 +30,12 @@ const getBotStatsOverview: RouteHandler = async (req: Request, res: Response) =>
       FROM telegram_bots
     `);
     
-    // 获取机器人用户统计
+    // 获取机器人用户统计 - 从users表统计有telegram_id的用户
     const userStatsResult = await query(`
       SELECT 
         COUNT(*) as total_bot_users
-      FROM bot_users
+      FROM users
+      WHERE telegram_id IS NOT NULL
     `);
     
     // 获取机器人订单统计
@@ -73,7 +74,21 @@ const getBotStatsOverview: RouteHandler = async (req: Request, res: Response) =>
   }
 };
 
+// 导入新的统计控制器
+import {
+    getAllBotStatistics,
+    getBotOrders,
+    getBotStatistics,
+    getBotUsers
+} from './statistics/BotStatisticsController.js';
+
 // 注册路由
 router.get('/stats/overview', authenticateToken, requireAdmin, getBotStatsOverview);
+
+// 新的统计路由
+router.get('/statistics', authenticateToken, requireAdmin, getAllBotStatistics);
+router.get('/:id/statistics', authenticateToken, requireAdmin, getBotStatistics);
+router.get('/:id/users', authenticateToken, requireAdmin, getBotUsers);
+router.get('/:id/orders', authenticateToken, requireAdmin, getBotOrders);
 
 export default router;

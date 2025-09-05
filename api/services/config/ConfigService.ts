@@ -396,7 +396,7 @@ export class ConfigService extends EventEmitter {
    * 获取机器人网络配置
    */
   async getBotNetworkConfigs(botId?: string, networkId?: string): Promise<BotNetworkConfig[]> {
-    const cacheKey = this.getCacheKey('bot_network_configs', `${botId || 'all'}_${networkId || 'all'}`);
+    const cacheKey = this.getCacheKey('telegram_bots_network_configs', `${botId || 'all'}_${networkId || 'all'}`);
     const cached = this.getCache(cacheKey);
     if (cached) {
       return cached;
@@ -404,36 +404,46 @@ export class ConfigService extends EventEmitter {
 
     const client = await pool.connect();
     try {
-      let query = 'SELECT * FROM bot_network_configs WHERE 1=1';
+      let query = 'SELECT id, network_configurations FROM telegram_bots WHERE is_active = true';
       const params: any[] = [];
       
       if (botId) {
         params.push(botId);
-        query += ` AND bot_id = $${params.length}`;
+        query += ` AND id = $${params.length}`;
       }
-      
-      if (networkId) {
-        params.push(networkId);
-        query += ` AND network_id = $${params.length}`;
-      }
-      
-      query += ' ORDER BY priority DESC, created_at ASC';
       
       const result = await client.query(query, params);
-      const configs = result.rows.map(row => ({
-        id: row.id,
-        botId: row.bot_id,
-        networkId: row.network_id,
-        isActive: row.is_active,
-        isPrimary: row.is_primary,
-        priority: row.priority,
-        config: row.config,
-        apiSettings: row.api_settings,
-        contractAddresses: row.contract_addresses,
-        gasSettings: row.gas_settings,
-        monitoringSettings: row.monitoring_settings,
-        syncStatus: row.sync_status
-      }));
+      const configs: BotNetworkConfig[] = [];
+      
+      result.rows.forEach(row => {
+        const networkConfigs = row.network_configurations || [];
+        networkConfigs.forEach((config: any) => {
+          if (!networkId || config.networkId === networkId) {
+            configs.push({
+              id: config.id || `${row.id}_${config.networkId}`,
+              botId: row.id,
+              networkId: config.networkId,
+              isActive: config.isActive !== false,
+              isPrimary: config.isPrimary || false,
+              priority: config.priority || 0,
+              config: config.config || {},
+              apiSettings: config.apiSettings || {},
+              contractAddresses: config.contractAddresses || {},
+              gasSettings: config.gasSettings || {},
+              monitoringSettings: config.monitoringSettings || {},
+              syncStatus: config.syncStatus || {}
+            });
+          }
+        });
+      });
+      
+      // 按优先级和创建时间排序
+      configs.sort((a, b) => {
+        if (a.priority !== b.priority) {
+          return b.priority - a.priority;
+        }
+        return 0;
+      });
 
       this.setCache(cacheKey, configs);
       return configs;
@@ -446,7 +456,7 @@ export class ConfigService extends EventEmitter {
    * 获取活跃的机器人配置（包含网络信息）
    */
   async getActiveBotConfigs(): Promise<Array<TelegramBotConfig & { networks: TronNetworkConfig[] }>> {
-    const cacheKey = this.getCacheKey('active_bot_configs');
+    const cacheKey = this.getCacheKey('active_telegram_bots');
     const cached = this.getCache(cacheKey);
     if (cached) {
       return cached;
@@ -454,54 +464,63 @@ export class ConfigService extends EventEmitter {
 
     const client = await pool.connect();
     try {
-      const query = `
-        SELECT 
-          tb.*,
-          json_agg(
-            json_build_object(
-              'id', tn.id,
-              'name', tn.name,
-              'networkType', tn.network_type,
-              'rpcUrl', tn.rpc_url,
-              'apiKey', tn.api_key,
-              'chainId', tn.chain_id,
-              'explorerUrl', tn.block_explorer_url,
-              'isActive', tn.is_active,
-              'isDefault', tn.is_default,
-              'priority', tn.priority,
-              'config', tn.config,
-              'healthCheckUrl', tn.health_check_url,
-              'description', tn.description,
-              'botNetworkConfig', bnc.*
-            )
-          ) as networks
-        FROM telegram_bots tb
-        LEFT JOIN bot_network_configs bnc ON tb.id = bnc.bot_id AND bnc.is_active = true
-        LEFT JOIN tron_networks tn ON bnc.network_id = tn.id AND tn.is_active = true
-        WHERE tb.is_active = true
-        GROUP BY tb.id
-        ORDER BY tb.created_at ASC
-      `;
+      // 获取活跃的机器人配置
+      const botQuery = 'SELECT * FROM telegram_bots WHERE is_active = true ORDER BY created_at ASC';
+      const botResult = await client.query(botQuery);
       
-      const result = await client.query(query);
-      const configs = result.rows.map(row => {
-        const networks = row.networks
-          .filter((n: any) => n.id !== null)
-          .map((n: any) => ({
-            id: n.id,
-            name: n.name,
-            networkType: n.networkType,
-            rpcUrl: n.rpcUrl,
-            apiKey: n.apiKey ? this.decrypt(n.apiKey) : undefined,
-            chainId: n.chainId,
-            explorerUrl: n.explorerUrl,
-            isActive: n.isActive,
-            isDefault: n.isDefault,
-            priority: n.priority,
-            config: n.config,
-            healthCheckUrl: n.healthCheckUrl,
-            description: n.description
-          }));
+      // 获取所有网络配置
+      const networkQuery = 'SELECT * FROM tron_networks WHERE is_active = true';
+      const networkResult = await client.query(networkQuery);
+      const networksMap = new Map();
+      networkResult.rows.forEach(network => {
+        networksMap.set(network.id, {
+          id: network.id,
+          name: network.name,
+          networkType: network.network_type,
+          rpcUrl: network.rpc_url,
+          apiKey: network.api_key ? this.decrypt(network.api_key) : undefined,
+          chainId: network.chain_id,
+          explorerUrl: network.block_explorer_url,
+          isActive: network.is_active,
+          isDefault: network.is_default,
+          priority: network.priority,
+          config: network.config,
+          healthCheckUrl: network.health_check_url,
+          description: network.description
+        });
+      });
+      
+      const configs = botResult.rows.map(row => {
+        // 从network_configurations字段获取网络配置
+        const networkConfigs = row.network_configurations || [];
+        const networks = networkConfigs
+          .filter((config: any) => config.isActive !== false && networksMap.has(config.networkId))
+          .map((config: any) => {
+            const baseNetwork = networksMap.get(config.networkId);
+            return {
+              ...baseNetwork,
+              // 合并机器人特定的网络配置
+              botNetworkConfig: {
+                id: config.id || `${row.id}_${config.networkId}`,
+                botId: row.id,
+                networkId: config.networkId,
+                isActive: config.isActive !== false,
+                isPrimary: config.isPrimary || false,
+                priority: config.priority || 0,
+                config: config.config || {},
+                apiSettings: config.apiSettings || {},
+                contractAddresses: config.contractAddresses || {},
+                gasSettings: config.gasSettings || {},
+                monitoringSettings: config.monitoringSettings || {},
+                syncStatus: config.syncStatus || {}
+              }
+            };
+          })
+          .sort((a: any, b: any) => {
+            const aPriority = a.botNetworkConfig?.priority || 0;
+            const bPriority = b.botNetworkConfig?.priority || 0;
+            return bPriority - aPriority;
+          });
 
         return {
           id: row.id,

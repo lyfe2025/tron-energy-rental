@@ -40,13 +40,13 @@ const getBotUsers: RouteHandler = async (req: Request, res: Response) => {
       return;
     }
     
-    // 构建查询条件
-    const whereConditions = ['bu.bot_id = $1'];
-    const queryParams: any[] = [id];
-    let paramIndex = 2;
+    // 构建查询条件 - 直接从users表查询，不再使用bot_users表
+    const whereConditions = ['u.telegram_id IS NOT NULL']; // 只查询有telegram_id的用户
+    const queryParams: any[] = [];
+    let paramIndex = 1;
     
     if (status) {
-      whereConditions.push(`bu.status = $${paramIndex}`);
+      whereConditions.push(`u.status = $${paramIndex}`);
       queryParams.push(String(status));
       paramIndex++;
     }
@@ -63,18 +63,16 @@ const getBotUsers: RouteHandler = async (req: Request, res: Response) => {
     
     const whereClause = 'WHERE ' + whereConditions.join(' AND ');
     
-    // 查询机器人用户列表
+    // 查询用户列表 - 直接从users表查询
     const usersQuery = `
       SELECT 
-        bu.id, bu.telegram_chat_id, bu.status as bot_user_status,
-        bu.last_interaction_at, bu.settings as bot_user_settings,
-        bu.created_at as joined_at,
         u.id as user_id, u.username, u.first_name, u.last_name,
-        u.role, u.status as user_status
-      FROM bot_users bu
-      JOIN users u ON bu.user_id = u.id
+        u.telegram_id, u.role, u.status as user_status,
+        u.created_at as joined_at, u.updated_at as last_interaction_at,
+        '{}' as bot_user_settings, 'active' as bot_user_status
+      FROM users u
       ${whereClause}
-      ORDER BY bu.created_at DESC
+      ORDER BY u.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -85,8 +83,7 @@ const getBotUsers: RouteHandler = async (req: Request, res: Response) => {
     // 查询总数
     const countQuery = `
       SELECT COUNT(*) as total 
-      FROM bot_users bu
-      JOIN users u ON bu.user_id = u.id
+      FROM users u
       ${whereClause}
     `;
     const countResult = await query(countQuery, queryParams.slice(0, -2));
