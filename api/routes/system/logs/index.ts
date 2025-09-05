@@ -12,6 +12,7 @@ import { LoginLogsController } from './controllers/LoginLogsController.js';
 import { LogsManagementController } from './controllers/LogsManagementController.js';
 import { LogsStatsController } from './controllers/LogsStatsController.js';
 import { OperationLogsController } from './controllers/OperationLogsController.js';
+import { SystemMonitoringLogsController } from './controllers/SystemMonitoringLogsController.js';
 
 const router: Router = Router();
 
@@ -175,6 +176,45 @@ router.get('/stats/user-activity', [
 router.get('/stats/peak-usage', [
   requirePermission('system:log:stats')
 ], LogsStatsController.getPeakUsage);
+
+// ========================
+// 系统监控日志相关路由
+// ========================
+
+/**
+ * 获取系统监控日志列表
+ * GET /api/system/logs/system
+ */
+router.get('/system', [
+  requirePermission('system:log:system:list'),
+  query('page').optional().isInt({ min: 1 }).withMessage('页码必须是正整数'),
+  query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+  query('level').optional().isString().withMessage('日志级别必须是字符串'),
+  query('module').optional().isString().withMessage('模块名称必须是字符串'),
+  query('message').optional().isString().withMessage('消息内容必须是字符串'),
+  query('start_date').optional().isISO8601().withMessage('开始日期格式无效'),
+  query('end_date').optional().isISO8601().withMessage('结束日期格式无效'),
+  query('user_id').optional().isUUID().withMessage('用户ID必须是有效的UUID'),
+  handleValidationErrors
+], SystemMonitoringLogsController.getList);
+
+/**
+ * 获取系统监控日志详情
+ * GET /api/system/logs/system/:id
+ */
+router.get('/system/:id', [
+  requirePermission('system:log:system:list'),
+  param('id').isUUID().withMessage('日志ID必须是有效的UUID'),
+  handleValidationErrors
+], SystemMonitoringLogsController.getDetail);
+
+/**
+ * 获取系统监控日志统计
+ * GET /api/system/logs/system/stats
+ */
+router.get('/system/stats', [
+  requirePermission('system:log:system:list')
+], SystemMonitoringLogsController.getStats);
 
 // ========================
 // 日志管理相关路由

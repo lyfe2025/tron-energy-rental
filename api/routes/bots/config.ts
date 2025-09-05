@@ -5,6 +5,7 @@
 import { Router, type Request, type Response } from 'express';
 import { query } from '../../config/database.js';
 import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
+import { validateConfig, auditConfigChanges, checkConfigPermission } from '../../middleware/configManagement.js';
 import type { RouteHandler, BotConfigData } from './types.js';
 
 const router: Router = Router();
@@ -97,6 +98,13 @@ const updateBotConfig: RouteHandler = async (req: Request, res: Response) => {
 };
 
 // 注册路由
-router.put('/:id/config', authenticateToken, requireAdmin, updateBotConfig);
+router.put('/:id/config', 
+  authenticateToken, 
+  requireAdmin,
+  checkConfigPermission('telegram_bot'),
+  validateConfig('telegram_bot'),
+  auditConfigChanges('telegram_bot'),
+  updateBotConfig
+);
 
 export default router;

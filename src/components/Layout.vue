@@ -169,14 +169,14 @@
 import { useMenu } from '@/composables/useMenu'
 import { useAuthStore } from '@/stores/auth'
 import {
-  Bell,
-  ChevronDown,
-  LogOut,
-  Menu,
-  Settings,
-  User,
-  X,
-  Zap
+    Bell,
+    ChevronDown,
+    LogOut,
+    Menu,
+    Settings,
+    User,
+    X,
+    Zap
 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -225,7 +225,17 @@ const pageTitleMap: Record<string, string> = {
   '/monitoring/scheduled-tasks': '定时任务',
   '/monitoring/database': '数据监控',
   '/monitoring/service-status': '服务状态',
-  '/monitoring/cache-status': '缓存状态'
+  '/monitoring/cache-status': '缓存状态',
+  
+  // 配置管理页面标题
+  '/config': '配置管理',
+  '/config/bots': '机器人配置管理',
+  '/config/bots/create': '创建机器人',
+  '/config/bots/edit': '编辑机器人',
+  '/config/networks': 'TRON网络管理',
+  '/config/energy-pools': '能量池配置管理',
+  '/config/history': '配置变更历史',
+  '/config/monitoring': '系统监控'
 }
 
 // 当前页面标题

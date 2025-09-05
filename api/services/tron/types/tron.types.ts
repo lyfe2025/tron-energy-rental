@@ -3,6 +3,7 @@ export interface TronConfig {
   privateKey?: string;
   solidityNode?: string;
   eventServer?: string;
+  headers?: Record<string, string>;
 }
 
 export interface DelegateResourceParams {

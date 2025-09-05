@@ -1,6 +1,7 @@
 /**
  * Telegram机器人主服务
  * 整合命令处理、回调处理、键盘构建等模块
+ * 支持从数据库读取配置
  */
 import TelegramBot from 'node-telegram-bot-api';
 import { CallbackHandler } from './callbacks/CallbackHandler.js';
@@ -8,6 +9,7 @@ import { CommandHandler } from './commands/CommandHandler.js';
 import { KeyboardBuilder } from './keyboards/KeyboardBuilder.js';
 import type { BotConfig } from './types/bot.types.js';
 import { BotUtils } from './utils/BotUtils.js';
+import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../config/ConfigService.js';
 
 export class TelegramBotService {
   private bot: TelegramBot;
@@ -16,21 +18,89 @@ export class TelegramBotService {
   private keyboardBuilder: KeyboardBuilder;
   private botUtils: BotUtils;
   private config: BotConfig;
+  private botConfig: TelegramBotConfig | null = null;
+  private networks: TronNetworkConfig[] = [];
+  private isInitialized: boolean = false;
 
   constructor(config?: Partial<BotConfig>) {
-    // 获取配置
-    const token = config?.token || process.env.TELEGRAM_BOT_TOKEN;
-    if (!token) {
-      throw new Error('TELEGRAM_BOT_TOKEN is required');
-    }
-
+    // 临时配置，实际配置将从数据库加载
     this.config = {
-      token,
-      polling: config?.polling !== false, // 默认启用轮询
+      token: config?.token || 'temp-token',
+      polling: config?.polling !== false,
       ...config
     };
 
-    // 初始化机器人
+    // 延迟初始化，等待从数据库加载配置
+    this.initializeFromDatabase();
+  }
+
+  /**
+   * 从数据库初始化机器人配置
+   */
+  private async initializeFromDatabase(): Promise<void> {
+    try {
+      // 获取活跃的机器人配置
+      const activeBots = await configService.getActiveBotConfigs();
+      
+      if (activeBots.length === 0) {
+        console.warn('未找到活跃的机器人配置，使用环境变量配置');
+        await this.initializeFromEnv();
+        return;
+      }
+
+      // 使用第一个活跃的机器人配置
+      this.botConfig = activeBots[0];
+      this.networks = this.botConfig.networks;
+
+      // 更新配置
+      this.config.token = this.botConfig.botToken;
+
+      // 初始化机器人实例
+      this.bot = new TelegramBot(this.config.token, { 
+        polling: this.config.polling 
+      });
+
+      // 初始化各个处理模块
+      this.commandHandler = new CommandHandler(this.bot);
+      this.callbackHandler = new CallbackHandler(this.bot);
+      this.keyboardBuilder = new KeyboardBuilder(this.bot);
+      this.botUtils = new BotUtils(this.bot);
+
+      // 设置处理器
+      this.setupHandlers();
+      this.setupErrorHandling();
+      this.setupConfigChangeListener();
+
+      this.isInitialized = true;
+      console.log(`✅ 机器人已从数据库配置初始化: ${this.botConfig.botName}`);
+      
+    } catch (error) {
+      console.error('从数据库初始化机器人配置失败:', error);
+      console.log('回退到环境变量配置...');
+      try {
+        await this.initializeFromEnv();
+      } catch (envError) {
+        console.error('环境变量配置也失败:', envError);
+        console.warn('⚠️ 机器人服务完全不可用，但应用将继续运行');
+        this.isInitialized = true; // 标记为已初始化，避免无限等待
+      }
+    }
+  }
+
+  /**
+   * 从环境变量初始化（回退方案）
+   */
+  private async initializeFromEnv(): Promise<void> {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+      console.warn('⚠️ 未找到TELEGRAM_BOT_TOKEN环境变量，机器人服务将不可用');
+      this.isInitialized = true; // 标记为已初始化，避免无限等待
+      return;
+    }
+
+    this.config.token = token;
+
+    // 初始化机器人实例
     this.bot = new TelegramBot(token, { 
       polling: this.config.polling 
     });
@@ -44,6 +114,98 @@ export class TelegramBotService {
     // 设置处理器
     this.setupHandlers();
     this.setupErrorHandling();
+
+    this.isInitialized = true;
+    console.log('✅ 机器人已从环境变量配置初始化');
+  }
+
+  /**
+   * 设置配置变更监听器
+   */
+  private setupConfigChangeListener(): void {
+    configService.onConfigChange(async (event) => {
+      if (event.type === 'telegram_bots' || event.type === 'bot_network_configs') {
+        console.log('检测到机器人配置变更，重新加载配置...');
+        await this.reloadConfiguration();
+      }
+    });
+  }
+
+  /**
+   * 重新加载配置
+   */
+  async reloadConfiguration(): Promise<void> {
+    try {
+      if (!this.botConfig) {
+        return;
+      }
+
+      // 重新获取机器人配置
+      const updatedBot = await configService.getTelegramBotById(this.botConfig.id);
+      if (!updatedBot) {
+        console.error('无法找到机器人配置，停止服务');
+        await this.stop();
+        return;
+      }
+
+      // 获取网络配置
+      const botNetworkConfigs = await configService.getBotNetworkConfigs(updatedBot.id);
+      const networkIds = botNetworkConfigs.map(config => config.networkId);
+      const networks = [];
+      
+      for (const networkId of networkIds) {
+        const network = await configService.getTronNetworkById(networkId);
+        if (network) {
+          networks.push(network);
+        }
+      }
+
+      // 更新配置
+      this.botConfig = updatedBot;
+      this.networks = networks;
+
+      console.log('✅ 机器人配置已重新加载');
+      
+    } catch (error) {
+      console.error('重新加载配置失败:', error);
+    }
+  }
+
+  /**
+   * 等待初始化完成
+   */
+  async waitForInitialization(): Promise<void> {
+    while (!this.isInitialized) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  /**
+   * 获取当前机器人配置
+   */
+  getBotConfig(): TelegramBotConfig | null {
+    return this.botConfig;
+  }
+
+  /**
+   * 获取当前网络配置
+   */
+  getNetworks(): TronNetworkConfig[] {
+    return this.networks;
+  }
+
+  /**
+   * 获取默认网络配置
+   */
+  getDefaultNetwork(): TronNetworkConfig | null {
+    return this.networks.find(network => network.isDefault) || null;
+  }
+
+  /**
+   * 根据网络类型获取网络配置
+   */
+  getNetworkByType(networkType: string): TronNetworkConfig | null {
+    return this.networks.find(network => network.networkType === networkType) || null;
   }
 
   /**
@@ -229,8 +391,18 @@ export class TelegramBotService {
    */
   async start(): Promise<void> {
     try {
+      // 等待初始化完成
+      await this.waitForInitialization();
+      
+      // 检查机器人是否正确初始化
+      if (!this.bot) {
+        console.warn('⚠️ 机器人未正确初始化，跳过启动');
+        return;
+      }
+      
       const botInfo = await this.getBotInfo();
-      console.log(`Telegram Bot started: @${botInfo.username}`);
+      const botName = this.botConfig?.botName || 'Unknown';
+      console.log(`Telegram Bot started: @${botInfo.username} (${botName})`);
 
       // 设置机器人命令菜单
       await this.setMyCommands([
@@ -244,7 +416,8 @@ export class TelegramBotService {
       console.log('Telegram Bot commands menu set successfully');
     } catch (error) {
       console.error('Failed to start Telegram Bot:', error);
-      throw error;
+      console.warn('⚠️ 机器人启动失败，但应用将继续运行。请检查机器人配置。');
+      // 不抛出错误，让应用继续运行
     }
   }
 
@@ -253,8 +426,11 @@ export class TelegramBotService {
    */
   async stop(): Promise<void> {
     try {
-      await this.bot.stopPolling();
-      console.log('Telegram Bot stopped');
+      if (this.bot) {
+        await this.bot.stopPolling();
+      }
+      const botName = this.botConfig?.botName || 'Unknown';
+      console.log(`Telegram Bot stopped: ${botName}`);
     } catch (error) {
       console.error('Failed to stop Telegram Bot:', error);
       throw error;

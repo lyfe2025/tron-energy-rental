@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { authenticateToken } from '../../middleware/auth.js';
+import { auditConfigChanges, checkConfigPermission, validateConfig } from '../../middleware/configManagement.js';
 import {
     batchUpdateConfigs,
     createConfig,
@@ -30,7 +31,6 @@ import {
     validateConfigAccess,
     validateConfigEditable,
     validateConfigExists,
-    validateConfigKey,
     validateConfigKeyQuery,
     validateCreateRequest,
     validatePaginationParams,
@@ -92,7 +92,9 @@ router.post('/validate',
 router.put('/batch/update', 
   authenticateToken,
   requireAdmin,
+  checkConfigPermission('system_configs'),
   validateBatchUpdateRequest,
+  auditConfigChanges('system_config'),
   logConfigOperation('批量更新配置'),
   batchUpdateConfigs
 );
@@ -112,7 +114,10 @@ router.get('/get',
 router.post('/', 
   authenticateToken,
   requireAdmin,
+  checkConfigPermission('system_configs'),
   validateCreateRequest,
+  validateConfig('system_config'),
+  auditConfigChanges('system_config'),
   logConfigOperation('创建配置'),
   createConfig
 );
@@ -121,9 +126,12 @@ router.post('/',
 router.put('/update', 
   authenticateToken,
   requireAdmin,
+  checkConfigPermission('system_configs'),
   validateConfigKeyQuery,
   validateConfigEditable,
   validateUpdateRequest,
+  validateConfig('system_config'),
+  auditConfigChanges('system_config'),
   logConfigOperation('更新配置'),
   updateConfig
 );
@@ -132,8 +140,10 @@ router.put('/update',
 router.delete('/delete', 
   authenticateToken,
   requireAdmin,
+  checkConfigPermission('system_configs'),
   validateConfigKeyQuery,
   validateConfigEditable,
+  auditConfigChanges('system_configs'),
   logConfigOperation('删除配置'),
   deleteConfig
 );

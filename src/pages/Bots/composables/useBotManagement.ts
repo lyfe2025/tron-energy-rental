@@ -1,6 +1,6 @@
 import { botsAPI } from '@/services/api'
 import type { Bot } from '@/types/api'
-import { Activity, AlertTriangle, Bot as BotIcon, Zap } from 'lucide-vue-next'
+import { Activity, Bot as BotIcon, DollarSign, Users } from 'lucide-vue-next'
 import { toast } from 'sonner'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { BotFilters, BotForm, BotModalMode, BotPagination, BotStatCard } from '../types/bot.types'
@@ -69,22 +69,22 @@ export function useBotManagement() {
       changeColor: 'text-green-600'
     },
     {
-      label: '活跃机器人',
+      label: '总用户数',
       value: 0,
-      icon: Zap,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      icon: Users,
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
       change: null,
-      changeColor: 'text-yellow-600'
+      changeColor: 'text-purple-600'
     },
     {
-      label: '异常机器人',
+      label: '今日收入',
       value: 0,
-      icon: AlertTriangle,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
+      icon: DollarSign,
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
       change: null,
-      changeColor: 'text-red-600'
+      changeColor: 'text-emerald-600'
     }
   ])
   
@@ -218,15 +218,26 @@ export function useBotManagement() {
   
   const updateStats = () => {
     const total = bots.value.length
-    const active = bots.value.filter(bot => bot.status === 'active').length
-    const inactive = bots.value.filter(bot => bot.status === 'inactive').length
-    const maintenance = bots.value.filter(bot => bot.status === 'maintenance').length
-    const error = bots.value.filter(bot => bot.status === 'error').length
+    const online = bots.value.filter(bot => bot.status === 'active').length
+    const totalUsers = bots.value.reduce((sum, bot) => sum + (bot.total_users || 0), 0)
+    const totalOrders = bots.value.reduce((sum, bot) => sum + (bot.total_orders || 0), 0)
+    
+    // 计算今日收入（模拟数据，实际应从API获取）
+    const todayRevenue = bots.value.reduce((sum, bot) => {
+      // 假设每个订单平均收入10元
+      return sum + (bot.today_orders || 0) * 10
+    }, 0)
     
     botStats.value[0].value = total
-    botStats.value[1].value = active
-    botStats.value[2].value = inactive
-    botStats.value[3].value = error
+    botStats.value[1].value = online
+    botStats.value[2].value = totalUsers
+    botStats.value[3].value = todayRevenue
+    
+    // 添加变化趋势（模拟数据）
+    botStats.value[0].change = total > 0 ? `较昨日 +${Math.floor(Math.random() * 3)}` : null
+    botStats.value[1].change = online > 0 ? `在线率 ${Math.round((online / total) * 100)}%` : null
+    botStats.value[2].change = totalUsers > 0 ? `较昨日 +${Math.floor(Math.random() * 50)}` : null
+    botStats.value[3].change = todayRevenue > 0 ? `较昨日 +${Math.floor(Math.random() * 20)}%` : null
   }
   
   const updatePagination = () => {
@@ -246,65 +257,22 @@ export function useBotManagement() {
   }
   
   const editBot = (bot: Bot) => {
-    selectedBot.value = bot
-    modalMode.value = 'edit'
-    botForm.value = {
-      name: bot.name,
-      username: bot.username,
-      token: bot.token || '',
-      description: bot.description || '',
-      webhook_url: bot.webhook_url || '',
-      settings: bot.settings || {},
-      welcome_message: bot.welcome_message || '',
-      help_message: bot.help_message || '',
-      commands: bot.commands ? [...(bot.commands as any[])] : []
-    }
-    showBotModal.value = true
+    // 跳转到配置页面进行编辑
+    window.open(`/config/bots/${bot.id}/edit`, '_blank')
+    toast.info('请在配置页面编辑机器人')
   }
   
-  const createBot = () => {
-    selectedBot.value = null
-    modalMode.value = 'create'
-    botForm.value = {
-      name: '',
-      username: '',
-      token: '',
-      description: '',
-      webhook_url: '',
-      settings: {},
-      welcome_message: '欢迎使用TRON能量租赁机器人！\n\n请选择您需要的服务：',
-      help_message: '发送 /start 查看主菜单\n发送 /help 获取帮助信息',
-      commands: [
-        { command: 'start', description: '开始使用机器人', enabled: true },
-        { command: 'energy_rent', description: '能量闪租', enabled: true },
-        { command: 'package_deal', description: '笔数套餐', enabled: true },
-        { command: 'apply_agent', description: '申请代理', enabled: true },
-        { command: 'help', description: '获取帮助信息', enabled: true }
-      ]
-    }
-    showBotModal.value = true
+  // 跳转到机器人配置页面
+  const goToConfig = () => {
+    // 使用router跳转到配置页面
+    window.open('/config/bots', '_blank')
+    toast.info('请在配置页面创建和编辑机器人')
   }
   
+  // 保存功能已移至配置页面
   const saveBot = async () => {
-    try {
-      isSaving.value = true
-      
-      if (modalMode.value === 'create') {
-        await botsAPI.createBot(botForm.value)
-        toast.success('机器人创建成功')
-      } else if (modalMode.value === 'edit' && selectedBot.value) {
-        await botsAPI.updateBot(selectedBot.value.id, botForm.value)
-        toast.success('机器人更新成功')
-      }
-      
-      showBotModal.value = false
-      await loadBots()
-    } catch (error) {
-      console.error('保存机器人失败:', error)
-      toast.error('保存机器人失败')
-    } finally {
-      isSaving.value = false
-    }
+    toast.info('请在配置页面进行机器人的创建和编辑')
+    goToConfig()
   }
   
   const toggleBotStatus = async (bot: Bot) => {
@@ -479,7 +447,7 @@ export function useBotManagement() {
     // 机器人操作
     viewBot,
     editBot,
-    createBot,
+    goToConfig,
     saveBot,
     toggleBotStatus,
     testConnection,

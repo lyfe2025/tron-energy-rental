@@ -9,19 +9,23 @@ import adminsRoutes from './routes/admins.ts';
 import agentsRoutes from './routes/agents.ts';
 import authRoutes from './routes/auth.ts';
 import botsRoutes from './routes/bots/index.js';
-import energyDelegationRoutes from './routes/energy-delegation';
-import energyPoolRoutes from './routes/energy-pool.js';
+import configCacheRoutes from './routes/config-cache.ts';
+import energyDelegationRoutes from './routes/energy-delegation.ts';
+import energyPoolRoutes from './routes/energy-pool.ts';
+import energyPoolsExtendedRoutes from './routes/energy-pools/extended.ts';
 import monitoringRoutes from './routes/monitoring.ts';
+import networkLogsRoutes from './routes/network-logs';
 import ordersRoutes from './routes/orders.ts';
 import paymentRoutes from './routes/payment.ts';
 import priceConfigsRoutes from './routes/price-configs.ts';
-import schedulerRoutes from './routes/scheduler';
+import schedulerRoutes from './routes/scheduler.ts';
 import stakeRoutes from './routes/stake.ts';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
 import systemRoutes from './routes/system/index.js';
 import telegramRoutes from './routes/telegram.ts';
 import testRoutes from './routes/test.ts';
+import tronNetworksRoutes from './routes/tron-networks/index.js';
 import tronRoutes from './routes/tron.ts';
 import userLevelsRoutes from './routes/user-levels.ts';
 import usersRoutes from './routes/users.ts';
@@ -54,11 +58,15 @@ app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/tron', tronRoutes);
+app.use('/api/tron-networks', tronNetworksRoutes);
+app.use('/api/energy-pools-extended', energyPoolsExtendedRoutes);
+app.use('/api/config-cache', configCacheRoutes);
 app.use('/api/energy-delegation', energyDelegationRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/energy-pool', energyPoolRoutes);
 app.use('/api/energy-pool/stake', stakeRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/network-logs', networkLogsRoutes);
 
 /**
  * health check - direct access
@@ -106,6 +114,9 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/system',
       '/api/telegram',
       '/api/tron',
+      '/api/tron-networks',
+      '/api/energy-pools-extended',
+      '/api/config-cache',
       '/api/energy-delegation',
       '/api/scheduler',
       '/api/energy-pool',

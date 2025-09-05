@@ -49,6 +49,91 @@ export interface BotConfigData {
   commands?: string[];
 }
 
+// 扩展的机器人配置接口
+export interface ExtendedBotConfigData {
+  network_config?: {
+    primary_network_id?: string;
+    fallback_networks?: string[];
+    auto_switch?: boolean;
+    connection_timeout?: number;
+  };
+  webhook_config?: {
+    url?: string;
+    secret?: string;
+    max_connections?: number;
+    allowed_updates?: string[];
+    drop_pending_updates?: boolean;
+  };
+  message_templates?: {
+    welcome?: string;
+    help?: string;
+    error?: string;
+    maintenance?: string;
+    [key: string]: string | undefined;
+  };
+  rate_limits?: {
+    messages_per_minute?: number;
+    commands_per_hour?: number;
+    orders_per_day?: number;
+  };
+  security_settings?: {
+    allowed_user_ids?: string[];
+    blocked_user_ids?: string[];
+    require_verification?: boolean;
+    max_failed_attempts?: number;
+  };
+}
+
+// 网络配置接口
+export interface NetworkConfig {
+  id: string;
+  name: string;
+  type: 'mainnet' | 'testnet' | 'private';
+  rpc_url: string;
+  api_key?: string;
+  chain_id: string;
+  explorer_url?: string;
+  is_active: boolean;
+  is_default: boolean;
+  priority: number;
+  timeout_ms: number;
+  retry_count: number;
+  rate_limit: number;
+  config: Record<string, any>;
+  health_check_url?: string;
+  health_status: 'healthy' | 'unhealthy' | 'unknown';
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// 机器人网络配置关联接口
+export interface BotNetworkConfig {
+  id: string;
+  bot_id: string;
+  network_id: string;
+  is_active: boolean;
+  is_primary: boolean;
+  priority: number;
+  config: Record<string, any>;
+  api_settings: Record<string, any>;
+  contract_addresses: Record<string, string>;
+  gas_settings: Record<string, any>;
+  monitoring_settings: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+// 机器人健康检查接口
+export interface BotHealthCheck {
+  bot_id: string;
+  status: 'healthy' | 'unhealthy' | 'maintenance';
+  last_check: string;
+  response_time_ms?: number;
+  error_message?: string;
+  network_status: Record<string, 'connected' | 'disconnected' | 'error'>;
+}
+
 // 机器人状态更新接口
 export interface BotStatusData {
   status: 'active' | 'inactive' | 'maintenance';

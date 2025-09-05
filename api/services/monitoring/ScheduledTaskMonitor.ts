@@ -139,9 +139,16 @@ export class ScheduledTaskMonitor {
    */
   async logSystemAction(adminId: string, actionType: string, actionData: any) {
     try {
+      // 获取用户名
+      const userResult = await query(
+        'SELECT username FROM admins WHERE id = $1',
+        [adminId]
+      );
+      const username = userResult.rows[0]?.username || null;
+
       const result = await query(
-        'INSERT INTO operation_logs (admin_id, operation, request_params, module) VALUES ($1, $2, $3, $4) RETURNING *',
-        [adminId, actionType, JSON.stringify(actionData), 'monitoring']
+        'INSERT INTO operation_logs (admin_id, username, operation, request_params, module, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING *',
+        [adminId, username, actionType, JSON.stringify(actionData), 'monitoring']
       );
       return result.rows[0];
     } catch (error) {

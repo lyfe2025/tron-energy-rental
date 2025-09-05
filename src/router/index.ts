@@ -58,11 +58,67 @@ const router = createRouter({
           meta: { roles: ['super_admin', 'admin'] }
         },
 
+        // 配置管理路由
+        {
+          path: 'config',
+          name: 'config',
+          redirect: '/config/bots',
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/bots',
+          name: 'config-bots',
+          component: () => import('@/pages/BotManagement/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/bots/create',
+          name: 'config-bots-create',
+          component: () => import('@/pages/BotManagement/BotForm.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/bots/:id/edit',
+          name: 'config-bots-edit',
+          component: () => import('@/pages/BotManagement/BotForm.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/bots/:id/networks',
+          name: 'config-bots-networks',
+          component: () => import('@/pages/BotManagement/BotNetworks.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/networks',
+          name: 'config-networks',
+          component: () => import('@/pages/TronNetworks/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/energy-pools',
+          name: 'config-energy-pools',
+          component: () => import('@/pages/EnergyPool/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/history',
+          name: 'config-history',
+          component: () => import('@/pages/ConfigHistory/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/monitoring',
+          name: 'config-monitoring',
+          component: () => import('@/pages/SystemMonitoring/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+
         // 能量池管理路由
         {
           path: 'energy-pool/accounts',
           name: 'energy-pool-accounts',
-          component: () => import('@/pages/EnergyPool.vue'),
+          component: () => import('@/pages/EnergyPool/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {
@@ -131,6 +187,12 @@ const router = createRouter({
           path: 'system/logs/login',
           name: 'system-logs-login',
           component: () => import('@/pages/System/Logs/LoginLogs.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'system/logs/system',
+          name: 'system-logs-system',
+          component: () => import('@/pages/System/Logs/SystemLogs.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {

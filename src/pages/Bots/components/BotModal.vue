@@ -40,6 +40,23 @@
             </div>
           </div>
 
+          <!-- Webhook Configuration -->
+          <div v-if="bot?.webhook_url">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
+            <div class="p-3 bg-gray-50 rounded-lg">
+              <p class="text-gray-900 font-mono text-sm break-all">{{ bot.webhook_url }}</p>
+              <div class="flex items-center gap-2 mt-2">
+                <button
+                  @click="$emit('test-webhook', bot)"
+                  class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  <Zap class="w-3 h-3" />
+                  测试Webhook
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Welcome Message -->
           <div v-if="bot?.welcome_message">
             <label class="block text-sm font-medium text-gray-700 mb-1">欢迎语</label>
@@ -171,7 +188,20 @@
             />
           </div>
 
-
+          <!-- Webhook URL -->
+          <div>
+            <label for="webhook_url" class="block text-sm font-medium text-gray-700 mb-1">
+              Webhook URL
+            </label>
+            <input
+              id="webhook_url"
+              v-model="form.webhook_url"
+              type="url"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="请输入Webhook回调地址（可选）"
+            />
+            <p class="text-xs text-gray-500 mt-1">Telegram将向此URL发送消息更新，用于接收用户消息和命令</p>
+          </div>
 
           <!-- Description -->
           <div>
@@ -315,6 +345,7 @@ interface Emits {
   close: []
   edit: [bot: Bot]
   'test-connection': [bot: Bot]
+  'test-webhook': [bot: Bot]
   submit: []
   'add-command': []
   'remove-command': [index: number]

@@ -39,7 +39,9 @@ const iconMap: Record<string, () => Promise<any>> = {
   UserCheck: () => import('lucide-vue-next').then(m => m.UserCheck),
   BarChart3: () => import('lucide-vue-next').then(m => m.BarChart3),
   Monitor: () => import('lucide-vue-next').then(m => m.Monitor),
-  Settings: () => import('lucide-vue-next').then(m => m.Settings)
+  Settings: () => import('lucide-vue-next').then(m => m.Settings),
+  Settings2: () => import('lucide-vue-next').then(m => m.Settings2),
+  Wifi: () => import('lucide-vue-next').then(m => m.Wifi)
 }
 
 export function useMenu() {
@@ -246,7 +248,7 @@ export function useMenu() {
         id: 9,
         name: '监控中心',
         path: '/monitoring',
-        icon: 'Monitor',
+        icon: 'Wifi',
         permission: 'monitoring:view',
         children: [
           {
@@ -289,43 +291,82 @@ export function useMenu() {
       },
       {
         id: 16,
+        name: '配置管理',
+        path: '/config',
+        icon: 'Settings2',
+        permission: 'config:view',
+        children: [
+          {
+            id: 161,
+            name: '机器人配置',
+            path: '/config/bots',
+            permission: 'config:bot:list'
+          },
+          {
+            id: 162,
+            name: 'TRON网络管理',
+            path: '/config/networks',
+            permission: 'config:network:list'
+          },
+          {
+            id: 163,
+            name: '能量池配置',
+            path: '/config/energy-pools',
+            permission: 'config:energy:list'
+          },
+          {
+            id: 164,
+            name: '配置历史',
+            path: '/config/history',
+            permission: 'config:history:view'
+          },
+          {
+            id: 165,
+            name: '系统监控',
+            path: '/config/monitoring',
+            permission: 'config:monitoring:view'
+          }
+        ]
+      },
+      {
+        id: 17,
         name: '系统管理',
         path: '/system',
         icon: 'Settings',
         permission: 'system:view',
         children: [
           {
-            id: 17,
+            id: 171,
             name: '部门管理',
             path: '/system/departments',
             permission: 'system:dept:list'
           },
           {
-            id: 18,
+            id: 172,
             name: '岗位管理',
             path: '/system/positions',
             permission: 'system:position:list'
           },
           {
-            id: 19,
+            id: 173,
             name: '角色管理',
             path: '/system/roles',
             permission: 'system:role:list'
           },
           {
-            id: 20,
+            id: 174,
             name: '菜单管理',
             path: '/system/menus',
             permission: 'system:menu:list'
           },
           {
-            id: 21,
+            id: 175,
             name: '管理员管理',
             path: '/system/user-roles',
             permission: 'system:user:list'
           },
           {
-            id: 22,
+            id: 176,
             name: '系统设置',
             path: '/system/settings',
             permission: 'system:settings:list'

@@ -5,8 +5,8 @@
 
 import { type NextFunction, type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { MenuService } from '../services/system/menu.ts';
-import { query } from '../config/database.ts';
+import { MenuService } from '../services/system/menu.js';
+import { query } from '../config/database.js';
 import { verifyToken } from '../utils/jwt.js';
 
 // Request接口扩展已在auth.ts中定义
@@ -72,7 +72,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     }
     
     req.user = {
-      id: decoded.id,
+      id: user.id,
       userId: user.id,
       username: user.username,
       email: user.email,

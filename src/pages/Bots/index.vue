@@ -16,11 +16,11 @@
           刷新
         </button>
         <button
-          @click="createBot"
+          @click="goToConfig"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
-          <Plus class="w-4 h-4" />
-          添加机器人
+          <Settings class="w-4 h-4" />
+          配置机器人
         </button>
       </div>
     </div>
@@ -78,7 +78,7 @@
       @test-connection="testConnection"
       @view-logs="viewLogs"
       @reset="resetBot"
-      @create="createBot"
+      @create="goToConfig"
       @page-change="pagination.currentPage = $event"
       @toggle-menu="showBotMenu = showBotMenu === $event ? null : $event"
       @close-menu="showBotMenu = null"
@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, RotateCcw } from 'lucide-vue-next'
+import { RotateCcw, Settings } from 'lucide-vue-next'
 import BotActions from './components/BotActions.vue'
 import BotList from './components/BotList.vue'
 import BotModal from './components/BotModal.vue'
@@ -154,7 +154,7 @@ const {
   // 机器人操作
   viewBot,
   editBot,
-  createBot,
+  goToConfig,
   saveBot,
   toggleBotStatus,
   testConnection,

@@ -52,7 +52,9 @@
                   <User class="w-5 h-5 text-gray-500" />
                 </div>
                 <div class="ml-3">
-                  <div class="text-sm font-medium text-gray-900">{{ log.username }}</div>
+                  <div class="text-sm font-medium text-gray-900">
+                    {{ log.username || '系统' }}
+                  </div>
                   <div class="text-sm text-gray-500">{{ log.ip_address }}</div>
                 </div>
               </div>

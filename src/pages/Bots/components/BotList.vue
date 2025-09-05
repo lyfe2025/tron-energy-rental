@@ -81,10 +81,10 @@
                   查看
                 </button>
                 <button
-                  @click="$emit('edit', bot)"
+                  @click="goToConfig(bot.id)"
                   class="text-green-600 hover:text-green-900 text-sm"
                 >
-                  编辑
+                  配置
                 </button>
                 <button
                   @click="$emit('toggle-status', bot)"
@@ -199,11 +199,11 @@
                   查看详情
                 </button>
                 <button
-                  @click="$emit('edit', bot); $emit('close-menu')"
+                  @click="goToConfig(bot.id); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <Edit class="w-4 h-4 mr-2 inline" />
-                  编辑
+                  <Settings class="w-4 h-4 mr-2 inline" />
+                  配置
                 </button>
                 <button
                   @click="$emit('toggle-status', bot); $emit('close-menu')"
@@ -283,12 +283,12 @@
       <p class="mt-1 text-sm text-gray-500">开始添加您的第一个机器人</p>
       <div class="mt-6">
         <button
-          @click="$emit('create')"
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Plus class="-ml-1 mr-2 h-5 w-5" />
-          添加机器人
-        </button>
+        @click="goToConfig()"
+        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        <Settings class="-ml-1 mr-2 h-5 w-5" />
+        配置机器人
+      </button>
       </div>
     </div>
   </div>
@@ -299,13 +299,13 @@ import type { Bot as BotType } from '@/types/api';
 import {
     Bot,
     CreditCard,
-    Edit,
     Eye,
     FileText,
     MoreVertical,
     Plus,
     Power,
     RotateCcw,
+    Settings,
     Wifi
 } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -366,5 +366,11 @@ const toggleSelectAll = (event: Event) => {
 
 const toggleBotMenu = (botId: string) => {
   emit('toggle-menu', botId)
+}
+
+// 跳转到配置页面
+const goToConfig = (botId?: string) => {
+  const url = botId ? `/config/bots/${botId}/edit` : '/config/bots'
+  window.open(url, '_blank')
 }
 </script>

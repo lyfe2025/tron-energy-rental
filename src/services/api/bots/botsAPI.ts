@@ -111,7 +111,19 @@ export const botsAPI = {
    * 获取机器人日志
    */
   getBotLogs: (id: string, params?: { limit?: number; offset?: number }) => 
-    apiClient.get<ApiResponse<{ logs: unknown[] }>>(`/api/bots/${id}/logs`, { params })
+    apiClient.get<ApiResponse<{ logs: unknown[] }>>(`/api/bots/${id}/logs`, { params }),
+
+  /**
+   * 获取机器人网络配置
+   */
+  getBotNetwork: (id: string) => 
+    apiClient.get<ApiResponse<{ network: unknown }>>(`/api/bots/${id}/network`),
+
+  /**
+   * 设置机器人网络配置
+   */
+  setBotNetwork: (id: string, networkId: string) => 
+    apiClient.put<ApiResponse<{ network: unknown }>>(`/api/bots/${id}/network`, { network_id: networkId })
 };
 
 export default botsAPI;

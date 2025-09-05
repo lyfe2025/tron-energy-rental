@@ -20,15 +20,21 @@ export class AdminLogService {
   }): Promise<void> {
     const { user_id, action, resource, resource_id, details, ip_address, user_agent } = data;
     
+    // 获取用户名
+    const userQuery = `SELECT username FROM admins WHERE id = $1`;
+    const userResult = await pool.query(userQuery, [user_id]);
+    const username = userResult.rows[0]?.username || null;
+    
     const query = `
       INSERT INTO operation_logs (
-        user_id, action, resource, resource_id, details, ip_address, user_agent
+        admin_id, username, operation, module, resource_id, details, ip_address, user_agent, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
     `;
     
     await pool.query(query, [
       user_id,
+      username,
       action,
       resource,
       resource_id,

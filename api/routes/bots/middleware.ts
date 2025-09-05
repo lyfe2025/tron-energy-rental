@@ -10,16 +10,22 @@ let telegramBotService: TelegramBotService | null = null;
  * 初始化Telegram机器人服务
  */
 export function initializeTelegramBotService(): void {
-  if (process.env.TELEGRAM_BOT_TOKEN) {
-    try {
-      telegramBotService = new TelegramBotService();
-      telegramBotService.start();
+  try {
+    telegramBotService = new TelegramBotService();
+    
+    // 异步启动机器人服务，不阻塞应用启动
+    telegramBotService.start().then(() => {
       console.log('✅ Telegram机器人服务已启动');
-    } catch (error) {
+    }).catch((error) => {
       console.error('❌ Telegram机器人服务启动失败:', error);
-    }
-  } else {
-    console.warn('⚠️ 未配置TELEGRAM_BOT_TOKEN，Telegram机器人服务未启动');
+      console.warn('⚠️ 机器人服务启动失败，但应用将继续运行。请检查机器人配置。');
+      // 不抛出错误，让应用继续运行
+    });
+    
+  } catch (error) {
+    console.error('❌ Telegram机器人服务初始化失败:', error);
+    console.warn('⚠️ 机器人服务初始化失败，但应用将继续运行。请检查机器人配置。');
+    // 不抛出错误，让应用继续运行
   }
 }
 

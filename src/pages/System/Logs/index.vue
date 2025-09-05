@@ -71,18 +71,22 @@
         
         <!-- 操作日志 -->
         <OperationLogs v-if="activeTab === 'operation'" />
+        
+        <!-- 系统日志 -->
+        <SystemLogs v-if="activeTab === 'system'" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Activity, User, Users } from 'lucide-vue-next'
+import { Activity, User, Users, FileText } from 'lucide-vue-next'
 import { onMounted, ref, watch } from 'vue'
 
 // 导入子组件
 import LoginLogs from './Login/index.vue'
 import OperationLogs from './Operation/index.vue'
+import SystemLogs from './SystemLogs.vue'
 
 // 导入统计数据hooks
 import { useLogs } from './composables/useLogs'
@@ -101,6 +105,11 @@ const tabs = [
     id: 'operation',
     name: '操作日志',
     icon: Activity
+  },
+  {
+    id: 'system',
+    name: '系统日志',
+    icon: FileText
   }
 ]
 

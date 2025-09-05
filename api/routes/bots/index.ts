@@ -10,6 +10,8 @@ import { initializeTelegramBotService } from './middleware.js';
 import crudRoutes from './crud.js';
 import statusRoutes from './status.js';
 import configRoutes from './config.js';
+import extendedConfigRoutes from './extended-config.js';
+import networkConfigRoutes from './network-config.js';
 import usersRoutes from './users.js';
 import statsRoutes from './stats.js';
 import testRoutes from './test.js';
@@ -26,6 +28,8 @@ const router: Router = Router();
  * - CRUD操作: GET /, GET /:id, POST /, PUT /:id, DELETE /:id
  * - 状态管理: GET /available, PATCH /:id/status  
  * - 配置管理: PUT /:id/config
+ * - 扩展配置: GET/PUT /:id/extended-config, POST /:id/health-check, GET /:id/config-history
+ * - 网络配置: GET/POST /:id/networks, PUT/DELETE /:id/networks/:networkId, PATCH /:id/networks/:networkId/primary
  * - 用户管理: GET /:id/users
  * - 统计监控: GET /stats/overview
  * - 测试功能: POST /:id/test
@@ -42,6 +46,12 @@ router.use('/', crudRoutes);
 
 // 注册配置管理路由
 router.use('/', configRoutes);
+
+// 注册扩展配置管理路由
+router.use('/', extendedConfigRoutes);
+
+// 注册网络配置管理路由
+router.use('/', networkConfigRoutes);
 
 // 注册用户管理路由
 router.use('/', usersRoutes);

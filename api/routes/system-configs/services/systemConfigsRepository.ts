@@ -275,14 +275,14 @@ export class SystemConfigsRepository {
         h.id, h.old_value, h.new_value, h.change_reason, h.created_at,
         u.username as changed_by_username
       FROM system_config_history h
-      LEFT JOIN users u ON h.changed_by = u.id
-      WHERE h.config_id = $1
+      LEFT JOIN users u ON h.user_id = u.id
+      WHERE h.entity_type = 'system_config' AND h.entity_id = $1
       ORDER BY h.created_at DESC
       LIMIT $2 OFFSET $3
     `;
 
     const countQuery = `
-      SELECT COUNT(*) FROM system_config_history WHERE config_id = $1
+      SELECT COUNT(*) FROM system_config_history WHERE entity_type = 'system_config' AND entity_id = $1
     `;
 
     const [historyResult, countResult] = await Promise.all([
@@ -316,9 +316,9 @@ export class SystemConfigsRepository {
   ): Promise<void> {
     await query(
       `INSERT INTO system_config_history 
-       (config_id, old_value, new_value, change_reason, changed_by)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [configId, oldValue, newValue, changeReason, userId]
+       (entity_type, entity_id, operation_type, old_value, new_value, change_reason, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      ['system_config', configId, 'update', oldValue, newValue, changeReason, userId]
     );
   }
 

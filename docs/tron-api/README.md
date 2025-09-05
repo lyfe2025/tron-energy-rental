@@ -17,15 +17,18 @@
 ### 🔗 交易处理
 - [4. 交易管理 API](./04-transactions-api.md) - 交易创建、广播、查询
 - [5. 智能合约 API](./05-smart-contracts-api.md) - USDT/TRC20 合约交互
-- [6. TRC 代币 API](./06-trc-tokens-api.md) - TRC10/TRC20 代币操作
 
 ### 🌐 网络服务
-- [7. 网络查询 API](./07-network-query-api.md) - 区块查询、网络状态、价格信息
+- [6. 网络查询 API](./06-network-query-api.md) - 区块查询、网络状态、价格信息
+- [7. TRC 代币 API](./07-trc-tokens-api.md) - TRC10/TRC20 代币操作
 - [8. 事件监听 API](./08-events-monitoring-api.md) - 交易事件、支付监控
 
+### 🔐 认证和广播系统
+- [9. 密钥认证与交易广播 API](./11-authentication-broadcast-api.md) - 私钥管理、交易签名、交易广播
+
 ### 🛠️ 工具和最佳实践
-- [9. API 安全指南](./09-security-best-practices.md) - 安全配置、密钥管理、防护措施
-- [10. 项目实战示例](./10-project-examples.md) - 完整业务流程、代码示例
+- [10. API 安全指南](./09-security-best-practices.md) - 安全配置、密钥管理、防护措施
+- [11. 项目实战示例](./10-project-examples.md) - 完整业务流程、代码示例
 
 ## 🎯 项目架构概览
 
@@ -152,13 +155,15 @@ const badApiKey = "12345678-abcd-efgh-ijkl-123456789012";
 
 | API 方法 | 用途 | 调用频率 | 文档链接 |
 |----------|------|----------|----------|
+| `initializeTronWeb` | 初始化TronWeb并设置私钥 | 启动时 | [认证广播 API](./11-authentication-broadcast-api.md) |
 | `GetAccountResource` | 查询账户能量/带宽 | 很高 | [Account Resources API](./01-account-resources-api.md) |
 | `DelegateResource` | 委托能量给用户 | 高 | [Account Resources API](./01-account-resources-api.md) |
+| `trx.sign` | 交易数字签名 | 高 | [认证广播 API](./11-authentication-broadcast-api.md) |
+| `sendRawTransaction` | 广播已签名交易 | 高 | [认证广播 API](./11-authentication-broadcast-api.md) |
 | `GetAccount` | 查询账户基本信息 | 高 | [Accounts API](./02-accounts-api.md) |
 | `ValidateAddress` | 验证TRON地址格式 | 高 | [Address Utilities API](./03-address-utilities-api.md) |
-| `BroadcastTransaction` | 广播交易 | 中 | [Transactions API](./04-transactions-api.md) |
 | `TriggerSmartContract` | USDT转账操作 | 中 | [Smart Contracts API](./05-smart-contracts-api.md) |
-| `GetEnergyPrices` | 获取当前能量价格 | 低 | [Network Query API](./07-network-query-api.md) |
+| `GetEnergyPrices` | 获取当前能量价格 | 低 | [Network Query API](./06-network-query-api.md) |
 
 ### 💰 支付相关 API
 
@@ -179,7 +184,33 @@ const badApiKey = "12345678-abcd-efgh-ijkl-123456789012";
 | `UnDelegateResource` | 取消能量委托 | ✅ 已实现 |
 | `GetDelegatedResourceV2` | 查询委托状态 | ✅ 已实现 |
 
+### 🔐 认证和广播 API
+
+| API 方法 | 用途 | 实现状态 |
+|----------|------|----------|
+| `initializeTronWeb` | 私钥认证和TronWeb初始化 | ✅ 已实现 |
+| `validatePrivateKey` | 私钥格式和安全性验证 | ✅ 已实现 |
+| `sign` | 使用私钥对交易进行数字签名 | ✅ 已实现 |
+| `sendRawTransaction` | 广播已签名交易到TRON网络 | ✅ 已实现 |
+| `waitForConfirmation` | 等待交易确认并监控状态 | ✅ 已实现 |
+
 ## 🚀 快速开始
+
+### 0. 初始化TronWeb和认证
+
+```typescript
+// 初始化TronWeb和私钥认证
+const tronConfig = {
+  fullHost: 'https://api.trongrid.io',
+  privateKey: process.env.TRON_PRIVATE_KEY,
+  headers: {
+    "TRON-PRO-API-KEY": process.env.TRON_API_KEY
+  }
+};
+
+const tronWeb = new TronWeb(tronConfig);
+console.log('✅ TronWeb初始化完成，账户地址:', tronWeb.defaultAddress.base58);
+```
 
 ### 1. 账户资源查询
 
@@ -197,26 +228,48 @@ async function getAccountResources(address: string) {
 }
 ```
 
-### 2. 能量委托操作
+### 2. 能量委托操作（完整的签名+广播流程）
 
 ```typescript
-// 委托能量给指定地址
+// 委托能量给指定地址 - 完整流程
 async function delegateEnergy(
   recipientAddress: string, 
   energyAmount: number,
   duration: number = 3600 * 24 // 24小时
 ) {
-  const transaction = await tronWeb.transactionBuilder.delegateResource(
-    energyAmount,
-    recipientAddress,
-    'ENERGY',
-    tronWeb.defaultAddress.base58,
-    false, // 不锁定
-    duration
-  );
-  
-  const signedTx = await tronWeb.trx.sign(transaction);
-  return await tronWeb.trx.sendRawTransaction(signedTx);
+  try {
+    console.log(`⚡ 开始委托 ${energyAmount} 能量给 ${recipientAddress}`);
+
+    // 1. 创建委托交易
+    const transaction = await tronWeb.transactionBuilder.delegateResource(
+      energyAmount,
+      recipientAddress,
+      'ENERGY',
+      tronWeb.defaultAddress.base58,
+      false, // 不锁定
+      duration
+    );
+    
+    // 2. 使用私钥签名交易
+    const signedTx = await tronWeb.trx.sign(transaction);
+    console.log('✍️ 交易已签名:', signedTx.txID);
+    
+    // 3. 广播交易到TRON网络
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+    console.log('📡 交易已广播:', result.txid);
+    
+    // 4. 等待交易确认
+    if (result.result) {
+      console.log('✅ 能量委托成功!');
+      return { success: true, txid: result.txid };
+    } else {
+      console.error('❌ 交易广播失败:', result.message);
+      return { success: false, error: result.message };
+    }
+  } catch (error) {
+    console.error('💥 能量委托失败:', error);
+    return { success: false, error: error.message };
+  }
 }
 ```
 

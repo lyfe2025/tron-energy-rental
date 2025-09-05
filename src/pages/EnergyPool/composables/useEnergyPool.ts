@@ -21,6 +21,14 @@ interface EnergyPoolAccount {
   contact_info?: any
   daily_limit?: number
   monthly_limit?: number
+  associated_networks?: Array<{ id: string; name: string }>
+  network_config?: {
+    id: string
+    name: string
+    type: string
+    rpc_url: string
+    chain_id: string
+  }
 }
 
 interface EnergyPoolStatistics {
@@ -49,7 +57,9 @@ export function useEnergyPool() {
   const loading = reactive({
     statistics: false,
     accounts: false,
-    refresh: false
+    refresh: false,
+    sync: false,
+    batch: false
   })
 
 

@@ -1,5 +1,5 @@
-import { api } from './api'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
+import { api } from './api'
 
 // 请求接口
 interface RequestConfig extends AxiosRequestConfig {
@@ -24,6 +24,11 @@ const request = async <T = any>(config: RequestConfig): Promise<ApiResponse<T>> 
     
     // 处理响应数据
     if (response.status >= 200 && response.status < 300) {
+      // 如果后端已经返回标准格式（包含success字段），直接返回
+      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        return response.data
+      }
+      // 否则包装为标准格式
       return {
         success: true,
         data: response.data
@@ -39,6 +44,10 @@ const request = async <T = any>(config: RequestConfig): Promise<ApiResponse<T>> 
     
     // 处理错误响应
     if (error.response) {
+      // 如果错误响应也是标准格式，直接返回
+      if (error.response.data && typeof error.response.data === 'object' && 'success' in error.response.data) {
+        return error.response.data
+      }
       return {
         success: false,
         error: error.response.data?.error || error.response.data?.message || error.message || '请求失败'

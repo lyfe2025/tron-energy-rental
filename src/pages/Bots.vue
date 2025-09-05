@@ -16,7 +16,7 @@
           刷新
         </button>
         <button
-          @click="createBot"
+          @click="goToConfig"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus class="w-4 h-4" />
@@ -61,7 +61,7 @@
       @toggle="toggleBotStatus"
       @recharge="rechargeBalance"
       @test-connection="testConnection"
-      @add-bot="createBot"
+      @add-bot="goToConfig"
     />
 
     <!-- Batch Actions -->
@@ -137,7 +137,7 @@ const {
   // 机器人操作
   viewBot,
   editBot,
-  createBot,
+  goToConfig,
   saveBot,
   toggleBotStatus,
   testConnection,

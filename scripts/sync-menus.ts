@@ -3,7 +3,7 @@
  * 将硬编码的菜单导入到数据库中，解决菜单管理与真实菜单不一致的问题
  */
 
-import { query } from '../api/config/database.js';
+import { query } from '../api/config/database.ts';
 
 // 硬编码菜单数据（来自 Layout.vue）
 const menuData = [
@@ -71,7 +71,29 @@ const menuData = [
     sort_order: 6,
     permission: 'energy:pool',
     visible: 1,
-    status: 1
+    status: 1,
+    children: [
+      {
+        name: '账户管理',
+        path: '/energy-pool/accounts',
+        component: 'EnergyPoolAccounts',
+        type: 1,
+        sort_order: 1,
+        permission: 'energy:pool:accounts',
+        visible: 1,
+        status: 1
+      },
+      {
+        name: '质押管理',
+        path: '/energy-pool/stake',
+        component: 'EnergyPoolStake',
+        type: 1,
+        sort_order: 2,
+        permission: 'energy:pool:stake',
+        visible: 1,
+        status: 1
+      }
+    ]
   },
   {
     name: '代理商管理',
@@ -258,6 +280,16 @@ const menuData = [
             permission: 'system:log:operation:list',
             visible: 1,
             status: 1
+          },
+          {
+            name: '系统日志',
+            path: '/system/logs/system',
+            component: 'SystemLogs',
+            type: 1,
+            sort_order: 3,
+            permission: 'system:log:system:list',
+            visible: 1,
+            status: 1
           }
         ]
       },
@@ -268,6 +300,49 @@ const menuData = [
         type: 1,
         sort_order: 7,
         permission: 'system:settings:list',
+        visible: 1,
+        status: 1
+      }
+    ]
+  },
+  {
+    name: '配置管理',
+    path: '/config',
+    component: 'Config',
+    icon: 'Settings2',
+    type: 1,
+    sort_order: 11,
+    permission: 'config:view',
+    visible: 1,
+    status: 1,
+    children: [
+      {
+        name: '机器人配置',
+        path: '/config/bots',
+        component: 'BotManagement',
+        type: 1,
+        sort_order: 1,
+        permission: 'config:bot:manage',
+        visible: 1,
+        status: 1
+      },
+      {
+        name: 'TRON网络管理',
+        path: '/config/networks',
+        component: 'TronNetworks',
+        type: 1,
+        sort_order: 2,
+        permission: 'config:tron:manage',
+        visible: 1,
+        status: 1
+      },
+      {
+        name: '配置历史',
+        path: '/config/history',
+        component: 'ConfigHistory',
+        type: 1,
+        sort_order: 3,
+        permission: 'config:history:view',
         visible: 1,
         status: 1
       }

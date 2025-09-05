@@ -6,6 +6,7 @@
  */
 
 import { getClient, query } from '../../../config/database.js';
+import configCacheService from '../../../services/config-cache.js';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 import type {
     BatchOperationResult,
@@ -166,6 +167,16 @@ export class SystemConfigsService {
       const updatedConfig = await this.repository.updateConfig(configKey, updateData, userId);
 
       await query('COMMIT');
+      
+      // 清除系统配置缓存
+      try {
+        await configCacheService.clearSystemCache();
+        console.log('✅ 系统配置缓存已清除（单个配置更新）');
+      } catch (cacheError) {
+        console.error('❌ 清除系统配置缓存失败:', cacheError);
+        // 缓存清理失败不应该影响主要业务逻辑
+      }
+      
       return updatedConfig;
     } catch (error) {
       await query('ROLLBACK');
@@ -262,6 +273,18 @@ export class SystemConfigsService {
 
       await client.query('COMMIT');
       client.release();
+      
+      // 清除系统配置缓存
+      if (results.length > 0) {
+        try {
+          await configCacheService.clearSystemCache();
+          console.log('✅ 系统配置缓存已清除');
+        } catch (cacheError) {
+          console.error('❌ 清除系统配置缓存失败:', cacheError);
+          // 缓存清理失败不应该影响主要业务逻辑
+        }
+      }
+      
       return {
         updated: results,
         errors: errors

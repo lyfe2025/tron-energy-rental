@@ -127,7 +127,47 @@ export const energyPoolAPI = {
     apiClient.post<ApiResponse<{
       txid: string
       message: string
-    }>>(`/api/energy-pool/${id}/withdraw`, data)
+    }>>(`/api/energy-pool/${id}/withdraw`, data),
+
+  /**
+   * 获取账户网络配置
+   */
+  getAccountNetwork: (accountId: string) => 
+    apiClient.get<ApiResponse<{
+      network_id: string | null
+      network?: {
+        id: string
+        name: string
+        type: string
+        rpc_url: string
+        chain_id: string
+      }
+    }>>(`/api/energy-pools-extended/${accountId}/network`),
+
+  /**
+   * 设置账户网络配置
+   */
+  setAccountNetwork: (accountId: string, data: {
+    network_id: string
+  }) => 
+    apiClient.put<ApiResponse<{
+      message: string
+    }>>(`/api/energy-pools-extended/${accountId}/network`, data),
+
+  /**
+   * 批量设置账户网络配置
+   */
+  batchSetAccountNetwork: (data: {
+    networkId: string
+    accountIds: string[]
+  }) => 
+    apiClient.put<ApiResponse<{
+      message: string
+      updated_count: number
+    }>>('/api/energy-pools-extended/batch-network', {
+      network_id: data.networkId,
+      pool_ids: data.accountIds
+    })
 };
 
 export default energyPoolAPI;

@@ -68,7 +68,11 @@
         style="width: 100%"
       >
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column label="用户名" width="120">
+          <template #default="{ row }">
+            {{ row.username || '系统' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="email" label="邮箱" width="200" />
         <el-table-column prop="resource_type" label="模块" width="120" />
         <el-table-column prop="operation" label="操作" width="120" />
