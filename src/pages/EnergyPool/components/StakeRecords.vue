@@ -66,7 +66,7 @@
     </div>
 
     <!-- 记录列表 -->
-    <div v-else-if="stakeRecords.length > 0" class="space-y-4">
+    <div v-else-if="stakeRecords && stakeRecords.length > 0" class="space-y-4">
       <div
         v-for="record in stakeRecords"
         :key="record.id"
@@ -172,7 +172,7 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="stakeRecords.length > 0 && pagination.totalPages > 1" class="mt-6 flex justify-center">
+    <div v-if="stakeRecords && stakeRecords.length > 0 && pagination.totalPages > 1" class="mt-6 flex justify-center">
       <nav class="flex items-center space-x-2">
         <button
           @click="changePage(pagination.page - 1)"

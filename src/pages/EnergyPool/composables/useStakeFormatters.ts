@@ -1,6 +1,11 @@
 export function useStakeFormatters() {
   // 格式化TRX数量
   const formatTrx = (amount: number): string => {
+    // 检查amount是否为有效数字
+    if (amount == null || isNaN(amount) || typeof amount !== 'number') {
+      return '0.000000 TRX'
+    }
+    
     if (amount >= 1000000) {
       return `${(amount / 1000000).toFixed(6)}M TRX`
     } else if (amount >= 1000) {
@@ -11,6 +16,11 @@ export function useStakeFormatters() {
 
   // 格式化能量数量
   const formatEnergy = (energy: number): string => {
+    // 检查energy是否为有效数字
+    if (energy == null || isNaN(energy) || typeof energy !== 'number') {
+      return '0'
+    }
+    
     if (energy >= 1000000) {
       return `${(energy / 1000000).toFixed(2)}M`
     } else if (energy >= 1000) {
@@ -21,13 +31,17 @@ export function useStakeFormatters() {
 
   // 格式化地址
   const formatAddress = (address: string): string => {
-    if (!address) return ''
+    if (!address || typeof address !== 'string') return ''
+    if (address.length < 10) return address
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
   // 格式化日期
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('zh-CN')
+    if (!dateString || typeof dateString !== 'string') return ''
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return ''
+    return date.toLocaleString('zh-CN')
   }
 
   // 获取状态样式类
