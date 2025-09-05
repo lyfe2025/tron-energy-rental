@@ -205,11 +205,8 @@ $$ LANGUAGE plpgsql;
 -- 创建定期清理任务（需要pg_cron扩展，如果可用）
 -- SELECT cron.schedule('cleanup-config-logs', '0 2 * * *', 'SELECT cleanup_old_config_logs(30);');
 
--- 授权（本地PostgreSQL环境，跳过Supabase特定角色）
--- GRANT SELECT, INSERT, UPDATE, DELETE ON config_change_logs TO authenticated;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON config_change_notifications TO authenticated;
--- GRANT SELECT ON config_change_logs TO anon;
--- GRANT SELECT ON config_change_notifications TO anon;
+-- 授权（本地PostgreSQL环境）
+-- 注意：本地PostgreSQL环境无需特殊角色授权
 
 -- 创建用于获取配置变更历史的视图
 CREATE OR REPLACE VIEW config_change_history AS
@@ -238,6 +235,6 @@ SELECT
 FROM config_change_logs ccl
 ORDER BY ccl.created_at DESC;
 
--- GRANT SELECT ON config_change_history TO authenticated, anon;
+-- 注意：本地PostgreSQL环境无需特殊角色授权
 
 COMMENT ON VIEW config_change_history IS '配置变更历史视图，提供友好的变更记录展示';

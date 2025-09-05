@@ -81,4 +81,4 @@ INSERT INTO scheduled_tasks (name, cron_expression, command, description) VALUES
 ON CONFLICT DO NOTHING;
 
 -- 数据库表创建完成
--- 注意：此项目使用普通PostgreSQL，不需要Supabase权限设置
+-- 注意：此项目使用本地PostgreSQL，无需特殊权限设置
