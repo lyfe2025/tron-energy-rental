@@ -4,9 +4,47 @@
  */
 import { type Request, type Response } from 'express';
 import { query } from '../../../config/database.js';
-import { tronService } from '../../../services/tron.js';
+import https from 'https';
+import http from 'http';
+import { URL } from 'url';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
+
+// HTTP请求助手函数
+const makeHttpRequest = async (urlString: string, apiKey?: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlString);
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'TRON-PRO-API-KEY': apiKey } : {})
+      },
+      timeout: 30000
+    };
+
+    const client = url.protocol === 'https:' ? https : http;
+    const req = client.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed);
+        } catch (error) {
+          reject(new Error(`JSON解析失败: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.on('timeout', () => reject(new Error('请求超时')));
+    req.end();
+  });
+};
 
 /**
  * 获取网络链参数
@@ -36,11 +74,11 @@ export const getChainParameters: RouteHandler = async (req: Request, res: Respon
     // 调用真实的TRON API获取链参数
     let chainParameters: any = {};
     try {
-      // 使用TronService获取真实的链参数
-      const tronWeb = await tronService.getTronWeb();
+      // 直接调用对应网络的API获取链参数
+      const apiUrl = `${network.rpc_url}/wallet/getchainparameters`;
       
-      // 获取链参数
-      const chainParams = await tronWeb.trx.getChainParameters();
+      console.log(`📊 调用链参数API: ${apiUrl}`);
+      const chainParams = await makeHttpRequest(apiUrl, network.api_key);
       
       // 解析链参数
       const paramMap: any = {};
@@ -148,12 +186,11 @@ export const getNodeInfo: RouteHandler = async (req: Request, res: Response) => 
     // 调用真实的TRON API获取节点信息
     let nodeInfo: any = {};
     try {
-      // 使用TronService获取真实的节点信息
-      const tronWeb = await tronService.getTronWeb();
+      // 直接调用对应网络的API获取节点信息
+      const apiUrl = `${network.rpc_url}/wallet/getnodeinfo`;
       
-      // 获取节点信息
-      const nodeInfoData = await tronWeb.trx.getNodeInfo();
-      
+      console.log(`📡 调用网络API: ${apiUrl}`);
+      const nodeInfoData = await makeHttpRequest(apiUrl, network.api_key);
       console.log('📡 真实节点信息:', nodeInfoData);
       
       // 格式化节点信息
@@ -304,12 +341,11 @@ export const getBlockInfo: RouteHandler = async (req: Request, res: Response) =>
     // 调用真实的TRON API获取区块信息
     let blockInfo: any = {};
     try {
-      // 使用TronService获取真实的区块信息
-      const tronWeb = await tronService.getTronWeb();
+      // 直接调用对应网络的API获取区块信息
+      const apiUrl = `${network.rpc_url}/wallet/getnowblock`;
       
-      // 获取最新区块
-      const latestBlock = await tronWeb.trx.getCurrentBlock();
-      
+      console.log(`📦 调用区块API: ${apiUrl}`);
+      const latestBlock = await makeHttpRequest(apiUrl, network.api_key);
       console.log('📦 真实区块信息:', latestBlock);
       
       // 格式化区块信息

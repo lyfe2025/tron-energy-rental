@@ -50,9 +50,11 @@ export const getConfigHistory: RouteHandler = async (req: Request, res: Response
     // 获取历史记录
     const historyQuery = `
       SELECT 
-        id, entity_type, entity_id, operation_type, changed_fields,
-        old_values, new_values, change_reason, changed_by, ip_address,
-        created_at
+        id, entity_type, entity_id, operation_type, field_name,
+        old_value, new_value, change_reason, change_description, 
+        user_id, user_type, ip_address, user_agent, session_id,
+        request_id, rollback_id, is_rollback, severity, tags, 
+        metadata, created_at
       FROM system_config_history
       ${whereClause}
       ORDER BY created_at DESC

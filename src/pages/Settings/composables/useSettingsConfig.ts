@@ -85,11 +85,16 @@ export function useSettingsConfig() {
    * 构建配置数组
    */
   const buildConfigArray = (settingsToProcess: any) => {
+    console.log('🛠️ [配置构建] 开始构建配置数组, 输入数据:', settingsToProcess)
     const configs: Array<{ config_key: string; config_value: any }> = []
     
     // 转换设置为配置格式
     Object.entries(settingsToProcess).forEach(([category, settings]) => {
+      console.log(`📊 [配置构建] 处理分类: ${category}`, settings)
+      
       Object.entries(settings).forEach(([key, value]) => {
+        console.log(`🔍 [配置构建] 处理设置项: ${key} = ${value} (type: ${typeof value})`)
+        
         // 根据类别找到对应的后端配置键
         const prefix = category === 'basic' ? 'system.' :
                       category === 'security' ? 'security.' :
@@ -97,11 +102,15 @@ export function useSettingsConfig() {
                       category === 'pricing' ? 'pricing.' :
                       category === 'advanced' ? '' : ''
         
+        console.log(`🏷️ [配置构建] 分类 ${category} 的前缀: '${prefix}'`)
+        
         // 查找匹配的配置键
-        const configKey = Object.keys(configKeyMappings).find(k => 
-          configKeyMappings[k as keyof typeof configKeyMappings] === key &&
-          (prefix === '' || k.startsWith(prefix))
-        )
+        const configKey = Object.keys(configKeyMappings).find(k => {
+          const mapped = configKeyMappings[k as keyof typeof configKeyMappings]
+          const matches = mapped === key && (prefix === '' || k.startsWith(prefix))
+          console.log(`🔎 [配置构建] 检查配置键: ${k} -> ${mapped}, 匹配: ${matches}`)
+          return matches
+        })
         
         if (configKey) {
           let configValue = value
@@ -111,14 +120,20 @@ export function useSettingsConfig() {
             configValue = String(value)
           }
           
-          configs.push({
+          const configItem = {
             config_key: configKey,
             config_value: configValue
-          })
+          }
+          
+          console.log(`✅ [配置构建] 成功映射: ${key} -> ${configKey} = ${configValue}`)
+          configs.push(configItem)
+        } else {
+          console.warn(`⚠️ [配置构建] 未找到匹配的配置键: ${category}.${key}, 值: ${value}`)
         }
       })
     })
     
+    console.log('🏁 [配置构建] 最终生成的配置数组:', configs)
     return configs
   }
 

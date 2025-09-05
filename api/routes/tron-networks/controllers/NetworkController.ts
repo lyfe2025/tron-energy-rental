@@ -500,19 +500,8 @@ export const deleteNetwork: RouteHandler = async (req: Request, res: Response) =
       return;
     }
     
-    // 检查是否有关联的能量池
-    const poolCheck = await query(
-      'SELECT COUNT(*) as count FROM energy_pools WHERE network_id = $1',
-      [id]
-    );
-    
-    if (parseInt(poolCheck.rows[0].count) > 0) {
-      res.status(400).json({
-        success: false,
-        message: '该网络有关联的能量池，不能删除。请先移除相关配置。'
-      });
-      return;
-    }
+    // 注意: energy_pools表没有network_id字段，因为能量池不直接关联到特定网络
+    // 能量池是独立的资源，可以在任何网络上使用
     
     // 删除网络配置
     await query(

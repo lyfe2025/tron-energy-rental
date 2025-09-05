@@ -75,6 +75,9 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
       if (response && response.data) {
         networkInfo.value = response.data
         console.log('✅ 网络信息获取成功:', networkInfo.value)
+        
+        // 加载已同步的数据
+        await loadSyncDataFromDatabase()
       } else {
         console.error('❌ 网络信息响应格式错误:', response)
         ElMessage.error('网络信息响应格式错误')
@@ -102,34 +105,52 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
         // 获取真实的网络参数
         const paramsResult = await networkApi.getChainParameters(networkId.value)
         console.log('📊 链参数结果:', paramsResult)
-        // 修复数据映射：从网络信息和链参数中获取数据
+        
+        // 从TRON网络获取真实的链ID
+        let realChainId = networkInfo.value?.chain_id || 3; // 默认使用配置的链ID
+        
+        // TRON网络的标准链ID
+        if (networkInfo.value?.network_type === 'testnet' && networkInfo.value?.name?.includes('Nile')) {
+          realChainId = 3; // Nile测试网的真实链ID
+        } else if (networkInfo.value?.network_type === 'mainnet') {
+          realChainId = 1; // TRON主网的真实链ID
+        } else if (networkInfo.value?.chain_id) {
+          // 使用数据库配置的链ID
+          realChainId = networkInfo.value.chain_id;
+        }
+        
         syncResult.value.networkParams = {
-          chainId: networkInfo.value?.chain_id || 2, // 从网络信息获取链ID
+          chainId: realChainId, // 使用真实的链ID
           blockTime: 3, // TRON网络区块时间固定3秒
           confirmations: 19 // TRON网络默认确认数
         }
+        console.log('✅ 网络参数同步完成，链ID:', realChainId)
         break
 
       case '同步节点信息':
         // 获取真实的节点信息
         const nodeResult = await networkApi.getNodeInfo(networkId.value)
         console.log('🔧 节点信息结果:', nodeResult)
+        console.log('🔍 节点信息原始数据:', JSON.stringify(nodeResult.data, null, 2))
         syncResult.value.nodeInfo = {
-          version: nodeResult.data?.node_info?.version || 'Unknown',
+          version: nodeResult.data?.node_info?.version || nodeResult.data?.node_info?.configNodeInfo?.codeVersion || 'Unknown',
           protocolVersion: nodeResult.data?.node_info?.configNodeInfo?.p2pVersion || 'Unknown'
         }
+        console.log('✅ 解析后的节点信息:', syncResult.value.nodeInfo)
         break
 
       case '同步区块信息':
         // 获取真实的区块信息
         const blockResult = await networkApi.getBlockInfo(networkId.value)
         console.log('📦 区块信息结果:', blockResult)
+        console.log('🔍 区块信息原始数据:', JSON.stringify(blockResult.data, null, 2))
         // 使用真实的区块信息数据
         syncResult.value.blockInfo = {
           latestBlock: blockResult.data?.block_info?.latestBlock?.blockNumber || 0,
           blockHash: blockResult.data?.block_info?.latestBlock?.blockHash || 'Unknown',
           syncTime: new Date().toISOString()
         }
+        console.log('✅ 解析后的区块信息:', syncResult.value.blockInfo)
         break
 
       case '执行健康检查':
@@ -193,6 +214,58 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
     } catch (logError) {
       console.error('记录同步日志失败:', logError)
       // 日志记录失败不应该影响主流程
+    }
+  }
+
+  // 保存同步数据到数据库
+  const saveSyncDataToDatabase = async () => {
+    if (!networkId.value || !syncResult.value) {
+      console.warn('⚠️ 无法保存同步数据：缺少网络ID或同步结果')
+      return
+    }
+
+    try {
+      console.log('💾 开始保存同步数据到数据库...')
+      
+      // 准备要保存的配置数据
+      const configData = {
+        lastSyncAt: new Date().toISOString(),
+        syncedData: {
+          networkParams: syncResult.value.networkParams,
+          nodeInfo: syncResult.value.nodeInfo,
+          blockInfo: syncResult.value.blockInfo,
+          healthCheck: syncResult.value.healthCheck
+        },
+        syncStatus: 'synced'
+      }
+
+      // 更新网络配置
+      await networkApi.updateNetwork(networkId.value, {
+        config: configData
+      } as any)
+      
+      console.log('✅ 同步数据已保存到数据库')
+      
+    } catch (error) {
+      console.error('❌ 保存同步数据到数据库失败:', error)
+      // 保存失败不应该影响同步流程
+    }
+  }
+
+  // 从数据库加载同步数据
+  const loadSyncDataFromDatabase = async () => {
+    if (!networkInfo.value?.config) {
+      return
+    }
+
+    try {
+      const configData = networkInfo.value.config as any
+      if (configData.syncedData) {
+        console.log('📖 从数据库加载已同步的数据')
+        syncResult.value = configData.syncedData
+      }
+    } catch (error) {
+      console.error('从数据库加载同步数据失败:', error)
     }
   }
 
@@ -271,6 +344,7 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
 
       if (errorSteps === 0) {
         // 全部成功
+        await saveSyncDataToDatabase()
         await logSyncOperation('success')
         ElMessage.success('配置同步完成')
       } else if (successSteps > 0) {

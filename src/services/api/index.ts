@@ -68,9 +68,14 @@ export type {
 // 设置管理API
 export { settingsAPI } from './settings/settingsAPI';
 
+// 配置缓存管理API
+export { configCacheAPI } from './config-cache/configCacheAPI';
+export type { ConfigHistoryQueryParams, ConfigHistoryRecord, ConfigHistoryResponse } from './config-cache/configCacheAPI';
+
 // 重新导入所有API模块用于对象构建
 import { authAPI as authAPIModule } from './auth/authAPI';
 import { botsAPI as botsAPIModule } from './bots/botsAPI';
+import { configCacheAPI as configCacheAPIModule } from './config-cache/configCacheAPI';
 import { energyPackagesAPI as energyPackagesAPIModule } from './energy-packages/energyPackagesAPI';
 import { energyPoolExtendedAPI as energyPoolAPIModule } from './energy-pool/energyPoolExtendedAPI';
 import { ordersAPI as ordersAPIModule } from './orders/ordersAPI';
@@ -87,6 +92,7 @@ const api = {
   users: usersAPIModule,
   orders: ordersAPIModule,
   bots: botsAPIModule,
+  configCache: configCacheAPIModule,
   energyPackages: energyPackagesAPIModule,
   statistics: statisticsAPIModule,
   systemConfigs: systemConfigsAPIModule,
@@ -100,7 +106,7 @@ export default api;
 
 // 兼容性导出 - 保持与原有代码的兼容性
 export {
-    authAPIModule as authApi, botsAPIModule as botsApi,
+    authAPIModule as authApi, botsAPIModule as botsApi, configCacheAPIModule as configCacheApi,
     energyPackagesAPIModule as energyPackagesApi, energyPoolAPIModule as energyPoolApi, ordersAPIModule as ordersApi, pricingAPIModule as pricingApi, settingsAPIModule as settingsApi, stakeAPIModule as stakeApi, statisticsAPIModule as statisticsApi,
     systemConfigsAPIModule as systemConfigsApi, usersAPIModule as usersApi
 };

@@ -5,7 +5,7 @@
  * 包括请求验证、权限检查、日志记录和响应缓存等
  */
 
-import express, { type NextFunction, type Request, type Response } from 'express';
+import { type NextFunction, type Request, type Response } from 'express';
 import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
 
 /**
@@ -368,7 +368,7 @@ export const logConfigOperation = (operation: string) => {
 export const setCacheHeaders = (maxAge: number = 300) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     // 管理员请求不缓存，因为他们可能看到更多数据
-    if (req.user?.role === 'admin') {
+    if (req.user?.role === 'admin' || req.user?.role === 'super_admin') {
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');

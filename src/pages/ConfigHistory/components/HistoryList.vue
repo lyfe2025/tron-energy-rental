@@ -22,11 +22,11 @@
             <!-- 左侧信息 -->
             <div class="flex-1">
               <div class="flex items-center space-x-3 mb-2">
-                <el-tag :type="getActionTypeColor(record.action_type)" size="small">
-                  {{ getActionTypeText(record.action_type) }}
+                <el-tag :type="getActionTypeColor(record.operation_type)" size="small">
+                  {{ getActionTypeText(record.operation_type) }}
                 </el-tag>
                 <el-tag type="info" size="small">
-                  {{ getConfigTypeText(record.config_type) }}
+                  {{ getConfigTypeText(record.entity_type) }}
                 </el-tag>
                 <span class="text-sm text-gray-500">
                   {{ formatTime(record.created_at) }}
@@ -34,17 +34,17 @@
               </div>
               
               <h3 class="font-medium text-gray-900 mb-1">
-                {{ record.title }}
+                {{ generateTitle(record) }}
               </h3>
               
               <p class="text-gray-600 text-sm mb-2">
-                {{ record.description }}
+                {{ record.change_description || record.change_reason || '配置变更' }}
               </p>
               
               <div class="flex items-center space-x-4 text-sm text-gray-500">
                 <span>
                   <el-icon><User /></el-icon>
-                  操作者: {{ record.operator }}
+                  操作者: {{ record.user_type === 'admin' ? '管理员' : record.user_type || '系统' }}
                 </span>
                 <span v-if="record.ip_address">
                   <el-icon><Monitor /></el-icon>
@@ -62,7 +62,7 @@
                 查看详情
               </el-button>
               <el-button
-                v-if="record.can_rollback"
+                v-if="canRecordRollback(record)"
                 size="small"
                 type="warning"
                 @click="$emit('rollbackConfig', record)"
@@ -78,20 +78,25 @@
 </template>
 
 <script setup lang="ts">
+import type { ConfigHistoryRecord } from '@/services/api'
 import { DocumentCopy, Loading, Monitor, User } from '@element-plus/icons-vue'
+import {
+    canRollback,
+    formatTime,
+    generateConfigTitle,
+    getActionTypeColor,
+    getActionTypeText,
+    getConfigTypeText
+} from '../utils/configUtils'
 
-interface ConfigHistoryRecord {
-  id: string
-  config_type: 'bot' | 'network' | 'energy_pool' | 'system'
-  action_type: 'create' | 'update' | 'delete' | 'enable' | 'disable'
-  title: string
-  description: string
-  operator: string
-  ip_address?: string
-  created_at: string
-  changes?: any
-  remarks?: string
-  can_rollback: boolean
+// 生成标题的辅助函数
+const generateTitle = (record: ConfigHistoryRecord): string => {
+  return generateConfigTitle(record.entity_type, record.operation_type)
+}
+
+// 判断是否可以回滚的辅助函数 - 封装工具函数
+const canRecordRollback = (record: ConfigHistoryRecord): boolean => {
+  return canRollback(record.operation_type, record.is_rollback)
 }
 
 interface Props {
@@ -106,42 +111,6 @@ interface Emits {
 
 defineProps<Props>()
 defineEmits<Emits>()
-
-const getActionTypeText = (type: string) => {
-  const typeMap: Record<string, string> = {
-    create: '创建',
-    update: '更新',
-    delete: '删除',
-    enable: '启用',
-    disable: '禁用'
-  }
-  return typeMap[type] || type
-}
-
-const getActionTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
-    create: 'success',
-    update: 'primary',
-    delete: 'danger',
-    enable: 'success',
-    disable: 'warning'
-  }
-  return colorMap[type] || 'info'
-}
-
-const getConfigTypeText = (type: string) => {
-  const typeMap: Record<string, string> = {
-    bot: '机器人配置',
-    network: '网络配置',
-    energy_pool: '能量池配置',
-    system: '系统配置'
-  }
-  return typeMap[type] || type
-}
-
-const formatTime = (time: string) => {
-  return new Date(time).toLocaleString('zh-CN')
-}
 </script>
 
 <style scoped>

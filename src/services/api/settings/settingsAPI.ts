@@ -10,57 +10,48 @@ export const settingsAPI = {
    * 获取系统设置
    */
   getSettings: () => 
-    apiClient.get<ApiResponse<SystemSettings>>('/api/settings'),
+    apiClient.get<ApiResponse<SystemSettings>>('/api/system-configs/all-settings'),
 
   /**
    * 更新系统设置
    */
   updateSettings: (data: UpdateSettingsData) => 
-    apiClient.put<ApiResponse<SystemSettings>>('/api/settings', data),
+    apiClient.put<ApiResponse<SystemSettings>>('/api/system-configs/batch/update', data),
 
   /**
    * 获取特定分类的设置
    */
   getCategorySettings: (category: string) => 
-    apiClient.get<ApiResponse<Record<string, any>>>(`/api/settings/${category}`),
+    apiClient.get<ApiResponse<Record<string, any>>>('/api/system-configs', { params: { category } }),
 
   /**
    * 更新特定分类的设置
    */
-  updateCategorySettings: (category: string, data: Record<string, any>) => 
-    apiClient.put<ApiResponse<Record<string, any>>>(`/api/settings/${category}`, data),
+  updateCategorySettings: (category: string, data: Record<string, any>) => {
+    // 将分类设置转换为批量更新格式
+    const configs = Object.entries(data).map(([key, value]) => ({
+      config_key: `${category}.${key}`,
+      config_value: value
+    }));
+    return apiClient.put<ApiResponse<Record<string, any>>>('/api/system-configs/batch/update', { 
+      configs,
+      change_reason: `更新${category}分类设置`
+    });
+  },
 
   /**
    * 重置设置为默认值
    */
-  resetToDefaults: (categories?: string[]) => 
-    apiClient.post<ApiResponse<SystemSettings>>('/api/settings/reset', { categories }),
+  resetToDefaults: (categories?: string[]) => {
+    // 暂时不实现，返回 Promise 避免编译错误
+    return Promise.reject(new Error('暂不支持批量重置功能'));
+  },
 
   /**
    * 获取设置模板
    */
   getSettingsTemplate: () => 
-    apiClient.get<ApiResponse<{
-      categories: Array<{
-        name: string
-        label: string
-        description: string
-        settings: Array<{
-          key: string
-          label: string
-          type: 'string' | 'number' | 'boolean' | 'select' | 'json'
-          description: string
-          default: any
-          options?: Array<{ value: any; label: string }>
-          validation?: {
-            required?: boolean
-            min?: number
-            max?: number
-            pattern?: string
-          }
-        }>
-      }>
-    }>>('/api/settings/template'),
+    Promise.reject(new Error('暂不支持设置模板功能')),
 
   /**
    * 验证设置配置
@@ -72,25 +63,19 @@ export const settingsAPI = {
         field: string
         message: string
       }>
-    }>>('/api/settings/validate', data),
+    }>>('/api/system-configs/validate', data),
 
   /**
    * 导出设置配置
    */
   exportSettings: () => 
-    apiClient.get<Blob>('/api/settings/export', { responseType: 'blob' }),
+    Promise.reject(new Error('暂不支持导出功能')),
 
   /**
    * 导入设置配置
    */
   importSettings: (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post<ApiResponse<SystemSettings>>('/api/settings/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    return Promise.reject(new Error('暂不支持导入功能'));
   }
 };
 

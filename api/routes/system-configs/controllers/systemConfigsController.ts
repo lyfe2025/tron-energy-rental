@@ -176,11 +176,33 @@ export class SystemConfigsController {
    * 批量更新配置
    */
   async batchUpdateConfigs(req: Request, res: Response): Promise<void> {
+    console.log('🚀 [批量更新] 开始批量更新配置请求');
+    console.log('📥 [批量更新] 请求体:', JSON.stringify(req.body, null, 2));
+    console.log('👤 [批量更新] 用户信息:', {
+      userId: req.user?.userId,
+      role: req.user?.role,
+      email: req.user?.email
+    });
+    
     try {
       const batchData: BatchUpdateRequest = req.body;
       const userId = req.user?.userId;
 
+      console.log('📋 [批量更新] 解析后的批量数据:', batchData);
+      console.log('🔍 [批量更新] 配置项数量:', batchData.configs?.length || 0);
+      
+      if (batchData.configs) {
+        batchData.configs.forEach((config, index) => {
+          console.log(`📝 [批量更新] 配置项 ${index + 1}:`, {
+            config_key: config.config_key,
+            config_value: config.config_value,
+            value_type: typeof config.config_value
+          });
+        });
+      }
+
       if (!userId) {
+        console.error('❌ [批量更新] 用户信息缺失');
         const response: ApiResponse = {
           success: false,
           message: '用户信息缺失'
@@ -189,7 +211,9 @@ export class SystemConfigsController {
         return;
       }
 
+      console.log('🔄 [批量更新] 调用服务层进行批量更新...');
       const result = await this.service.batchUpdateConfigs(batchData, String(userId), req.user?.role);
+      console.log('✅ [批量更新] 服务层返回结果:', result);
 
       const response: ApiResponse = {
         success: true,
@@ -197,14 +221,23 @@ export class SystemConfigsController {
         data: result
       };
 
+      console.log('📤 [批量更新] 发送响应:', response);
       res.json(response);
     } catch (error) {
-      console.error('批量更新配置失败:', error);
+      console.error('💥 [批量更新] 批量更新配置失败:', error);
+      console.error('💥 [批量更新] 错误详情:', {
+        message: error instanceof Error ? error.message : '未知错误',
+        stack: error instanceof Error ? error.stack : null,
+        name: error instanceof Error ? error.name : null
+      });
+      
       const response: ApiResponse = {
         success: false,
         message: '批量更新配置失败',
         error: error instanceof Error ? error.message : '未知错误'
       };
+      
+      console.log('📤 [批量更新] 发送错误响应:', response);
       res.status(400).json(response);
     }
   }
