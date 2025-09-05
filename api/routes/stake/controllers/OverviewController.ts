@@ -20,9 +20,10 @@ export class OverviewController {
       
       let targetAddress = address as string;
       
-      // 如果提供了poolId，从数据库获取对应的地址
+      // 如果提供了poolId，从数据库获取对应的地址和网络配置
+      let networkId: number | null = null;
       if (poolId && typeof poolId === 'string') {
-        const poolQuery = 'SELECT tron_address FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT tron_address, network_id FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [poolId]);
         
         if (poolResult.rows.length === 0) {
@@ -34,6 +35,7 @@ export class OverviewController {
         }
         
         targetAddress = poolResult.rows[0].tron_address;
+        networkId = poolResult.rows[0].network_id;
       }
       
       if (!targetAddress || typeof targetAddress !== 'string') {
@@ -42,6 +44,15 @@ export class OverviewController {
           error: '缺少必要参数',
           details: '请提供 address 或 poolId 参数' 
         });
+      }
+
+      // 如果账户配置了特定网络，切换到该网络
+      if (networkId) {
+        try {
+          await tronService.switchToNetwork(networkId);
+        } catch (error: any) {
+          console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
+        }
       }
 
       const result = await tronService.getStakeOverview(targetAddress);
@@ -77,9 +88,10 @@ export class OverviewController {
       // 支持两种参数名称：pool_id 和 poolId
       const targetPoolId = poolId || pool_id;
       
-      // 如果提供了poolId，验证能量池是否存在
+      // 如果提供了poolId，验证能量池是否存在并获取网络配置
+      let networkId: number | null = null;
       if (targetPoolId && typeof targetPoolId === 'string') {
-        const poolQuery = 'SELECT id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT id, network_id FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [targetPoolId]);
         
         if (poolResult.rows.length === 0) {
@@ -88,6 +100,17 @@ export class OverviewController {
             error: '能量池不存在',
             details: `未找到ID为 ${targetPoolId} 的能量池` 
           });
+        }
+        
+        networkId = poolResult.rows[0].network_id;
+      }
+      
+      // 如果账户配置了特定网络，切换到该网络
+      if (networkId) {
+        try {
+          await tronService.switchToNetwork(networkId);
+        } catch (error: any) {
+          console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
         }
       }
       
@@ -158,6 +181,7 @@ export class OverviewController {
   static getAccountResources: RouteHandler = async (req: Request, res: Response) => {
     try {
       const { address } = req.params;
+      const { networkId } = req.query;
       
       if (!address) {
         return res.status(400).json({ 
@@ -165,6 +189,15 @@ export class OverviewController {
           error: '缺少地址参数',
           details: '请在URL中提供TRON地址'
         });
+      }
+
+      // 如果指定了网络ID，切换到该网络
+      if (networkId && typeof networkId === 'string') {
+        try {
+          await tronService.switchToNetwork(parseInt(networkId));
+        } catch (error: any) {
+          console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
+        }
       }
 
       const result = await tronService.getAccountResources(address);
@@ -195,6 +228,7 @@ export class OverviewController {
   static getAccountInfo: RouteHandler = async (req: Request, res: Response) => {
     try {
       const { address } = req.params;
+      const { networkId } = req.query;
       
       if (!address) {
         return res.status(400).json({ 
@@ -202,6 +236,15 @@ export class OverviewController {
           error: '缺少地址参数',
           details: '请在URL中提供TRON地址'
         });
+      }
+
+      // 如果指定了网络ID，切换到该网络
+      if (networkId && typeof networkId === 'string') {
+        try {
+          await tronService.switchToNetwork(parseInt(networkId));
+        } catch (error: any) {
+          console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
+        }
       }
 
       const result = await tronService.getAccount(address);

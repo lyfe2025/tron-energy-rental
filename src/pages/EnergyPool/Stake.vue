@@ -57,7 +57,7 @@
       >
         <option value="">请选择能量池账户</option>
         <option v-for="account in energyPoolAccounts" :key="account.id" :value="account.id">
-          {{ account.name }} ({{ formatAddress(account.tron_address) }})
+          {{ formatAccountDisplay(account) }}
         </option>
       </select>
     </div>
@@ -313,6 +313,18 @@ const tabs = [
 ]
 
 // 方法
+const formatAccountDisplay = (account: any) => {
+  const baseInfo = `${account.name} (${formatAddress(account.tron_address)})`
+  
+  // 检查是否有网络配置信息
+  if (account.network_config && account.network_config.name) {
+    return `${baseInfo} - ${account.network_config.name}`
+  }
+  
+  // 如果没有网络配置，显示未设置网络
+  return `${baseInfo} - 未设置网络`
+}
+
 const onPoolChange = async () => {
   if (selectedPoolId.value) {
     await loadOverview(selectedPoolId.value)

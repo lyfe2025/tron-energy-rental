@@ -286,6 +286,24 @@ export class TronService {
     return await this.stakingService.getStakeOverview(address);
   }
 
+  // 获取质押交易记录
+  async getStakeTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
+    await this.waitForInitialization();
+    return await this.stakingService.getStakeTransactionHistory(address, limit, offset);
+  }
+
+  // 获取委托交易记录
+  async getDelegateTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
+    await this.waitForInitialization();
+    return await this.stakingService.getDelegateTransactionHistory(address, limit, offset);
+  }
+
+  // 获取解质押记录
+  async getUnfreezeTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
+    await this.waitForInitialization();
+    return await this.stakingService.getUnfreezeTransactionHistory(address, limit, offset);
+  }
+
   async recordStakeTransaction(params: {
     transactionId: string;
     poolId: number;

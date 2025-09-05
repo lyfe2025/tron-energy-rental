@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-900">委托资源</h3>
@@ -15,9 +15,10 @@
         </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="p-6">
+      <form @submit.prevent="handleSubmit" class="flex-1 overflow-y-auto">
+        <div class="p-6 space-y-4">
         <!-- 操作类型选择 -->
-        <div class="mb-4">
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">操作类型</label>
           <div class="grid grid-cols-2 gap-3">
             <button
@@ -50,7 +51,7 @@
         </div>
 
         <!-- 资源类型选择 -->
-        <div class="mb-4">
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">资源类型</label>
           <div class="grid grid-cols-2 gap-3">
             <button
@@ -83,7 +84,7 @@
         </div>
 
         <!-- 目标地址 -->
-        <div v-if="form.operationType === 'delegate'" class="mb-4">
+        <div v-if="form.operationType === 'delegate'">
           <label class="block text-sm font-medium text-gray-700 mb-2">目标地址</label>
           <input
             v-model="form.targetAddress"
@@ -96,7 +97,7 @@
         </div>
 
         <!-- 委托金额/资源量 -->
-        <div class="mb-4">
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
             {{ form.operationType === 'delegate' ? '委托金额 (TRX)' : '取消委托资源量' }}
           </label>
@@ -115,7 +116,7 @@
         </div>
 
         <!-- 锁定期选择 (仅委托时显示) -->
-        <div v-if="form.operationType === 'delegate'" class="mb-4">
+        <div v-if="form.operationType === 'delegate'">
           <label class="block text-sm font-medium text-gray-700 mb-2">锁定期</label>
           <select
             v-model="form.lockPeriod"
@@ -130,7 +131,7 @@
         </div>
 
         <!-- 当前资源信息 -->
-        <div v-if="resourceInfo" class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div v-if="resourceInfo" class="p-4 bg-gray-50 rounded-lg">
           <h4 class="text-sm font-medium text-gray-900 mb-2">当前资源信息</h4>
           <div class="space-y-1 text-sm text-gray-600">
             <div class="flex justify-between">
@@ -149,7 +150,7 @@
         </div>
 
         <!-- 预估信息 -->
-        <div v-if="form.operationType === 'delegate' && form.amount" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div v-if="form.operationType === 'delegate' && form.amount" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h4 class="text-sm font-medium text-blue-900 mb-2">预估信息</h4>
           <div class="space-y-1 text-sm text-blue-700">
             <div class="flex justify-between">
@@ -168,7 +169,7 @@
         </div>
 
         <!-- 委托说明 -->
-        <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div class="flex items-start">
             <svg class="w-5 h-5 text-yellow-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -187,7 +188,7 @@
         </div>
 
         <!-- 错误提示 -->
-        <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-600">{{ error }}</p>
         </div>
 
@@ -214,13 +215,14 @@
             <span v-else>{{ form.operationType === 'delegate' ? '确认委托' : '确认取消委托' }}</span>
           </button>
         </div>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useStake } from '../composables/useStake'
 
 interface Props {

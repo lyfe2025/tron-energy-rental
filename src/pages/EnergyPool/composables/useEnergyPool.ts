@@ -1,5 +1,6 @@
 import { useToast } from '@/composables/useToast'
 import { energyPoolAPI } from '@/services/api'
+import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { reactive, ref } from 'vue'
 
 interface EnergyPoolAccount {
@@ -93,7 +94,7 @@ export function useEnergyPool() {
     try {
       console.log('🔍 [useEnergyPool] 加载账户列表，网络过滤:', networkId);
       const params = networkId ? { network_id: networkId } : undefined;
-      const response = await energyPoolAPI.getAccounts(params)
+      const response = await energyPoolExtendedAPI.getAccounts(params)
       if (response.data.success && response.data.data) {
         // 转换API数据以匹配EnergyPoolAccount类型
         accounts.value = response.data.data.map((account: any) => {

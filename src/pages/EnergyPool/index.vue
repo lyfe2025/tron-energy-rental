@@ -18,6 +18,8 @@
       v-model:status-filter="statusFilter"
       v-model:network-filter="networkFilter"
       :available-networks="availableNetworks"
+      :networks-loading="networksLoading"
+      :networks-error="networksError"
       @reset-filters="resetFilters"
     />
 
@@ -217,7 +219,9 @@ const availableNetworks = ref<Array<{
   rpc_url: string;
   is_active: boolean;
   health_status?: string;
-}>>([])
+}>>([]);
+const networksLoading = ref(false);
+const networksError = ref<string>('')
 
 // 计算属性
 const filteredAccounts = computed(() => {
@@ -428,10 +432,26 @@ onMounted(async () => {
   console.log('🚀 [EnergyPool] 页面初始化');
   
   try {
-    // 首先加载网络列表
-    const networks = await loadNetworks();
-    availableNetworks.value = networks;
-    console.log('🌐 [EnergyPool] 网络列表加载完成:', networks.length);
+    // 加载网络列表，添加状态管理
+    networksLoading.value = true;
+    networksError.value = '';
+    
+    try {
+      const networks = await loadNetworks();
+      availableNetworks.value = networks;
+      console.log('🌐 [EnergyPool] 网络列表加载完成:', networks.length);
+      
+      // 验证网络状态
+      const activeNetworks = networks.filter(n => n.is_active);
+      if (activeNetworks.length === 0) {
+        networksError.value = '暂无活跃网络可用';
+      }
+    } catch (error) {
+      console.error('❌ [EnergyPool] 网络列表加载失败:', error);
+      networksError.value = '网络列表加载失败，请刷新页面重试';
+    } finally {
+      networksLoading.value = false;
+    }
     
     // 并行加载其他数据（账户数据不使用网络过滤，显示所有账户）
     await Promise.all([

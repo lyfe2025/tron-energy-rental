@@ -55,14 +55,18 @@ export interface StakeRecord {
   createdAt: string
 }
 
-export interface StakeRecordsResponse {
-  records: StakeRecord[]
+export interface StakeRecordsResponse extends Array<StakeRecord> {}
+
+export interface PaginatedApiResponse<T> {
+  success: boolean
+  data: T
   pagination: {
     page: number
     limit: number
     total: number
     totalPages: number
   }
+  message?: string
 }
 
 export const stakeAPI = {
@@ -120,7 +124,7 @@ export const stakeAPI = {
     startDate?: string
     endDate?: string
   }) => 
-    apiClient.get<ApiResponse<StakeRecordsResponse>>('/api/energy-pool/stake/records', { params }),
+    apiClient.get<PaginatedApiResponse<StakeRecordsResponse>>('/api/energy-pool/stake/records', { params }),
 
   /**
    * 获取委托记录
@@ -134,7 +138,7 @@ export const stakeAPI = {
     startDate?: string
     endDate?: string
   }) => 
-    apiClient.get<ApiResponse<StakeRecordsResponse>>('/api/energy-pool/stake/delegate-records', { params }),
+    apiClient.get<PaginatedApiResponse<StakeRecordsResponse>>('/api/energy-pool/stake/delegates', { params }),
 
   /**
    * 获取解冻记录
@@ -144,25 +148,19 @@ export const stakeAPI = {
     page?: number
     limit?: number
   }) => 
-    apiClient.get<ApiResponse<{
-      records: Array<{
-        id: string
-        poolId: string
-        txid: string
-        amount: number
-        resourceType: 'ENERGY' | 'BANDWIDTH'
-        unfreezeTime: string
-        withdrawableTime: string
-        status: 'unfreezing' | 'withdrawable' | 'withdrawn'
-        createdAt: string
-      }>
-      pagination: {
-        page: number
-        limit: number
-        total: number
-        totalPages: number
-      }
-    }>>('/api/energy-pool/stake/unfreeze-records', { params })
+    apiClient.get<PaginatedApiResponse<Array<{
+      id: string
+      poolId: string
+      txid: string
+      amount: number
+      resource_type: 'ENERGY' | 'BANDWIDTH'
+      unfreeze_time: string
+      withdrawable_time: string
+      status: 'unfreezing' | 'withdrawable' | 'withdrawn'
+      created_at: string
+      canWithdraw?: boolean
+      daysUntilWithdrawable?: number
+    }>>>('/api/energy-pool/stake/unfreezes', { params })
 };
 
 export default stakeAPI;

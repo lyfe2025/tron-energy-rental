@@ -42,10 +42,15 @@ export interface WithdrawExpireUnfreezeParams {
 export interface StakeOverview {
   totalStaked: number;
   totalDelegated: number;
-  availableEnergy: number;
-  availableBandwidth: number;
-  pendingUnfreeze: number;
-  withdrawableAmount: number;
+  totalUnfreezing: number;
+  availableToWithdraw: number;
+  stakingRewards: number;
+  delegationRewards: number;
+  // 保留原有字段以保持向后兼容性
+  availableEnergy?: number;
+  availableBandwidth?: number;
+  pendingUnfreeze?: number;
+  withdrawableAmount?: number;
 }
 
 export interface StakeTransactionParams {

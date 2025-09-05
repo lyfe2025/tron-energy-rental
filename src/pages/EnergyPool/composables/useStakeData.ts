@@ -120,8 +120,8 @@ export function useStakeData() {
       error.value = null
       const response = await stakeAPI.getStakeRecords(params)
       if (response.data.success && response.data.data) {
-        stakeRecords.value = response.data.data.records
-        Object.assign(pagination, response.data.data.pagination)
+        stakeRecords.value = response.data.data
+        Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取质押记录失败')
       }
@@ -140,8 +140,8 @@ export function useStakeData() {
       const response = await stakeAPI.getDelegateRecords(params)
       if (response.data.success && response.data.data) {
         // API返回的是StakeRecord[]，需要转换为DelegateRecord[]
-        delegateRecords.value = response.data.data.records as any
-        Object.assign(pagination, response.data.data.pagination)
+        delegateRecords.value = response.data.data as any
+        Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取委托记录失败')
       }
@@ -160,15 +160,15 @@ export function useStakeData() {
       const response = await stakeAPI.getUnfreezeRecords(params)
       if (response.data.success && response.data.data) {
         // 转换API返回的字段名和状态值到我们的类型
-        const records = response.data.data.records.map(record => ({
+        const records = response.data.data.map((record: any) => ({
           ...record,
-          expireTime: record.withdrawableTime, // withdrawableTime -> expireTime
+          expireTime: record.withdrawable_time, // withdrawable_time -> expireTime
           status: record.status === 'unfreezing' ? 'pending' :
                   record.status === 'withdrawable' ? 'available' : 
                   record.status // 'withdrawn' 保持不变
         }))
         unfreezeRecords.value = records as any
-        Object.assign(pagination, response.data.data.pagination)
+        Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取解质押记录失败')
       }

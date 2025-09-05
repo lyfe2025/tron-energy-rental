@@ -104,7 +104,6 @@
     <!-- 创建机器人弹窗 -->
     <BotCreateModal
       v-model:visible="showCreateModal"
-      :available-networks="availableNetworks"
       @create="handleCreateBot"
     />
 
@@ -143,15 +142,6 @@ const showEditModal = ref(false)
 const showNetworkModal = ref(false)
 const selectedBot = ref<any>(null)
 
-// 可用网络列表（转换为创建弹窗所需的格式）
-const availableNetworks = computed(() => {
-  return networks.value.map(network => ({
-    id: network.id,
-    name: network.name,
-    network_type: network.chain_id ? 'mainnet' : 'testnet', // 简单的转换逻辑
-    is_active: true
-  }))
-})
 
 // 使用组合式函数
 const {
