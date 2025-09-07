@@ -24,7 +24,7 @@
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900">{{ network.name }}</h3>
-                <p class="text-sm text-gray-500">{{ network.type }}</p>
+                <p class="text-sm text-gray-500">{{ getNetworkTypeText(network.type) }}</p>
               </div>
             </div>
 
@@ -113,6 +113,7 @@
 
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
+import { getNetworkIcon, getNetworkIconClass, getNetworkTypeText } from '@/utils/network'
 import { toast } from 'sonner'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -131,27 +132,6 @@ const route = useRoute()
 const loading = ref(true)
 const networks = ref<Network[]>([])
 
-// 获取网络图标
-const getNetworkIcon = (type: string): string => {
-  const iconMap: Record<string, string> = {
-    'mainnet': 'M',
-    'testnet': 'T',
-    'shasta': 'S',
-    'nile': 'N'
-  }
-  return iconMap[type.toLowerCase()] || 'N'
-}
-
-// 获取网络图标样式
-const getNetworkIconClass = (type: string): string => {
-  const classMap: Record<string, string> = {
-    'mainnet': 'bg-green-500',
-    'testnet': 'bg-blue-500',
-    'shasta': 'bg-purple-500',
-    'nile': 'bg-orange-500'
-  }
-  return classMap[type.toLowerCase()] || 'bg-gray-500'
-}
 
 // 选择网络
 const selectNetwork = (network: Network) => {
@@ -258,7 +238,9 @@ const loadNetworks = async () => {
     // request工具会将后端响应包装成 {success: true, data: {networks: [...], pagination: {...}}}
     // 所以我们需要从 response.data.data.networks 获取网络列表
     if (response.success && response.data) {
-      networks.value = response.data.data?.networks || response.data.networks || []
+      const allNetworks = response.data.data?.networks || response.data.networks || []
+      // 只显示活跃的网络
+      networks.value = allNetworks.filter((network: Network) => network.is_active)
     } else {
       networks.value = []
       throw new Error(response.error || '获取网络列表失败')

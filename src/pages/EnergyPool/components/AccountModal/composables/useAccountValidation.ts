@@ -1,9 +1,9 @@
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import type { 
-  AccountFormData, 
-  AccountFormErrors, 
-  PrivateKeyInputMode,
-  TronData
+import type {
+    AccountFormData,
+    AccountFormErrors,
+    PrivateKeyInputMode,
+    TronData
 } from '../types/account-modal.types'
 
 export function useAccountValidation() {

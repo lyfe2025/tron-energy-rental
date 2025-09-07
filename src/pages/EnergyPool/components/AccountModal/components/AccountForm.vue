@@ -38,9 +38,12 @@
 
     <!-- 私钥输入组件 -->
     <PrivateKeyInput
-      v-model="form.private_key"
-      v-model:input-mode="privateKeyInputMode"
-      v-model:mnemonic-value="form.mnemonic"
+      :model-value="form.private_key"
+      @update:model-value="onPrivateKeyUpdate"
+      :input-mode="privateKeyInputMode"
+      @update:input-mode="onInputModeUpdate"
+      :mnemonic-value="form.mnemonic"
+      @update:mnemonic-value="onMnemonicUpdate"
       :error="errors.private_key"
       :mnemonic-error="errors.mnemonic"
       :generating="generatingPrivateKey"
@@ -164,9 +167,9 @@
 </template>
 
 <script setup lang="ts">
-import type { 
-  AccountFormData, 
-  AccountFormErrors, 
+import type {
+  AccountFormData,
+  AccountFormErrors,
   PrivateKeyInputMode,
   TronData
 } from '../types/account-modal.types'
@@ -209,6 +212,18 @@ const onNumberInput = (field: keyof AccountFormData, event: Event) => {
 const onSelect = (field: keyof AccountFormData, event: Event) => {
   const target = event.target as HTMLSelectElement
   emit('update:form', { [field]: target.value })
+}
+
+const onPrivateKeyUpdate = (value: string) => {
+  emit('update:form', { private_key: value })
+}
+
+const onInputModeUpdate = (mode: PrivateKeyInputMode) => {
+  emit('update:privateKeyInputMode', mode)
+}
+
+const onMnemonicUpdate = (value: string) => {
+  emit('update:form', { mnemonic: value })
 }
 
 const onGeneratePrivateKey = () => {

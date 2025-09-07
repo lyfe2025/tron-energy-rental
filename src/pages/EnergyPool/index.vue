@@ -274,8 +274,8 @@ const currentNetwork = computed(() => {
   return networkStore.networks.find(network => network.id === currentNetworkId.value)
 })
 
-// 可用网络列表
-const availableNetworks = computed(() => networkStore.networks)
+// 可用网络列表 - 只显示活跃的网络
+const availableNetworks = computed(() => networkStore.networks.filter(network => network.is_active))
 
 // 筛选和搜索状态
 const selectedAccounts = ref<string[]>([])

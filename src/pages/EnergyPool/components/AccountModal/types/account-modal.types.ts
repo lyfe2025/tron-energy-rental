@@ -1,4 +1,4 @@
-import type { EnergyPoolAccount } from '../../composables/useEnergyPool'
+import type { EnergyPoolAccount } from '../../../composables/useEnergyPool'
 
 // 组件属性接口
 export interface AccountModalProps {

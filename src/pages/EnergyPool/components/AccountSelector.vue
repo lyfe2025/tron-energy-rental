@@ -16,10 +16,10 @@
           <div>
             <h3 class="text-lg font-semibold text-gray-900">{{ network.name }}</h3>
             <div class="flex items-center space-x-2">
-              <span :class="['px-2 py-1 text-xs font-medium rounded-full', getNetworkStatusClass(network.is_active ? 'active' : 'inactive')]">
-                {{ getNetworkStatusText(network.is_active ? 'active' : 'inactive') }}
+              <span :class="['px-2 py-1 text-xs font-medium rounded-full', getNetworkStatusClass(network.is_active)]">
+                {{ getNetworkStatusText(network.is_active) }}
               </span>
-              <span class="text-sm text-gray-500">{{ network.type }}</span>
+              <span class="text-sm text-gray-500">{{ getNetworkTypeText(network.type) }}</span>
             </div>
           </div>
         </div>
@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import type { Network } from '@/stores/network'
+import { getNetworkIcon, getNetworkIconClass, getNetworkStatusClass, getNetworkStatusText, getNetworkTypeText } from '@/utils/network'
 import { AlertCircle, ExternalLink, Wallet } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -156,42 +157,6 @@ const formatTrx = (amount: number | undefined): string => {
 // 添加错误状态
 const error = ref<string | null>(null)
 
-// 网络相关方法
-const getNetworkIcon = (networkId: string) => {
-  const iconMap: Record<string, string> = {
-    'mainnet': 'M',
-    'shasta': 'S',
-    'nile': 'N'
-  }
-  return iconMap[networkId] || 'T'
-}
-
-const getNetworkIconClass = (networkId: string) => {
-  const classMap: Record<string, string> = {
-    'mainnet': 'bg-green-500',
-    'shasta': 'bg-blue-500',
-    'nile': 'bg-purple-500'
-  }
-  return classMap[networkId] || 'bg-gray-500'
-}
-
-const getNetworkStatusClass = (status: string) => {
-  const classMap: Record<string, string> = {
-    'active': 'bg-green-100 text-green-800',
-    'inactive': 'bg-gray-100 text-gray-800',
-    'maintenance': 'bg-yellow-100 text-yellow-800'
-  }
-  return classMap[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getNetworkStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    'active': '正常',
-    'inactive': '停用',
-    'maintenance': '维护中'
-  }
-  return textMap[status] || '未知'
-}
 
 // 选择账户
 const selectAccount = (account: EnergyPoolAccount) => {

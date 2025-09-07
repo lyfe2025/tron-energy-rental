@@ -18,7 +18,7 @@
       <div v-if="tronData.networkInfo" class="bg-blue-50 p-2 rounded mb-2">
         <div class="flex justify-between">
           <span class="text-blue-600 font-medium">当前网络:</span>
-          <span class="font-medium text-blue-800">{{ tronData.networkInfo.name }} ({{ tronData.networkInfo.type }})</span>
+          <span class="font-medium text-blue-800">{{ tronData.networkInfo.name }} ({{ getNetworkTypeText(tronData.networkInfo.type) }})</span>
         </div>
       </div>
       
@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { getNetworkTypeText } from '@/utils/network'
 import { Loader2 } from 'lucide-vue-next'
 import type { TronData } from '../types/account-modal.types'
 

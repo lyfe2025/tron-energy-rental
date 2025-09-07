@@ -59,8 +59,34 @@ apiClient.interceptors.response.use(
     console.error('🔍 [API Client] 响应拦截器错误:', {
       status: error.response?.status,
       statusText: error.response?.statusText,
-      data: error.response?.data
+      data: error.response?.data,
+      code: error.code,
+      message: error.message
     });
+    
+    // 网络连接错误处理（后端服务未启动或无法连接）
+    if (!error.response && (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error'))) {
+      console.error('🔍 [API Client] 后端服务连接失败:', {
+        code: error.code,
+        message: error.message,
+        url: error.config?.url
+      });
+      
+      // 添加友好的错误信息
+      error.friendlyMessage = '无法连接到后端服务，请检查服务是否正常运行';
+      
+      // 触发后端服务不可用事件
+      window.dispatchEvent(new CustomEvent('api:backend_unavailable', {
+        detail: {
+          code: error.code,
+          message: '后端服务暂时不可用，请稍后重试',
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      }));
+      
+      return Promise.reject(error);
+    }
     
     if (error.response?.status === 401) {
       // Token过期或无效，清除本地存储

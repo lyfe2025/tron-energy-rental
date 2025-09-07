@@ -167,6 +167,8 @@ backup_database_navicat() {
 # 数据库备份
 backup_database() {
     echo -e "\n${GREEN}${GEAR} === 数据库备份 ===${NC}"
+    # 强制刷新输出缓冲
+    printf "" && sync
     
     # 检查 pg_dump 工具
     if ! check_pg_dump; then
@@ -196,6 +198,8 @@ backup_database() {
     
     echo -e "\n${GREEN}${ARROW} 开始备份数据库...${NC}"
     echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
+    # 强制刷新输出
+    printf "" && sync
     
     # 设置密码环境变量
     export PGPASSWORD="$DB_PASSWORD"
@@ -492,6 +496,8 @@ manage_database() {
         
         case $backup_choice in
             1)
+                echo -e "${GREEN}${ARROW} 正在启动备份功能...${NC}"
+                printf "" && sync
                 backup_database || true
                 ;;
             2)

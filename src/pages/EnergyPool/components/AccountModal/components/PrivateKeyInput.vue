@@ -32,7 +32,8 @@
     <!-- 助记词输入（当选择助记词模式时） -->
     <MnemonicInput
       v-if="inputMode === 'mnemonic'"
-      v-model="mnemonicValue"
+      :model-value="mnemonicValue"
+      @update:model-value="onMnemonicUpdate"
       :error="mnemonicError"
       :generating="generating"
       @generate="onGenerate"
@@ -125,6 +126,10 @@ const onGenerate = () => {
 
 const onMnemonicBlur = () => {
   emit('mnemonicBlur')
+}
+
+const onMnemonicUpdate = (value: string) => {
+  emit('update:mnemonicValue', value)
 }
 
 const togglePrivateKeyVisibility = () => {

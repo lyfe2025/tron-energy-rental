@@ -1,11 +1,11 @@
-import { reactive, ref, computed, watch } from 'vue'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import type { 
-  AccountFormData, 
-  AccountFormErrors, 
-  AccountModalProps,
-  PrivateKeyInputMode,
-  TronData
+import { computed, reactive, ref, watch } from 'vue'
+import type {
+    AccountFormData,
+    AccountFormErrors,
+    AccountModalProps,
+    PrivateKeyInputMode,
+    TronData
 } from '../types/account-modal.types'
 
 export function useAccountForm(props: AccountModalProps) {
