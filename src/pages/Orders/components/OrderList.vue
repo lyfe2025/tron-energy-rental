@@ -154,11 +154,11 @@
 
 <script setup lang="ts">
 import {
-  Edit,
-  ExternalLink,
-  Eye,
-  Loader2,
-  ShoppingCart
+    Edit,
+    ExternalLink,
+    Eye,
+    Loader2,
+    ShoppingCart
 } from 'lucide-vue-next'
 import type { Order, OrderPagination } from '../types/order.types'
 

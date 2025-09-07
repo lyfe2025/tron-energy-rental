@@ -199,6 +199,7 @@
 </template>
 
 <script setup lang="ts">
+import { useNetworkStore } from '@/stores/network';
 import { onMounted, reactive, watch } from 'vue';
 import { useEnergyPool } from '../composables/useEnergyPool';
 import { useStake } from '../composables/useStake';
@@ -231,6 +232,9 @@ const {
   loadAccounts: loadEnergyPools
 } = useEnergyPool()
 
+// 网络存储
+const networkStore = useNetworkStore()
+
 // 筛选器
 const filters = reactive({
   operationType: '' as '' | 'freeze' | 'unfreeze',
@@ -261,11 +265,12 @@ const changePage = async (page: number) => {
   await loadRecords()
 }
 
-const viewTransaction = async (txid: string) => {
+const viewTransaction = (txid: string) => {
   console.log('🔍 [StakeRecords] viewTransaction 被调用:', {
     txid: txid,
     poolId: props.poolId,
-    energyPoolsCount: energyPools.value.length
+    networkId: props.networkId,
+    availableNetworks: networkStore.networks.length
   })
   
   if (!txid) {
@@ -273,83 +278,27 @@ const viewTransaction = async (txid: string) => {
     return
   }
 
-  try {
-    console.log('🔍 [StakeRecords] 开始获取网络配置...')
-    
-    let explorerUrl = 'https://tronscan.org' // 默认主网
-    
-    // 检查token是否存在
-    const token = localStorage.getItem('admin_token')
-    console.log('🔍 [StakeRecords] 检查token:', {
-      tokenExists: !!token,
-      tokenLength: token ? token.length : 0
+  // 根据传入的 networkId 找到对应的网络配置
+  const targetNetwork = networkStore.networks.find(network => network.id === props.networkId)
+  let explorerUrl = 'https://tronscan.org' // 默认主网浏览器
+
+  if (targetNetwork?.explorer_url) {
+    explorerUrl = targetNetwork.explorer_url
+    console.log('✅ [StakeRecords] 使用目标网络的浏览器URL:', explorerUrl, '网络:', targetNetwork.name)
+  } else {
+    console.log('⚠️ [StakeRecords] 目标网络没有配置浏览器URL或网络不存在，使用默认浏览器URL', {
+      networkId: props.networkId,
+      foundNetwork: !!targetNetwork
     })
-    
-    if (!token) {
-      console.warn('⚠️ [StakeRecords] 没有找到认证token，请重新登录')
-      alert('认证已过期，请重新登录后再试')
-      return
-    }
-    
-    // 获取网络配置
-    const response = await fetch(`/api/tron-networks`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    console.log('🔍 [StakeRecords] 网络API响应:', {
-      ok: response.ok,
-      status: response.status,
-      statusText: response.statusText
-    })
-    
-    if (response.ok) {
-      const networkData = await response.json()
-      console.log('🔍 [StakeRecords] 网络数据:', networkData)
-      
-      if (networkData.success && networkData.data.networks && networkData.data.networks.length > 0) {
-        // 使用第一个网络作为默认网络
-        const defaultNetwork = networkData.data.networks[0]
-        console.log('🔍 [StakeRecords] 使用默认网络:', defaultNetwork)
-        
-        if (defaultNetwork?.explorer_url) {
-          explorerUrl = defaultNetwork.explorer_url
-          console.log('✅ [StakeRecords] 使用网络浏览器URL:', explorerUrl)
-        } else {
-          console.log('⚠️ [StakeRecords] 网络没有explorer_url，使用默认')
-        }
-      } else {
-        console.log('⚠️ [StakeRecords] 网络数据格式不正确或为空')
-      }
-    } else {
-      console.log('❌ [StakeRecords] 网络API请求失败')
-      if (response.status === 401) {
-        console.warn('⚠️ [StakeRecords] 认证失败，token可能已过期')
-        alert('认证已过期，请重新登录后再试')
-        return
-      }
-    }
-    
-    const url = `${explorerUrl}/#/transaction/${txid}`
-    console.log('🚀 [StakeRecords] 最终URL:', url)
-    console.log('🚀 [StakeRecords] 即将打开新窗口...')
-    
-    const newWindow = window.open(url, '_blank')
-    console.log('🚀 [StakeRecords] window.open 返回值:', newWindow)
-    
-    if (!newWindow) {
-      console.error('❌ [StakeRecords] 弹窗被浏览器阻止！')
-      alert(`弹窗被阻止，请手动打开: ${url}`)
-    }
-    
-  } catch (error) {
-    console.error('❌ [StakeRecords] 获取网络配置失败:', error)
-    // 回退到默认浏览器
-    const url = `https://tronscan.org/#/transaction/${txid}`
-    console.log('🔄 [StakeRecords] 回退到默认URL:', url)
-    window.open(url, '_blank')
+  }
+
+  const url = `${explorerUrl}/#/transaction/${txid}`
+  console.log('🚀 [StakeRecords] 最终URL:', url)
+  
+  const newWindow = window.open(url, '_blank')
+  if (!newWindow) {
+    console.error('❌ [StakeRecords] 弹窗被浏览器阻止！')
+    alert(`弹窗被阻止，请手动打开: ${url}`)
   }
 }
 
@@ -367,8 +316,14 @@ watch(
 
 // 生命周期
 onMounted(async () => {
-  // 先加载能量池数据，这样 viewTransaction 才能找到对应的账户信息
+  // 先加载网络信息，这样 viewTransaction 才能找到对应的网络配置
+  if (!networkStore.networks.length) {
+    await networkStore.loadNetworks()
+  }
+  
+  // 加载能量池数据
   await loadEnergyPools()
+  
   if (props.poolId) {
     loadRecords()
   }

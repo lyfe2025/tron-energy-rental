@@ -193,9 +193,9 @@
 
 <script setup lang="ts">
 import {
-  ExternalLink,
-  Loader2,
-  X
+    ExternalLink,
+    Loader2,
+    X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
