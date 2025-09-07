@@ -194,7 +194,7 @@ watch(
       
       // 加载网络相关数据
       if (stakeData.stakeComposable.loadOverview && stakeData.selectedAccountId.value) {
-        await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value)
+        await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)
       }
     }
   },

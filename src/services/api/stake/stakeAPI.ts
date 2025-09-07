@@ -73,14 +73,14 @@ export const stakeAPI = {
   /**
    * 获取质押概览
    */
-  getOverview: (poolId: string) => 
-    apiClient.get<ApiResponse<StakeOverview>>(`/api/energy-pool/stake/overview?poolId=${poolId}`),
+  getOverview: (poolId: string, networkId?: string) => 
+    apiClient.get<ApiResponse<StakeOverview>>(`/api/energy-pool/stake/overview?poolId=${poolId}${networkId ? `&networkId=${networkId}` : ''}`),
 
   /**
    * 获取质押统计信息
    */
-  getStatistics: (poolId: string) => 
-    apiClient.get<ApiResponse<StakeStatistics>>(`/api/energy-pool/stake/statistics?poolId=${poolId}`),
+  getStatistics: (poolId: string, networkId?: string) => 
+    apiClient.get<ApiResponse<StakeStatistics>>(`/api/energy-pool/stake/statistics?poolId=${poolId}${networkId ? `&networkId=${networkId}` : ''}`),
 
   /**
    * 质押TRX

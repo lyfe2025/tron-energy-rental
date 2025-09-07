@@ -56,12 +56,12 @@ export function useStakeOperations(stakeData: StakeDataState): StakeOperationsSt
       
       // 获取质押概览数据
       if (stakeData.stakeComposable.loadOverview) {
-        await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value)
+        await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)
       }
       
       // 获取质押统计数据（如果需要）
       if (stakeData.stakeComposable.loadStatistics) {
-        await stakeData.stakeComposable.loadStatistics(stakeData.selectedAccountId.value)
+        await stakeData.stakeComposable.loadStatistics(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)
       }
       
     } catch (error) {

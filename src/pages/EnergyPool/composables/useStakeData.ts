@@ -77,13 +77,15 @@ export function useStakeData() {
   }
 
   // 获取质押概览
-  const loadOverview = async (poolId: string) => {
+  const loadOverview = async (poolId: string, networkId?: string) => {
     try {
       loading.value = true
       error.value = null
-      const response = await stakeAPI.getOverview(poolId)
+      console.log('🔍 [useStakeData] 加载质押概览:', { poolId, networkId })
+      const response = await stakeAPI.getOverview(poolId, networkId)
       if (response.data.success && response.data.data) {
         overview.value = response.data.data
+        console.log('✅ [useStakeData] 质押概览加载成功:', response.data.data)
       } else {
         throw new Error(response.data.message || '获取质押概览失败')
       }
@@ -95,13 +97,15 @@ export function useStakeData() {
   }
 
   // 获取质押统计信息
-  const loadStatistics = async (poolId: string) => {
+  const loadStatistics = async (poolId: string, networkId?: string) => {
     try {
       loading.value = true
       error.value = null
-      const response = await stakeAPI.getStatistics(poolId)
+      console.log('🔍 [useStakeData] 加载质押统计:', { poolId, networkId })
+      const response = await stakeAPI.getStatistics(poolId, networkId)
       if (response.data.success && response.data.data) {
         statistics.value = response.data.data
+        console.log('✅ [useStakeData] 质押统计加载成功:', response.data.data)
       } else {
         throw new Error(response.data.message || '获取质押统计失败')
       }
