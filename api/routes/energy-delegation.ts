@@ -184,7 +184,7 @@ router.post('/batch/expire',
       // 获取所有到期的委托
       const { query } = await import('../database/index');
       const result = await query(
-        `SELECT id FROM energy_delegations 
+        `SELECT id FROM delegate_records 
          WHERE status = $1 AND expires_at < $2`,
         ['active', new Date()]
       );
@@ -243,16 +243,16 @@ router.get('/stats',
       const [activeResult, totalResult, todayResult] = await Promise.all([
         query(
           `SELECT COUNT(*) as count, COALESCE(SUM(energy_amount), 0) as total_energy 
-           FROM energy_delegations WHERE status = $1`,
+           FROM delegate_records WHERE status = $1`,
           ['active']
         ),
         query(
           `SELECT COUNT(*) as count, COALESCE(SUM(energy_amount), 0) as total_energy 
-           FROM energy_delegations`
+           FROM delegate_records`
         ),
         query(
           `SELECT COUNT(*) as count, COALESCE(SUM(energy_amount), 0) as total_energy 
-           FROM energy_delegations WHERE created_at >= $1`,
+           FROM delegate_records WHERE created_at >= $1`,
           [new Date(new Date().setHours(0, 0, 0, 0))]
         )
       ]);

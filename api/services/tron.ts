@@ -4,16 +4,16 @@ import { DelegationService } from './tron/services/DelegationService';
 import { StakingService } from './tron/services/StakingService';
 import { TransactionService } from './tron/services/TransactionService';
 import type {
-    AccountData,
-    DelegateResourceParams,
-    FreezeBalanceV2Params,
-    ResourceData,
-    ServiceResponse,
-    StakeOverview,
-    TransactionResult,
-    TronConfig,
-    UnfreezeBalanceV2Params,
-    WithdrawExpireUnfreezeParams
+  AccountData,
+  DelegateResourceParams,
+  FreezeBalanceV2Params,
+  ResourceData,
+  ServiceResponse,
+  StakeOverview,
+  TransactionResult,
+  TronConfig,
+  UnfreezeBalanceV2Params,
+  WithdrawExpireUnfreezeParams
 } from './tron/types/tron.types';
 import { TronUtils } from './tron/utils/tronUtils';
 
@@ -157,6 +157,11 @@ export class TronService {
       this.initializeTronWeb();
       this.initializeServices();
       
+      // 更新StakingService的网络配置
+      if (this.stakingService) {
+        this.stakingService.setNetworkConfig(this.currentNetwork);
+      }
+      
       console.log(`✅ TRON网络配置已重新加载: ${defaultNetwork.name}`);
       
     } catch (error) {
@@ -183,8 +188,9 @@ export class TronService {
   /**
    * 切换到指定网络
    */
-  async switchToNetwork(networkId: number): Promise<void> {
+  async switchToNetwork(networkId: string | number): Promise<void> {
     try {
+      console.log(`[TronService] 🔀 开始切换网络，ID: ${networkId}`);
       const network = await configService.getTronNetworkById(networkId.toString());
       
       if (!network) {
@@ -195,6 +201,12 @@ export class TronService {
         throw new Error(`网络已禁用: ${network.name}`);
       }
 
+      console.log(`[TronService] 📋 网络配置详情:`, {
+        name: network.name,
+        rpc_url: network.rpcUrl,
+        api_key: network.apiKey ? `${network.apiKey.substring(0, 8)}...` : 'none'
+      });
+
       this.currentNetwork = network;
       this.config = this.networkConfigToTronConfig(network);
       
@@ -202,7 +214,14 @@ export class TronService {
       this.initializeTronWeb();
       this.initializeServices();
       
-      console.log(`✅ 已切换到网络: ${network.name}`);
+      // 更新StakingService的网络配置
+      if (this.stakingService) {
+        console.log(`[TronService] 📤 更新StakingService网络配置`);
+        this.stakingService.setNetworkConfig(this.currentNetwork);
+        console.log(`[TronService] ✅ StakingService网络配置已更新`);
+      }
+      
+      console.log(`✅ 已切换到网络: ${network.name} (${network.rpcUrl})`);
       
     } catch (error) {
       console.error('切换网络失败:', error);
@@ -219,7 +238,7 @@ export class TronService {
     this.accountService = new AccountService(this.tronWeb);
     this.transactionService = new TransactionService(this.tronWeb);
     this.delegationService = new DelegationService(this.tronWeb, this.transactionService);
-    this.stakingService = new StakingService(this.tronWeb);
+    this.stakingService = new StakingService(this.tronWeb, this.currentNetwork);
   }
 
   // ===== 账户相关方法 =====
@@ -288,8 +307,18 @@ export class TronService {
 
   // 获取质押交易记录
   async getStakeTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
+    const { appendFileSync } = await import('fs');
+    appendFileSync('/tmp/tron-debug.log', `=== TronService.getStakeTransactionHistory 被调用 ${new Date().toISOString()} ===\n`);
+    appendFileSync('/tmp/tron-debug.log', `地址: ${address}, 限制: ${limit}, 偏移: ${offset}\n`);
+    appendFileSync('/tmp/tron-debug.log', `stakingService存在: ${!!this.stakingService}\n`);
+    
     await this.waitForInitialization();
-    return await this.stakingService.getStakeTransactionHistory(address, limit, offset);
+    appendFileSync('/tmp/tron-debug.log', `初始化完成，调用stakingService...\n`);
+    
+    const result = await this.stakingService.getStakeTransactionHistory(address, limit, offset);
+    appendFileSync('/tmp/tron-debug.log', `stakingService返回结果: ${JSON.stringify({success: result.success, dataLength: result.data?.length})}\n\n`);
+    
+    return result;
   }
 
   // 获取委托交易记录

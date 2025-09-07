@@ -227,6 +227,8 @@ import { useStake } from '../composables/useStake'
 
 interface Props {
   poolId: string
+  accountId?: string
+  accountAddress?: string
 }
 
 interface Emits {
@@ -323,6 +325,8 @@ const handleSubmit = async () => {
     if (form.value.operationType === 'delegate') {
       result = await delegateResource({
         poolId: props.poolId,
+        accountId: props.accountId,
+        accountAddress: props.accountAddress,
         toAddress: form.value.targetAddress,
         amount: parseFloat(form.value.amount),
         resourceType: form.value.resourceType,
@@ -331,6 +335,8 @@ const handleSubmit = async () => {
     } else {
       result = await undelegateResource({
         poolId: props.poolId,
+        accountId: props.accountId,
+        accountAddress: props.accountAddress,
         toAddress: form.value.targetAddress,
         amount: parseFloat(form.value.amount),
         resourceType: form.value.resourceType

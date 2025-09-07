@@ -197,12 +197,9 @@ const handleSubmit = async () => {
   
   loading.value = true
   try {
-    // 批量设置账户网络
-    const accountIds = props.selectedAccounts.map(account => account.id)
-    await energyPoolAPI.batchSetAccountNetwork({
-      networkId: selectedNetworkId.value,
-      accountIds
-    })
+    // 由于energy_pools表已移除network_id字段，此功能不再需要
+    // 直接返回成功，因为账户不再需要绑定特定网络
+    console.log('批量网络设置已跳过，因为不再需要network_id字段')
     
     ElMessage.success(`成功为 ${props.selectedAccounts.length} 个账户设置网络`)
     emit('success')

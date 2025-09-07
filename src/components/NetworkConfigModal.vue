@@ -146,8 +146,9 @@ const loadEntityNetwork = async () => {
     let response
     
     if (props.entityType === 'account') {
-      response = await energyPoolAPI.getAccountNetwork(props.entityData.id)
-      selectedNetworkId.value = response.data?.data?.network_id || null
+      // 由于energy_pools表已移除network_id字段，账户不再有网络配置
+      // 直接设置为null，表示无网络绑定
+      selectedNetworkId.value = null
     } else if (props.entityType === 'bot') {
       // 机器人网络配置获取逻辑
       response = await botsAPI.getBotNetwork(props.entityData.id)
@@ -225,9 +226,9 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     if (props.entityType === 'account') {
-      await energyPoolAPI.setAccountNetwork(props.entityData.id, {
-        network_id: selectedNetworkId.value
-      })
+      // 由于energy_pools表已移除network_id字段，此功能不再需要
+      // 直接返回成功，因为账户不再需要绑定特定网络
+      console.log('账户网络设置已跳过，因为不再需要network_id字段')
     } else if (props.entityType === 'bot') {
       await botsAPI.setBotNetwork(props.entityData.id, {
         network_id: selectedNetworkId.value

@@ -3,6 +3,66 @@
     <!-- 页面头部 -->
     <EnergyPoolHeader />
 
+    <!-- 网络状态栏 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 rounded-full" :class="currentNetwork?.is_active ? 'bg-green-500' : 'bg-red-500'"></div>
+            <span class="text-lg font-medium text-gray-900">当前网络: {{ currentNetwork?.name || '未知网络' }}</span>
+          </div>
+          <div class="text-sm text-gray-500">
+            {{ currentNetwork?.rpc_url || '网络描述' }}
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button
+            @click="showNetworkSwitcher = true"
+            class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            切换网络
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 网络切换模态框 -->
+    <div v-if="showNetworkSwitcher" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">切换网络</h3>
+        <div class="space-y-3 mb-6">
+          <div
+            v-for="network in availableNetworks"
+            :key="network.id"
+            @click="switchNetwork(network.id)"
+            class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            :class="network.id === currentNetworkId ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+          >
+            <div class="flex items-center space-x-3">
+              <div class="w-3 h-3 rounded-full" :class="network.is_active ? 'bg-green-500' : 'bg-red-500'"></div>
+              <div>
+                <div class="font-medium text-gray-900">{{ network.name }}</div>
+                <div class="text-sm text-gray-500">{{ network.rpc_url }}</div>
+              </div>
+            </div>
+            <div v-if="network.id === currentNetworkId" class="text-blue-600">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showNetworkSwitcher = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 统计信息 -->
     <EnergyPoolStats 
       :statistics="statistics"
@@ -16,10 +76,6 @@
     <EnergyPoolFilters 
       v-model:search-query="searchQuery"
       v-model:status-filter="statusFilter"
-      v-model:network-filter="networkFilter"
-      :available-networks="availableNetworks"
-      :networks-loading="networksLoading"
-      :networks-error="networksError"
       @reset-filters="resetFilters"
     />
 
@@ -27,7 +83,7 @@
     <EnergyPoolActions 
       :loading="loading"
       :selected-accounts="selectedAccounts"
-      @refresh-status="refreshStatus"
+      @refresh-status="() => refreshStatus()"
       @show-add-modal="showAddModal = true"
       @batch-enable="batchEnable"
       @batch-disable="batchDisable"
@@ -48,7 +104,7 @@
       :get-account-type-class="getAccountTypeClass"
       @toggle-select-all="toggleSelectAll"
       @toggle-account-selection="toggleAccountSelection"
-      @handle-account-network-setting="handleAccountNetworkSetting"
+
       @confirm-disable-account="confirmDisableAccount"
       @confirm-enable-account="confirmEnableAccount"
 
@@ -131,12 +187,7 @@
       </div>
     </div>
 
-    <!-- 账户网络设置模态框 -->
-    <AccountNetworkModal
-      v-model:visible="showAccountNetworkModal"
-      :account="selectedAccount"
-      @success="handleAccountNetworkUpdated"
-    />
+
 
     <!-- 批量网络关联模态框 -->
     <BatchNetworkModal
@@ -151,6 +202,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 // 组件导入
 import EnergyPoolActions from './components/EnergyPoolActions.vue'
@@ -162,10 +214,10 @@ import EnergyPoolTable from './components/EnergyPoolTable.vue'
 // 模态框组件导入
 import AccountDetailsModal from './components/AccountDetailsModal.vue'
 import AccountModal from './components/AccountModal.vue'
-import AccountNetworkModal from './components/AccountNetworkModal.vue'
 import BatchNetworkModal from './components/BatchNetworkModal.vue'
 
 // composable导入
+import { useNetworkStore } from '@/stores/network'
 import { useEnergyPool, type EnergyPoolAccount } from './composables/useEnergyPool'
 
 const {
@@ -201,27 +253,34 @@ const showEnableConfirm = ref(false)
 const showDisableConfirm = ref(false)
 
 const showBatchNetworkModal = ref(false)
-const showAccountNetworkModal = ref(false)
 const selectedAccount = ref<EnergyPoolAccount | null>(null)
 const accountToDelete = ref(null)
 const accountToToggle = ref(null)
 const toggleAction = ref<'enable' | 'disable'>('enable')
 
+// 路由和网络状态管理
+const route = useRoute()
+const router = useRouter()
+const networkStore = useNetworkStore()
+
+// 从路由参数获取当前网络ID
+const currentNetworkId = computed(() => route.params.networkId as string)
+
+// 网络切换相关状态
+const showNetworkSwitcher = ref(false)
+
+// 计算当前网络信息
+const currentNetwork = computed(() => {
+  return networkStore.networks.find(network => network.id === currentNetworkId.value)
+})
+
+// 可用网络列表
+const availableNetworks = computed(() => networkStore.networks)
+
 // 筛选和搜索状态
 const selectedAccounts = ref<string[]>([])
 const searchQuery = ref('')
 const statusFilter = ref('')
-const networkFilter = ref('')
-const availableNetworks = ref<Array<{
-  id: string;
-  name: string;
-  type: string;
-  rpc_url: string;
-  is_active: boolean;
-  health_status?: string;
-}>>([]);
-const networksLoading = ref(false);
-const networksError = ref<string>('')
 
 // 计算属性
 const filteredAccounts = computed(() => {
@@ -239,13 +298,6 @@ const filteredAccounts = computed(() => {
   // 状态过滤
   if (statusFilter.value) {
     filtered = filtered.filter(account => account.status === statusFilter.value)
-  }
-
-  // 网络过滤
-  if (networkFilter.value) {
-    filtered = filtered.filter(account => 
-      account.network_config?.id === networkFilter.value
-    )
   }
 
   return filtered
@@ -279,8 +331,10 @@ const handleDeleteAccount = async () => {
     await deleteAccount(accountToDelete.value.id)
     showDeleteConfirm.value = false
     accountToDelete.value = null
-    await loadAccounts(networkFilter.value || undefined)
-    await loadStatistics()
+    if (currentNetworkId.value) {
+      await loadAccounts(currentNetworkId.value)
+      await loadStatistics()
+    }
   } catch (error) {
     console.error('Failed to delete account:', error)
   }
@@ -321,23 +375,55 @@ const handleToggleAccount = async () => {
   }
 }
 
-// 监听网络过滤器变化，重新加载账户数据
-watch(networkFilter, (newNetworkId) => {
-  console.log('🔍 [EnergyPool] 网络过滤器变化:', newNetworkId);
-  loadAccounts(newNetworkId || undefined);
-});
+// 网络切换方法
+const switchNetwork = async (networkId: string) => {
+  showNetworkSwitcher.value = false
+  if (networkId !== currentNetworkId.value) {
+    // 检查当前路由，决定跳转目标
+    const currentRoute = route.name
+    if (currentRoute === 'config-energy-pools-network') {
+      // 从配置管理进入，跳转到配置管理的其他网络页面
+      await router.push(`/config/energy-pools/${networkId}`)
+    } else {
+      // 从能量池管理进入，跳转到能量池管理的其他网络页面
+      await router.push(`/energy-pool/${networkId}/accounts`)
+    }
+  }
+}
+
+// 监听网络ID变化，重新加载账户数据和统计信息
+watch(currentNetworkId, async (newNetworkId) => {
+  console.log('🔍 [EnergyPool] 网络变化:', newNetworkId);
+  if (newNetworkId) {
+    // 设置当前网络到store
+    networkStore.setCurrentNetwork(newNetworkId)
+    
+    await Promise.all([
+      loadAccounts(newNetworkId),
+      loadStatistics(),
+      loadTodayConsumption()
+    ]);
+  } else {
+    // 如果没有网络ID，清空账户数据
+    accounts.value = [];
+  }
+}, { immediate: true });
 
 const handleAccountAdded = () => {
   showAddModal.value = false
-  loadAccounts(networkFilter.value || undefined)
-  loadStatistics()
+  if (currentNetworkId.value) {
+    loadAccounts(currentNetworkId.value)
+    loadStatistics()
+  }
 }
 
 const handleAccountUpdated = () => {
   showEditModal.value = false
   selectedAccount.value = null
-  loadAccounts(networkFilter.value || undefined)
-  loadStatistics()
+  if (currentNetworkId.value) {
+    loadAccounts(currentNetworkId.value)
+    loadStatistics()
+  }
 }
 
 const handleEditFromDetails = (account: EnergyPoolAccount) => {
@@ -370,7 +456,6 @@ const toggleAccountSelection = (accountId: string) => {
 const resetFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
-  networkFilter.value = ''
 }
 
 
@@ -383,8 +468,10 @@ const batchEnable = async () => {
       await enableAccount(accountId)
     }
     selectedAccounts.value = []
-    await loadAccounts(networkFilter.value || undefined)
-    await loadStatistics()
+    if (currentNetworkId.value) {
+      await loadAccounts(currentNetworkId.value)
+      await loadStatistics()
+    }
   } catch (error) {
     console.error('Failed to batch enable accounts:', error)
   } finally {
@@ -399,8 +486,10 @@ const batchDisable = async () => {
       await disableAccount(accountId)
     }
     selectedAccounts.value = []
-    await loadAccounts(networkFilter.value || undefined)
-    await loadStatistics()
+    if (currentNetworkId.value) {
+      await loadAccounts(currentNetworkId.value)
+      await loadStatistics()
+    }
   } catch (error) {
     console.error('Failed to batch disable accounts:', error)
   } finally {
@@ -411,54 +500,26 @@ const batchDisable = async () => {
 
 
 
-const handleAccountNetworkSetting = (account: EnergyPoolAccount) => {
-  selectedAccount.value = account
-  showAccountNetworkModal.value = true
-}
 
-const handleAccountNetworkUpdated = () => {
-  showAccountNetworkModal.value = false
-  selectedAccount.value = null
-  loadAccounts(networkFilter.value || undefined)
-}
+
+
 
 const handleBatchNetworkUpdated = () => {
   showBatchNetworkModal.value = false
   selectedAccounts.value = []
-  loadAccounts(networkFilter.value || undefined)
+  if (currentNetworkId.value) {
+    loadAccounts(currentNetworkId.value)
+  }
 }
 
 onMounted(async () => {
   console.log('🚀 [EnergyPool] 页面初始化');
   
   try {
-    // 加载网络列表，添加状态管理
-    networksLoading.value = true;
-    networksError.value = '';
+    // 初始化网络状态管理store
+    await networkStore.loadNetworks();
     
-    try {
-      const networks = await loadNetworks();
-      availableNetworks.value = networks;
-      console.log('🌐 [EnergyPool] 网络列表加载完成:', networks.length);
-      
-      // 验证网络状态
-      const activeNetworks = networks.filter(n => n.is_active);
-      if (activeNetworks.length === 0) {
-        networksError.value = '暂无活跃网络可用';
-      }
-    } catch (error) {
-      console.error('❌ [EnergyPool] 网络列表加载失败:', error);
-      networksError.value = '网络列表加载失败，请刷新页面重试';
-    } finally {
-      networksLoading.value = false;
-    }
-    
-    // 并行加载其他数据（账户数据不使用网络过滤，显示所有账户）
-    await Promise.all([
-      loadStatistics(),
-      loadAccounts(), // 初始加载显示所有账户
-      loadTodayConsumption()
-    ]);
+    console.log('✅ [EnergyPool] 页面初始化完成，当前网络:', currentNetworkId.value);
   } catch (error) {
     console.error('❌ [EnergyPool] 页面初始化失败:', error);
   }

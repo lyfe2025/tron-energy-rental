@@ -68,6 +68,12 @@ const router = createRouter({
         {
           path: 'config/energy-pools',
           name: 'config-energy-pools',
+          component: () => import('@/pages/EnergyPool/NetworkSelection.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'config/energy-pools/:networkId',
+          name: 'config-energy-pools-network',
           component: () => import('@/pages/EnergyPool/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
@@ -86,13 +92,19 @@ const router = createRouter({
 
         // 能量池管理路由
         {
-          path: 'energy-pool/accounts',
+          path: 'energy-pool',
+          name: 'energy-pool',
+          component: () => import('@/pages/EnergyPool/NetworkSelection.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'energy-pool/:networkId/accounts',
           name: 'energy-pool-accounts',
           component: () => import('@/pages/EnergyPool/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
         {
-          path: 'energy-pool/stake',
+          path: 'energy-pool/:networkId/stake',
           name: 'energy-pool-stake',
           component: () => import('@/pages/EnergyPool/Stake.vue'),
           meta: { roles: ['super_admin', 'admin'] }

@@ -20,7 +20,6 @@ export interface EnergyPoolAccount {
   contact_info?: any;
   daily_limit?: number;
   monthly_limit?: number;
-  network_id?: string;
 }
 
 export class AccountManagementService {
@@ -35,20 +34,8 @@ export class AccountManagementService {
     const sql = `
       SELECT 
         ep.*,
-        0.001 as cost_per_energy,
-        CASE 
-          WHEN ep.network_id IS NOT NULL THEN
-            json_build_object(
-              'id', tn.id,
-              'name', tn.name,
-              'type', tn.network_type,
-              'rpc_url', tn.rpc_url,
-              'chain_id', tn.chain_id
-            )
-          ELSE NULL
-        END as network_config
+        0.001 as cost_per_energy
       FROM energy_pools ep
-      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
       WHERE ep.status = $1
       ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
     `;
@@ -63,20 +50,8 @@ export class AccountManagementService {
     const sql = `
       SELECT 
         ep.*,
-        0.001 as cost_per_energy,
-        CASE 
-          WHEN ep.network_id IS NOT NULL THEN
-            json_build_object(
-              'id', tn.id,
-              'name', tn.name,
-              'type', tn.network_type,
-              'rpc_url', tn.rpc_url,
-              'chain_id', tn.chain_id
-            )
-          ELSE NULL
-        END as network_config
+        0.001 as cost_per_energy
       FROM energy_pools ep
-      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
       ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
     `;
     const result = await query(sql, []);
@@ -91,20 +66,8 @@ export class AccountManagementService {
     const sql = `
       SELECT 
         ep.*,
-        0.001 as cost_per_energy,
-        CASE 
-          WHEN ep.network_id IS NOT NULL THEN
-            json_build_object(
-              'id', tn.id,
-              'name', tn.name,
-              'type', tn.network_type,
-              'rpc_url', tn.rpc_url,
-              'chain_id', tn.chain_id
-            )
-          ELSE NULL
-        END as network_config
+        0.001 as cost_per_energy
       FROM energy_pools ep
-      LEFT JOIN tron_networks tn ON ep.network_id = tn.id
       WHERE ep.id = $1
     `;
     const result = await query(sql, [id]);
@@ -298,8 +261,8 @@ export class AccountManagementService {
           status, account_type, priority, cost_per_energy,
           description, contact_info, daily_limit, monthly_limit,
           staked_trx_energy, staked_trx_bandwidth, delegated_energy, delegated_bandwidth,
-          pending_unfreeze_energy, pending_unfreeze_bandwidth, total_bandwidth, available_bandwidth, network_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+          pending_unfreeze_energy, pending_unfreeze_bandwidth, total_bandwidth, available_bandwidth
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING id
       `;
       
@@ -324,8 +287,7 @@ export class AccountManagementService {
         0, // pending_unfreeze_energy
         0, // pending_unfreeze_bandwidth
         accountData.total_bandwidth || 0, // total_bandwidth
-        accountData.available_bandwidth || 0, // available_bandwidth
-        accountData.network_id || null // network_id
+        accountData.available_bandwidth || 0 // available_bandwidth
       ];
       
       console.log('📝 [AccountManagement] 执行SQL:', sql);

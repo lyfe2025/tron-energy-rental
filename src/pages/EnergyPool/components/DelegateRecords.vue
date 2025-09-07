@@ -239,13 +239,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
-import { useStake } from '../composables/useStake'
-import type { DelegateRecord } from '../composables/useStake'
+import { onMounted, reactive, ref, watch } from 'vue';
+import { useEnergyPool } from '../composables/useEnergyPool';
+import type { DelegateRecord } from '../composables/useStake';
+import { useStake } from '../composables/useStake';
 
 // Props
 const props = defineProps<{
   poolId: string
+  networkId: string
 }>()
 
 // 组合式函数
@@ -264,6 +266,12 @@ const {
   getResourceTypeText,
   getOperationTypeText
 } = useStake()
+
+// 能量池数据
+const {
+  accounts: energyPools,
+  loadAccounts: loadEnergyPools
+} = useEnergyPool()
 
 // 状态
 const showUndelegateDialog = ref(false)
@@ -284,6 +292,7 @@ const loadRecords = async () => {
   
   await loadDelegateRecords({
     poolId: props.poolId,
+    networkId: props.networkId,
     page: pagination.page,
     limit: pagination.limit,
     operationType: (filters.operationType || undefined) as 'delegate' | 'undelegate' | undefined,
@@ -299,10 +308,96 @@ const changePage = async (page: number) => {
   await loadRecords()
 }
 
-const viewTransaction = (txid: string) => {
-  // 在新窗口中打开TRON区块链浏览器
-  const url = `https://nile.tronscan.org/#/transaction/${txid}`
-  window.open(url, '_blank')
+const viewTransaction = async (txid: string) => {
+  console.log('🔍 [DelegateRecords] viewTransaction 被调用:', {
+    txid: txid,
+    poolId: props.poolId,
+    energyPoolsCount: energyPools.value.length
+  })
+  
+  if (!txid) {
+    console.warn('[DelegateRecords] ⚠️ 交易ID为空，无法查看')
+    return
+  }
+
+  try {
+    console.log('🔍 [DelegateRecords] 开始获取网络配置...')
+    
+    let explorerUrl = 'https://tronscan.org' // 默认主网
+    
+    // 检查token是否存在
+    const token = localStorage.getItem('admin_token')
+    console.log('🔍 [DelegateRecords] 检查token:', {
+      tokenExists: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      console.warn('⚠️ [DelegateRecords] 没有找到认证token，请重新登录')
+      alert('认证已过期，请重新登录后再试')
+      return
+    }
+    
+    // 获取网络配置
+    const response = await fetch(`/api/tron-networks`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    console.log('🔍 [DelegateRecords] 网络API响应:', {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText
+    })
+    
+    if (response.ok) {
+      const networkData = await response.json()
+      console.log('🔍 [DelegateRecords] 网络数据:', networkData)
+      
+      if (networkData.success && networkData.data.networks && networkData.data.networks.length > 0) {
+        // 使用第一个网络作为默认网络
+        const defaultNetwork = networkData.data.networks[0]
+        console.log('🔍 [DelegateRecords] 使用默认网络:', defaultNetwork)
+        
+        if (defaultNetwork?.explorer_url) {
+          explorerUrl = defaultNetwork.explorer_url
+          console.log('✅ [DelegateRecords] 使用网络浏览器URL:', explorerUrl)
+        } else {
+          console.log('⚠️ [DelegateRecords] 网络没有explorer_url，使用默认')
+        }
+      } else {
+        console.log('⚠️ [DelegateRecords] 网络数据格式不正确或为空')
+      }
+    } else {
+      console.log('❌ [DelegateRecords] 网络API请求失败')
+      if (response.status === 401) {
+        console.warn('⚠️ [DelegateRecords] 认证失败，token可能已过期')
+        alert('认证已过期，请重新登录后再试')
+        return
+      }
+    }
+    
+    const url = `${explorerUrl}/#/transaction/${txid}`
+    console.log('🚀 [DelegateRecords] 最终URL:', url)
+    console.log('🚀 [DelegateRecords] 即将打开新窗口...')
+    
+    const newWindow = window.open(url, '_blank')
+    console.log('🚀 [DelegateRecords] window.open 返回值:', newWindow)
+    
+    if (!newWindow) {
+      console.error('❌ [DelegateRecords] 弹窗被浏览器阻止！')
+      alert(`弹窗被阻止，请手动打开: ${url}`)
+    }
+    
+  } catch (error) {
+    console.error('❌ [DelegateRecords] 获取网络配置失败:', error)
+    // 回退到默认浏览器
+    const url = `https://tronscan.org/#/transaction/${txid}`
+    console.log('🔄 [DelegateRecords] 回退到默认URL:', url)
+    window.open(url, '_blank')
+  }
 }
 
 const undelegateResource = (record: DelegateRecord) => {
@@ -353,7 +448,9 @@ watch(
 )
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 先加载能量池数据，这样 viewTransaction 才能找到对应的账户信息
+  await loadEnergyPools()
   if (props.poolId) {
     loadRecords()
   }

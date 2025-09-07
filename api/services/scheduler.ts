@@ -87,7 +87,7 @@ export class SchedulerService {
       
       // 获取所有到期的委托
       const result = await query(
-        `SELECT id FROM energy_delegations 
+        `SELECT id FROM delegate_records 
          WHERE status = $1 AND expires_at < $2 
          LIMIT 50`,
         ['active', new Date()]

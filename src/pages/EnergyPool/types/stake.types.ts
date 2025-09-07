@@ -1,11 +1,23 @@
 // 质押概览接口
 export interface StakeOverview {
-  totalStaked: number
-  totalDelegated: number
-  totalUnfreezing: number
-  availableToWithdraw: number
-  stakingRewards: number
-  delegationRewards: number
+  // 新的9个统计字段
+  totalStakedTrx: number           // 总质押 TRX
+  unlockingTrx: number             // 解锁中 TRX
+  withdrawableTrx: number          // 待提取 TRX
+  stakedEnergy: number             // 质押获得能量
+  delegatedToOthersEnergy: number  // 代理给他人能量
+  delegatedToSelfEnergy: number    // 代理给自己能量
+  stakedBandwidth: number          // 质押获得带宽
+  delegatedToOthersBandwidth: number // 代理给他人带宽
+  delegatedToSelfBandwidth: number // 代理给自己带宽
+
+  // 保留原有字段以保持向后兼容性
+  totalStaked?: number
+  totalDelegated?: number
+  totalUnfreezing?: number
+  availableToWithdraw?: number
+  stakingRewards?: number
+  delegationRewards?: number
 }
 
 // 质押统计接口
@@ -113,6 +125,8 @@ export interface StakePagination {
 // 质押操作参数接口
 export interface FreezeParams {
   poolId: string
+  accountId?: string
+  accountAddress?: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
   lockPeriod?: number
@@ -120,6 +134,8 @@ export interface FreezeParams {
 
 export interface UnfreezeParams {
   poolId: string
+  accountId?: string
+  accountAddress?: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
 }
@@ -127,6 +143,8 @@ export interface UnfreezeParams {
 // 委托操作参数接口
 export interface DelegateParams {
   poolId: string
+  accountId?: string
+  accountAddress?: string
   toAddress: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
@@ -135,6 +153,8 @@ export interface DelegateParams {
 
 export interface UndelegateParams {
   poolId: string
+  accountId?: string
+  accountAddress?: string
   toAddress: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
@@ -143,6 +163,7 @@ export interface UndelegateParams {
 // 记录查询参数接口
 export interface StakeRecordQueryParams {
   poolId: string
+  networkId?: string
   page?: number
   limit?: number
   operationType?: 'freeze' | 'unfreeze'
@@ -153,6 +174,7 @@ export interface StakeRecordQueryParams {
 
 export interface DelegateRecordQueryParams {
   poolId: string
+  networkId?: string
   page?: number
   limit?: number
   operationType?: 'delegate' | 'undelegate'
@@ -164,6 +186,7 @@ export interface DelegateRecordQueryParams {
 
 export interface UnfreezeRecordQueryParams {
   poolId: string
+  networkId?: string
   page?: number
   limit?: number
   status?: 'pending' | 'available' | 'withdrawn'

@@ -29,6 +29,21 @@ export function useStakeFormatters() {
     return energy.toString()
   }
 
+  // 格式化带宽数量
+  const formatBandwidth = (bandwidth: number): string => {
+    // 检查bandwidth是否为有效数字
+    if (bandwidth == null || isNaN(bandwidth) || typeof bandwidth !== 'number') {
+      return '0'
+    }
+    
+    if (bandwidth >= 1000000) {
+      return `${(bandwidth / 1000000).toFixed(2)}M`
+    } else if (bandwidth >= 1000) {
+      return `${(bandwidth / 1000).toFixed(2)}K`
+    }
+    return bandwidth.toString()
+  }
+
   // 格式化地址
   const formatAddress = (address: string): string => {
     if (!address || typeof address !== 'string') return ''
@@ -104,6 +119,7 @@ export function useStakeFormatters() {
   return {
     formatTrx,
     formatEnergy,
+    formatBandwidth,
     formatAddress,
     formatDate,
     getStatusClass,

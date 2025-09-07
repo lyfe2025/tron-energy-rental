@@ -36,7 +36,6 @@ export interface EnergyPoolAccount {
   contact_info?: any;
   daily_limit?: number;
   monthly_limit?: number;
-  network_id?: string;
   network_config?: {
     id: string;
     name: string;
@@ -99,10 +98,11 @@ export const energyPoolExtendedAPI = {
 
   /**
    * 获取能量池账户列表
-   * 支持网络过滤
    */
-  getAccounts: (params?: { network_id?: string }) => 
-    apiClient.get<ApiResponse<EnergyPoolAccount[]>>('/api/energy-pool/accounts', { params }),
+  getAccounts: (networkId?: string) => 
+    apiClient.get<ApiResponse<EnergyPoolAccount[]>>('/api/energy-pool/accounts', {
+      params: networkId ? { networkId } : undefined
+    }),
 
   /**
    * 刷新能量池状态
@@ -124,7 +124,6 @@ export const energyPoolExtendedAPI = {
   validateTronAddress: (data: {
     address: string
     private_key?: string
-    network_id: string
   }) => 
     apiClient.post<ApiResponse<{
       address: string
@@ -161,7 +160,6 @@ export const energyPoolExtendedAPI = {
    * 添加能量池账户（自动获取TRON数据）
    */
   addAccount: (accountData: {
-    network_id: string
     name: string
     tron_address: string
     private_key_encrypted: string

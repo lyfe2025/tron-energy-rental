@@ -14,21 +14,7 @@
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <!-- 网络选择 -->
-        <div>
-          <label for="network" class="block text-sm font-medium text-gray-700 mb-1">
-            网络选择 *
-          </label>
-          <div class="space-y-2">
-            <NetworkSelector
-              v-model="form.network_id"
-              :direct-selection="true"
-              placeholder="请选择TRON网络"
-              :required="true"
-            />
-            <p v-if="errors.network_id" class="text-sm text-red-600">{{ errors.network_id }}</p>
-          </div>
-        </div>
+
 
         <!-- 账户名称 -->
         <div>
@@ -142,7 +128,7 @@
                 'border-red-500': errors.private_key,
                 'bg-gray-100': privateKeyInputMode === 'mnemonic'
               }"
-              @blur="privateKeyInputMode === 'direct' && form.address && form.network_id && validateAndFetchTronData()"
+              @blur="privateKeyInputMode === 'direct' && form.address && validateAndFetchTronData()"
             />
             <button
               type="button"
@@ -158,24 +144,6 @@
 
         <!-- TRON数据验证和获取 -->
         <div v-if="form.address && form.private_key" class="bg-gray-50 p-4 rounded-lg">
-          <!-- 提示选择网络 -->
-          <div v-if="!form.network_id" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-yellow-800">
-                  请先选择TRON网络，然后我们可以验证您的地址和私钥。
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div v-if="form.address && form.private_key && form.network_id" class="bg-gray-50 p-4 rounded-lg">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">TRON账户信息</h4>
             <button
@@ -411,7 +379,6 @@ const generatingPrivateKey = ref(false)
 
 // 表单数据
 const form = reactive({
-  network_id: '' as string,
   name: '',
   address: '',
   private_key: '',
@@ -424,18 +391,10 @@ const form = reactive({
   monthly_limit: null as number | null
 })
 
-// 监听表单network_id变化
-watch(() => form.network_id, (newValue, oldValue) => {
-  console.log('🔍 [AccountModal] form.network_id变化:', {
-    newValue,
-    oldValue,
-    timestamp: new Date().toISOString()
-  })
-}, { immediate: true })
+
 
 // 表单错误
 const errors = reactive({
-  network_id: '',
   name: '',
   address: '',
   private_key: '',
@@ -448,7 +407,6 @@ const isEdit = computed(() => !!props.account)
 
 // 重置表单
 const resetForm = () => {
-  form.network_id = ''
   form.name = ''
   form.address = ''
   form.private_key = ''
@@ -468,7 +426,6 @@ const resetForm = () => {
 
 // 清除错误
 const clearErrors = () => {
-  errors.network_id = ''
   errors.name = ''
   errors.address = ''
   errors.private_key = ''
@@ -502,7 +459,6 @@ watch(() => props.account, async (account, oldAccount) => {
           })
           
           // 使用完整的账户信息填充表单
-          form.network_id = fullAccount.network_config?.id || account.network_config?.id || ''
           form.name = fullAccount.name || ''
           form.address = fullAccount.tron_address
           form.private_key = fullAccount.private_key_encrypted
@@ -518,7 +474,6 @@ watch(() => props.account, async (account, oldAccount) => {
       } catch (error) {
         console.error('❌ [AccountModal] 获取完整账户信息失败:', error)
         // 降级处理：使用原有的账户信息（但私钥会显示为***）
-        form.network_id = account.network_config?.id || ''
         form.name = account.name || ''
         form.address = account.tron_address
         form.private_key = account.private_key_encrypted
@@ -531,7 +486,6 @@ watch(() => props.account, async (account, oldAccount) => {
       }
     } else {
       // 新增模式：直接使用传入的账户信息
-      form.network_id = account.network_config?.id || ''
       form.name = account.name || ''
       form.address = account.tron_address
       form.private_key = account.private_key_encrypted
@@ -544,7 +498,6 @@ watch(() => props.account, async (account, oldAccount) => {
     }
     
     console.log('✅ [AccountModal] 表单数据已设置:', {
-      networkId: form.network_id,
       networkName: account.network_config?.name,
       accountName: form.name,
       hasRealPrivateKey: form.private_key !== '***'
@@ -561,11 +514,10 @@ const validateAndFetchTronData = async () => {
   tronDataError.value = ''
   
   // 检查必需的字段
-  if (!form.address || !form.private_key || !form.network_id) {
+  if (!form.address || !form.private_key) {
     console.log('🔍 [AccountModal] validateAndFetchTronData 跳过：缺少必需字段', {
       hasAddress: !!form.address,
-      hasPrivateKey: !!form.private_key,
-      hasNetworkId: !!form.network_id
+      hasPrivateKey: !!form.private_key
     })
     return
   }
@@ -583,7 +535,6 @@ const validateAndFetchTronData = async () => {
   
   console.log('🔍 [AccountModal] 开始验证TRON数据:', {
     address: form.address,
-    network_id: form.network_id,
     timestamp: new Date().toISOString()
   })
   
@@ -593,8 +544,7 @@ const validateAndFetchTronData = async () => {
   try {
     const response = await energyPoolExtendedAPI.validateTronAddress({
       address: form.address.trim(),
-      private_key: form.private_key.trim(),
-      network_id: form.network_id
+      private_key: form.private_key.trim()
     })
     
     if (response.data.success) {
@@ -670,14 +620,13 @@ const generatePrivateKeyFromMnemonic = async () => {
     // 设置生成的私钥
     form.private_key = privateKey
     
-    // 如果地址和网络都已选择，自动验证TRON数据
-    if (form.address && form.network_id) {
+    // 如果地址已填写，自动验证TRON数据
+    if (form.address) {
       console.log('🔍 [AccountModal] 助记词生成私钥后自动验证TRON数据')
       await validateAndFetchTronData()
     } else {
-      console.log('🔍 [AccountModal] 跳过自动验证：缺少地址或网络配置', {
-        hasAddress: !!form.address,
-        hasNetworkId: !!form.network_id
+      console.log('🔍 [AccountModal] 跳过自动验证：缺少地址', {
+        hasAddress: !!form.address
       })
     }
     
@@ -696,11 +645,7 @@ const validateForm = (): boolean => {
   clearErrors()
   let isValid = true
 
-  // 验证网络选择
-  if (!form.network_id.trim()) {
-    errors.network_id = '请选择TRON网络'
-    isValid = false
-  }
+
 
   // 验证账户名称
   if (!form.name.trim()) {
@@ -780,7 +725,6 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const submitData = {
-      network_id: form.network_id,
       name: form.name.trim(),
       tron_address: form.address.trim(),
       private_key_encrypted: form.private_key.trim(),
@@ -824,9 +768,7 @@ const handleSubmit = async () => {
       } else if (message.includes('无效的私钥')) {
         errors.private_key = '请输入有效的64位十六进制私钥'
         errorMessage = '请检查私钥格式是否正确'
-      } else if (message.includes('网络') && (message.includes('不存在') || message.includes('未激活'))) {
-        errors.network_id = '所选网络不存在或未激活'
-        errorMessage = '请重新选择有效的TRON网络'
+
       } else if (message.includes('缺少必需字段')) {
         errorMessage = '请填写所有必需字段'
         // 检查具体哪些字段缺失

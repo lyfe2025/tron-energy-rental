@@ -282,8 +282,7 @@ const fetchRealTimeData = async () => {
   try {
     const response = await energyPoolExtendedAPI.validateTronAddress({
       address: props.account.tron_address,
-      private_key: '', // 空私钥，只获取账户信息
-      network_id: props.account.network_id || ''
+      private_key: '' // 空私钥，只获取账户信息
     })
 
     if (response.data.success && response.data.data) {

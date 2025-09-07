@@ -5,9 +5,9 @@ import type { Request, Response } from 'express';
 import { query } from '../../../database/index.js';
 import { tronService } from '../../../services/tron.js';
 import type {
-    RouteHandler,
-    StakeQueryParams,
-    StakeStatistics
+  RouteHandler,
+  StakeQueryParams,
+  StakeStatistics
 } from '../types/stake.types.js';
 
 export class OverviewController {
@@ -16,14 +16,14 @@ export class OverviewController {
    */
   static getOverview: RouteHandler = async (req: Request, res: Response) => {
     try {
-      const { address, poolId } = req.query as StakeQueryParams;
+      const { address, poolId, networkId: queryNetworkId } = req.query as StakeQueryParams;
       
       let targetAddress = address as string;
       
-      // 如果提供了poolId，从数据库获取对应的地址和网络配置
-      let networkId: number | null = null;
+      // 如果提供了poolId，从数据库获取对应的地址
+      let networkId: string | null = queryNetworkId as string || null;
       if (poolId && typeof poolId === 'string') {
-        const poolQuery = 'SELECT tron_address, network_id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT tron_address FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [poolId]);
         
         if (poolResult.rows.length === 0) {
@@ -35,7 +35,7 @@ export class OverviewController {
         }
         
         targetAddress = poolResult.rows[0].tron_address;
-        networkId = poolResult.rows[0].network_id;
+        // 账户支持所有网络，使用传入的networkId参数
       }
       
       if (!targetAddress || typeof targetAddress !== 'string') {
@@ -83,15 +83,15 @@ export class OverviewController {
    */
   static getStatistics: RouteHandler = async (req: Request, res: Response) => {
     try {
-      const { pool_id, poolId } = req.query as StakeQueryParams;
+      const { pool_id, poolId, networkId: queryNetworkId } = req.query as StakeQueryParams;
       
       // 支持两种参数名称：pool_id 和 poolId
       const targetPoolId = poolId || pool_id;
       
-      // 如果提供了poolId，验证能量池是否存在并获取网络配置
-      let networkId: number | null = null;
+      // 如果提供了poolId，验证能量池是否存在
+      let networkId: string | null = queryNetworkId as string || null;
       if (targetPoolId && typeof targetPoolId === 'string') {
-        const poolQuery = 'SELECT id, network_id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT id FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [targetPoolId]);
         
         if (poolResult.rows.length === 0) {
@@ -102,7 +102,7 @@ export class OverviewController {
           });
         }
         
-        networkId = poolResult.rows[0].network_id;
+        // 账户支持所有网络，不再依赖数据库中的network_id
       }
       
       // 如果账户配置了特定网络，切换到该网络

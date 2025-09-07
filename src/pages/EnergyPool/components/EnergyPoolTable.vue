@@ -21,7 +21,6 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">优先级</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">配置网络</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
           </tr>
         </thead>
@@ -61,44 +60,7 @@
                 {{ getStatusText(account.status) }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                <div class="flex flex-col">
-                  <span
-                    v-if="account.network_config"
-                    class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mb-1"
-                  >
-                    {{ account.network_config.name }}
-                  </span>
-                  
-                  <!-- 网络状态显示 -->
-                  <div v-if="account.network_config?.id" class="mb-1">
-                    <NetworkStatus
-                      :network-id="account.network_config.id"
-                      :show-details="false"
-                      :show-refresh="false"
-                      :auto-refresh="true"
-                      :refresh-interval="60"
-                    />
-                  </div>
-                </div>
-                
-                <button
-                  v-if="!account.network_config?.id"
-                  @click="$emit('handleAccountNetworkSetting', account)"
-                  class="px-2 py-1 text-xs text-gray-500 border border-dashed border-gray-300 rounded-full hover:border-blue-500 hover:text-blue-500"
-                >
-                  + 设置网络
-                </button>
-                <button
-                  v-else
-                  @click="$emit('handleAccountNetworkSetting', account)"
-                  class="px-2 py-1 text-xs text-blue-600 hover:text-blue-800"
-                >
-                  更改
-                </button>
-              </div>
-            </td>
+
             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
               <div class="flex items-center justify-center space-x-2">
                 <!-- 维护中状态显示特殊按钮 -->
@@ -168,7 +130,6 @@
 </template>
 
 <script setup lang="ts">
-import NetworkStatus from '@/components/NetworkStatus.vue'
 import {
   Database,
   Edit,
@@ -198,10 +159,8 @@ defineProps<Props>()
 defineEmits<{
   toggleSelectAll: []
   toggleAccountSelection: [accountId: string]
-  handleAccountNetworkSetting: [account: EnergyPoolAccount]
   confirmDisableAccount: [account: EnergyPoolAccount]
   confirmEnableAccount: [account: EnergyPoolAccount]
-
   editAccount: [account: EnergyPoolAccount]
   viewDetails: [account: EnergyPoolAccount]
   confirmDeleteAccount: [account: EnergyPoolAccount]

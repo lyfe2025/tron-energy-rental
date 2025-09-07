@@ -2,8 +2,8 @@
  * 配置缓存和通知服务
  * 使用 Redis 缓存配置数据，实现配置变更时的自动通知
  */
-import Redis from 'ioredis';
 import { EventEmitter } from 'events';
+import Redis from 'ioredis';
 import { query } from '../config/database.js';
 
 // 配置缓存键前缀
@@ -183,10 +183,9 @@ class ConfigCacheService extends EventEmitter {
       // 从数据库获取
       const result = await query(
         `SELECT 
-          id, name, token, username, status, welcome_message, help_message,
-          allowed_updates, network_config, webhook_config, message_templates,
-          rate_limits, security_settings, health_status, last_health_check,
-          created_at, updated_at
+          id, bot_token as token, bot_name as name, bot_username as username, 
+          is_active as status, webhook_url, network_configurations as network_config,
+          created_by, created_at, updated_at
          FROM telegram_bots 
          WHERE id = $1`,
         [botId]
@@ -544,4 +543,4 @@ class ConfigCacheService extends EventEmitter {
 const configCacheService = new ConfigCacheService();
 
 export default configCacheService;
-export { ConfigCacheService, CACHE_KEYS, NOTIFICATION_CHANNELS };
+export { CACHE_KEYS, ConfigCacheService, NOTIFICATION_CHANNELS };

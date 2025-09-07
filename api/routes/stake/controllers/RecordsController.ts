@@ -18,12 +18,15 @@ export class RecordsController {
    * 获取质押记录 (从TRON网络API)
    */
   static getStakeRecords: RouteHandler = async (req: Request, res: Response) => {
-    console.log('[RecordsController] getStakeRecords方法被调用');
+    console.log('[RecordsController] 🚀🚀🚀 质押记录API被调用');
+    console.log('[RecordsController] 完整请求参数:', JSON.stringify(req.query, null, 2));
+    
     try {
       const { 
         address, 
         poolId,
         pool_id, 
+        networkId: queryNetworkId,
         page = '1', 
         limit = '20', 
         operation_type, 
@@ -34,11 +37,11 @@ export class RecordsController {
       
       const targetPoolId = poolId || pool_id;
       let targetAddress = address as string;
-      let networkId: number | null = null;
+      let networkId: string | null = queryNetworkId as string || null;
       
       // 如果提供了poolId，从数据库获取对应的地址和网络配置
       if (targetPoolId && typeof targetPoolId === 'string') {
-        const poolQuery = 'SELECT tron_address, network_id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT tron_address FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [targetPoolId]);
         
         if (poolResult.rows.length === 0) {
@@ -50,7 +53,7 @@ export class RecordsController {
         }
         
         targetAddress = poolResult.rows[0].tron_address;
-        networkId = poolResult.rows[0].network_id;
+        // 账户支持所有网络，使用传入的networkId参数
       }
       
       if (!targetAddress || typeof targetAddress !== 'string') {
@@ -61,25 +64,50 @@ export class RecordsController {
         });
       }
 
+      // 网络切换调试信息
+      console.log(`[RecordsController] 🔍 networkId值检查: ${networkId}, 类型: ${typeof networkId}`);
+      
       // 如果账户配置了特定网络，切换到该网络
       if (networkId) {
         try {
+          console.log(`[RecordsController] 🔀 准备切换到网络: ${networkId}`);
           await tronService.switchToNetwork(networkId);
+          console.log(`[RecordsController] ✅ 网络切换成功 - 当前网络: ${tronService.getCurrentNetwork()?.name}`);
         } catch (error: any) {
           console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
         }
+      } else {
+        console.log(`[RecordsController] ⚠️ 没有提供networkId，使用默认网络`);
       }
 
       console.log(`[RecordsController] 开始获取质押记录，地址: ${targetAddress}, 限制: ${limit}`);
       
       // 从TRON网络获取真实的质押记录
+      console.log('[RecordsController] 🌐🌐🌐 即将调用 tronService.getStakeTransactionHistory');
+      console.log('[RecordsController] 调用参数:', { 
+        targetAddress, 
+        limit: parseInt(limit) * 2, 
+        offset: (parseInt(page) - 1) * parseInt(limit),
+        网络配置: tronService.getCurrentNetwork()?.name
+      });
+      
       const tronResult = await tronService.getStakeTransactionHistory(
         targetAddress, 
         parseInt(limit) * 2, // 获取更多记录以便过滤
         (parseInt(page) - 1) * parseInt(limit)
       );
       
-      console.log(`[RecordsController] TRON结果:`, { success: tronResult.success, dataLength: tronResult.data?.length, error: tronResult.error });
+      console.log(`[RecordsController] 🎯🎯🎯 TRON服务返回结果:`, { 
+        success: tronResult.success, 
+        dataLength: tronResult.data?.length, 
+        error: tronResult.error,
+        数据样本: tronResult.data?.slice(0, 2).map(item => ({
+          id: item.id,
+          operation_type: item.operation_type,
+          resource_type: item.resource_type,
+          amount: item.amount
+        }))
+      });
       
       if (!tronResult.success) {
         throw new Error(tronResult.error || '获取TRON质押记录失败');
@@ -152,6 +180,7 @@ export class RecordsController {
         address, 
         poolId,
         pool_id, 
+        networkId: queryNetworkId,
         page = '1', 
         limit = '20', 
         operation_type, 
@@ -162,11 +191,11 @@ export class RecordsController {
       
       const targetPoolId = poolId || pool_id;
       let targetAddress = address as string;
-      let networkId: number | null = null;
+      let networkId: string | null = queryNetworkId as string || null;
       
       // 如果提供了poolId，从数据库获取对应的地址和网络配置
       if (targetPoolId && typeof targetPoolId === 'string') {
-        const poolQuery = 'SELECT tron_address, network_id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT tron_address FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [targetPoolId]);
         
         if (poolResult.rows.length === 0) {
@@ -178,7 +207,7 @@ export class RecordsController {
         }
         
         targetAddress = poolResult.rows[0].tron_address;
-        networkId = poolResult.rows[0].network_id;
+        // 账户支持所有网络，使用传入的networkId参数
       }
       
       if (!targetAddress || typeof targetAddress !== 'string') {
@@ -293,6 +322,7 @@ export class RecordsController {
         address, 
         poolId,
         pool_id, 
+        networkId: queryNetworkId,
         page = '1', 
         limit = '20',
         startDate,
@@ -301,11 +331,11 @@ export class RecordsController {
       
       const targetPoolId = poolId || pool_id;
       let targetAddress = address as string;
-      let networkId: number | null = null;
+      let networkId: string | null = queryNetworkId as string || null;
       
       // 如果提供了poolId，从数据库获取对应的地址和网络配置
       if (targetPoolId && typeof targetPoolId === 'string') {
-        const poolQuery = 'SELECT tron_address, network_id FROM energy_pools WHERE id = $1';
+        const poolQuery = 'SELECT tron_address FROM energy_pools WHERE id = $1';
         const poolResult = await query(poolQuery, [targetPoolId]);
         
         if (poolResult.rows.length === 0) {
@@ -317,7 +347,7 @@ export class RecordsController {
         }
         
         targetAddress = poolResult.rows[0].tron_address;
-        networkId = poolResult.rows[0].network_id;
+        // 账户支持所有网络，使用传入的networkId参数
       }
       
       if (!targetAddress || typeof targetAddress !== 'string') {

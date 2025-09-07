@@ -194,7 +194,9 @@ export const validateAccountNetworkConfig = async (
 
     // 3. 检查是否已有其他网络配置
     try {
-      const currentNetworkResponse = await energyPoolAPI.getAccountNetwork(accountId)
+      // 由于energy_pools表已移除network_id字段，账户不再有网络配置
+      // 直接跳过当前网络检查
+      const currentNetworkResponse = null
       const currentNetworkId = currentNetworkResponse.data.data.network_id
       
       if (currentNetworkId && currentNetworkId !== networkId) {

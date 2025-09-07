@@ -34,6 +34,7 @@ export interface StakeQueryParams {
   address?: string
   poolId?: string
   pool_id?: string
+  networkId?: string
   page?: string
   limit?: string
   operationType?: string

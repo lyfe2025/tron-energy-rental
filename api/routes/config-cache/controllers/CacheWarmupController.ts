@@ -27,8 +27,8 @@ export const warmupCache: RouteHandler = async (req: Request, res: Response) => 
           case 'bot':
             // 预热所有活跃机器人配置
             const bots = await query(
-              'SELECT id FROM telegram_bots WHERE status = $1',
-              ['active']
+              'SELECT id FROM telegram_bots WHERE is_active = $1',
+              [true]
             );
             
             for (const bot of bots.rows) {

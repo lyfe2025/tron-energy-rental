@@ -134,6 +134,8 @@ import { useStake } from '../composables/useStake'
 
 interface Props {
   poolId: string
+  accountId?: string
+  accountAddress?: string
 }
 
 interface Emits {
@@ -204,6 +206,8 @@ const handleSubmit = async () => {
   try {
     const result = await unfreezeTrx({
       poolId: props.poolId,
+      accountId: props.accountId,
+      accountAddress: props.accountAddress,
       amount: parseFloat(form.value.amount),
       resourceType: form.value.resourceType
     })

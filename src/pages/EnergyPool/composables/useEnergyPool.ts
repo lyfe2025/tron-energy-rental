@@ -1,5 +1,4 @@
 import { useToast } from '@/composables/useToast'
-import { energyPoolAPI } from '@/services/api'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { reactive, ref } from 'vue'
 
@@ -23,7 +22,6 @@ interface EnergyPoolAccount {
   contact_info?: any
   daily_limit?: number
   monthly_limit?: number
-  network_id?: string
   associated_networks?: Array<{ id: string; name: string }>
   network_config?: {
     id: string
@@ -76,9 +74,11 @@ export function useEnergyPool() {
   const loadStatistics = async () => {
     loading.statistics = true
     try {
-      const response = await energyPoolAPI.getStatistics()
+      console.log('📊 [useEnergyPool] 加载统计信息');
+      const response = await energyPoolExtendedAPI.getStatistics()
       if (response.data.success && response.data.data) {
         Object.assign(statistics, response.data.data)
+        console.log('✅ [useEnergyPool] 统计信息加载完成:', statistics);
       }
     } catch (error) {
       console.error('Failed to load statistics:', error)
@@ -88,13 +88,12 @@ export function useEnergyPool() {
     }
   }
 
-  // 加载账户列表
+  // 加载账户列表（支持指定网络）
   const loadAccounts = async (networkId?: string) => {
     loading.accounts = true
     try {
-      console.log('🔍 [useEnergyPool] 加载账户列表，网络过滤:', networkId);
-      const params = networkId ? { network_id: networkId } : undefined;
-      const response = await energyPoolExtendedAPI.getAccounts(params)
+      console.log('🔍 [useEnergyPool] 加载账户列表, 网络ID:', networkId);
+      const response = await energyPoolExtendedAPI.getAccounts(networkId)
       if (response.data.success && response.data.data) {
         // 转换API数据以匹配EnergyPoolAccount类型
         accounts.value = response.data.data.map((account: any) => {
@@ -104,7 +103,7 @@ export function useEnergyPool() {
             priority: account.priority || 50
           }
         })
-        console.log(`✅ [useEnergyPool] 加载了 ${accounts.value.length} 个账户`);
+        console.log(`✅ [useEnergyPool] 加载了 ${accounts.value.length} 个账户${networkId ? `（网络ID: ${networkId}）` : ''}`);
       }
     } catch (error) {
       console.error('Failed to load accounts:', error)
@@ -118,7 +117,7 @@ export function useEnergyPool() {
   const refreshStatus = async () => {
     loading.refresh = true
     try {
-      const response = await energyPoolAPI.refreshStatus()
+      const response = await energyPoolExtendedAPI.refreshStatus()
       if (response.data.success) {
         toast.success('状态刷新成功')
         // 重新加载数据
@@ -146,7 +145,7 @@ export function useEnergyPool() {
   // 优化能量分配
   const optimizeAllocation = async (requiredEnergy: number) => {
     try {
-      const response = await energyPoolAPI.optimizeAllocation(requiredEnergy)
+      const response = await energyPoolExtendedAPI.optimizeAllocation(requiredEnergy)
       if (response.data.success && response.data.data) {
         return response.data.data
       }
@@ -160,7 +159,6 @@ export function useEnergyPool() {
 
   // 添加账户
   const addAccount = async (accountData: {
-    network_id: string
     name: string
     tron_address: string
     private_key_encrypted: string
@@ -180,7 +178,7 @@ export function useEnergyPool() {
         available_energy: accountData.total_energy,
         reserved_energy: 0
       };
-      const response = await energyPoolAPI.addAccount(completeAccountData)
+      const response = await energyPoolExtendedAPI.addAccount(completeAccountData)
       if (response.data.success) {
         toast.success('账户添加成功')
         return response.data.data
@@ -195,7 +193,6 @@ export function useEnergyPool() {
 
   // 更新账户
   const updateAccount = async (id: string, updates: Partial<{
-    network_id: string
     name: string
     tron_address: string
     private_key_encrypted: string
@@ -208,7 +205,7 @@ export function useEnergyPool() {
     monthly_limit: number
   }>) => {
     try {
-      const response = await energyPoolAPI.updateAccount(id, updates)
+      const response = await energyPoolExtendedAPI.updateAccount(id, updates)
       if (response.data.success) {
         toast.success('账户更新成功')
         return true
@@ -224,7 +221,7 @@ export function useEnergyPool() {
   // 启用账户
   const enableAccount = async (id: string) => {
     try {
-      const response = await energyPoolAPI.enableAccount(id)
+      const response = await energyPoolExtendedAPI.enableAccount(id)
       if (response.data.success) {
         toast.success('账户已启用')
         await loadAccounts() // 重新加载账户列表
@@ -241,7 +238,7 @@ export function useEnergyPool() {
   // 停用账户
   const disableAccount = async (id: string) => {
     try {
-      const response = await energyPoolAPI.disableAccount(id)
+      const response = await energyPoolExtendedAPI.disableAccount(id)
       if (response.data.success) {
         toast.success('账户已停用')
         await loadAccounts() // 重新加载账户列表
@@ -258,7 +255,7 @@ export function useEnergyPool() {
   // 删除账户
   const deleteAccount = async (id: string) => {
     try {
-      const response = await energyPoolAPI.deleteAccount(id)
+      const response = await energyPoolExtendedAPI.deleteAccount(id)
       if (response.data.success) {
         toast.success('账户已删除')
         return true
@@ -276,9 +273,11 @@ export function useEnergyPool() {
   const loadTodayConsumption = async () => {
     loading.statistics = true
     try {
-      const response = await energyPoolAPI.getTodayConsumption()
+      console.log('📈 [useEnergyPool] 加载今日消耗统计');
+      const response = await energyPoolExtendedAPI.getTodayConsumption()
       if (response.data.success) {
         todayConsumption.value = response.data.data
+        console.log('✅ [useEnergyPool] 今日消耗统计加载完成:', todayConsumption.value);
       }
     } catch (error) {
       console.error('Failed to load today consumption:', error)
@@ -389,7 +388,7 @@ export function useEnergyPool() {
   const loadNetworks = async () => {
     try {
       console.log('🌐 [useEnergyPool] 加载网络列表');
-      const response = await energyPoolAPI.getNetworks()
+      const response = await energyPoolExtendedAPI.getNetworks()
       if (response.data.success && response.data.data) {
         const networks = response.data.data.map((network: any) => ({
           id: network.id,

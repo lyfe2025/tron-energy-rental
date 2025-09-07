@@ -256,7 +256,7 @@ export class EnergyDelegationService {
       
       // 记录主委托记录
       await query(
-        `INSERT INTO energy_delegations (
+        `INSERT INTO delegate_records (
           id, order_id, recipient_address, total_energy, duration_hours, 
           status, reservation_id, created_at, expires_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -321,7 +321,7 @@ export class EnergyDelegationService {
       
       // 获取委托信息
       const delegationResult = await query(
-        `SELECT * FROM energy_delegations WHERE id = $1`,
+        `SELECT * FROM delegate_records WHERE id = $1`,
         [delegationId]
       );
       
@@ -381,7 +381,7 @@ export class EnergyDelegationService {
       
       // 更新委托状态
       await query(
-        `UPDATE energy_delegations 
+        `UPDATE delegate_records 
          SET status = $1, updated_at = $2 
          WHERE id = $3`,
         ['expired', new Date(), delegationId]
@@ -404,7 +404,7 @@ export class EnergyDelegationService {
   async getDelegationStatus(delegationId: string): Promise<any> {
     try {
       const delegationResult = await query(
-        `SELECT * FROM energy_delegations WHERE id = $1`,
+        `SELECT * FROM delegate_records WHERE id = $1`,
         [delegationId]
       );
       
@@ -435,7 +435,7 @@ export class EnergyDelegationService {
   async getUserDelegations(userId: string, limit: number = 20, offset: number = 0): Promise<any[]> {
     try {
       const result = await query(
-        `SELECT ed.* FROM energy_delegations ed
+        `SELECT ed.* FROM delegate_records ed
          INNER JOIN orders o ON ed.order_id = o.id
          WHERE o.user_id = $1
          ORDER BY ed.created_at DESC

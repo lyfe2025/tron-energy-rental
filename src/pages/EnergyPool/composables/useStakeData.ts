@@ -1,24 +1,23 @@
 import { stakeAPI } from '@/services/api'
 import { reactive, ref } from 'vue'
 import type {
-    AccountInfo,
-    AccountResources,
-    DelegateRecord,
-    DelegateRecordQueryParams,
-    StakeOverview,
-    StakePagination,
-    StakeRecord,
-    StakeRecordQueryParams,
-    StakeStatistics,
-    UnfreezeRecord,
-    UnfreezeRecordQueryParams
+  AccountInfo,
+  AccountResources,
+  DelegateRecord,
+  DelegateRecordQueryParams,
+  StakePagination,
+  StakeRecord,
+  StakeRecordQueryParams,
+  StakeStatistics,
+  UnfreezeRecord,
+  UnfreezeRecordQueryParams
 } from '../types/stake.types'
 
 export function useStakeData() {
   // 响应式状态
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const overview = ref<StakeOverview | null>(null)
+  const overview = ref<any>(null)
   const statistics = ref<StakeStatistics | null>(null)
   const stakeRecords = ref<StakeRecord[]>([])
   const delegateRecords = ref<DelegateRecord[]>([])
@@ -120,7 +119,29 @@ export function useStakeData() {
       error.value = null
       const response = await stakeAPI.getStakeRecords(params)
       if (response.data.success && response.data.data) {
-        stakeRecords.value = response.data.data
+        // 转换API返回的字段名（下划线）到前端期望的字段名（驼峰）
+        console.log('[useStakeData] 📋 原始API数据样本:', response.data.data[0])
+        const records = response.data.data.map((record: any) => {
+          const mappedRecord = {
+            id: record.id,
+            poolId: record.pool_id || record.address,
+            txid: record.transaction_id || record.txid,
+            operationType: record.operation_type,
+            amount: record.amount,
+            resourceType: record.resource_type,
+            lockPeriod: record.lock_period,
+            unfreezeTime: record.unfreeze_time,
+            status: record.status,
+            createdAt: record.created_at
+          }
+          console.log('[useStakeData] 📋 字段映射:', {
+            原始transaction_id: record.transaction_id,
+            原始txid: record.txid,
+            映射后txid: mappedRecord.txid
+          })
+          return mappedRecord
+        })
+        stakeRecords.value = records
         Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取质押记录失败')
@@ -139,8 +160,21 @@ export function useStakeData() {
       error.value = null
       const response = await stakeAPI.getDelegateRecords(params)
       if (response.data.success && response.data.data) {
-        // API返回的是StakeRecord[]，需要转换为DelegateRecord[]
-        delegateRecords.value = response.data.data as any
+        // 转换API返回的字段名到前端期望的DelegateRecord格式
+        const records = response.data.data.map((record: any) => ({
+          id: record.id,
+          poolId: record.pool_id || record.pool_account_id,
+          txid: record.transaction_id || record.txid,
+          operationType: record.operation_type === 'unknown' ? 'delegate' : record.operation_type,
+          toAddress: record.receiver_address || record.to_address || '',
+          amount: record.amount || 0,
+          resourceType: record.resource_type,
+          lockPeriod: record.lock_period,
+          expireTime: record.expire_time,
+          status: record.status,
+          createdAt: record.created_at || record.updated_at
+        }))
+        delegateRecords.value = records
         Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取委托记录失败')
@@ -155,24 +189,57 @@ export function useStakeData() {
   // 获取解质押记录
   const loadUnfreezeRecords = async (params: UnfreezeRecordQueryParams) => {
     try {
+      console.log('🔍 [useStakeData] 开始加载解质押记录:', params)
       loading.value = true
       error.value = null
       const response = await stakeAPI.getUnfreezeRecords(params)
+      console.log('🔍 [useStakeData] 解质押记录API响应:', response.data)
+      
       if (response.data.success && response.data.data) {
-        // 转换API返回的字段名和状态值到我们的类型
-        const records = response.data.data.map((record: any) => ({
-          ...record,
-          expireTime: record.withdrawable_time, // withdrawable_time -> expireTime
-          status: record.status === 'unfreezing' ? 'pending' :
-                  record.status === 'withdrawable' ? 'available' : 
-                  record.status // 'withdrawn' 保持不变
-        }))
-        unfreezeRecords.value = records as any
+        console.log('🔍 [useStakeData] 原始解质押数据样本:', response.data.data[0])
+        
+        // 转换API返回的字段名到前端期望的UnfreezeRecord格式
+        const records = response.data.data.map((record: any) => {
+          const mappedRecord = {
+            id: record.id,
+            poolId: record.pool_id,
+            txid: record.txid,
+            amount: record.amount || 0,
+            resourceType: record.resource_type,
+            unfreezeTime: record.unfreeze_time,
+            expireTime: record.withdrawable_time || record.expire_time,
+            status: record.status === 'unfreezing' ? 'pending' :
+                    record.status === 'withdrawable' ? 'available' : 
+                    record.status, // 'withdrawn' 保持不变
+            createdAt: record.created_at,
+            // 添加真实的等待天数信息
+            daysUntilWithdrawable: record.daysUntilWithdrawable || 0,
+            canWithdraw: record.canWithdraw || false
+          }
+          
+          console.log('🔍 [useStakeData] 解质押记录字段映射:', {
+            原始unfreezeTime: record.unfreeze_time,
+            原始withdrawableTime: record.withdrawable_time,
+            原始daysUntil: record.daysUntilWithdrawable,
+            映射后expireTime: mappedRecord.expireTime,
+            映射后daysUntil: mappedRecord.daysUntilWithdrawable
+          })
+          
+          return mappedRecord
+        })
+        
+        console.log('✅ [useStakeData] 解质押记录加载成功:', {
+          记录数量: records.length,
+          第一条记录: records[0]
+        })
+        
+        unfreezeRecords.value = records
         Object.assign(pagination, response.data.pagination)
       } else {
         throw new Error(response.data.message || '获取解质押记录失败')
       }
     } catch (err: any) {
+      console.error('❌ [useStakeData] 解质押记录加载失败:', err)
       handleError(err, '获取解质押记录', params.poolId)
     } finally {
       loading.value = false

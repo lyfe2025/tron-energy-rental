@@ -50,19 +50,19 @@
                 v-show="expandedMenus.has(item.name)"
                 class="ml-6 mt-1 space-y-1"
               >
-                <router-link
+                <button
                   v-for="child in item.children"
                   :key="child.name"
-                  :to="child.href"
-                  class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                  @click="handleChildMenuClick(item, child)"
+                  class="w-full group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left"
                   :class="{
-                    'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700': $route.path === child.href,
-                    'text-gray-600 hover:bg-gray-50 hover:text-gray-900': $route.path !== child.href
+                    'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700': isChildMenuActive(child),
+                    'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !isChildMenuActive(child)
                   }"
                 >
                   <div class="mr-3 h-2 w-2 rounded-full bg-gray-300"></div>
                   {{ child.name }}
-                </router-link>
+                </button>
               </div>
             </div>
             
@@ -203,6 +203,37 @@ const toggleMenu = (menuName: string) => {
   } else {
     expandedMenus.value.add(menuName)
   }
+}
+
+// 处理子菜单点击
+const handleChildMenuClick = async (parent: any, child: any) => {
+  // 对于能量池管理的子菜单，跳转到网络选择页面并传递意图参数
+  if (parent.name === '能量池管理') {
+    if (child.name === '账户管理') {
+      router.push('/energy-pool?intent=accounts')
+    } else if (child.name === '质押管理') {
+      router.push('/energy-pool?intent=stake')
+    } else {
+      // 默认跳转到网络选择页面
+      router.push('/energy-pool')
+    }
+  } else {
+    // 其他菜单直接跳转
+    router.push(child.href)
+  }
+}
+
+// 判断子菜单是否活跃
+const isChildMenuActive = (child: any) => {
+  const currentPath = route.path
+  // 对于能量池管理的子菜单，需要特殊处理路径匹配
+  if (child.name === '账户管理') {
+    return currentPath.includes('/energy-pool') && currentPath.includes('/accounts')
+  } else if (child.name === '质押管理') {
+    return currentPath.includes('/energy-pool') && currentPath.includes('/stake')
+  }
+  // 其他子菜单直接比较路径
+  return currentPath === child.href
 }
 
 // 注意：菜单数据现在从数据库获取，已移除硬编码的菜单配置

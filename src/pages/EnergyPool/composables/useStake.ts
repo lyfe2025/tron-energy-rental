@@ -54,6 +54,7 @@ export function useStake() {
   const {
     formatTrx,
     formatEnergy,
+    formatBandwidth,
     formatAddress,
     formatDate,
     getStatusClass,
@@ -102,6 +103,7 @@ export function useStake() {
     // 格式化工具方法
     formatTrx,
     formatEnergy,
+    formatBandwidth,
     formatAddress,
     formatDate,
     getStatusClass,
