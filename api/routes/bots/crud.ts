@@ -6,7 +6,7 @@ import { Router, type Request, type Response } from 'express';
 import { query } from '../../config/database.js';
 import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
 import { buildUpdateFields, buildWhereClause, isValidBotToken } from './middleware.js';
-import type { CreateBotData, PaginationParams, RouteHandler, UpdateBotData } from './types.js';
+import type { BotModeSwitchData, CreateBotData, PaginationParams, RouteHandler, UpdateBotData } from './types.js';
 
 const router: Router = Router();
 
@@ -33,8 +33,10 @@ const getBotsList: RouteHandler = async (req: Request, res: Response) => {
     const botsQuery = `
       SELECT 
         id, bot_name as name, bot_username as username, 
-        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, 0 as total_users, 0 as total_orders, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status,
+        COALESCE(work_mode, 'polling') as work_mode,
+        webhook_url, webhook_secret, max_connections, 
+        0 as total_users, 0 as total_orders, 
         created_at, updated_at
       FROM telegram_bots 
       ${whereClause}
@@ -86,8 +88,10 @@ const getBotDetails: RouteHandler = async (req: Request, res: Response) => {
     const botResult = await query(
       `SELECT 
         id, bot_name as name, bot_username as username, 
-        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, 0 as total_users, 0 as total_orders, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status,
+        COALESCE(work_mode, 'polling') as work_mode,
+        webhook_url, webhook_secret, max_connections, 
+        0 as total_users, 0 as total_orders, 
         created_at, updated_at
        FROM telegram_bots 
        WHERE id = $1`,
@@ -164,7 +168,10 @@ const createBot: RouteHandler = async (req: Request, res: Response) => {
       username,
       token,
       description,
+      work_mode = 'polling',
       webhook_url,
+      webhook_secret,
+      max_connections = 40,
       settings = {},
       welcome_message = '欢迎使用TRON能量租赁服务！',
       help_message = '如需帮助，请联系客服。',
@@ -187,6 +194,34 @@ const createBot: RouteHandler = async (req: Request, res: Response) => {
         message: 'Token格式不正确'
       });
       return;
+    }
+
+    // 如果选择webhook模式，验证webhook_url
+    if (work_mode === 'webhook') {
+      if (!webhook_url) {
+        res.status(400).json({
+          success: false,
+          message: 'Webhook模式需要提供webhook_url'
+        });
+        return;
+      }
+      
+      try {
+        const parsedUrl = new URL(webhook_url);
+        if (parsedUrl.protocol !== 'https:') {
+          res.status(400).json({
+            success: false,
+            message: 'Webhook URL必须使用HTTPS协议'
+          });
+          return;
+        }
+      } catch (error) {
+        res.status(400).json({
+          success: false,
+          message: 'Webhook URL格式不正确'
+        });
+        return;
+      }
     }
     
     // 检查用户名是否已存在
@@ -220,15 +255,19 @@ const createBot: RouteHandler = async (req: Request, res: Response) => {
     // 创建机器人
     const newBot = await query(
       `INSERT INTO telegram_bots (
-        bot_name, bot_username, bot_token, description, webhook_url, config, 
+        bot_name, bot_username, bot_token, description, work_mode, 
+        webhook_url, webhook_secret, max_connections, config, 
         welcome_message, help_message, allowed_updates, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING 
         id, bot_name as name, bot_username as username, description, 
-        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, config as settings, welcome_message, help_message, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status,
+        COALESCE(work_mode, 'polling') as work_mode,
+        webhook_url, webhook_secret, max_connections,
+        config as settings, welcome_message, help_message, 
         allowed_updates as commands, 0 as total_users, 0 as total_orders, created_at`,
-      [name, username, token, description, webhook_url, JSON.stringify(settings), 
+      [name, username, token, description, work_mode, 
+       webhook_url, webhook_secret, max_connections, JSON.stringify(settings), 
        welcome_message, help_message, JSON.stringify(commands), true]
     );
     
@@ -335,8 +374,10 @@ const updateBot: RouteHandler = async (req: Request, res: Response) => {
       WHERE id = $${paramIndex}
       RETURNING 
         id, bot_name as name, bot_username as username, description, 
-        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status, 
-        webhook_url, config as settings, welcome_message, help_message, 
+        CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status,
+        COALESCE(work_mode, 'polling') as work_mode,
+        webhook_url, webhook_secret, max_connections,
+        config as settings, welcome_message, help_message, 
         allowed_updates as commands, 0 as total_users, 0 as total_orders, updated_at
     `;
     
@@ -457,8 +498,263 @@ const getBotsSelector: RouteHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * 验证Bot Token并获取机器人信息
+ * POST /api/bots/verify-token
+ * 权限：管理员
+ */
+const verifyBotToken: RouteHandler = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      res.status(400).json({
+        success: false,
+        message: 'Bot Token不能为空'
+      });
+      return;
+    }
+    
+    // 验证Token格式
+    if (!isValidBotToken(token)) {
+      res.status(400).json({
+        success: false,
+        message: 'Bot Token格式不正确'
+      });
+      return;
+    }
+    
+    // 检查Token是否已被使用
+    const tokenCheck = await query(
+      'SELECT id, bot_name FROM telegram_bots WHERE bot_token = $1',
+      [token]
+    );
+    
+    if (tokenCheck.rows.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: `该Token已被机器人 "${tokenCheck.rows[0].bot_name}" 使用`
+      });
+      return;
+    }
+    
+    // 使用Telegram Bot API验证Token并获取机器人信息
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const data = await response.json();
+      
+      if (!data.ok) {
+        res.status(400).json({
+          success: false,
+          message: 'Token无效或已过期'
+        });
+        return;
+      }
+      
+      const botInfo = data.result;
+      
+      res.status(200).json({
+        success: true,
+        message: 'Token验证成功',
+        data: {
+          id: botInfo.id,
+          name: botInfo.first_name,
+          username: botInfo.username,
+          is_bot: botInfo.is_bot,
+          can_join_groups: botInfo.can_join_groups,
+          can_read_all_group_messages: botInfo.can_read_all_group_messages,
+          supports_inline_queries: botInfo.supports_inline_queries
+        }
+      });
+      
+    } catch (apiError) {
+      console.error('Telegram API调用错误:', apiError);
+      res.status(400).json({
+        success: false,
+        message: 'Token验证失败，请检查Token是否正确'
+      });
+    }
+    
+  } catch (error) {
+    console.error('验证Bot Token错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+};
+
+/**
+ * 机器人模式切换
+ * POST /api/bots/:id/switch-mode
+ * 权限：管理员
+ */
+const switchBotMode: RouteHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { work_mode, webhook_url, webhook_secret, max_connections } = req.body as BotModeSwitchData;
+    
+    // 验证工作模式
+    if (!['polling', 'webhook'].includes(work_mode)) {
+      res.status(400).json({
+        success: false,
+        message: '无效的工作模式'
+      });
+      return;
+    }
+    
+    // 检查机器人是否存在
+    const existingBot = await query(
+      'SELECT id, work_mode FROM telegram_bots WHERE id = $1',
+      [id]
+    );
+    
+    if (existingBot.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    // Webhook模式验证
+    if (work_mode === 'webhook') {
+      if (!webhook_url) {
+        res.status(400).json({
+          success: false,
+          message: 'Webhook模式需要提供webhook_url'
+        });
+        return;
+      }
+      
+      try {
+        const parsedUrl = new URL(webhook_url);
+        if (parsedUrl.protocol !== 'https:') {
+          res.status(400).json({
+            success: false,
+            message: 'Webhook URL必须使用HTTPS协议'
+          });
+          return;
+        }
+      } catch (error) {
+        res.status(400).json({
+          success: false,
+          message: 'Webhook URL格式不正确'
+        });
+        return;
+      }
+    }
+    
+    // 更新数据库
+    const updateResult = await query(
+      `UPDATE telegram_bots 
+       SET work_mode = $1, webhook_url = $2, webhook_secret = $3, 
+           max_connections = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING 
+         id, bot_name as name, bot_username as username,
+         CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status,
+         work_mode, webhook_url, webhook_secret, max_connections`,
+      [work_mode, webhook_url || null, webhook_secret || null, 
+       max_connections || 40, id]
+    );
+    
+    const updatedBot = updateResult.rows[0];
+    
+    res.status(200).json({
+      success: true,
+      message: `机器人已切换到${work_mode === 'webhook' ? 'Webhook' : 'Polling'}模式`,
+      data: {
+        bot: updatedBot
+      }
+    });
+    
+  } catch (error) {
+    console.error('切换机器人模式错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+};
+
+/**
+ * 获取机器人Webhook状态
+ * GET /api/bots/:id/webhook-status
+ * 权限：管理员
+ */
+const getBotWebhookStatus: RouteHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // 检查机器人是否存在
+    const botResult = await query(
+      'SELECT id, bot_token, work_mode FROM telegram_bots WHERE id = $1',
+      [id]
+    );
+    
+    if (botResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: '机器人不存在'
+      });
+      return;
+    }
+    
+    const bot = botResult.rows[0];
+    
+    if (bot.work_mode !== 'webhook') {
+      res.status(400).json({
+        success: false,
+        message: '该机器人不是Webhook模式'
+      });
+      return;
+    }
+    
+    try {
+      // 调用Telegram Bot API获取webhook信息
+      const response = await fetch(`https://api.telegram.org/bot${bot.bot_token}/getWebhookInfo`);
+      const data = await response.json();
+      
+      if (!data.ok) {
+        res.status(400).json({
+          success: false,
+          message: '获取Webhook状态失败'
+        });
+        return;
+      }
+      
+      res.status(200).json({
+        success: true,
+        message: 'Webhook状态获取成功',
+        data: {
+          webhook_info: data.result
+        }
+      });
+      
+    } catch (apiError) {
+      console.error('Telegram API调用错误:', apiError);
+      res.status(500).json({
+        success: false,
+        message: 'Telegram API调用失败'
+      });
+    }
+    
+  } catch (error) {
+    console.error('获取Webhook状态错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+};
+
+
 // 注册路由
+router.post('/verify-token', verifyBotToken);  // 新增：Token验证端点（无需认证，用于创建机器人时验证）
 router.get('/selector', authenticateToken, getBotsSelector);  // 新增：选择器端点，只需认证
+router.post('/:id/switch-mode', authenticateToken, requireAdmin, switchBotMode);  // 新增：模式切换端点
+router.get('/:id/webhook-status', authenticateToken, requireAdmin, getBotWebhookStatus);  // 新增：Webhook状态端点
 router.get('/', authenticateToken, requireAdmin, getBotsList);
 router.get('/:id', authenticateToken, requireAdmin, getBotDetails);
 router.post('/', authenticateToken, requireAdmin, createBot);

@@ -125,6 +125,22 @@ export function buildUpdateFields(
           updateFields.push(`allowed_updates = $${paramIndex}`);
           updateValues.push(JSON.stringify(value));
           break;
+        case 'is_active':
+          updateFields.push(`is_active = $${paramIndex}`);
+          updateValues.push(value);
+          break;
+        case 'work_mode':
+          updateFields.push(`work_mode = $${paramIndex}`);
+          updateValues.push(value);
+          break;
+        case 'webhook_secret':
+          updateFields.push(`webhook_secret = $${paramIndex}`);
+          updateValues.push(value);
+          break;
+        case 'max_connections':
+          updateFields.push(`max_connections = $${paramIndex}`);
+          updateValues.push(value);
+          break;
         default:
           updateFields.push(`${key} = $${paramIndex}`);
           updateValues.push(value);

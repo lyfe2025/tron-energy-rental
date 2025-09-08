@@ -28,7 +28,10 @@ export interface TelegramBotConfig {
   botName: string;
   botToken: string;
   botUsername: string;
+  workMode?: 'polling' | 'webhook';
   webhookUrl?: string;
+  webhookSecret?: string;
+  maxConnections?: number;
   isActive: boolean;
   networkConfig: any;
   webhookConfig: any;

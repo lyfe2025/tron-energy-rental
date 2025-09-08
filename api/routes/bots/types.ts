@@ -9,7 +9,10 @@ export interface Bot {
   name: string;
   username: string;
   status: 'active' | 'inactive' | 'maintenance';
+  work_mode: 'polling' | 'webhook';
   webhook_url?: string;
+  webhook_secret?: string;
+  max_connections?: number;
   total_users: number;
   total_orders: number;
   network_configurations?: BotNetworkConfiguration[];
@@ -23,7 +26,10 @@ export interface CreateBotData {
   username: string;
   token: string;
   description?: string;
+  work_mode?: 'polling' | 'webhook';
   webhook_url?: string;
+  webhook_secret?: string;
+  max_connections?: number;
   settings?: Record<string, any>;
   welcome_message?: string;
   help_message?: string;
@@ -36,11 +42,35 @@ export interface UpdateBotData {
   username?: string;
   token?: string;
   description?: string;
+  work_mode?: 'polling' | 'webhook';
   webhook_url?: string;
+  webhook_secret?: string;
+  max_connections?: number;
   settings?: Record<string, any>;
   welcome_message?: string;
   help_message?: string;
   commands?: string[];
+}
+
+// 机器人模式切换接口
+export interface BotModeSwitchData {
+  work_mode: 'polling' | 'webhook';
+  webhook_url?: string;
+  webhook_secret?: string;
+  max_connections?: number;
+}
+
+// Webhook状态检查响应接口
+export interface WebhookStatusResponse {
+  url?: string;
+  has_custom_certificate: boolean;
+  pending_update_count: number;
+  ip_address?: string;
+  last_error_date?: number;
+  last_error_message?: string;
+  last_synchronization_error_date?: number;
+  max_connections?: number;
+  allowed_updates?: string[];
 }
 
 // 机器人配置数据接口

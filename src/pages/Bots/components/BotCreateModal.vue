@@ -83,6 +83,63 @@
                   <EyeOff v-else class="w-5 h-5" />
                 </button>
               </div>
+              
+              <!-- 获取Token的详细说明 -->
+              <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start gap-2">
+                  <Info class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div class="text-sm text-blue-800">
+                    <div class="font-medium mb-2">如何获取 Bot Token：</div>
+                    <ol class="list-decimal list-inside space-y-1 text-blue-700">
+                      <li>在 Telegram 中搜索并打开 <strong>@BotFather</strong></li>
+                      <li>发送命令 <code class="bg-blue-100 px-1 rounded">/newbot</code> 创建新机器人</li>
+                      <li>按提示输入机器人的<strong>显示名称</strong>（可以是中文）</li>
+                      <li>输入机器人的<strong>用户名</strong>（必须以 bot 结尾，如：mybot_bot）</li>
+                      <li>创建成功后，BotFather 会返回您的 <strong>Bot Token</strong></li>
+                      <li>复制 Token 并粘贴到上方输入框中</li>
+                    </ol>
+                    <div class="mt-2 text-xs text-blue-600">
+                      💡 Token 格式类似：<code class="bg-blue-100 px-1 rounded">123456789:ABCdefGHIjklMNOpqrsTUVwxyz</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Token验证按钮和状态 -->
+              <div class="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  @click="verifyToken"
+                  :disabled="!formData.token.trim() || verifying"
+                  class="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Loader2 v-if="verifying" class="w-4 h-4 animate-spin" />
+                  <CheckCircle v-else class="w-4 h-4" />
+                  {{ verifying ? '验证中...' : '验证Token' }}
+                </button>
+                
+                <!-- 验证状态显示 -->
+                <div v-if="tokenVerifyStatus" class="flex items-center gap-2 text-sm">
+                  <CheckCircle v-if="tokenVerifyStatus === 'success'" class="w-4 h-4 text-green-600" />
+                  <XCircle v-else class="w-4 h-4 text-red-600" />
+                  <span :class="tokenVerifyStatus === 'success' ? 'text-green-600' : 'text-red-600'">
+                    {{ tokenVerifyMessage }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- 验证成功后显示机器人信息 -->
+              <div v-if="botInfo" class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                  <Bot class="w-4 h-4 text-green-600" />
+                  <span class="text-sm font-medium text-green-800">机器人信息已获取</span>
+                </div>
+                <div class="text-sm text-green-700 space-y-1">
+                  <div><strong>名称:</strong> {{ botInfo.first_name }}</div>
+                  <div><strong>用户名:</strong> @{{ botInfo.username }}</div>
+                  <div v-if="botInfo.description"><strong>描述:</strong> {{ botInfo.description }}</div>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -130,17 +187,211 @@
               <h4 class="text-lg font-semibold text-gray-900">高级设置</h4>
             </div>
             
+            <!-- 工作模式选择 -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Webhook URL
+              <label class="block text-sm font-medium text-gray-700 mb-3">
+                工作模式
               </label>
-              <input
-                v-model="formData.webhook_url"
-                type="url"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="输入 Webhook URL（可选）"
-              />
-              <p class="text-xs text-gray-500 mt-1">Telegram将向此URL发送消息更新，用于接收用户消息和命令</p>
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div
+                  @click="formData.work_mode = 'polling'"
+                  :class="[
+                    'relative flex cursor-pointer rounded-lg border p-4 focus:outline-none',
+                    formData.work_mode === 'polling'
+                      ? 'border-blue-600 ring-2 ring-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  ]"
+                >
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <input
+                        :checked="formData.work_mode === 'polling'"
+                        name="work_mode"
+                        type="radio"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                    </div>
+                    <div class="ml-3">
+                      <div class="flex items-center gap-2">
+                        <Activity class="w-4 h-4 text-blue-600" />
+                        <span class="block text-sm font-medium text-gray-900">Polling 轮询</span>
+                      </div>
+                      <div class="block text-xs text-gray-500 mt-1">
+                        机器人主动轮询获取消息，适合开发环境
+                      </div>
+                      <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="flex items-center gap-1 text-green-600">
+                          <CheckCircle class="w-3 h-3" />
+                          本地开发
+                        </span>
+                        <span class="flex items-center gap-1 text-green-600">
+                          <CheckCircle class="w-3 h-3" />
+                          简单配置
+                        </span>
+                        <span class="flex items-center gap-1 text-amber-600">
+                          <AlertCircle class="w-3 h-3" />
+                          资源消耗
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  @click="formData.work_mode = 'webhook'"
+                  :class="[
+                    'relative flex cursor-pointer rounded-lg border p-4 focus:outline-none',
+                    formData.work_mode === 'webhook'
+                      ? 'border-blue-600 ring-2 ring-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  ]"
+                >
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <input
+                        :checked="formData.work_mode === 'webhook'"
+                        name="work_mode"
+                        type="radio"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                    </div>
+                    <div class="ml-3">
+                      <div class="flex items-center gap-2">
+                        <Globe class="w-4 h-4 text-blue-600" />
+                        <span class="block text-sm font-medium text-gray-900">Webhook 推送</span>
+                      </div>
+                      <div class="block text-xs text-gray-500 mt-1">
+                        Telegram主动推送消息，适合生产环境
+                      </div>
+                      <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="flex items-center gap-1 text-green-600">
+                          <CheckCircle class="w-3 h-3" />
+                          高性能
+                        </span>
+                        <span class="flex items-center gap-1 text-green-600">
+                          <CheckCircle class="w-3 h-3" />
+                          实时性
+                        </span>
+                        <span class="flex items-center gap-1 text-amber-600">
+                          <AlertCircle class="w-3 h-3" />
+                          需HTTPS
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Webhook配置 -->
+            <div v-if="formData.work_mode === 'webhook'" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Webhook URL <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="formData.webhook_url"
+                  type="url"
+                  :required="formData.work_mode === 'webhook'"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://your-domain.com/api/telegram/webhook"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                  必须是HTTPS地址，Telegram将向此URL发送消息更新
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Secret Token
+                </label>
+                <input
+                  v-model="formData.webhook_secret"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="可选的安全验证Token"
+                  maxlength="256"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                  用于验证请求来源的密钥，建议填写以增强安全性
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  最大并发连接数
+                </label>
+                <select
+                  v-model="formData.max_connections"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="10">10 - 测试环境（1-100用户）</option>
+                  <option value="20">20 - 小型应用（100-500用户）</option>
+                  <option value="40" selected>40 - 推荐配置（500-2000用户）</option>
+                  <option value="60">60 - 活跃机器人（2000-5000用户）</option>
+                  <option value="80">80 - 大型应用（5000-10000用户）</option>
+                  <option value="100">100 - 最大值（10000+用户）</option>
+                </select>
+                
+                <!-- 详细说明 -->
+                <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-start gap-2">
+                    <Info class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div class="text-sm text-blue-800">
+                      <div class="font-medium mb-1">什么是并发连接数？</div>
+                      <div class="text-blue-700 space-y-1">
+                        <div>• <strong>不是用户数量限制</strong>：机器人可以服务无限数量的用户</div>
+                        <div>• <strong>是技术连接数</strong>：Telegram服务器同时向您服务器发送HTTP请求的数量</div>
+                        <div>• <strong>影响响应速度</strong>：连接数越高，处理消息越快，但消耗服务器资源更多</div>
+                        <div>• <strong>建议从40开始</strong>：可根据实际使用情况调整</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Webhook配置提示 -->
+              <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-start gap-2">
+                  <AlertTriangle class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div class="text-sm text-amber-800">
+                    <div class="font-medium mb-2">Webhook 模式技术要求：</div>
+                    <ul class="list-disc list-inside space-y-1 text-amber-700">
+                      <li>服务器必须具有有效的SSL证书</li>
+                      <li>URL必须使用HTTPS协议</li>
+                      <li>端口必须是 443、80、88、8443 之一</li>
+                      <li>服务器必须在30秒内响应Telegram请求</li>
+                    </ul>
+                    <div class="mt-2 pt-2 border-t border-amber-300">
+                      <div class="font-medium text-amber-800">性能优势：</div>
+                      <div class="text-amber-700 text-xs mt-1">
+                        • 实时消息推送，无延迟  • 节省服务器资源，无需轮询  • 适合生产环境和高并发场景
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Polling配置说明 -->
+            <div v-else class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-start gap-2">
+                <Info class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div class="text-sm text-blue-800">
+                  <div class="font-medium mb-2">Polling 模式特点：</div>
+                  <div class="text-blue-700 space-y-1">
+                    <div>• <strong>简单易用</strong>：无需HTTPS域名和SSL证书配置</div>
+                    <div>• <strong>开发友好</strong>：适合本地开发和测试环境</div>
+                    <div>• <strong>稳定可靠</strong>：网络故障时自动重连，故障恢复能力强</div>
+                  </div>
+                  <div class="mt-2 pt-2 border-t border-blue-300">
+                    <div class="font-medium text-blue-800">性能说明：</div>
+                    <div class="text-blue-700 text-xs mt-1">
+                      • 消息延迟1-3秒（轮询间隔）  • 适合中小型机器人（&lt;5000用户）  • 服务器会持续轮询消耗资源
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -230,7 +481,10 @@
 <script setup lang="ts">
 import NetworkSelector from '@/components/NetworkSelector.vue'
 import type { TronNetwork } from '@/types/network'
-import { Bot, Eye, EyeOff, Loader2, Network, Settings, X } from 'lucide-vue-next'
+import {
+    Activity, AlertCircle, AlertTriangle, Bot, CheckCircle, Eye, EyeOff,
+    Globe, Info, Loader2, Network, Settings, X, XCircle
+} from 'lucide-vue-next'
 import { computed, reactive, ref, watch } from 'vue'
 
 // Props
@@ -249,6 +503,10 @@ const emit = defineEmits<{
 // 响应式数据
 const saving = ref(false)
 const showPassword = ref(false)
+const verifying = ref(false)
+const tokenVerifyStatus = ref<'success' | 'error' | null>(null)
+const tokenVerifyMessage = ref('')
+const botInfo = ref<any>(null)
 
 // 表单数据
 const formData = reactive({
@@ -257,7 +515,10 @@ const formData = reactive({
   token: '',
   description: '',
   network_id: '',
+  work_mode: 'polling', // 默认使用polling模式
   webhook_url: '',
+  webhook_secret: '',
+  max_connections: 40,
   welcome_message: '欢迎使用TRON能量租赁机器人！🚀',
   help_message: '这里是帮助信息，您可以通过以下命令使用机器人...',
   is_active: true
@@ -265,7 +526,7 @@ const formData = reactive({
 
 // 表单验证
 const isFormValid = computed(() => {
-  return !!(
+  const basicValid = !!(
     formData.name.trim() &&
     formData.username.trim() &&
     formData.token.trim() &&
@@ -276,7 +537,71 @@ const isFormValid = computed(() => {
     /^[a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9]$/.test(formData.username) &&
     /^\d+:[a-zA-Z0-9_-]+$/.test(formData.token)
   )
+  
+  // 如果选择webhook模式，需要验证webhook_url
+  if (formData.work_mode === 'webhook') {
+    return basicValid && !!(formData.webhook_url.trim() && isValidWebhookUrl(formData.webhook_url))
+  }
+  
+  return basicValid
 })
+
+// Webhook URL验证
+const isValidWebhookUrl = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url)
+    return parsedUrl.protocol === 'https:' && parsedUrl.hostname !== 'localhost'
+  } catch {
+    return false
+  }
+}
+
+// Token验证函数
+const verifyToken = async () => {
+  if (!formData.token.trim()) {
+    return
+  }
+  
+  try {
+    verifying.value = true
+    tokenVerifyStatus.value = null
+    tokenVerifyMessage.value = ''
+    botInfo.value = null
+    
+    const response = await fetch('/api/bots/verify-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token: formData.token })
+    })
+    
+    const result = await response.json()
+    
+    if (response.ok && result.success) {
+      tokenVerifyStatus.value = 'success'
+      tokenVerifyMessage.value = 'Token验证成功'
+      botInfo.value = result.data.botInfo
+      
+      // 自动填充机器人信息（安全访问）
+      if (result.data.botInfo && result.data.botInfo.first_name && !formData.name.trim()) {
+        formData.name = result.data.botInfo.first_name
+      }
+      if (result.data.botInfo && result.data.botInfo.username && !formData.username.trim()) {
+        formData.username = result.data.botInfo.username
+      }
+    } else {
+      tokenVerifyStatus.value = 'error'
+      tokenVerifyMessage.value = result.message || 'Token验证失败'
+    }
+  } catch (error: any) {
+    console.error('Token验证失败:', error)
+    tokenVerifyStatus.value = 'error'
+    tokenVerifyMessage.value = '网络错误，请稍后重试'
+  } finally {
+    verifying.value = false
+  }
+}
 
 // 网络选择处理
 const handleNetworkChange = (network: TronNetwork | null) => {
@@ -296,13 +621,20 @@ const resetForm = () => {
     token: '',
     description: '',
     network_id: '',
+    work_mode: 'polling', // 重置为默认polling模式
     webhook_url: '',
+    webhook_secret: '',
+    max_connections: 40,
     welcome_message: '欢迎使用TRON能量租赁机器人！🚀',
     help_message: '这里是帮助信息，您可以通过以下命令使用机器人...',
     is_active: true
   })
   
   showPassword.value = false
+  verifying.value = false
+  tokenVerifyStatus.value = null
+  tokenVerifyMessage.value = ''
+  botInfo.value = null
 }
 
 // 事件处理

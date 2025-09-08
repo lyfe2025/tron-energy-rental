@@ -85,8 +85,11 @@ export interface BotError {
 export interface BotConfig {
   token: string;
   polling?: boolean;
-  webhook?: {
+  webhook?: boolean;
+  webhookConfig?: {
     url: string;
-    port: number;
+    secret?: string;
+    maxConnections?: number;
+    port?: number;
   };
 }

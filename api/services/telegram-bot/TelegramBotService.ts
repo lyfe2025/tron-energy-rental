@@ -4,12 +4,12 @@
  * 支持从数据库读取配置
  */
 import TelegramBot from 'node-telegram-bot-api';
+import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../config/ConfigService.js';
 import { CallbackHandler } from './callbacks/CallbackHandler.js';
 import { CommandHandler } from './commands/CommandHandler.js';
 import { KeyboardBuilder } from './keyboards/KeyboardBuilder.js';
 import type { BotConfig } from './types/bot.types.js';
 import { BotUtils } from './utils/BotUtils.js';
-import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../config/ConfigService.js';
 
 export class TelegramBotService {
   private bot: TelegramBot;
@@ -27,6 +27,7 @@ export class TelegramBotService {
     this.config = {
       token: config?.token || 'temp-token',
       polling: config?.polling !== false,
+      webhook: false,
       ...config
     };
 
@@ -54,11 +55,26 @@ export class TelegramBotService {
 
       // 更新配置
       this.config.token = this.botConfig.botToken;
-
-      // 初始化机器人实例
-      this.bot = new TelegramBot(this.config.token, { 
-        polling: this.config.polling 
-      });
+      
+      // 根据工作模式配置机器人
+      const workMode = this.botConfig.workMode || 'polling';
+      
+      if (workMode === 'webhook') {
+        this.config.polling = false;
+        this.config.webhook = true;
+        // Webhook模式下不启用轮询
+        this.bot = new TelegramBot(this.config.token, { 
+          polling: false,
+          webHook: false  // 暂不自动设置webhook，由管理员手动配置
+        });
+      } else {
+        this.config.polling = true;
+        this.config.webhook = false;
+        // Polling模式
+        this.bot = new TelegramBot(this.config.token, { 
+          polling: this.config.polling 
+        });
+      }
 
       // 初始化各个处理模块
       this.commandHandler = new CommandHandler(this.bot);
@@ -491,5 +507,164 @@ export class TelegramBotService {
       memoryUsage: process.memoryUsage(),
       // 其他统计信息...
     };
+  }
+
+  /**
+   * 动态切换机器人工作模式
+   */
+  async switchWorkMode(mode: 'polling' | 'webhook', webhookConfig?: {
+    url?: string;
+    secret?: string;
+    maxConnections?: number;
+  }): Promise<boolean> {
+    try {
+      console.log(`🔄 切换机器人工作模式到: ${mode}`);
+      
+      // 如果当前有机器人实例，先停止
+      if (this.bot) {
+        try {
+          if (this.config.polling) {
+            await this.bot.stopPolling();
+            console.log('✅ 已停止轮询模式');
+          }
+          if (this.config.webhook && webhookConfig?.url) {
+            await this.bot.deleteWebHook();
+            console.log('✅ 已删除Webhook');
+          }
+        } catch (error) {
+          console.warn('⚠️ 停止当前模式时出现警告:', error);
+        }
+      }
+      
+      // 更新配置
+      this.config.polling = mode === 'polling';
+      this.config.webhook = mode === 'webhook';
+      
+      // 重新创建机器人实例
+      if (mode === 'webhook') {
+        this.bot = new TelegramBot(this.config.token, {
+          polling: false,
+          webHook: false
+        });
+        
+        // 如果提供了webhook配置，设置webhook
+        if (webhookConfig?.url) {
+          const options: any = {
+            max_connections: webhookConfig.maxConnections || 40,
+            allowed_updates: ['message', 'callback_query'],
+            drop_pending_updates: true
+          };
+          
+          if (webhookConfig.secret) {
+            options.secret_token = webhookConfig.secret;
+          }
+          
+          await this.bot.setWebHook(webhookConfig.url, options);
+          console.log('✅ Webhook已设置:', webhookConfig.url);
+        }
+      } else {
+        // Polling模式
+        this.bot = new TelegramBot(this.config.token, {
+          polling: true
+        });
+        console.log('✅ 轮询模式已启动');
+      }
+      
+      // 重新初始化处理器
+      this.commandHandler = new CommandHandler(this.bot);
+      this.callbackHandler = new CallbackHandler(this.bot);
+      this.keyboardBuilder = new KeyboardBuilder(this.bot);
+      this.botUtils = new BotUtils(this.bot);
+      
+      // 重新设置处理器
+      this.setupHandlers();
+      this.setupErrorHandling();
+      
+      console.log(`✅ 机器人已成功切换到 ${mode} 模式`);
+      return true;
+      
+    } catch (error) {
+      console.error(`❌ 切换到 ${mode} 模式失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 获取当前工作模式
+   */
+  getCurrentWorkMode(): 'polling' | 'webhook' | 'unknown' {
+    if (this.config.polling) return 'polling';
+    if (this.config.webhook) return 'webhook';
+    return 'unknown';
+  }
+
+  /**
+   * 检查机器人是否支持某种工作模式
+   */
+  async canSwitchToMode(mode: 'polling' | 'webhook'): Promise<{ canSwitch: boolean; reason?: string }> {
+    try {
+      if (!this.bot) {
+        return { canSwitch: false, reason: '机器人实例未初始化' };
+      }
+      
+      if (mode === 'webhook') {
+        // 检查是否有有效的Token
+        if (!this.config.token || this.config.token === 'temp-token') {
+          return { canSwitch: false, reason: '无效的Bot Token' };
+        }
+        
+        // 测试Token是否有效
+        try {
+          await this.bot.getMe();
+        } catch (error) {
+          return { canSwitch: false, reason: 'Bot Token无效或已过期' };
+        }
+      }
+      
+      return { canSwitch: true };
+      
+    } catch (error) {
+      return { canSwitch: false, reason: `检查失败: ${error.message}` };
+    }
+  }
+
+  /**
+   * 获取Webhook信息（增强版，支持模式检查）
+   */
+  async getWebhookInfoEnhanced(): Promise<any> {
+    if (!this.bot) {
+      throw new Error('机器人实例未初始化');
+    }
+    
+    if (this.getCurrentWorkMode() !== 'webhook') {
+      throw new Error('当前不是Webhook模式');
+    }
+    
+    return await this.bot.getWebHookInfo();
+  }
+
+  /**
+   * 设置Webhook（仅webhook模式）
+   */
+  async setWebhookUrl(url: string, options?: {
+    secret?: string;
+    maxConnections?: number;
+    allowedUpdates?: string[];
+  }): Promise<boolean> {
+    if (!this.bot) {
+      throw new Error('机器人实例未初始化');
+    }
+    
+    const webhookOptions: any = {
+      max_connections: options?.maxConnections || 40,
+      allowed_updates: options?.allowedUpdates || ['message', 'callback_query'],
+      drop_pending_updates: true
+    };
+    
+    if (options?.secret) {
+      webhookOptions.secret_token = options.secret;
+    }
+    
+    return await this.bot.setWebHook(url, webhookOptions);
   }
 }
