@@ -160,9 +160,8 @@ export function useBotOperations() {
       // 乐观更新
       bot.is_active = targetStatus
       
-      const response = await botsAPI.updateBot(bot.id, {
-        is_active: targetStatus
-      })
+      // 使用专门的状态更新API，避免触发复杂的同步流程
+      const response = await botsAPI.updateBotStatus(bot.id, targetStatus ? 'active' : 'inactive')
       
       if (response.data.success) {
         toast.success(`机器人${targetStatus ? '启用' : '停用'}成功`)
