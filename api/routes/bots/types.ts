@@ -20,12 +20,27 @@ export interface Bot {
   updated_at: string;
 }
 
+// 自定义命令接口
+export interface CustomCommand {
+  command: string;
+  response_message: string;
+  is_enabled: boolean;
+}
+
+// 菜单命令接口
+export interface MenuCommand {
+  command: string;
+  description: string;
+}
+
 // 机器人创建数据接口
 export interface CreateBotData {
   name: string;
   username: string;
   token: string;
   description?: string;
+  short_description?: string;
+  network_id?: string;
   work_mode?: 'polling' | 'webhook';
   webhook_url?: string;
   webhook_secret?: string;
@@ -33,7 +48,14 @@ export interface CreateBotData {
   settings?: Record<string, any>;
   welcome_message?: string;
   help_message?: string;
-  commands?: string[];
+  custom_commands?: CustomCommand[];
+  menu_button_enabled?: boolean;
+  menu_button_text?: string;
+  menu_type?: 'commands' | 'web_app';
+  web_app_url?: string;
+  menu_commands?: MenuCommand[];
+  keyboard_config?: any;
+  is_active?: boolean;
 }
 
 // 机器人更新数据接口
@@ -42,6 +64,8 @@ export interface UpdateBotData {
   username?: string;
   token?: string;
   description?: string;
+  short_description?: string;
+  network_id?: string;
   work_mode?: 'polling' | 'webhook';
   webhook_url?: string;
   webhook_secret?: string;
@@ -49,7 +73,14 @@ export interface UpdateBotData {
   settings?: Record<string, any>;
   welcome_message?: string;
   help_message?: string;
-  commands?: string[];
+  custom_commands?: CustomCommand[];
+  menu_button_enabled?: boolean;
+  menu_button_text?: string;
+  menu_type?: 'commands' | 'web_app';
+  web_app_url?: string;
+  menu_commands?: MenuCommand[];
+  keyboard_config?: any;
+  is_active?: boolean;
 }
 
 // 机器人模式切换接口

@@ -11,7 +11,7 @@ export class ConfigCacheService extends EventEmitter {
   private cache: Map<string, any> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
-  private readonly ENCRYPTION_KEY = process.env.CONFIG_ENCRYPTION_KEY || 'default-key-change-in-production';
+  private readonly ENCRYPTION_KEY = this.getEncryptionKey();
   private readonly ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
   constructor() {
@@ -19,13 +19,48 @@ export class ConfigCacheService extends EventEmitter {
   }
 
   /**
+   * 获取正确长度的加密密钥
+   */
+  private getEncryptionKey(): Buffer {
+    const key = process.env.CONFIG_ENCRYPTION_KEY || 'default-key-change-in-production';
+    // AES-256需要32字节的密钥
+    const hash = crypto.createHash('sha256').update(key).digest();
+    return hash;
+  }
+
+  /**
    * 解密敏感信息
    */
   decrypt(encryptedData: string): string {
     try {
-      const data = JSON.parse(encryptedData);
-      const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, this.ENCRYPTION_KEY, data.iv);
-      decipher.setAuthTag(data.authTag);
+      // 如果数据为空或null，直接返回
+      if (!encryptedData) {
+        return encryptedData;
+      }
+      
+      // 首先检查是否是JSON格式的加密数据
+      if (!encryptedData.startsWith('{')) {
+        // 如果不是JSON格式，说明是原始数据，直接返回
+        return encryptedData;
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(encryptedData);
+      } catch (parseError) {
+        // JSON解析失败，说明不是有效的JSON，返回原始数据
+        console.warn('JSON解析失败，返回原始数据:', parseError.message);
+        return encryptedData;
+      }
+      
+      // 检查是否包含加密数据所需的字段
+      if (!data.encryptedData || !data.iv || !data.authTag) {
+        // 如果不包含加密字段，说明不是加密数据，返回原始字符串
+        return encryptedData;
+      }
+      
+      const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, this.ENCRYPTION_KEY, Buffer.from(data.iv, 'hex'));
+      decipher.setAuthTag(Buffer.from(data.authTag, 'hex'));
       let decrypted = decipher.update(data.encryptedData, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;

@@ -385,7 +385,15 @@ export class TronService {
 }
 
 // 创建默认实例（使用数据库配置）
-export const tronService = new TronService();
+// 延迟初始化，避免模块加载时阻塞
+let _tronService: TronService | null = null;
+
+export const tronService = (() => {
+  if (!_tronService) {
+    _tronService = new TronService();
+  }
+  return _tronService;
+})();
 
 // 创建传统配置实例的工厂函数
 export function createTronServiceWithConfig(config: TronConfig): TronService {

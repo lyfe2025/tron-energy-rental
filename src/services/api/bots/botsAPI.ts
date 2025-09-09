@@ -14,11 +14,29 @@ export interface CreateBotData {
   username: string
   token: string
   description?: string
+  network_id?: string
+  work_mode?: 'polling' | 'webhook'
   webhook_url?: string
+  webhook_secret?: string
+  max_connections?: number
   settings?: unknown
   welcome_message?: string
   help_message?: string
-  commands?: unknown[]
+  custom_commands?: Array<{
+    command: string
+    response_message: string
+    is_enabled: boolean
+  }>
+  menu_button_enabled?: boolean
+  menu_button_text?: string
+  menu_type?: 'commands' | 'web_app'
+  web_app_url?: string
+  menu_commands?: Array<{
+    command: string
+    description: string
+  }>
+  keyboard_config?: unknown
+  is_active?: boolean
 }
 
 
@@ -35,6 +53,21 @@ export interface BotDetailResponse {
 
 export interface BotOperationResponse {
   bot: Bot
+  syncStatus?: {
+    nameSync?: boolean | null
+    descriptionSync?: boolean | null
+    commandsSync?: boolean | null
+    shortDescriptionSync?: boolean | null
+    menuButtonSync?: boolean | null
+    keyboardSync?: boolean | null
+    nameSyncError?: string | null
+    descriptionSyncError?: string | null
+    commandsSyncError?: string | null
+    shortDescriptionSyncError?: string | null
+    menuButtonSyncError?: string | null
+    keyboardSyncError?: string | null
+  }
+  syncLogs?: string[]
 }
 
 export interface BotTestResponse {
@@ -57,6 +90,12 @@ export const botsAPI = {
    * 获取机器人详情
    */
   getBot: (id: string) => 
+    apiClient.get<ApiResponse<BotDetailResponse>>(`/api/bots/${id}`),
+
+  /**
+   * 根据ID获取机器人详情（别名方法）
+   */
+  getBotById: (id: string) => 
     apiClient.get<ApiResponse<BotDetailResponse>>(`/api/bots/${id}`),
   
   /**

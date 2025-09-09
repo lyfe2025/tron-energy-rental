@@ -1,18 +1,18 @@
 import pool from '../config/database'
 import {
-    validateEnergyFlashConfig,
-    validateTransactionPackageConfig,
-    validateTrxExchangeConfig,
-    validateVipPackageConfig
+  validateEnergyFlashConfig,
+  validateTransactionPackageConfig,
+  validateTrxExchangeConfig
 } from '../middleware/validation'
 import { logger } from '../utils/logger'
 
 export interface PriceConfig {
   id: string
-  mode_type: 'energy_flash' | 'transaction_package' | 'vip_package' | 'trx_exchange'
+  mode_type: 'energy_flash' | 'transaction_package' | 'trx_exchange'
   name: string
   description: string
   config: any
+  inline_keyboard_config?: any
   is_active: boolean
   created_by: string
   created_at: Date
@@ -24,6 +24,7 @@ export interface CreatePriceConfigData {
   name: string
   description: string
   config: any
+  inline_keyboard_config?: any
   is_active: boolean
   created_by: string
 }
@@ -32,6 +33,7 @@ export interface UpdatePriceConfigData {
   name?: string
   description?: string
   config?: any
+  inline_keyboard_config?: any
 }
 
 export class PriceConfigService {
@@ -39,8 +41,8 @@ export class PriceConfigService {
   async getAllConfigs(): Promise<PriceConfig[]> {
     try {
       const query = `
-        SELECT id, mode_type, name, description, config, is_active, 
-               created_by, created_at, updated_at
+        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               is_active, created_by, created_at, updated_at
         FROM price_configs
         ORDER BY created_at DESC
       `
@@ -56,8 +58,8 @@ export class PriceConfigService {
   async getConfigByMode(modeType: string): Promise<PriceConfig | null> {
     try {
       const query = `
-        SELECT id, mode_type, name, description, config, is_active, 
-               created_by, created_at, updated_at
+        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               is_active, created_by, created_at, updated_at
         FROM price_configs
         WHERE mode_type = $1
       `
@@ -73,8 +75,8 @@ export class PriceConfigService {
   async getActiveConfigs(): Promise<PriceConfig[]> {
     try {
       const query = `
-        SELECT id, mode_type, name, description, config, is_active, 
-               created_by, created_at, updated_at
+        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               is_active, created_by, created_at, updated_at
         FROM price_configs
         WHERE is_active = true
         ORDER BY mode_type
@@ -91,16 +93,17 @@ export class PriceConfigService {
   async createConfig(data: CreatePriceConfigData): Promise<PriceConfig> {
     try {
       const query = `
-        INSERT INTO price_configs (mode_type, name, description, config, is_active, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, mode_type, name, description, config, is_active, 
-                  created_by, created_at, updated_at
+        INSERT INTO price_configs (mode_type, name, description, config, inline_keyboard_config, is_active, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  is_active, created_by, created_at, updated_at
       `
       const values = [
         data.mode_type,
         data.name,
         data.description,
         JSON.stringify(data.config),
+        data.inline_keyboard_config ? JSON.stringify(data.inline_keyboard_config) : null,
         data.is_active,
         data.created_by
       ]
@@ -135,6 +138,11 @@ export class PriceConfigService {
         values.push(JSON.stringify(data.config))
       }
 
+      if (data.inline_keyboard_config !== undefined) {
+        setParts.push(`inline_keyboard_config = $${paramIndex++}`)
+        values.push(data.inline_keyboard_config ? JSON.stringify(data.inline_keyboard_config) : null)
+      }
+
       if (setParts.length === 0) {
         throw new Error('No fields to update')
       }
@@ -146,8 +154,8 @@ export class PriceConfigService {
         UPDATE price_configs 
         SET ${setParts.join(', ')}
         WHERE mode_type = $${paramIndex}
-        RETURNING id, mode_type, name, description, config, is_active, 
-                  created_by, created_at, updated_at
+        RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  is_active, created_by, created_at, updated_at
       `
 
       const result = await pool.query(query, values)
@@ -165,8 +173,8 @@ export class PriceConfigService {
         UPDATE price_configs 
         SET is_active = $1, updated_at = CURRENT_TIMESTAMP
         WHERE mode_type = $2
-        RETURNING id, mode_type, name, description, config, is_active, 
-                  created_by, created_at, updated_at
+        RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  is_active, created_by, created_at, updated_at
       `
       const result = await pool.query(query, [isActive, modeType])
       return result.rows[0] || null
@@ -204,10 +212,6 @@ export class PriceConfigService {
     return config?.is_active ? config.config : null
   }
 
-  async getVipPackageConfig(): Promise<any | null> {
-    const config = await this.getConfigByMode('vip_package')
-    return config?.is_active ? config.config : null
-  }
 
   // 验证配置数据格式
   validateConfigData(modeType: string, config: any): boolean {
@@ -220,9 +224,6 @@ export class PriceConfigService {
           break
         case 'transaction_package':
           errors = validateTransactionPackageConfig(config)
-          break
-        case 'vip_package':
-          errors = validateVipPackageConfig(config)
           break
         case 'trx_exchange':
           errors = validateTrxExchangeConfig(config)
@@ -239,6 +240,61 @@ export class PriceConfigService {
     } catch (error) {
       logger.error('Config validation error:', error)
       return false
+    }
+  }
+
+  // 获取指定模式类型的内嵌键盘配置
+  async getInlineKeyboardConfig(modeType: string): Promise<any | null> {
+    try {
+      const config = await this.getConfigByMode(modeType)
+      if (!config?.is_active || !config.inline_keyboard_config) {
+        return null
+      }
+      return config.inline_keyboard_config
+    } catch (error) {
+      logger.error('Get inline keyboard config error:', error)
+      throw error
+    }
+  }
+
+  // 更新指定模式类型的内嵌键盘配置
+  async updateInlineKeyboardConfig(modeType: string, keyboardConfig: any): Promise<PriceConfig | null> {
+    try {
+      return await this.updateConfig(modeType, { inline_keyboard_config: keyboardConfig })
+    } catch (error) {
+      logger.error('Update inline keyboard config error:', error)
+      throw error
+    }
+  }
+
+  // 检查内嵌键盘是否启用
+  async isInlineKeyboardEnabled(modeType: string): Promise<boolean> {
+    try {
+      const keyboardConfig = await this.getInlineKeyboardConfig(modeType)
+      return keyboardConfig?.enabled === true
+    } catch (error) {
+      logger.error('Check inline keyboard enabled error:', error)
+      return false
+    }
+  }
+
+  // 获取所有启用内嵌键盘的配置
+  async getConfigsWithInlineKeyboard(): Promise<PriceConfig[]> {
+    try {
+      const query = `
+        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               is_active, created_by, created_at, updated_at
+        FROM price_configs
+        WHERE is_active = true 
+          AND inline_keyboard_config IS NOT NULL 
+          AND inline_keyboard_config->>'enabled' = 'true'
+        ORDER BY mode_type
+      `
+      const result = await pool.query(query)
+      return result.rows
+    } catch (error) {
+      logger.error('Get configs with inline keyboard error:', error)
+      throw error
     }
   }
 }

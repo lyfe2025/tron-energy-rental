@@ -3,7 +3,7 @@ import { api } from '../utils/api'
 
 export interface PriceConfig {
   id: string
-  mode_type: 'energy_flash' | 'transaction_package' | 'vip_package' | 'trx_exchange'
+  mode_type: 'energy_flash' | 'transaction_package' | 'trx_exchange'
   name: string
   description: string
   config: any
@@ -34,19 +34,6 @@ export interface TransactionPackageConfig {
   }>
 }
 
-export interface VipPackageConfig {
-  packages: Array<{
-    name: string
-    duration_days: number
-    price: number
-    currency: string
-    benefits: {
-      unlimited_transactions: boolean
-      priority_support: boolean
-      no_daily_fee: boolean
-    }
-  }>
-}
 
 export interface TrxExchangeConfig {
   exchange_address: string
@@ -173,11 +160,6 @@ export function usePriceConfig() {
     return config ? config.config : null
   }
 
-  // 获取VIP套餐配置
-  const getVipPackageConfig = (): VipPackageConfig | null => {
-    const config = getConfig('vip_package')
-    return config ? config.config : null
-  }
 
   // 获取TRX闪兑配置
   const getTrxExchangeConfig = (): TrxExchangeConfig | null => {
@@ -197,7 +179,6 @@ export function usePriceConfig() {
     deleteConfig,
     getEnergyFlashConfig,
     getTransactionPackageConfig,
-    getVipPackageConfig,
     getTrxExchangeConfig
   }
 }

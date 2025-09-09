@@ -17,7 +17,7 @@ export const validatePriceConfig = (req: Request, res: Response, next: NextFunct
     }
 
     // 验证模式类型
-    const validModeTypes = ['energy_flash', 'transaction_package', 'vip_package']
+    const validModeTypes = ['energy_flash', 'transaction_package']
     if (!validModeTypes.includes(mode_type)) {
       return res.status(400).json({
         error: 'Invalid mode_type',
@@ -47,7 +47,7 @@ export const validateModeType = (req: Request, res: Response, next: NextFunction
   try {
     const { modeType } = req.params
     
-    const validModeTypes = ['energy_flash', 'transaction_package', 'vip_package', 'trx_exchange']
+    const validModeTypes = ['energy_flash', 'transaction_package', 'trx_exchange']
     if (!validModeTypes.includes(modeType)) {
       return res.status(400).json({
         error: 'Invalid mode_type',
@@ -233,43 +233,6 @@ export const validateTransactionPackageConfig = (config: any): string[] => {
       }
       if (typeof pkg.price !== 'number' || pkg.price <= 0) {
         errors.push(`packages[${index}].price must be a positive number`)
-      }
-    })
-  }
-
-  return errors
-}
-
-// 验证VIP套餐配置
-export const validateVipPackageConfig = (config: any): string[] => {
-  const errors: string[] = []
-
-  if (!Array.isArray(config.packages)) {
-    errors.push('packages must be an array')
-  } else {
-    config.packages.forEach((pkg: any, index: number) => {
-      if (typeof pkg.name !== 'string' || !pkg.name.trim()) {
-        errors.push(`packages[${index}].name must be a non-empty string`)
-      }
-      if (typeof pkg.duration_days !== 'number' || pkg.duration_days <= 0) {
-        errors.push(`packages[${index}].duration_days must be a positive number`)
-      }
-      if (typeof pkg.price !== 'number' || pkg.price <= 0) {
-        errors.push(`packages[${index}].price must be a positive number`)
-      }
-      
-      if (typeof pkg.benefits !== 'object' || pkg.benefits === null) {
-        errors.push(`packages[${index}].benefits must be an object`)
-      } else {
-        if (typeof pkg.benefits.unlimited_transactions !== 'boolean') {
-          errors.push(`packages[${index}].benefits.unlimited_transactions must be a boolean`)
-        }
-        if (typeof pkg.benefits.priority_support !== 'boolean') {
-          errors.push(`packages[${index}].benefits.priority_support must be a boolean`)
-        }
-        if (typeof pkg.benefits.no_daily_fee !== 'boolean') {
-          errors.push(`packages[${index}].benefits.no_daily_fee must be a boolean`)
-        }
       }
     })
   }

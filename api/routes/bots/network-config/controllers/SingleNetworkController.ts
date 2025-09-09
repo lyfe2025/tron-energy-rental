@@ -131,17 +131,8 @@ export const setBotNetwork: RouteHandler = async (req: Request, res: Response) =
       monitoring_settings = {}
     } = req.body;
     
-    console.log('setBotNetwork 请求参数:', {
-      botId: id,
-      networkId: network_id,
-      isPrimary: is_primary,
-      isActive: is_active,
-      body: req.body
-    });
-
     // 验证必需字段
     if (!network_id) {
-      console.log('验证失败: 网络ID为空');
       return res.status(400).json({
         success: false,
         message: '网络ID不能为空'
@@ -192,13 +183,14 @@ export const setBotNetwork: RouteHandler = async (req: Request, res: Response) =
       updated_at: new Date().toISOString()
     };
     
-    // 直接更新机器人的网络配置，避免函数重载问题
+    // 直接更新机器人的网络配置，同时更新network_id字段
     const updateResult = await query(
       `UPDATE telegram_bots 
        SET network_configurations = JSONB_BUILD_ARRAY($2::jsonb),
+           network_id = $3::uuid,
            updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1::uuid`,
-      [id, JSON.stringify(newNetworkConfig)]
+      [id, JSON.stringify(newNetworkConfig), network_id]
     );
     
     if (updateResult.rowCount === 0) {
@@ -237,16 +229,9 @@ export const setBotNetwork: RouteHandler = async (req: Request, res: Response) =
     
   } catch (error) {
     console.error('设置机器人网络配置错误:', error);
-    console.error('错误详情:', {
-      message: error.message,
-      stack: error.stack,
-      botId: req.params.id,
-      networkId: req.body.network_id
-    });
     res.status(500).json({
       success: false,
-      message: '服务器内部错误',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: '服务器内部错误'
     });
   }
 };

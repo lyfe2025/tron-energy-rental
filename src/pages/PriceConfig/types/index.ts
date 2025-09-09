@@ -7,6 +7,7 @@ export interface PriceConfig {
   mode_type: string
   is_active: boolean
   config: any
+  inline_keyboard_config?: any
   created_at: string
   updated_at: string
 }
@@ -55,30 +56,6 @@ export interface TransactionPackageConfigData {
   notes: string[]
 }
 
-export interface VipBenefits {
-  unlimited_transactions: boolean
-  priority_support: boolean
-  no_daily_fee: boolean
-}
-
-export interface VipPackage {
-  name: string
-  duration_days: number
-  price: number
-  currency: string
-  benefits: VipBenefits
-}
-
-export interface VipPackageDisplayTexts {
-  title: string
-  subtitle: string
-}
-
-export interface VipPackageConfigData {
-  packages: VipPackage[]
-  display_texts: VipPackageDisplayTexts
-  notes: string[]
-}
 
 export interface TrxExchangeDisplayTexts {
   title: string

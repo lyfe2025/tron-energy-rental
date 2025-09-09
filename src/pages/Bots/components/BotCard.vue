@@ -52,8 +52,9 @@
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-500">网络配置:</span>
           <div class="flex items-center gap-2">
+            <!-- 网络配置状态显示 -->
             <span 
-              v-if="bot.current_network"
+              v-if="bot.current_network && bot.current_network.name && bot.current_network.name.trim()"
               class="px-2 py-1 text-xs font-medium rounded-full"
               :class="getNetworkStatusColor(bot.current_network.status)"
             >
@@ -72,7 +73,7 @@
           <span class="text-gray-500">网络状态:</span>
           <div class="flex items-center gap-2">
             <div 
-              v-if="bot.current_network"
+              v-if="bot.current_network && bot.current_network.name && bot.current_network.name.trim()"
               class="flex items-center gap-1"
             >
               <div 
@@ -83,7 +84,7 @@
                 {{ bot.current_network.status === 'active' ? '正常' : '异常' }}
               </span>
               <span class="text-xs text-gray-500">
-                ({{ getNetworkTypeText(bot.current_network.type) }})
+                ({{ getNetworkTypeText(bot.current_network?.type || '') }})
               </span>
             </div>
             <span v-else class="text-xs text-gray-500">--</span>
@@ -127,6 +128,13 @@
     <!-- 卡片操作 -->
     <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex justify-between">
       <div class="flex space-x-2">
+        <button
+          @click="handlePreview"
+          class="px-2 py-1 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
+        >
+          <ExternalLink class="w-3 h-3" />
+          预览
+        </button>
         <button
           @click="$emit('edit', bot)"
           class="px-2 py-1 text-xs text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
@@ -185,7 +193,8 @@
 </template>
 
 <script setup lang="ts">
-import { Bot, Edit, MoreHorizontal, Network } from 'lucide-vue-next'
+import { Bot, Edit, ExternalLink, MoreHorizontal, Network } from 'lucide-vue-next'
+import { watch } from 'vue'
 
 // 类型定义
 interface CurrentNetwork {
@@ -232,6 +241,11 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// 监控网络配置变化
+watch(() => props.bot.current_network, (newVal, oldVal) => {
+  // 可根据需要添加特定的处理逻辑
+}, { immediate: true, deep: true })
+
 // 方法
 const handleSelect = (e: Event) => {
   const checked = (e.target as HTMLInputElement).checked
@@ -249,6 +263,16 @@ const toggleMenu = () => {
 const handleDropdownCommand = (command: string) => {
   props.bot.showMenu = false
   emit('dropdown-command', command, props.bot)
+}
+
+// 预览机器人
+const handlePreview = () => {
+  if (props.bot.username) {
+    const telegramUrl = `https://t.me/${props.bot.username}`
+    window.open(telegramUrl, '_blank')
+  } else {
+    console.warn('机器人用户名不存在，无法打开预览')
+  }
 }
 
 // 工具方法

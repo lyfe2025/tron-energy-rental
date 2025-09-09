@@ -83,6 +83,7 @@ export interface Bot {
   username: string
   token?: string
   description?: string
+  short_description?: string
   status: 'active' | 'inactive' | 'maintenance' | 'error'
   webhook_url?: string
   settings?: Record<string, unknown>
@@ -115,6 +116,7 @@ export interface CreateBotData {
   address: string
   type: string
   description: string
+  short_description?: string
   min_order_amount: number
   max_order_amount: number
   status: 'active' | 'inactive' | 'maintenance'
@@ -128,9 +130,28 @@ export interface UpdateBotData {
   address?: string
   type?: string
   description?: string
+  short_description?: string
+  work_mode?: 'polling' | 'webhook'
   webhook_url?: string
+  webhook_secret?: string
+  max_connections?: number
   welcome_message?: string
   help_message?: string
+  custom_commands?: Array<{
+    command: string
+    response_message: string
+    is_enabled: boolean
+  }>
+  menu_button_enabled?: boolean
+  menu_button_text?: string
+  menu_type?: 'commands' | 'web_app'
+  web_app_url?: string
+  menu_commands?: Array<{
+    command: string
+    description: string
+  }>
+  keyboard_config?: any
+  is_active?: boolean
   min_order_amount?: number
   max_order_amount?: number
   status?: 'active' | 'inactive' | 'maintenance'

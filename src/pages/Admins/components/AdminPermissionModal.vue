@@ -265,7 +265,7 @@ const loadPermissions = async () => {
     // 获取管理员权限（包含分组信息）
     const response = await fetch(`/api/admins/${props.admin.id}/permissions`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
         'Content-Type': 'application/json'
       }
     });

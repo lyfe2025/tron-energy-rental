@@ -3,6 +3,7 @@
  * 处理各种用户命令（/start, /menu, /help等）
  */
 import TelegramBot from 'node-telegram-bot-api';
+import { query } from '../../../config/database.js';
 import { orderService } from '../../order.js';
 import { UserService } from '../../user.js';
 
@@ -15,6 +16,25 @@ export class CommandHandler {
     this.bot = bot;
     this.userService = new UserService();
     this.orderService = orderService;
+  }
+
+  /**
+   * 获取活跃机器人配置
+   */
+  private async getActiveBotConfig(): Promise<any> {
+    try {
+      const result = await query(
+        'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE is_active = true ORDER BY created_at DESC LIMIT 1'
+      );
+      
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('获取机器人配置失败:', error);
+      return null;
+    }
   }
 
   /**
@@ -39,8 +59,11 @@ export class CommandHandler {
         language_code: telegramUser.language_code
       });
 
-      // 发送欢迎消息
-      const welcomeMessage = `🎉 欢迎使用TRON能量租赁机器人！
+      // 获取机器人配置
+      const botConfig = await this.getActiveBotConfig();
+      
+      // 使用配置的欢迎消息，如果没有配置则使用默认消息
+      let welcomeMessage = botConfig?.welcome_message || `🎉 欢迎使用TRON能量租赁机器人！
 
 👋 你好，${telegramUser.first_name}！
 
@@ -53,9 +76,38 @@ export class CommandHandler {
 📱 使用 /menu 查看主菜单
 ❓ 使用 /help 获取帮助`;
 
-      await this.bot.sendMessage(chatId, welcomeMessage);
+      // 替换用户名占位符
+      welcomeMessage = welcomeMessage.replace('{first_name}', telegramUser.first_name || '用户');
+
+      // 构建内嵌键盘
+      let messageOptions: any = {};
       
-      // 显示主菜单需要通过回调调用外部方法
+      if (botConfig?.keyboard_config?.main_menu?.is_enabled) {
+        const keyboardConfig = botConfig.keyboard_config.main_menu;
+        
+        if (keyboardConfig.rows && keyboardConfig.rows.length > 0) {
+          const inlineKeyboard = keyboardConfig.rows
+            .filter(row => row.is_enabled)
+            .map(row => 
+              row.buttons
+                .filter(button => button.is_enabled)
+                .map(button => ({
+                  text: button.text,
+                  callback_data: button.callback_data
+                }))
+            )
+            .filter(row => row.length > 0);
+          
+          if (inlineKeyboard.length > 0) {
+            messageOptions.reply_markup = {
+              inline_keyboard: inlineKeyboard
+            };
+          }
+        }
+      }
+
+      await this.bot.sendMessage(chatId, welcomeMessage, messageOptions);
+      
       return;
     } catch (error) {
       console.error('Error in handleStartCommand:', error);
@@ -77,7 +129,14 @@ export class CommandHandler {
    * 处理 /help 命令
    */
   async handleHelpCommand(msg: TelegramBot.Message): Promise<void> {
-    const helpMessage = `📖 TRON能量租赁机器人使用指南
+    const chatId = msg.chat.id;
+    
+    try {
+      // 获取机器人配置
+      const botConfig = await this.getActiveBotConfig();
+      
+      // 使用配置的帮助消息，如果没有配置则使用默认消息
+      const helpMessage = botConfig?.help_message || `📖 TRON能量租赁机器人使用指南
 
 🤖 基础命令：
 • /start - 启动机器人
@@ -100,7 +159,11 @@ export class CommandHandler {
 
 🆘 如需帮助，请联系客服`;
 
-    await this.bot.sendMessage(msg.chat.id, helpMessage);
+      await this.bot.sendMessage(chatId, helpMessage);
+    } catch (error) {
+      console.error('Error in handleHelpCommand:', error);
+      await this.bot.sendMessage(chatId, '❌ 获取帮助信息失败，请重试。');
+    }
   }
 
   /**

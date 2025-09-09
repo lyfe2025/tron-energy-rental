@@ -113,7 +113,7 @@ apiClient.interceptors.response.use(
       }
     } else if (error.response?.status === 400) {
       // 客户端请求错误（业务逻辑错误）
-      const clientMessage = error.response?.data?.error || error.response?.data?.details || '请求参数错误';
+      const clientMessage = error.response?.data?.message || error.response?.data?.error || error.response?.data?.details || '请求参数错误';
       console.warn('🔍 [API Client] 客户端错误:', {
         url: error.config?.url,
         method: error.config?.method,

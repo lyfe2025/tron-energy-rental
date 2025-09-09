@@ -19,6 +19,13 @@ export interface InlineKeyboard {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
+// 完整消息配置（包含文本和内嵌键盘）
+export interface MessageWithInlineKeyboard {
+  text: string;
+  reply_markup: InlineKeyboard;
+  parse_mode?: 'HTML' | 'Markdown';
+}
+
 // 能量包信息类型
 export interface EnergyPackage {
   id: string;
@@ -92,4 +99,51 @@ export interface BotConfig {
     maxConnections?: number;
     port?: number;
   };
+}
+
+// 键盘按钮配置类型
+export interface KeyboardButtonConfig {
+  text: string;
+  callback_data?: string;
+  url?: string;
+  switch_inline_query?: string;
+  switch_inline_query_current_chat?: string;
+  is_enabled: boolean;
+  price_config_dependency?: 'energy_flash' | 'transaction_package' | 'trx_exchange'; // 依赖的价格配置
+  custom_action?: string; // 自定义操作
+}
+
+// 键盘行配置类型  
+export interface KeyboardRowConfig {
+  buttons: KeyboardButtonConfig[];
+  is_enabled: boolean;
+}
+
+// 键盘类型
+export type KeyboardType = 'inline' | 'reply' | 'remove';
+
+// 键盘配置类型
+export interface KeyboardConfig {
+  type: KeyboardType;
+  title?: string;
+  description?: string;
+  rows: KeyboardRowConfig[];
+  is_enabled: boolean;
+}
+
+// 机器人键盘配置
+export interface BotKeyboardConfiguration {
+  main_menu: KeyboardConfig; // 主菜单键盘
+  inline_keyboards: {
+    [key: string]: KeyboardConfig; // 各种内联键盘配置
+  };
+  reply_keyboards: {
+    [key: string]: KeyboardConfig; // 各种回复键盘配置  
+  };
+  quick_actions: KeyboardButtonConfig[]; // 快速操作按钮
+}
+
+// 扩展的机器人配置接口
+export interface ExtendedBotConfig extends BotConfig {
+  keyboard_config?: BotKeyboardConfiguration;
 }

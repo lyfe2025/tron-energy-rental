@@ -1,34 +1,132 @@
 import { Router } from 'express';
-import telegramBotService from '../services/telegram-bot';
+import { multiBotManager, telegramBotService } from '../services/telegram-bot.js';
 
 const router: Router = Router();
 
 /**
- * Telegram Bot Webhook
- * 接收Telegram发送的更新消息
+ * 多机器人 Webhook 路由
+ * 支持特定机器人的 Webhook 处理
+ */
+router.post('/webhook/:botId', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const update = req.body;
+    
+    console.log('🔄 Received multi-bot webhook update:', { 
+      botId,
+      updateId: update.update_id,
+      hasMessage: !!update.message,
+      hasCallback: !!update.callback_query
+    });
+    
+    // 先快速响应Telegram，避免超时
+    res.status(200).json({ ok: true });
+    
+    // 异步处理消息，避免阻塞响应
+    setImmediate(async () => {
+      try {
+        // 等待多机器人管理器初始化
+        await multiBotManager.waitForInitialization();
+        
+        // 获取指定的机器人实例
+        const botInstance = multiBotManager.getBotInstance(botId);
+        
+        if (!botInstance) {
+          console.warn(`⚠️ 未找到机器人实例: ${botId}`);
+          return;
+        }
+        
+        if (botInstance.status !== 'running') {
+          console.warn(`⚠️ 机器人未运行: ${botInstance.name} (状态: ${botInstance.status})`);
+          return;
+        }
+        
+        // 使用指定机器人处理消息
+        await botInstance.service.processWebhookUpdate(update);
+        
+        console.log(`✅ Webhook消息已处理: 机器人 ${botInstance.name}`);
+        
+      } catch (processingError) {
+        console.error(`❌ 机器人 ${botId} Webhook消息处理失败:`, processingError);
+        
+        // 记录处理失败日志到多机器人管理器
+        if (multiBotManager) {
+          const botInstance = multiBotManager.getBotInstance(botId);
+          if (botInstance) {
+            await botInstance.service.logBotActivity(
+              'error', 
+              'webhook_processing_failed', 
+              `Webhook消息处理失败: ${processingError.message}`,
+              { error: processingError.stack, update, botId }
+            );
+          }
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Multi-bot Telegram webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * 通用 Webhook（向后兼容）
+ * 自动路由到第一个可用的机器人
  */
 router.post('/webhook', async (req, res) => {
   try {
     const update = req.body;
+    console.log('🔄 Received legacy webhook update:', { 
+      updateId: update.update_id,
+      hasMessage: !!update.message,
+      hasCallback: !!update.callback_query
+    });
     
-    // 处理消息更新
-    if (update.message) {
-      // 消息处理已在bot内部通过polling处理
-      console.log('Received message update via webhook');
-    }
-    
-    // 处理回调查询
-    if (update.callback_query) {
-      // 回调查询处理已在bot内部通过polling处理
-      console.log('Received callback query update via webhook');
-    }
-    
+    // 先快速响应Telegram，避免超时
     res.status(200).json({ ok: true });
+    
+    // 异步处理消息，避免阻塞响应
+    setImmediate(async () => {
+      try {
+        // 等待多机器人管理器初始化
+        await multiBotManager.waitForInitialization();
+        
+        // 获取第一个运行中的机器人
+        const runningBots = multiBotManager.getRunningBots();
+        
+        if (runningBots.length === 0) {
+          console.warn('⚠️ 没有运行中的机器人，跳过webhook消息处理');
+          return;
+        }
+        
+        // 使用第一个机器人处理（向后兼容）
+        const firstBot = runningBots[0];
+        await firstBot.service.processWebhookUpdate(update);
+        
+        console.log(`✅ Legacy webhook消息已处理: 机器人 ${firstBot.name}`);
+        
+      } catch (processingError) {
+        console.error('❌ Legacy webhook消息处理失败:', processingError);
+        
+        // 记录处理失败日志
+        if (telegramBotService) {
+          await telegramBotService.logBotActivity(
+            'error', 
+            'webhook_processing_failed', 
+            `Legacy webhook消息处理失败: ${processingError.message}`,
+            { error: processingError.stack, update }
+          );
+        }
+      }
+    });
+    
   } catch (error) {
-    console.error('Telegram webhook error:', error);
+    console.error('Legacy Telegram webhook error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 /**
  * 设置Webhook

@@ -14,6 +14,9 @@ import { LogsStatsController } from './controllers/LogsStatsController.js';
 import { OperationLogsController } from './controllers/OperationLogsController.js';
 import { SystemMonitoringLogsController } from './controllers/SystemMonitoringLogsController.js';
 
+// 导入日志轮转管理路由
+import logRotationRouter from './management.js';
+
 const router: Router = Router();
 
 // 所有路由都需要认证
@@ -262,5 +265,15 @@ router.get('/cleanup/preview', [
 router.post('/cleanup', [
   requirePermission('system:log:cleanup')
 ], LogsManagementController.cleanupLogs);
+
+// ========================
+// 日志轮转管理相关路由
+// ========================
+
+/**
+ * 日志轮转管理路由
+ * /api/system/logs/rotation/*
+ */
+router.use('/rotation', logRotationRouter);
 
 export default router;

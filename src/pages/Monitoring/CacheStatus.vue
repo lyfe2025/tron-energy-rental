@@ -333,10 +333,21 @@
       </div>
     </div>
   </div>
+
+  <!-- 确认对话框 -->
+  <ConfirmDialog
+    :visible="showConfirmDialog"
+    :title="confirmDialogConfig.title"
+    :message="confirmDialogConfig.message"
+    :type="confirmDialogConfig.type"
+    @close="showConfirmDialog = false"
+    @confirm="confirmDialogConfig.onConfirm(); showConfirmDialog = false"
+  />
 </template>
 
 <script setup lang="ts">
 import { monitoringApi, type CacheInstance, type CacheStats, type HotKey } from '@/api/monitoring'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
   Database,
   Eye,
@@ -356,6 +367,15 @@ const cacheInstances = ref<CacheInstance[]>([])
 const hotKeys = ref<HotKey[]>([])
 const selectedInstance = ref<CacheInstance | null>(null)
 const showDetailsDialog = ref(false)
+
+// 确认对话框状态
+const showConfirmDialog = ref(false)
+const confirmDialogConfig = ref({
+  title: '',
+  message: '',
+  type: 'warning' as 'warning' | 'danger',
+  onConfirm: () => {}
+})
 
 // 定时器
 let refreshTimer: NodeJS.Timeout | null = null
@@ -408,15 +428,21 @@ const closeDetailsDialog = () => {
 
 // 清空缓存
 const clearCache = async (instanceName: string) => {
-  if (confirm(`确定要清空 ${instanceName} 的所有缓存吗？`)) {
-    try {
-      console.log('清空缓存:', instanceName)
-      // 这里可以实现清空缓存功能
-      await fetchCacheStatus()
-    } catch (error) {
-      console.error('清空缓存失败:', error)
+  confirmDialogConfig.value = {
+    title: '清空缓存',
+    message: `确定要清空 ${instanceName} 的所有缓存吗？`,
+    type: 'warning',
+    onConfirm: async () => {
+      try {
+        console.log('清空缓存:', instanceName)
+        // 这里可以实现清空缓存功能
+        await fetchCacheStatus()
+      } catch (error) {
+        console.error('清空缓存失败:', error)
+      }
     }
   }
+  showConfirmDialog.value = true
 }
 
 // 查看缓存数据
@@ -427,15 +453,21 @@ const viewCacheData = (key: string) => {
 
 // 删除缓存键
 const deleteCacheKey = async (key: string) => {
-  if (confirm(`确定要删除缓存键 ${key} 吗？`)) {
-    try {
-      console.log('删除缓存键:', key)
-      // 这里可以实现删除缓存键功能
-      await fetchCacheStatus()
-    } catch (error) {
-      console.error('删除缓存键失败:', error)
+  confirmDialogConfig.value = {
+    title: '删除缓存键',
+    message: `确定要删除缓存键 ${key} 吗？`,
+    type: 'danger',
+    onConfirm: async () => {
+      try {
+        console.log('删除缓存键:', key)
+        // 这里可以实现删除缓存键功能
+        await fetchCacheStatus()
+      } catch (error) {
+        console.error('删除缓存键失败:', error)
+      }
     }
   }
+  showConfirmDialog.value = true
 }
 
 // 获取命中率颜色

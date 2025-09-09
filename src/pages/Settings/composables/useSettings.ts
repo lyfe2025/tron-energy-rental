@@ -3,7 +3,7 @@
  * 整合分离的功能模块，保持原有API接口完全不变
  */
 
-import { computed, nextTick, onMounted, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useToast } from '../../../composables/useToast'
 import { useAdvancedSettings } from './useAdvancedSettings'
 import { useBasicSettings } from './useBasicSettings'
@@ -18,6 +18,31 @@ import { useSettingsValidation } from './useSettingsValidation'
 export function useSettings() {
   // 通知系统
   const toast = useToast()
+  
+  // 确认对话框状态
+  const showConfirmDialog = ref(false)
+  const confirmDialogConfig = ref({
+    title: '',
+    message: '',
+    type: 'warning' as 'warning' | 'danger',
+    onConfirm: () => {}
+  })
+  
+  // 显示确认对话框的辅助函数
+  const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'warning' | 'danger' = 'warning') => {
+    return new Promise<boolean>((resolve) => {
+      confirmDialogConfig.value = {
+        title,
+        message,
+        type,
+        onConfirm: () => {
+          onConfirm()
+          resolve(true)
+        }
+      }
+      showConfirmDialog.value = true
+    })
+  }
   
   // 引入分离的设置模块
   const basicModule = useBasicSettings()
@@ -81,12 +106,16 @@ export function useSettings() {
 
   const switchTab = (tabId: string) => {
     if (coreModule.isDirty.value) {
-      if (confirm('有未保存的更改，是否先保存？')) {
-        saveSettings(coreModule.activeTab.value).then(() => {
-          coreModule.setActiveTab(tabId)
-        })
-        return
-      }
+      showConfirm(
+        '未保存的更改',
+        '有未保存的更改，是否先保存？',
+        () => {
+          saveSettings(coreModule.activeTab.value).then(() => {
+            coreModule.setActiveTab(tabId)
+          })
+        }
+      )
+      return
     }
     coreModule.setActiveTab(tabId)
   }
@@ -168,32 +197,37 @@ export function useSettings() {
 
   const resetToDefaults = async () => {
     // 重置当前标签页的设置为默认值
-    if (confirm('确定要重置当前标签页的设置为默认值吗？')) {
-      try {
-        switch (coreModule.activeTab.value) {
-          case 'basic':
-            basicModule.resetBasicSettings()
-            break
-          case 'security':
-            securityModule.resetSecuritySettings()
-            break
-          case 'notifications':
-            notificationModule.resetNotificationSettings()
-            break
-          case 'pricing':
-            pricingModule.resetPricingSettings()
-            break
-          case 'advanced':
-            advancedModule.resetAdvancedSettings()
-            break
+    showConfirm(
+      '重置设置',
+      '确定要重置当前标签页的设置为默认值吗？',
+      async () => {
+        try {
+          switch (coreModule.activeTab.value) {
+            case 'basic':
+              basicModule.resetBasicSettings()
+              break
+            case 'security':
+              securityModule.resetSecuritySettings()
+              break
+            case 'notifications':
+              notificationModule.resetNotificationSettings()
+              break
+            case 'pricing':
+              pricingModule.resetPricingSettings()
+              break
+            case 'advanced':
+              advancedModule.resetAdvancedSettings()
+              break
+          }
+          coreModule.setDirty(true)
+          toast.success(`${coreModule.activeTab.value}设置已重置为默认值`)
+        } catch (error) {
+          console.error('重置设置失败:', error)
+          toast.error('重置设置失败，请稍后重试')
         }
-        coreModule.setDirty(true)
-        toast.success(`${coreModule.activeTab.value}设置已重置为默认值`)
-      } catch (error) {
-        console.error('重置设置失败:', error)
-        toast.error('重置设置失败，请稍后重试')
-      }
-    }
+      },
+      'warning'
+    )
   }
 
   // 创建统一的settings对象
@@ -213,6 +247,10 @@ export function useSettings() {
     isLoading: coreModule.isLoading,
     isDirty: coreModule.isDirty,
     lastSaved: coreModule.lastSaved,
+    
+    // 确认对话框状态
+    showConfirmDialog,
+    confirmDialogConfig,
     
     // 配置
     settingTabs: coreModule.settingTabs,
@@ -237,6 +275,7 @@ export function useSettings() {
     updateSetting,
     exportSettings,
     importSettings,
+    showConfirm,
     
     // 各模块方法
     ...basicModule,

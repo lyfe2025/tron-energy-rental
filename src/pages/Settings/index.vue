@@ -128,6 +128,16 @@
       class="hidden"
       @change="handleFileImport"
     />
+    
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      :visible="showConfirmDialog"
+      :title="confirmDialogConfig.title"
+      :message="confirmDialogConfig.message"
+      :type="confirmDialogConfig.type"
+      @close="showConfirmDialog = false"
+      @confirm="confirmDialogConfig.onConfirm"
+    />
   </div>
 </template>
 
@@ -139,6 +149,7 @@ import BasicSettings from './components/BasicSettings.vue'
 import NotificationSettings from './components/NotificationSettings.vue'
 import PricingSettings from './components/PricingSettings.vue'
 import SecuritySettings from './components/SecuritySettings.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import { useSettings } from './composables/useSettings'
 import type {
     AdvancedSettings as AdvancedSettingsType,
@@ -158,6 +169,10 @@ const {
   isLoading,
   isDirty,
   lastSaved,
+  
+  // 确认对话框状态
+  showConfirmDialog,
+  confirmDialogConfig,
   
   // 配置
   settingTabs,

@@ -45,14 +45,6 @@
         :onSave="saveConfig"
       />
 
-      <!-- VIP套餐配置 -->
-      <VipPackageConfig 
-        v-if="activeTab === 'vip_package'"
-        :config="vipPackageConfig"
-        :saving="saving"
-        :onToggle="toggleMode"
-        :onSave="saveConfig"
-      />
 
       <!-- TRX闪兑配置 -->
       <TrxExchangeConfig 
@@ -67,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftRight, Crown, Package, Zap } from 'lucide-vue-next'
+import { ArrowLeftRight, Package, Zap } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { usePriceConfig } from '../../composables/usePriceConfig'
 import { useToast } from '../../composables/useToast'
@@ -76,7 +68,6 @@ import { useToast } from '../../composables/useToast'
 import EnergyFlashConfig from './components/EnergyFlashConfig.vue'
 import TransactionPackageConfig from './components/TransactionPackageConfig.vue'
 import TrxExchangeConfig from './components/TrxExchangeConfig.vue'
-import VipPackageConfig from './components/VipPackageConfig.vue'
 
 // 保持所有原有逻辑不变
 const {
@@ -105,11 +96,6 @@ const tabs = [
     icon: Package
   },
   {
-    id: 'vip_package',
-    name: 'VIP套餐',
-    icon: Crown
-  },
-  {
     id: 'trx_exchange',
     name: 'TRX闪兑',
     icon: ArrowLeftRight
@@ -125,9 +111,6 @@ const transactionPackageConfig = computed(() =>
   configs.value.find(c => c.mode_type === 'transaction_package')
 )
 
-const vipPackageConfig = computed(() => 
-  configs.value.find(c => c.mode_type === 'vip_package')
-)
 
 const trxExchangeConfig = computed(() => 
   configs.value.find(c => c.mode_type === 'trx_exchange')
@@ -237,7 +220,7 @@ const validateConfig = (modeType: string, config: any) => {
     if (!config.max_transactions || config.max_transactions <= 0) {
       return { isValid: false, message: '最大购买笔数必须大于0' }
     }
-  } else if (modeType === 'transaction_package' || modeType === 'vip_package') {
+  } else if (modeType === 'transaction_package') {
     if (!config.packages || !Array.isArray(config.packages) || config.packages.length === 0) {
       return { isValid: false, message: '至少需要配置一个套餐' }
     }
@@ -254,13 +237,6 @@ const validateConfig = (modeType: string, config: any) => {
       if (modeType === 'transaction_package') {
         if (!pkg.transaction_count || pkg.transaction_count <= 0) {
           return { isValid: false, message: `第${i + 1}个套餐交易次数必须大于0` }
-        }
-      } else if (modeType === 'vip_package') {
-        if (!pkg.duration_days || pkg.duration_days <= 0) {
-          return { isValid: false, message: `第${i + 1}个套餐有效期必须大于0天` }
-        }
-        if (!pkg.benefits) {
-          return { isValid: false, message: `第${i + 1}个套餐必须配置VIP权益` }
         }
       }
     }

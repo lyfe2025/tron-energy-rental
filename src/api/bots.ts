@@ -44,6 +44,17 @@ export const botApi = {
     return { data }
   },
 
+  // Get bot by ID
+  async getBotById(id: string): Promise<{ data: Bot }> {
+    // Mock implementation - replace with actual API call
+    const allBots = await this.getBots()
+    const bot = allBots.data.find(b => b.id === id)
+    if (!bot) {
+      throw new Error(`Bot with id ${id} not found`)
+    }
+    return { data: bot }
+  },
+
   // Get bot statistics
   async getBotStats(): Promise<BotStats> {
     // Mock data - replace with actual API call
@@ -160,5 +171,41 @@ export const botApi = {
   async batchTestConnection(ids: string[]): Promise<void> {
     // Mock implementation - replace with actual API call
     console.log(`Batch testing connection for bots: ${ids.join(', ')}`)
+  },
+
+  // Get bot logs
+  async getBotLogs(id: string): Promise<{ data: Array<{ id: string; level: string; message: string; timestamp: string; action?: string }> }> {
+    // Mock implementation - replace with actual API call
+    const mockLogs = [
+      {
+        id: '1',
+        level: 'info',
+        message: '机器人启动成功',
+        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        action: 'start'
+      },
+      {
+        id: '2',
+        level: 'success',
+        message: '成功处理能量租赁订单 #12345',
+        timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+        action: 'order_process'
+      },
+      {
+        id: '3',
+        level: 'warning',
+        message: '余额不足，建议充值',
+        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+        action: 'balance_check'
+      },
+      {
+        id: '4',
+        level: 'error',
+        message: '网络连接超时，正在重试',
+        timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+        action: 'network_error'
+      }
+    ]
+    return { data: mockLogs }
   }
 }

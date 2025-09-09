@@ -53,14 +53,24 @@
         </button>
       </div>
     </div>
+    
+    <!-- 确认对话框 -->
+    <ConfirmDialog
+      :visible="showConfirmDialog"
+      :title="confirmDialogConfig.title"
+      :message="confirmDialogConfig.message"
+      :type="confirmDialogConfig.type"
+      @close="handleConfirmDialogClose"
+      @confirm="confirmDialogConfig.onConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import NetworkSelector from '@/components/NetworkSelector.vue'
 import NetworkStatus from '@/components/NetworkStatus.vue'
 import { botsAPI } from '@/services/api/bots/botsAPI'
-import { energyPoolAPI } from '@/services/api/energy-pool/energyPoolAPI'
 import { validateAccountNetworkConfig } from '@/utils/networkValidation'
 import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
@@ -92,6 +102,15 @@ const selectedNetworkId = ref<string | null>(null)
 const loading = ref(false)
 const isValidatingNetwork = ref(false)
 const networkValidationResult = ref(null)
+
+// 确认对话框状态
+const showConfirmDialog = ref(false)
+const confirmDialogConfig = ref({
+  title: '',
+  message: '',
+  type: 'warning' as 'warning' | 'danger' | 'info',
+  onConfirm: () => {}
+})
 
 // 计算属性
 const entityName = computed(() => props.entityData?.name || '')
@@ -207,23 +226,36 @@ const handleSubmit = async () => {
       const errorMessage = '网络配置验证失败: ' + validationResult.errors.join('; ')
       console.warn('[NetworkConfig] 验证失败:', errorMessage)
       
-      const shouldContinue = confirm(
-        errorMessage + '\n\n检测到网络配置可能存在问题，是否仍要保存此配置？\n\n' +
-        '选择"确定"将强制保存配置，选择"取消"将中止操作。'
-      )
-      
-      if (!shouldContinue) {
-        ElMessage.info('已取消保存操作')
-        return
+      // 使用ConfirmDialog替代原生confirm
+      confirmDialogConfig.value = {
+        title: '网络配置验证失败',
+        message: errorMessage + '\n\n检测到网络配置可能存在问题，是否仍要保存此配置？\n\n选择"确定"将强制保存配置，选择"取消"将中止操作。',
+        type: 'warning',
+        onConfirm: async () => {
+          showConfirmDialog.value = false
+          ElMessage.warning('正在强制保存网络配置，请确保网络设置正确')
+          await performNetworkSave()
+        }
       }
-      
-      ElMessage.warning('正在强制保存网络配置，请确保网络设置正确')
+      showConfirmDialog.value = true
+      return
     } else if (validationResult.warnings.length > 0) {
       ElMessage.warning('网络配置警告: ' + validationResult.warnings.join('; '))
     }
   }
   
   loading.value = true
+  try {
+    await performNetworkSave()
+  } catch (error) {
+    console.error('[NetworkConfig] 提交过程出错:', error)
+    ElMessage.error('操作失败，请重试')
+    loading.value = false
+  }
+}
+
+// 执行网络配置保存的独立函数
+const performNetworkSave = async () => {
   try {
     if (props.entityType === 'account') {
       // 由于energy_pools表已移除network_id字段，此功能不再需要
@@ -235,15 +267,23 @@ const handleSubmit = async () => {
       })
     }
     
+    console.log('✅ [NetworkConfig] 网络设置成功，准备触发success事件')
     ElMessage.success('网络设置成功')
     emit('success')
     handleClose()
+    console.log('🔔 [NetworkConfig] success事件已触发，弹窗已关闭')
   } catch (error) {
-    console.error('网络设置失败:', error)
-    ElMessage.error('网络设置失败，请重试')
+    console.error('[NetworkConfig] 保存失败:', error)
+    ElMessage.error('保存网络配置失败，请重试')
   } finally {
     loading.value = false
   }
+}
+
+// 确认对话框关闭处理
+const handleConfirmDialogClose = () => {
+  showConfirmDialog.value = false
+  ElMessage.info('已取消保存操作')
 }
 </script>
 

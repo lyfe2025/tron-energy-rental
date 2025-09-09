@@ -14,6 +14,7 @@ import energyDelegationRoutes from './routes/energy-delegation.ts';
 import energyPoolRoutes from './routes/energy-pool.ts';
 import energyPoolsExtendedRoutes from './routes/energy-pools/extended.ts';
 import monitoringRoutes from './routes/monitoring.ts';
+import multiBotStatusRoutes from './routes/multi-bot-status.ts';
 import networkLogsRoutes from './routes/network-logs';
 import ordersRoutes from './routes/orders.ts';
 import paymentRoutes from './routes/payment.ts';
@@ -41,6 +42,19 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// 全局请求日志中间件（用于调试）
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.includes('/api/bots') && req.method === 'PUT') {
+    console.log(`\n🌐 [全局中间件] 收到机器人PUT请求:`);
+    console.log(`📍 路径: ${req.method} ${req.path}`);
+    console.log(`📋 Body:`, req.body);
+    console.log(`🕐 时间: ${new Date().toLocaleString()}`);
+    console.log(`🔑 认证: ${req.headers.authorization ? '有Token' : '无Token'}`);
+    console.log(`===============================`);
+  }
+  next();
+});
+
 // API 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
@@ -57,6 +71,7 @@ app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/multi-bot', multiBotStatusRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/tron-networks', tronNetworksRoutes);
 app.use('/api/energy-pools-extended', energyPoolsExtendedRoutes);

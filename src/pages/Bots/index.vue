@@ -46,17 +46,17 @@
 
     <!-- 机器人卡片列表 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" :class="{ 'opacity-50': loading }">
-      <BotCard
-        v-for="bot in filteredBots"
-        :key="bot.id"
-        :bot="bot"
-        :is-selected="selectedBots.includes(bot.id)"
-        @select="handleSelectBot"
-        @toggle-status="handleToggleStatus"
-        @edit="handleEdit"
-        @configure-network="handleConfigureNetwork"
-        @dropdown-command="handleDropdownCommand"
-      />
+        <BotCard
+          v-for="bot in filteredBots"
+          :key="`${bot.id}-${bot.network_id || 'no-network'}-${bot.updated_at || Date.now()}-${Math.random()}`"
+          :bot="bot"
+          :is-selected="selectedBots.includes(bot.id)"
+          @select="handleSelectBot"
+          @toggle-status="handleToggleStatus"
+          @edit="handleEdit"
+          @configure-network="handleConfigureNetwork"
+          @dropdown-command="handleDropdownCommand"
+        />
     </div>
 
     <!-- 空状态 -->
@@ -121,19 +121,65 @@
       :entity-data="selectedBot ? { id: selectedBot.id, name: selectedBot.name } : null"
       @success="handleNetworkUpdated"
     />
+
+    <!-- 删除确认弹窗 -->
+    <ConfirmDialog
+      :visible="showConfirmDialog"
+      :title="confirmDialogConfig.title"
+      :message="confirmDialogConfig.message"
+      :details="confirmDialogConfig.details"
+      :warning="confirmDialogConfig.warning"
+      :type="confirmDialogConfig.type"
+      :confirm-text="confirmDialogConfig.confirmText"
+      :cancel-text="confirmDialogConfig.cancelText"
+      :loading="confirmDialogConfig.loading"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+      @close="handleCancel"
+    />
+
+    <!-- 机器人详情弹窗 -->
+    <BotDetailDialog
+      :visible="showBotDetailDialog"
+      :bot-detail="selectedBotDetail"
+      @close="closeBotDetailDialog"
+    />
+
+    <!-- 机器人日志弹窗 -->
+    <BotLogsDialog
+      :visible="showBotLogsDialog"
+      :bot-logs="selectedBotLogs"
+      :logs="botLogs"
+      :loading="logsLoading"
+      @close="closeBotLogsDialog"
+      @refresh-logs="refreshBotLogs"
+    />
+
+    <!-- Telegram同步状态弹窗 -->
+    <SyncStatusDialog
+      v-model="showSyncDialog"
+      :sync-status="syncDialogData.syncStatus"
+      :logs="syncDialogData.logs"
+      :is-loading="syncDialogData.isLoading"
+      @retry="handleRetrySyncBot"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import NetworkConfigModal from '@/components/NetworkConfigModal.vue'
 import { botsAPI } from '@/services/api/bots/botsAPI'
 import { ElMessage } from 'element-plus'
 import { Bot, Download, Plus, RefreshCw } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import BotCard from './components/BotCard.vue'
 import BotCreateModal from './components/BotCreateModal.vue'
+import BotDetailDialog from './components/BotDetailDialog.vue'
 import BotEditModal from './components/BotEditModal.vue'
 import BotFilters from './components/BotFilters.vue'
-import NetworkConfigModal from '@/components/NetworkConfigModal.vue'
+import BotLogsDialog from './components/BotLogsDialog.vue'
+import SyncStatusDialog from './components/SyncStatusDialog.vue'
 import { useBotManagement } from './composables/useBotManagementIntegrated'
 
 // 弹窗状态
@@ -141,6 +187,14 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showNetworkModal = ref(false)
 const selectedBot = ref<any>(null)
+
+// 同步状态对话框
+const showSyncDialog = ref(false)
+const syncDialogData = ref({
+  isLoading: false,
+  syncStatus: {},
+  logs: []
+})
 
 
 // 使用组合式函数
@@ -154,6 +208,14 @@ const {
   pageSize,
   total,
   searchForm,
+  showConfirmDialog,
+  confirmDialogConfig,
+  showBotDetailDialog,
+  selectedBotDetail,
+  showBotLogsDialog,
+  selectedBotLogs,
+  botLogs,
+  logsLoading,
   
   // 计算属性
   filteredBots,
@@ -164,12 +226,17 @@ const {
   resetSearch,
   handleToggleStatus,
   handleDropdownCommand,
+  closeBotDetailDialog,
+  closeBotLogsDialog,
+  refreshBotLogs,
   handleCurrentChange,
   handleSelectBot,
   clearSelection,
   handleBatchEnable,
   handleBatchDisable,
-  exportData
+  exportData,
+  handleConfirm,
+  handleCancel
 } = useBotManagement()
 
 // 页面特有方法
@@ -190,63 +257,174 @@ const handleCreateBot = async (data: any) => {
       username: data.username,
       token: data.token,
       description: data.description,
+      short_description: data.short_description,
+      network_id: data.network_id,
+      work_mode: data.work_mode || 'polling',
       webhook_url: data.webhook_url,
+      webhook_secret: data.webhook_secret,
+      max_connections: data.max_connections || 40,
       welcome_message: data.welcome_message,
       help_message: data.help_message,
-      status: data.is_active ? 'active' : 'inactive'
+      custom_commands: data.custom_commands || [],
+      menu_button_enabled: data.menu_button_enabled || false,
+      menu_button_text: data.menu_button_text || '菜单',
+      menu_type: data.menu_type || 'commands',
+      web_app_url: data.web_app_url,
+      menu_commands: data.menu_commands || [],
+      keyboard_config: data.keyboard_config,
+      is_active: data.is_active !== undefined ? data.is_active : true
+    }
+    
+    console.log('🚀 开始创建机器人，数据:', createData)
+    
+    // 显示同步状态对话框
+    showSyncDialog.value = true
+    syncDialogData.value = {
+      isLoading: true,
+      syncStatus: {},
+      logs: []
     }
     
     const response = await botsAPI.createBot(createData)
     
     if (response.data?.success) {
-      // 如果选择了网络，为机器人配置网络
-      if (data.network_id) {
-        const botId = response.data.data?.bot?.id
-        if (botId) {
-          await botsAPI.setBotNetwork(botId, { network_id: data.network_id })
-        }
+      console.log('✅ 机器人创建API调用成功')
+      
+      // 更新同步状态
+      const syncStatus = response.data.data?.syncStatus || {}
+      const syncLogs = response.data.data?.syncLogs || []
+      
+      syncDialogData.value = {
+        isLoading: false,
+        syncStatus,
+        logs: syncLogs
+      }
+      
+      // 显示同步日志到控制台
+      if (syncLogs.length > 0) {
+        console.log('📋 Telegram同步日志:')
+        syncLogs.forEach((log: string) => {
+          console.log(log)
+        })
       }
       
       showCreateModal.value = false
       await refreshData()
-      ElMessage.success('机器人创建成功')
+      
+      // 2秒后自动关闭同步对话框（如果完全成功）
+      const successCount = Object.values(syncStatus).filter(Boolean).length
+      const totalCount = Object.values(syncStatus).filter(v => v !== null).length
+      if (successCount === totalCount) {
+        setTimeout(() => {
+          showSyncDialog.value = false
+        }, 3000)
+      }
+      
     } else {
+      syncDialogData.value.isLoading = false
       throw new Error(response.data?.message || '创建失败')
     }
   } catch (error: any) {
-    console.error('创建机器人失败:', error)
+    console.error('❌ 创建机器人失败:', error)
+    syncDialogData.value.isLoading = false
+    showSyncDialog.value = false
     ElMessage.error(error.message || '创建机器人失败')
   }
 }
 
 const handleUpdateBot = async (data: any) => {
   try {
-    const response = await botsAPI.updateBot(data.id, {
+    const updateData = {
       name: data.name,
+      username: data.username,
       token: data.token,
       description: data.description,
+      short_description: data.short_description,
+      network_id: data.network_id,
+      work_mode: data.work_mode,
       webhook_url: data.webhook_url,
+      webhook_secret: data.webhook_secret,
+      max_connections: data.max_connections,
       welcome_message: data.welcome_message,
       help_message: data.help_message,
-      status: data.status
-    })
+      custom_commands: data.custom_commands || [],
+      menu_button_enabled: data.menu_button_enabled || false,
+      menu_button_text: data.menu_button_text || '菜单',
+      menu_type: data.menu_type || 'commands',
+      web_app_url: data.web_app_url,
+      menu_commands: data.menu_commands || [],
+      keyboard_config: data.keyboard_config,
+      is_active: data.is_active
+    }
+    
+    console.log('🚀 开始更新机器人，数据:', updateData)
+    
+    // 显示同步状态对话框
+    showSyncDialog.value = true
+    syncDialogData.value = {
+      isLoading: true,
+      syncStatus: {},
+      logs: []
+    }
+    
+    const response = await botsAPI.updateBot(data.id, updateData)
     
     if (response.data?.success) {
+      console.log('✅ 机器人更新API调用成功')
+      
+      // 更新同步状态
+      const syncStatus = response.data.data?.syncStatus || {}
+      const syncLogs = response.data.data?.syncLogs || []
+      
+      syncDialogData.value = {
+        isLoading: false,
+        syncStatus,
+        logs: syncLogs
+      }
+      
+      // 显示同步日志到控制台
+      if (syncLogs.length > 0) {
+        console.log('📋 Telegram同步日志:')
+        syncLogs.forEach((log: string) => {
+          console.log(log)
+        })
+      }
+      
       showEditModal.value = false
       selectedBot.value = null
       await refreshData()
-      ElMessage.success('机器人更新成功')
+      
+      // 2秒后自动关闭同步对话框（如果完全成功）
+      const successCount = Object.values(syncStatus).filter(Boolean).length
+      const totalCount = Object.values(syncStatus).filter(v => v !== null).length
+      if (successCount === totalCount) {
+        setTimeout(() => {
+          showSyncDialog.value = false
+        }, 3000)
+      }
+      
     } else {
+      syncDialogData.value.isLoading = false
       throw new Error(response.data?.message || '更新失败')
     }
   } catch (error: any) {
-    console.error('更新机器人失败:', error)
+    console.error('❌ 更新机器人失败:', error)
+    syncDialogData.value.isLoading = false
+    showSyncDialog.value = false
     ElMessage.error(error.message || '更新机器人失败')
   }
 }
 
 const handleNetworkUpdated = async () => {
+  console.log('🔄 [Bots] 网络配置更新，开始刷新数据...')
   await refreshData()
+  console.log('✅ [Bots] 数据刷新完成')
+}
+
+// 重试同步
+const handleRetrySyncBot = () => {
+  ElMessage.info('重试功能开发中，请重新保存机器人配置')
+  showSyncDialog.value = false
 }
 
 // 生命周期

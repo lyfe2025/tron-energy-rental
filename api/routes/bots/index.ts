@@ -4,22 +4,29 @@
  * 保持对外接口完全一致
  */
 import { Router } from 'express';
-import { initializeTelegramBotService } from './middleware.js';
 
 // 导入各个功能模块路由
-import crudRoutes from './crud.js';
-import statusRoutes from './status.js';
 import configRoutes from './config.js';
+import crudRoutes from './crud.js';
 import extendedConfigRoutes from './extended-config.js';
+import logsRoutes from './logs.js';
 import networkConfigRoutes from './network-config.js';
-import usersRoutes from './users.js';
 import statsRoutes from './stats.js';
+import statusRoutes from './status.js';
 import testRoutes from './test.js';
-
+import usersRoutes from './users.js';
 // 初始化Telegram机器人服务 - 临时禁用以减少日志噪音
 // initializeTelegramBotService();
 
 const router: Router = Router();
+
+// 添加请求日志中间件来调试路由问题
+router.use((req, res, next) => {
+  console.log(`\n🔍 机器人路由请求: ${req.method} ${req.path}`);
+  console.log(`📋 请求体大小: ${JSON.stringify(req.body).length} 字符`);
+  console.log(`🕐 时间: ${new Date().toLocaleString()}`);
+  next();
+});
 
 /**
  * 注册各个功能模块的路由
@@ -33,6 +40,7 @@ const router: Router = Router();
  * - 用户管理: GET /:id/users
  * - 统计监控: GET /stats/overview
  * - 测试功能: POST /:id/test
+ * - 日志管理: GET /:id/logs, POST /:id/logs
  */
 
 // 注册统计路由（需要在CRUD路由之前，避免路径冲突）
@@ -58,5 +66,8 @@ router.use('/', usersRoutes);
 
 // 注册测试功能路由
 router.use('/', testRoutes);
+
+// 注册日志管理路由
+router.use('/', logsRoutes);
 
 export default router;

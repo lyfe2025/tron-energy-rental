@@ -39,8 +39,6 @@ export class TronUtils {
   // 初始化TronWeb实例的静态方法
   static initializeTronWeb(config: TronConfig) {
     try {
-      console.log('TronWeb type:', typeof TronWeb);
-      console.log('TronWeb:', TronWeb);
       
       // 使用TronWeb.TronWeb构造函数
       if (TronWeb && TronWeb.TronWeb) {
