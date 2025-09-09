@@ -311,14 +311,14 @@ const handleCreateBot = async (data: any) => {
       showCreateModal.value = false
       await refreshData()
       
-      // 2秒后自动关闭同步对话框（如果完全成功）
-      const successCount = Object.values(syncStatus).filter(Boolean).length
-      const totalCount = Object.values(syncStatus).filter(v => v !== null).length
-      if (successCount === totalCount) {
-        setTimeout(() => {
-          showSyncDialog.value = false
-        }, 3000)
-      }
+      // 同步完成，不自动关闭对话框，让用户查看日志后手动关闭
+      // const successCount = Object.values(syncStatus).filter(Boolean).length
+      // const totalCount = Object.values(syncStatus).filter(v => v !== null).length
+      // if (successCount === totalCount) {
+      //   setTimeout(() => {
+      //     showSyncDialog.value = false
+      //   }, 3000)
+      // }
       
     } else {
       syncDialogData.value.isLoading = false
@@ -394,14 +394,14 @@ const handleUpdateBot = async (data: any) => {
       selectedBot.value = null
       await refreshData()
       
-      // 2秒后自动关闭同步对话框（如果完全成功）
-      const successCount = Object.values(syncStatus).filter(Boolean).length
-      const totalCount = Object.values(syncStatus).filter(v => v !== null).length
-      if (successCount === totalCount) {
-        setTimeout(() => {
-          showSyncDialog.value = false
-        }, 3000)
-      }
+      // 同步完成，不自动关闭对话框，让用户查看日志后手动关闭
+      // const successCount = Object.values(syncStatus).filter(Boolean).length
+      // const totalCount = Object.values(syncStatus).filter(v => v !== null).length
+      // if (successCount === totalCount) {
+      //   setTimeout(() => {
+      //     showSyncDialog.value = false
+      //   }, 3000)
+      // }
       
     } else {
       syncDialogData.value.isLoading = false

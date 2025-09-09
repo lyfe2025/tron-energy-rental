@@ -125,6 +125,27 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
       keyboard_config: keyboard_config ? '已配置' : '未配置'
     });
     
+    // 📋 确保keyboard_config包含commands配置
+    let finalKeyboardConfig = keyboard_config || {};
+    
+    // 如果没有commands配置，添加默认的commands配置
+    if (!finalKeyboardConfig.commands || !Array.isArray(finalKeyboardConfig.commands)) {
+      console.log('🔧 添加默认commands配置');
+      
+      finalKeyboardConfig.commands = [
+        { command: 'start', description: '启动机器人', is_enabled: true },
+        { command: 'menu', description: '显示主菜单', is_enabled: true },
+        { command: 'help', description: '获取帮助', is_enabled: true },
+        { command: 'balance', description: '查询余额', is_enabled: true },
+        { command: 'orders', description: '查看订单', is_enabled: true }
+      ];
+    }
+    
+    console.log('📋 最终键盘配置:', {
+      hasMainMenu: !!finalKeyboardConfig.main_menu,
+      commandsCount: finalKeyboardConfig.commands?.length || 0
+    });
+    
     // 先创建机器人（不包含最终webhook_url，暂时留空或使用基础URL）
     const newBot = await query(
       `INSERT INTO telegram_bots (
@@ -149,7 +170,7 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
        custom_commands ? JSON.stringify(custom_commands) : null,
        menu_button_enabled, menu_button_text, menu_type, web_app_url,
        menu_commands ? JSON.stringify(menu_commands) : null,
-       keyboard_config ? JSON.stringify(keyboard_config) : null, is_active]
+       finalKeyboardConfig ? JSON.stringify(finalKeyboardConfig) : null, is_active]
     );
     
     const createdBot = newBot.rows[0];
@@ -187,6 +208,7 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
       shortDescriptionSync: null as boolean | null,
       menuButtonSync: null as boolean | null,
       keyboardSync: null as boolean | null,
+      webhookSync: null as boolean | null,
       priceConfigSync: null as boolean | null,
       // 错误信息
       nameSyncError: null as string | null,
@@ -195,6 +217,7 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
       shortDescriptionSyncError: null as string | null,
       menuButtonSyncError: null as string | null,
       keyboardSyncError: null as string | null,
+      webhookSyncError: null as string | null,
       priceConfigSyncError: null as string | null
     };
     
@@ -268,31 +291,32 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
         console.error(`❌ 同步机器人介绍错误:`, errorMsg);
       }
       
-      // 3️⃣ 同步机器人命令
+      // 3️⃣ 同步机器人命令（基于keyboard_config.commands配置）
       console.log(`\n3️⃣ 同步机器人命令`);
       try {
-        // 构建命令列表（基础命令 + 菜单命令 + 自定义命令）
-        const commandList = [
-          { command: 'start', description: '启动机器人' },
-          { command: 'help', description: '获取帮助' }
-        ];
+        // 从keyboard_config.commands读取启用的命令
+        let commandList = [];
         
-        // 添加菜单命令
-        if (menu_commands && menu_commands.length > 0) {
-          menu_commands.forEach(cmd => {
-            if (cmd.command && cmd.description) {
-              commandList.push({ command: cmd.command, description: cmd.description });
-            }
-          });
+        if (finalKeyboardConfig.commands && Array.isArray(finalKeyboardConfig.commands)) {
+          commandList = finalKeyboardConfig.commands
+            .filter(cmd => cmd.is_enabled === true)
+            .map(cmd => ({
+              command: cmd.command,
+              description: cmd.description
+            }));
+          
+          console.log(`📋 从keyboard_config读取到 ${commandList.length} 个启用的命令`);
+        } else {
+          console.log(`⚠️ keyboard_config中没有commands配置，跳过命令同步`);
         }
         
-        // 添加自定义命令
+        // 添加自定义命令（向后兼容）
         if (custom_commands && custom_commands.length > 0) {
           custom_commands.forEach(cmd => {
             if (cmd.command && cmd.is_enabled) {
               commandList.push({ 
                 command: cmd.command, 
-                description: cmd.response_message.substring(0, 256) || '自定义命令' 
+                description: cmd.response_message?.substring(0, 256) || '自定义命令' 
               });
             }
           });
@@ -300,14 +324,19 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
         
         console.log(`📋 设置命令列表 (${commandList.length}个):`, commandList);
         
-        const TelegramBot = (await import('node-telegram-bot-api')).default;
-        const tempBot = new TelegramBot(token, { polling: false });
-        
-        const result = await tempBot.setMyCommands(commandList);
-        console.log(`📡 setMyCommands结果:`, result);
-        
-        syncResults.commandsSync = true;
-        console.log(`✅ 机器人命令同步成功`);
+        if (commandList.length > 0) {
+          const TelegramBot = (await import('node-telegram-bot-api')).default;
+          const tempBot = new TelegramBot(token, { polling: false });
+          
+          const result = await tempBot.setMyCommands(commandList);
+          console.log(`📡 setMyCommands结果:`, result);
+          
+          syncResults.commandsSync = true;
+          console.log(`✅ 机器人命令同步成功`);
+        } else {
+          console.log(`⚠️ 没有启用的命令，跳过命令同步`);
+          syncResults.commandsSync = null; // 表示跳过
+        }
       } catch (error) {
         syncResults.commandsSync = false;
         console.error(`❌ 同步机器人命令错误:`, error.message);
@@ -385,8 +414,8 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
         syncResults.menuButtonSync = null;
       }
       
-      // 6️⃣ 同步内嵌键盘配置
-      console.log(`\n6️⃣ 同步内嵌键盘配置`);
+      // 6️⃣ 设置键盘配置（区分Reply和Inline键盘）
+      console.log(`\n6️⃣ 设置键盘配置`);
       try {
         if (keyboard_config && keyboard_config.main_menu) {
           const keyboardConfig = keyboard_config.main_menu;
@@ -399,27 +428,65 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
           });
           
           if (keyboardConfig.is_enabled && keyboardConfig.rows && keyboardConfig.rows.length > 0) {
-            // 构建内嵌键盘
-            const inlineKeyboard = keyboardConfig.rows
-              .filter(row => row.is_enabled)
-              .map(row => 
-                row.buttons
-                  .filter(button => button.is_enabled)
-                  .map(button => ({
-                    text: button.text,
-                    callback_data: button.callback_data
-                  }))
-              )
-              .filter(row => row.length > 0);
+            const keyboardType = keyboardConfig.type || 'reply';
             
-            if (inlineKeyboard.length > 0) {
-              console.log(`📋 内嵌键盘验证成功，rows: ${inlineKeyboard.length}`);
-              syncResults.keyboardSync = true;
-              console.log(`✅ 内嵌键盘配置同步成功`);
+            if (keyboardType === 'reply') {
+              // 回复键盘（ReplyKeyboard）- 设置默认键盘
+              console.log(`🔤 处理回复键盘 (ReplyKeyboard)`);
+              
+              const replyKeyboard = keyboardConfig.rows
+                .filter(row => row.is_enabled)
+                .map(row => 
+                  row.buttons
+                    .filter(button => button.is_enabled)
+                    .map(button => button.text) // Reply键盘只需要text
+                )
+                .filter(row => row.length > 0);
+              
+              if (replyKeyboard.length > 0) {
+                // 注意：ReplyKeyboard需要在发送消息时设置，不是通过API直接设置
+                // 这里我们只验证配置的有效性
+                console.log(`📋 回复键盘构建成功:`, replyKeyboard);
+                console.log(`💡 回复键盘将在用户首次交互时自动显示`);
+                syncResults.keyboardSync = true;
+                console.log(`✅ 回复键盘配置验证成功`);
+              } else {
+                syncResults.keyboardSync = false;
+                console.error(`❌ 没有可用的回复键盘按钮`);
+              }
+              
+            } else if (keyboardType === 'inline') {
+              // 内嵌键盘（InlineKeyboard）- 附加到消息
+              console.log(`🔘 处理内嵌键盘 (InlineKeyboard)`);
+              
+              const inlineKeyboard = keyboardConfig.rows
+                .filter(row => row.is_enabled)
+                .map(row => 
+                  row.buttons
+                    .filter(button => button.is_enabled)
+                    .map(button => ({
+                      text: button.text,
+                      callback_data: button.callback_data || button.text.toLowerCase().replace(/\s+/g, '_')
+                    }))
+                )
+                .filter(row => row.length > 0);
+              
+              if (inlineKeyboard.length > 0) {
+                console.log(`📋 内嵌键盘构建成功:`, inlineKeyboard);
+                console.log(`💡 内嵌键盘将在发送消息时附加`);
+                syncResults.keyboardSync = true;
+                console.log(`✅ 内嵌键盘配置验证成功`);
+              } else {
+                syncResults.keyboardSync = false;
+                console.error(`❌ 没有可用的内嵌键盘按钮`);
+              }
+              
             } else {
+              // 未知键盘类型
               syncResults.keyboardSync = false;
-              console.error(`❌ 没有可用的键盘按钮`);
+              console.error(`❌ 不支持的键盘类型: ${keyboardType}`);
             }
+            
           } else {
             console.log(`⏭️ 键盘未启用或无按钮配置，跳过同步`);
             syncResults.keyboardSync = null;
@@ -430,11 +497,72 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
         }
       } catch (error) {
         syncResults.keyboardSync = false;
-        console.error(`❌ 同步内嵌键盘错误:`, error.message);
+        console.error(`❌ 键盘配置处理错误:`, error.message);
       }
       
-      // 7️⃣ 同步价格配置内嵌键盘
-      console.log(`\n7️⃣ 同步价格配置内嵌键盘`);
+      // 7️⃣ 设置Webhook URL（如果是webhook模式）
+      if (work_mode === 'webhook' && createdBot.webhook_url) {
+        console.log(`\n7️⃣ 设置Webhook URL`);
+        try {
+          console.log(`🔗 设置Webhook: ${createdBot.webhook_url}`);
+          
+          const webhookPayload: any = {
+            url: createdBot.webhook_url,
+            max_connections: max_connections || 40,
+            allowed_updates: ['message', 'callback_query'],
+            drop_pending_updates: true
+          };
+          
+          // 如果有webhook secret，添加到请求中
+          if (webhook_secret) {
+            webhookPayload.secret_token = webhook_secret;
+          }
+          
+          const webhookUrl = `https://api.telegram.org/bot${token}/setWebhook`;
+          
+          const webhookResponse = await axios.post(webhookUrl, webhookPayload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000 // webhook设置可能需要更长时间
+          });
+          
+          if (webhookResponse.data.ok) {
+            syncResults.webhookSync = true;
+            console.log(`✅ Webhook URL设置成功`);
+            
+            // 验证webhook设置
+            const verifyUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+            const verifyResponse = await axios.get(verifyUrl, { timeout: 10000 });
+            
+            if (verifyResponse.data.ok) {
+              const webhookInfo = verifyResponse.data.result;
+              console.log(`🔍 Webhook验证:`, {
+                url: webhookInfo.url,
+                pending_update_count: webhookInfo.pending_update_count,
+                max_connections: webhookInfo.max_connections,
+                has_custom_certificate: webhookInfo.has_custom_certificate
+              });
+            }
+          } else {
+            syncResults.webhookSync = false;
+            syncResults.webhookSyncError = webhookResponse.data.description || 'Webhook设置失败';
+            console.error(`❌ Webhook URL设置失败:`, webhookResponse.data);
+          }
+        } catch (error) {
+          syncResults.webhookSync = false;
+          let errorMessage = error.message;
+          if (error.response?.data?.description) {
+            errorMessage = error.response.data.description;
+          }
+          syncResults.webhookSyncError = errorMessage;
+          console.error(`❌ 设置Webhook URL错误:`, errorMessage);
+        }
+      } else {
+        console.log(`\n7️⃣ 非Webhook模式，跳过Webhook设置`);
+        syncResults.webhookSync = null;
+      }
+
+      // 8️⃣ 同步价格配置内嵌键盘
+      console.log(`\n8️⃣ 同步价格配置内嵌键盘`);
       try {
         // 动态导入 PriceConfigService
         const { PriceConfigService } = await import('../../../services/PriceConfigService.js');
@@ -522,8 +650,9 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
     console.log(`3️⃣ ${syncResults.commandsSync ? '✅' : '❌'} 命令列表: ${syncResults.commandsSync ? '成功' : '失败'}`);
     console.log(`4️⃣ ${syncResults.shortDescriptionSync ? '✅' : '❌'} 短描述: ${syncResults.shortDescriptionSync ? '成功' : '失败'}`);
     console.log(`5️⃣ ${syncResults.menuButtonSync === null ? '⏭️' : syncResults.menuButtonSync ? '✅' : '❌'} 菜单按钮: ${syncResults.menuButtonSync === null ? '跳过' : syncResults.menuButtonSync ? '成功' : '失败'}`);
-    console.log(`6️⃣ ${syncResults.keyboardSync === null ? '⏭️' : syncResults.keyboardSync ? '✅' : '❌'} 内嵌键盘: ${syncResults.keyboardSync === null ? '跳过' : syncResults.keyboardSync ? '成功' : '失败'}`);
-    console.log(`7️⃣ ${syncResults.priceConfigSync === null ? '⏭️' : syncResults.priceConfigSync ? '✅' : '❌'} 价格配置: ${syncResults.priceConfigSync === null ? '跳过' : syncResults.priceConfigSync ? '成功' : '失败'}`);
+    console.log(`6️⃣ ${syncResults.keyboardSync === null ? '⏭️' : syncResults.keyboardSync ? '✅' : '❌'} 键盘配置: ${syncResults.keyboardSync === null ? '跳过' : syncResults.keyboardSync ? '成功' : '失败'}`);
+    console.log(`7️⃣ ${syncResults.webhookSync === null ? '⏭️' : syncResults.webhookSync ? '✅' : '❌'} Webhook URL: ${syncResults.webhookSync === null ? '跳过' : syncResults.webhookSync ? '成功' : '失败'}`);
+    console.log(`8️⃣ ${syncResults.priceConfigSync === null ? '⏭️' : syncResults.priceConfigSync ? '✅' : '❌'} 价格配置: ${syncResults.priceConfigSync === null ? '跳过' : syncResults.priceConfigSync ? '成功' : '失败'}`);
     console.log(`==================`);
     
     const successCount = Object.values(syncResults).filter(Boolean).length;
@@ -544,8 +673,9 @@ export const createBot: RouteHandler = async (req: Request, res: Response) => {
           `3️⃣ 命令列表同步: ${syncResults.commandsSync ? '✅ 成功' : `❌ 失败${syncResults.commandsSyncError ? ` - ${syncResults.commandsSyncError}` : ''}`}`,
           `4️⃣ 短描述同步: ${syncResults.shortDescriptionSync ? '✅ 成功' : `❌ 失败${syncResults.shortDescriptionSyncError ? ` - ${syncResults.shortDescriptionSyncError}` : ''}`}`,
           `5️⃣ 菜单按钮同步: ${syncResults.menuButtonSync === null ? '⏭️ 跳过' : syncResults.menuButtonSync ? '✅ 成功' : `❌ 失败${syncResults.menuButtonSyncError ? ` - ${syncResults.menuButtonSyncError}` : ''}`}`,
-          `6️⃣ 内嵌键盘同步: ${syncResults.keyboardSync === null ? '⏭️ 跳过' : syncResults.keyboardSync ? '✅ 成功' : `❌ 失败${syncResults.keyboardSyncError ? ` - ${syncResults.keyboardSyncError}` : ''}`}`,
-          `7️⃣ 价格配置同步: ${syncResults.priceConfigSync === null ? '⏭️ 跳过' : syncResults.priceConfigSync ? '✅ 成功' : `❌ 失败${syncResults.priceConfigSyncError ? ` - ${syncResults.priceConfigSyncError}` : ''}`}`,
+          `6️⃣ 键盘配置验证: ${syncResults.keyboardSync === null ? '⏭️ 跳过' : syncResults.keyboardSync ? '✅ 成功' : `❌ 失败${syncResults.keyboardSyncError ? ` - ${syncResults.keyboardSyncError}` : ''}`}`,
+          `7️⃣ Webhook URL设置: ${syncResults.webhookSync === null ? '⏭️ 跳过' : syncResults.webhookSync ? '✅ 成功' : `❌ 失败${syncResults.webhookSyncError ? ` - ${syncResults.webhookSyncError}` : ''}`}`,
+          `8️⃣ 价格配置同步: ${syncResults.priceConfigSync === null ? '⏭️ 跳过' : syncResults.priceConfigSync ? '✅ 成功' : `❌ 失败${syncResults.priceConfigSyncError ? ` - ${syncResults.priceConfigSyncError}` : ''}`}`,
           `🎯 同步完成率: ${Object.values(syncResults).filter(Boolean).length}/${Object.values(syncResults).filter(v => v !== null).length}`
         ]
       }
