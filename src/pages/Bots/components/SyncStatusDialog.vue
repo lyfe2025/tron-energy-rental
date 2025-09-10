@@ -290,6 +290,7 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import { computed, ref, watch } from 'vue'
+import { ErrorMessageParser, type ParsedError } from '../../../utils/errorMessageParser'
 
 interface SyncStep {
   title: string
@@ -303,6 +304,12 @@ interface Props {
   syncStatus?: Record<string, boolean | null>
   logs?: string[]
   isLoading?: boolean
+  syncResult?: {
+    success: boolean
+    results: Record<string, boolean>
+    errors: string[]
+    summary: string
+  }
 }
 
 interface Emits {
@@ -314,7 +321,8 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   syncStatus: () => ({}),
   logs: () => [],
-  isLoading: false
+  isLoading: false,
+  syncResult: undefined
 })
 
 const emit = defineEmits<Emits>()
@@ -327,6 +335,60 @@ const visible = computed({
 
 const isExpandedView = ref(false)
 
+// 解析后的错误信息
+const parsedErrors = computed((): ParsedError[] => {
+  if (!props.syncResult?.errors || props.syncResult.errors.length === 0) {
+    return []
+  }
+  return ErrorMessageParser.parseErrors(props.syncResult.errors)
+})
+
+// 错误分析结果
+const errorAnalysis = computed(() => {
+  return ErrorMessageParser.analyzeErrorSeverity(parsedErrors.value)
+})
+
+// 获取步骤的真实错误信息
+const getStepError = (stepKey: string): string | undefined => {
+  if (!props.syncResult?.errors || props.syncResult.errors.length === 0) {
+    return undefined
+  }
+  
+  // 查找与该步骤相关的错误
+  const stepKeywords: Record<string, string[]> = {
+    'name': ['name', 'setMyName', '名称', '机器人名称'],
+    'description': ['description', 'setMyDescription', '描述', '机器人描述'],
+    'shortDescription': ['shortDescription', 'setMyShortDescription', '短描述'], 
+    'commands': ['commands', 'setMyCommands', '命令'],
+    'menuButton': ['menuButton', 'setChatMenuButton', '菜单'],
+    'priceConfig': ['priceConfig', 'price', 'config', '价格配置']
+  }
+  
+  const keywords = stepKeywords[stepKey] || []
+  if (keywords.length === 0) return undefined
+  
+  // 查找相关错误
+  const relatedError = props.syncResult.errors.find(error => 
+    keywords.some(keyword => 
+      error.toLowerCase().includes(keyword.toLowerCase())
+    )
+  )
+  
+  if (relatedError) {
+    const parsedError = ErrorMessageParser.parseError(relatedError)
+    return `${parsedError.title}: ${parsedError.description}`
+  }
+  
+  // 如果没有找到具体的错误，但有错误列表，返回第一个错误的解析结果
+  if (props.syncResult.errors.length > 0) {
+    const firstError = props.syncResult.errors[0]
+    const parsedError = ErrorMessageParser.parseError(firstError)
+    return `${parsedError.title}: ${parsedError.description}`
+  }
+  
+  return undefined
+}
+
 // 同步步骤
 const syncSteps = computed((): SyncStep[] => {
   const status = props.syncStatus || {}
@@ -336,62 +398,114 @@ const syncSteps = computed((): SyncStep[] => {
       title: '1️⃣ 机器人名称同步',
       description: '设置机器人在Telegram中显示的名称',
       status: props.isLoading ? 'loading' : 
-             status.nameSync === true ? 'success' : 
-             status.nameSync === false ? 'error' : 'loading',
-      error: status.nameSync === false ? 'Token验证失败或网络错误' : undefined
+             (status.nameSync === true || status.name === true) ? 'success' : 
+             (status.nameSync === false || status.name === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.nameSync === false || status.name === false) ? getStepError('name') || '同步失败' : undefined
     },
     {
       title: '2️⃣ 机器人描述同步',
       description: '设置机器人的详细描述信息',
       status: props.isLoading ? 'loading' : 
-             status.descriptionSync === true ? 'success' : 
-             status.descriptionSync === false ? 'error' : 'loading',
-      error: status.descriptionSync === false ? 'Token验证失败或网络错误' : undefined
+             (status.descriptionSync === true || status.description === true) ? 'success' : 
+             (status.descriptionSync === false || status.description === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.descriptionSync === false || status.description === false) ? getStepError('description') || '同步失败' : undefined
     },
     {
       title: '3️⃣ 命令列表同步',
       description: '同步基础命令、菜单命令和自定义命令',
       status: props.isLoading ? 'loading' : 
-             status.commandsSync === true ? 'success' : 
-             status.commandsSync === false ? 'error' : 'loading',
-      error: status.commandsSync === false ? 'Token验证失败或网络错误' : undefined
+             (status.commandsSync === true || status.commands === true) ? 'success' : 
+             (status.commandsSync === false || status.commands === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.commandsSync === false || status.commands === false) ? getStepError('commands') || '同步失败' : undefined
     },
     {
       title: '4️⃣ 短描述同步',
       description: '设置机器人在聊天列表中的简短描述',
       status: props.isLoading ? 'loading' : 
-             status.shortDescriptionSync === true ? 'success' : 
-             status.shortDescriptionSync === false ? 'error' : 'loading',
-      error: status.shortDescriptionSync === false ? 'Token验证失败或网络错误' : undefined
+             (status.shortDescriptionSync === true || status.shortDescription === true) ? 'success' : 
+             (status.shortDescriptionSync === false || status.shortDescription === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.shortDescriptionSync === false || status.shortDescription === false) ? getStepError('shortDescription') || '同步失败' : undefined
     },
     {
       title: '5️⃣ 菜单按钮同步',
       description: '配置Telegram菜单按钮（如果启用）',
       status: props.isLoading ? 'loading' : 
-             status.menuButtonSync === null ? 'skipped' :
-             status.menuButtonSync === true ? 'success' : 
-             status.menuButtonSync === false ? 'error' : 'loading',
-      error: status.menuButtonSync === false ? 'Token验证失败或网络错误' : undefined
+             (status.menuButtonSync === null || status.menuButton === null) ? 'skipped' :
+             (status.menuButtonSync === true || status.menuButton === true) ? 'success' : 
+             (status.menuButtonSync === false || status.menuButton === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.menuButtonSync === false || status.menuButton === false) ? getStepError('menuButton') || '同步失败' : undefined
     },
     {
       title: '6️⃣ 价格配置同步',
       description: '验证价格配置和内嵌键盘（能量闪租、笔数套餐、TRX闪兑）',
       status: props.isLoading ? 'loading' : 
-             status.priceConfigSync === null ? 'skipped' :
-             status.priceConfigSync === true ? 'success' : 
-             status.priceConfigSync === false ? 'error' : 'loading',
-      error: status.priceConfigSync === false ? 'Token验证失败或价格配置无效' : undefined
+             (status.priceConfigSync === null || status.priceConfig === null) ? 'skipped' :
+             (status.priceConfigSync === true || status.priceConfig === true) ? 'success' : 
+             (status.priceConfigSync === false || status.priceConfig === false) ? 'error' : 
+             !props.isLoading ? 'success' : 'loading',
+      error: (status.priceConfigSync === false || status.priceConfig === false) ? getStepError('priceConfig') || '同步失败' : undefined
     }
   ]
 })
 
-// 计算状态
+// 计算状态 - 只计算我们关心的6个步骤
 const successCount = computed(() => {
-  return Object.values(props.syncStatus || {}).filter(v => v === true).length
+  const status = props.syncStatus || {}
+  const stepKeys = [
+    'nameSync', 'name',
+    'descriptionSync', 'description', 
+    'shortDescriptionSync', 'shortDescription',
+    'commandsSync', 'commands',
+    'menuButtonSync', 'menuButton',
+    'priceConfigSync', 'priceConfig'
+  ]
+  
+  // 计算成功的步骤数（避免重复计算）
+  let count = 0
+  const pairs = [
+    [status.nameSync, status.name],
+    [status.descriptionSync, status.description],
+    [status.shortDescriptionSync, status.shortDescription],
+    [status.commandsSync, status.commands],
+    [status.menuButtonSync, status.menuButton],
+    [status.priceConfigSync, status.priceConfig]
+  ]
+  
+  pairs.forEach(([syncKey, rawKey]) => {
+    if (syncKey === true || rawKey === true) {
+      count++
+    }
+  })
+  
+  return count
 })
 
 const totalCount = computed(() => {
-  return Object.values(props.syncStatus || {}).filter(v => v !== null).length
+  const status = props.syncStatus || {}
+  
+  // 计算非null的步骤数（避免重复计算）
+  let count = 0
+  const pairs = [
+    [status.nameSync, status.name],
+    [status.descriptionSync, status.description],
+    [status.shortDescriptionSync, status.shortDescription],
+    [status.commandsSync, status.commands],
+    [status.menuButtonSync, status.menuButton],
+    [status.priceConfigSync, status.priceConfig]
+  ]
+  
+  pairs.forEach(([syncKey, rawKey]) => {
+    if ((syncKey !== undefined && syncKey !== null) || (rawKey !== undefined && rawKey !== null)) {
+      count++
+    }
+  })
+  
+  return count || 6 // 默认6个步骤
 })
 
 const completionRate = computed(() => {
@@ -423,8 +537,28 @@ const statusTitle = computed(() => {
 const statusDescription = computed(() => {
   if (props.isLoading) return '请稍等，正在将机器人配置同步到Telegram服务器'
   if (isSuccess.value) return '所有配置已成功同步到Telegram，机器人可以正常使用'
-  if (isPartialSuccess.value) return '部分配置同步失败，请检查Token是否有效'
-  return '配置同步失败，请检查Token和网络连接'
+  
+  // 如果有解析后的错误信息，使用智能分析结果
+  if (parsedErrors.value.length > 0) {
+    const analysis = errorAnalysis.value
+    switch (analysis.severity) {
+      case 'critical':
+        return `${analysis.primaryError?.title || '严重错误'}，${analysis.suggestedAction}`
+      case 'high':
+        return `${analysis.primaryError?.title || '权限问题'}，${analysis.suggestedAction}`
+      case 'medium':
+        return `${analysis.primaryError?.title || '配置问题'}，${analysis.suggestedAction}`
+      case 'low':
+        if (analysis.retryable) {
+          return `${analysis.primaryError?.title || '网络问题'}，${analysis.suggestedAction}`
+        }
+        break
+    }
+  }
+  
+  // 默认描述
+  if (isPartialSuccess.value) return '部分配置同步失败，请检查错误详情'
+  return '配置同步失败，请检查错误详情或稍后重试'
 })
 
 // 检查日志中是否有错误

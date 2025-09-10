@@ -13,6 +13,7 @@ export class SynchronizationService {
   private static readonly TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
   private static readonly MAX_RETRIES = 3;
   private static readonly RETRY_DELAY = 1000;
+  private static readonly REQUEST_TIMEOUT = 30000; // 30秒超时
 
   /**
    * 调用Telegram API的通用方法
@@ -25,11 +26,17 @@ export class SynchronizationService {
   ): Promise<any> {
     try {
       const url = `${this.TELEGRAM_API_BASE}${token}/${method}`;
+      
+      // 创建带超时的AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
+      
       const options: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       };
 
       if (data) {
@@ -37,6 +44,8 @@ export class SynchronizationService {
       }
 
       const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+      
       const result = await response.json();
 
       if (!result.ok) {
@@ -47,14 +56,45 @@ export class SynchronizationService {
     } catch (error) {
       console.error(`Telegram API调用失败 (${method}):`, error);
       
-      if (retries < this.MAX_RETRIES) {
-        console.log(`重试 ${retries + 1}/${this.MAX_RETRIES}...`);
-        await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY * (retries + 1)));
+      // 检查是否为网络相关错误，值得重试
+      const isNetworkError = this.isNetworkError(error);
+      
+      if (retries < this.MAX_RETRIES && isNetworkError) {
+        const delay = this.RETRY_DELAY * Math.pow(2, retries); // 指数退避
+        console.log(`重试 ${retries + 1}/${this.MAX_RETRIES}... (${delay}ms后)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
         return this.callTelegramAPI(token, method, data, retries + 1);
       }
       
       throw error;
     }
+  }
+
+  /**
+   * 检查是否为网络错误，值得重试
+   */
+  private static isNetworkError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message || '';
+    const errorCode = error.code || '';
+    
+    // 网络超时、连接重置、DNS错误等
+    const networkErrorPatterns = [
+      'fetch failed',
+      'network error',
+      'timeout',
+      'ECONNRESET',
+      'ECONNREFUSED', 
+      'ENOTFOUND',
+      'ETIMEDOUT',
+      'UND_ERR_CONNECT_TIMEOUT',
+      'AbortError'
+    ];
+    
+    return networkErrorPatterns.some(pattern => 
+      errorMessage.includes(pattern) || errorCode.includes(pattern)
+    );
   }
 
   /**
@@ -67,7 +107,8 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人名称失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
@@ -81,7 +122,8 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人描述失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
@@ -97,7 +139,8 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人短描述失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
@@ -111,7 +154,8 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人命令失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
@@ -135,7 +179,8 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 设置Webhook失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
@@ -151,22 +196,57 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 删除Webhook失败:', error);
-      return false;
+      // 重新抛出错误，保留原始错误信息
+      throw error;
     }
   }
 
   /**
    * 同步菜单按钮
    */
-  static async syncMenuButton(token: string, menuButton?: any): Promise<boolean> {
+  static async syncMenuButton(token: string, menuButtonConfig?: {
+    is_enabled: boolean;
+    button_text?: string;
+    menu_type?: 'commands' | 'web_app';
+    web_app_url?: string;
+    commands?: any[];
+  }): Promise<boolean> {
     try {
-      const defaultMenuButton = {
-        type: 'commands'
-      };
+      let menuButtonData: any;
 
+      if (!menuButtonConfig || !menuButtonConfig.is_enabled) {
+        // 禁用菜单按钮 - 使用default type
+        menuButtonData = {
+          type: 'default'
+        };
+        console.log('🔄 禁用菜单按钮');
+      } else {
+        // 启用菜单按钮
+        if (menuButtonConfig.menu_type === 'web_app' && menuButtonConfig.web_app_url) {
+          // Web App类型菜单按钮
+          menuButtonData = {
+            type: 'web_app',
+            text: menuButtonConfig.button_text || '菜单',
+            web_app: {
+              url: menuButtonConfig.web_app_url
+            }
+          };
+          console.log(`🔄 设置Web App菜单按钮: ${menuButtonConfig.button_text} -> ${menuButtonConfig.web_app_url}`);
+        } else {
+          // 命令类型菜单按钮（注意：commands类型不支持自定义text参数）
+          menuButtonData = {
+            type: 'commands'
+          };
+          console.log('🔄 设置命令菜单按钮（文本固定为"Menu"）');
+        }
+      }
+
+      // 调用Telegram API设置菜单按钮
+      // 注意：chat_id参数可选，不提供则设置为所有私聊的默认菜单按钮
       await this.callTelegramAPI(token, 'setChatMenuButton', {
-        menu_button: menuButton || defaultMenuButton
+        menu_button: menuButtonData
       });
+      
       console.log('✅ 菜单按钮同步成功');
       return true;
     } catch (error) {
@@ -214,7 +294,13 @@ export class SynchronizationService {
       workMode?: string;
       webhookUrl?: string;
       webhookSecret?: string;
-      menuButton?: any;
+      menuButton?: {
+        is_enabled: boolean;
+        button_text?: string;
+        menu_type?: 'commands' | 'web_app';
+        web_app_url?: string;
+        commands?: any[];
+      };
     }
   ): Promise<{
     success: boolean;
@@ -278,9 +364,13 @@ export class SynchronizationService {
     }
 
     if (config.menuButton !== undefined) {
+      const buttonDesc = config.menuButton.is_enabled 
+        ? `启用菜单按钮: ${config.menuButton.button_text || '菜单'} (${config.menuButton.menu_type || 'commands'})`
+        : '禁用菜单按钮';
+      
       steps.push({
         name: 'menuButton',
-        description: '设置菜单按钮',
+        description: buttonDesc,
         execute: () => this.syncMenuButton(token, config.menuButton)
       });
     }

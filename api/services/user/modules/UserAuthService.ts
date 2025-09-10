@@ -52,15 +52,15 @@ export class UserAuthService {
 
     const query = `
       INSERT INTO users (
-        username, telegram_id, telegram_username, login_type, 
-        type, user_type, status, balance, frozen_balance
+        username, telegram_id, first_name, last_name, login_type, 
+        user_type, status, balance
       )
-      VALUES ($1, $2, $3, 'telegram', 'user', 'regular', 'active', 0, 0)
+      VALUES ($1, $2, $3, $4, 'telegram', 'normal', 'active', 0)
       RETURNING *
     `;
     
     const result = await pool.query(query, [
-      finalUsername, telegram_id, username
+      finalUsername, telegram_id, first_name, last_name
     ]);
 
     return UserQueryService.getUserById(result.rows[0].id);

@@ -29,22 +29,6 @@
 
       <!-- 菜单按钮配置 -->
       <div v-if="menuConfig.is_enabled" class="space-y-4">
-        <!-- 按钮文本 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            按钮文本 <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="menuConfig.button_text"
-            type="text"
-            :required="menuConfig.is_enabled"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="菜单"
-            maxlength="64"
-          />
-          <div class="text-right text-xs text-gray-500 mt-1">{{ menuConfig.button_text.length }}/64</div>
-          <p class="text-xs text-gray-500 mt-1">用户看到的菜单按钮文字</p>
-        </div>
 
         <!-- 菜单类型 -->
         <div>
@@ -76,7 +60,7 @@
                     <span class="block text-sm font-medium text-gray-900">命令菜单</span>
                   </div>
                   <div class="block text-xs text-gray-500 mt-1">
-                    显示机器人命令列表
+                    显示机器人命令列表 • 按钮文本固定为"Menu"
                   </div>
                 </div>
               </div>
@@ -106,9 +90,40 @@
                     <span class="block text-sm font-medium text-gray-900">Web App</span>
                   </div>
                   <div class="block text-xs text-gray-500 mt-1">
-                    打开指定的网页应用
+                    打开指定的网页应用 • 可自定义按钮文本
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 按钮文本配置（仅Web App类型支持） -->
+        <div v-if="menuConfig.menu_type === 'web_app'">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            按钮文本 <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="menuConfig.button_text"
+            type="text"
+            :required="menuConfig.is_enabled && menuConfig.menu_type === 'web_app'"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="打开应用"
+            maxlength="64"
+          />
+          <div class="text-right text-xs text-gray-500 mt-1">{{ menuConfig.button_text.length }}/64</div>
+          <p class="text-xs text-gray-500 mt-1">用户看到的菜单按钮文字</p>
+        </div>
+
+        <!-- 命令菜单说明 -->
+        <div v-if="menuConfig.menu_type === 'commands'" class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div class="flex items-start gap-2">
+            <Terminal class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div class="text-sm text-amber-800">
+              <div class="font-medium mb-1">命令菜单说明</div>
+              <div class="text-amber-700 text-xs">
+                命令菜单类型的按钮文本由 Telegram 系统控制，显示为固定的"Menu"文本，无法自定义。
+                用户点击后会显示您配置的命令列表。
               </div>
             </div>
           </div>
@@ -221,16 +236,24 @@
             <div class="font-medium mb-2">菜单按钮功能说明：</div>
             <div class="text-blue-700 space-y-1 text-xs">
               <div>• <strong>位置显示</strong>：在聊天界面输入框旁边显示菜单图标</div>
-              <div>• <strong>命令菜单</strong>：点击后显示机器人可用命令列表</div>
-              <div>• <strong>Web App</strong>：点击后在Telegram内打开指定网页</div>
+              <div>• <strong>命令菜单</strong>：点击后显示机器人可用命令列表，按钮文本由系统固定为"Menu"</div>
+              <div>• <strong>Web App</strong>：点击后在Telegram内打开指定网页，可自定义按钮文本</div>
               <div>• <strong>用户体验</strong>：减少用户记忆命令，提供可视化操作</div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-blue-300">
+              <div class="font-medium text-blue-800 mb-1">按钮文本设置规则：</div>
+              <div class="text-blue-700 text-xs space-y-1">
+                <div>• <strong>命令菜单类型</strong>：按钮文本固定为"Menu"，无法修改</div>
+                <div>• <strong>Web App类型</strong>：可自定义按钮文本，建议简洁明了（3-12个字符）</div>
+                <div>• <strong>官方限制</strong>：这是Telegram Bot API的设计限制，非系统问题</div>
+              </div>
             </div>
             <div class="mt-3 pt-2 border-t border-blue-300">
               <div class="font-medium text-blue-800 mb-1">配置建议：</div>
               <div class="text-blue-700 text-xs space-y-1">
                 <div>• 命令菜单适合功能较多的机器人</div>
                 <div>• Web App适合需要复杂交互的场景</div>
-                <div>• 按钮文本要简洁明了，建议3-6个字符</div>
+                <div>• 如需自定义按钮文本，请选择Web App类型</div>
               </div>
             </div>
           </div>
@@ -306,23 +329,68 @@ const removeCommand = (index: number) => {
 }
 
 // 监听配置变化，同步到父组件
+// 使用防抖和变化检测的watch来避免递归更新
+let isInternalUpdate = false
+
 watch(
   () => menuConfig,
   (newConfig) => {
-    emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
+    if (isInternalUpdate) return
+    
+    // 深度比较，只在真正变化时才emit
+    const currentValue = JSON.stringify(props.modelValue)
+    const newValue = JSON.stringify(newConfig)
+    
+    if (currentValue !== newValue) {
+      emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
+    }
   },
   { deep: true }
 )
 
+// 监听props变化，更新内部数据
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (!newValue) return
+    
+    isInternalUpdate = true
+    
+    try {
+      // 更新基本配置
+      Object.assign(menuConfig, {
+        is_enabled: newValue.is_enabled || false,
+        button_text: newValue.button_text || '菜单',
+        menu_type: newValue.menu_type || 'commands',
+        web_app_url: newValue.web_app_url || ''
+      })
+      
+      // 特别处理commands数组
+      if (newValue.commands && Array.isArray(newValue.commands)) {
+        menuConfig.commands = JSON.parse(JSON.stringify(newValue.commands))
+      }
+    } finally {
+      // 延迟重置标记，确保更新完成
+      setTimeout(() => {
+        isInternalUpdate = false
+      }, 50)
+    }
+  },
+  { deep: true, immediate: true }
+)
+
 // 初始化数据
 if (props.modelValue) {
-  Object.assign(menuConfig, props.modelValue)
+  Object.assign(menuConfig, {
+    is_enabled: props.modelValue.is_enabled || false,
+    button_text: props.modelValue.button_text || '菜单',
+    menu_type: props.modelValue.menu_type || 'commands',
+    web_app_url: props.modelValue.web_app_url || ''
+  })
+  
   // 特别处理commands数组
   if (props.modelValue.commands && Array.isArray(props.modelValue.commands)) {
     menuConfig.commands = JSON.parse(JSON.stringify(props.modelValue.commands))
   }
 }
-
-// 初始化时发送一次数据
-emit('update:modelValue', JSON.parse(JSON.stringify(menuConfig)))
 </script>

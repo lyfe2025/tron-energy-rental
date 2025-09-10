@@ -31,6 +31,8 @@
         :getDisplayText="getDisplayText"
         :formatSubtitle="formatSubtitle"
         :handleImageError="handleImageError"
+        :lineBreaks="lineBreaks"
+        :generateLineBreaks="generateLineBreaks"
       />
 
       <!-- 右侧：配置表单 -->
@@ -46,6 +48,8 @@
         <!-- 显示文本配置 -->
         <DisplayTextConfiguration
           :displayTexts="displayTexts"
+          :lineBreaks="lineBreaks"
+          :setLineBreakPreset="setLineBreakPreset"
         />
 
         <!-- 注意事项配置 -->
@@ -85,6 +89,7 @@ const {
   layoutContainer,
   displayTexts,
   notes,
+  lineBreaks,
   handleToggle,
   handleSave,
   getDisplayText,
@@ -94,7 +99,9 @@ const {
   handleImageUploadError,
   toggleImageEnabled,
   addNote,
-  removeNote
+  removeNote,
+  setLineBreakPreset,
+  generateLineBreaks
 } = useTrxExchangeConfig(props)
 
 // 解构props以便访问

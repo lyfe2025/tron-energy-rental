@@ -196,9 +196,36 @@ export class UpdateUtils {
     changes: any[],
     syncResult?: any
   ): object {
-    return {
+    // 生成适当的消息
+    let message = '机器人更新成功';
+    let warnings: string[] = [];
+    
+    if (syncResult) {
+      if (!syncResult.success && syncResult.errors && syncResult.errors.length > 0) {
+        // 检查是否为网络问题
+        const hasNetworkError = syncResult.errors.some((error: string) => 
+          error.includes('网络连接问题') || 
+          error.includes('timeout') || 
+          error.includes('fetch failed') ||
+          error.includes('同步失败')
+        );
+        
+        if (hasNetworkError) {
+          message = '机器人更新成功，但同步到Telegram时遇到网络问题';
+          warnings.push('同步到Telegram API失败，但数据库更新已成功完成');
+          warnings.push('您可以稍后重试或检查网络连接');
+        } else {
+          message = '机器人更新成功，但部分同步操作失败';
+          warnings = syncResult.errors;
+        }
+      } else if (syncResult.success) {
+        message = '机器人更新并同步成功';
+      }
+    }
+
+    const response: any = {
       success: true,
-      message: '机器人更新成功',
+      message,
       data: {
         bot: {
           id: bot.id,
@@ -212,6 +239,13 @@ export class UpdateUtils {
         sync_result: syncResult
       }
     };
+
+    // 添加警告信息（如果有）
+    if (warnings.length > 0) {
+      response.warnings = warnings;
+    }
+
+    return response;
   }
 
   /**

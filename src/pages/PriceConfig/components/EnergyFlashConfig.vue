@@ -68,6 +68,8 @@
                   <div class="font-bold text-sm mb-1 text-green-600">
                     {{ getDisplayText('title', '⚡闪租能量（需要时）') }}
                   </div>
+                  <!-- 标题后换行 -->
+                  <div v-if="lineBreaks.after_title > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_title) }}</div>
                   
                   <!-- 副标题 -->
                   <div class="text-xs text-gray-600 mb-2 whitespace-pre-line">
@@ -97,10 +99,19 @@
                       </span>
                     </div>
                     
+                    <!-- 详细信息后换行 -->
+                    <div v-if="lineBreaks.after_details > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_details) }}</div>
+                    
+                    <!-- 警告信息前换行 -->
+                    <div v-if="config.config.double_energy_for_no_usdt && lineBreaks.before_warning > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.before_warning) }}</div>
+                    
                     <!-- 双倍能量警告 -->
                     <div v-if="config.config.double_energy_for_no_usdt" class="text-xs text-red-600 bg-red-50 p-2 rounded mt-2">
                       {{ getDisplayText('double_energy_warning', '⚠️ 注意：账户无USDT将消耗双倍能量') }}
                     </div>
+                    
+                    <!-- 注意事项前换行 -->
+                    <div v-if="config.config.notes && config.config.notes.length > 0 && lineBreaks.before_notes > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.before_notes) }}</div>
                     
                     <!-- 注意事项 -->
                     <div v-if="config.config.notes && config.config.notes.length > 0" class="mt-2 pt-2 border-t border-gray-200">
@@ -355,6 +366,116 @@
           </div>
         </div>
 
+        <!-- 换行配置 -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">📐 换行设置</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            配置在不同位置添加额外的换行，让消息显示更美观。数值为0表示不添加额外换行。
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                标题后换行数
+                <span class="text-xs text-gray-500">(标题与副标题之间)</span>
+              </label>
+              <input
+                v-model.number="lineBreaks.after_title"
+                type="number"
+                min="0"
+                max="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                副标题后换行数
+                <span class="text-xs text-gray-500">(价格列表后)</span>
+              </label>
+              <input
+                v-model.number="lineBreaks.after_subtitle"
+                type="number"
+                min="0"
+                max="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                基本信息后换行数
+                <span class="text-xs text-gray-500">(租期、价格、地址后)</span>
+              </label>
+              <input
+                v-model.number="lineBreaks.after_details"
+                type="number"
+                min="0"
+                max="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                警告信息前换行数
+                <span class="text-xs text-gray-500">(双倍能量警告前)</span>
+              </label>
+              <input
+                v-model.number="lineBreaks.before_warning"
+                type="number"
+                min="0"
+                max="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                注意事项前换行数
+                <span class="text-xs text-gray-500">(注意事项列表前)</span>
+              </label>
+              <input
+                v-model.number="lineBreaks.before_notes"
+                type="number"
+                min="0"
+                max="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <!-- 快速预设 -->
+          <div class="mt-4 pt-4 border-t border-gray-200">
+            <label class="block text-sm font-medium text-gray-700 mb-2">快速预设</label>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                @click="setLineBreakPreset('compact')"
+                class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+              >
+                紧凑(0换行)
+              </button>
+              <button
+                @click="setLineBreakPreset('normal')"
+                class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+              >
+                标准(1换行)
+              </button>
+              <button
+                @click="setLineBreakPreset('spacious')"
+                class="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200"
+              >
+                宽松(2换行)
+              </button>
+              <button
+                @click="setLineBreakPreset('custom')"
+                class="px-3 py-1 text-xs bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200"
+              >
+                自定义美观
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 注意事项配置 -->
         <div class="bg-white border border-gray-200 rounded-lg p-4">
           <h3 class="text-lg font-medium text-gray-900 mb-4">📋 注意事项配置</h3>
@@ -419,7 +540,24 @@ const initializeConfig = () => {
         price_label: '',
         max_label: '',
         address_label: '💰 下单地址：（点击地址自动复制）',
-        double_energy_warning: ''
+        double_energy_warning: '',
+        line_breaks: {
+          after_title: 0,
+          after_subtitle: 0,
+          after_details: 0,
+          before_warning: 0,
+          before_notes: 0
+        }
+      }
+    }
+    // 确保 line_breaks 存在
+    if (!props.config.config.display_texts.line_breaks) {
+      props.config.config.display_texts.line_breaks = {
+        after_title: 0,
+        after_subtitle: 0,
+        after_details: 0,
+        before_warning: 0,
+        before_notes: 0
       }
     }
     // 兼容旧版本：如果subtitle_template是字符串，转换为数组
@@ -485,24 +623,35 @@ const notes = computed(() => {
   return props.config?.config?.notes || []
 })
 
+// 计算属性：安全访问 line_breaks
+const lineBreaks = computed(() => {
+  return props.config?.config?.display_texts?.line_breaks || {
+    after_title: 0,
+    after_subtitle: 0,
+    after_details: 0,
+    before_warning: 0,
+    before_notes: 0
+  }
+})
+
 // 获取显示文本，如果没有配置则使用默认值
 const getDisplayText = (key: string, defaultValue: string): string => {
   return props.config?.config.display_texts?.[key] || defaultValue
 }
 
-// 格式化副标题，替换占位符 - 显示所有副标题模板，支持动态计算
+// 格式化副标题，替换占位符 - 显示所有副标题模板，支持动态计算和换行配置
 const formatSubtitle = (): string => {
   const templates = subtitleTemplates.value.filter(t => t.trim() !== '')
   if (templates.length === 0) {
     // 如果没有有效模板，使用默认模板
     const defaultTemplate = '（{price}TRX/笔，最多买{max}笔）'
-    return formatTemplate(defaultTemplate)
+    return formatTemplate(defaultTemplate) + generateLineBreaks(lineBreaks.value.after_subtitle)
   }
   
   // 格式化所有模板并用换行符连接
   const formattedTemplates = templates.map(template => formatTemplate(template))
   
-  return formattedTemplates.join('\n')
+  return formattedTemplates.join('\n') + generateLineBreaks(lineBreaks.value.after_subtitle)
 }
 
 // 格式化单个模板，支持动态计算和多种变量
@@ -673,6 +822,50 @@ const copyAddress = async () => {
   setTimeout(() => {
     copyStatus.value = ''
   }, 2000)
+}
+
+// 换行配置预设方法
+const setLineBreakPreset = (presetType: string) => {
+  if (!props.config?.config?.display_texts?.line_breaks) return
+  
+  const presets = {
+    compact: {
+      after_title: 0,
+      after_subtitle: 0,
+      after_details: 0,
+      before_warning: 0,
+      before_notes: 0
+    },
+    normal: {
+      after_title: 1,
+      after_subtitle: 1,
+      after_details: 1,
+      before_warning: 1,
+      before_notes: 1
+    },
+    spacious: {
+      after_title: 2,
+      after_subtitle: 2,
+      after_details: 2,
+      before_warning: 2,
+      before_notes: 2
+    },
+    custom: {
+      after_title: 1,
+      after_subtitle: 1,
+      after_details: 1,
+      before_warning: 1,
+      before_notes: 1
+    }
+  }
+  
+  const preset = presets[presetType] || presets.normal
+  Object.assign(props.config.config.display_texts.line_breaks, preset)
+}
+
+// 生成额外换行字符串
+const generateLineBreaks = (count: number): string => {
+  return count > 0 ? '\n'.repeat(count) : ''
 }
 
 // 组件挂载时初始化

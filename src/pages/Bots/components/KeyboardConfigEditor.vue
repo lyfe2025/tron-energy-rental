@@ -63,6 +63,21 @@
         </label>
       </div>
 
+      <!-- 键盘类型选择 -->
+      <div v-if="keyboardConfig.main_menu.is_enabled" class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">键盘类型</label>
+        <select
+          v-model="keyboardConfig.main_menu.type"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="inline">内嵌键盘 (Inline Keyboard)</option>
+          <option value="reply">回复键盘 (Reply Keyboard)</option>
+        </select>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ keyboardConfig.main_menu.type === 'inline' ? '内嵌键盘显示在消息下方，支持回调功能' : '回复键盘替换用户输入框，点击后发送文本消息' }}
+        </p>
+      </div>
+
       <!-- 键盘行配置 -->
       <div v-if="keyboardConfig.main_menu.is_enabled" class="space-y-4">
         <div 
@@ -82,6 +97,7 @@
                 <span class="ml-2 text-xs text-gray-600">启用</span>
               </label>
               <button
+                type="button"
                 @click="removeRow(rowIndex)"
                 class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
               >
@@ -108,7 +124,7 @@
                   />
                 </div>
                 
-                <div>
+                <div v-if="keyboardConfig.main_menu.type === 'inline'">
                   <label class="block text-xs font-medium text-gray-700 mb-1">回调数据</label>
                   <input
                     v-model="button.callback_data"
@@ -116,6 +132,13 @@
                     placeholder="callback_data"
                     class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                   />
+                </div>
+                
+                <div v-else class="text-xs text-gray-500 p-2 bg-blue-50 rounded border border-blue-200">
+                  <div class="flex items-center gap-1">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span>回复键盘模式：点击按钮将发送按钮文本</span>
+                  </div>
                 </div>
                 
                 <div>
@@ -152,6 +175,7 @@
                 </div>
                 
                 <button
+                  type="button"
                   @click="removeButton(rowIndex, buttonIndex)"
                   class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                 >
@@ -162,6 +186,7 @@
             
             <!-- 添加按钮 -->
             <button
+              type="button"
               @click="addButton(rowIndex)"
               class="w-full py-2 text-sm border-2 border-dashed border-gray-300 rounded hover:border-blue-400 text-gray-500 hover:text-blue-600 transition-colors"
             >
@@ -172,6 +197,7 @@
         
         <!-- 添加行按钮 -->
         <button
+          type="button"
           @click="addRow"
           class="w-full py-3 text-sm border-2 border-dashed border-gray-400 rounded hover:border-blue-500 text-gray-600 hover:text-blue-700 transition-colors"
         >
@@ -251,7 +277,7 @@ const emit = defineEmits<{
 // 键盘配置数据
 const keyboardConfig = reactive<KeyboardConfig>({
   main_menu: {
-    type: 'inline',
+    type: 'reply',
     title: 'TRON资源租赁主菜单',
     description: '选择您需要的服务',
     is_enabled: true,
@@ -391,12 +417,40 @@ const getDependentButtons = (): number => {
 }
 
 // 监听配置变化，同步到父组件
+// 暂时禁用deep watcher，避免递归更新
+// watch(
+//   () => keyboardConfig,
+//   (newConfig) => {
+//     emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
+//   },
+//   { deep: true }
+// )
+
+// 监听外部数据变化
 watch(
-  () => keyboardConfig,
-  (newConfig) => {
-    emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      // 深度合并数据，特别处理数组类型
+      if (newValue.main_menu) {
+        Object.assign(keyboardConfig.main_menu, newValue.main_menu)
+        // 特别处理 rows 数组
+        if (newValue.main_menu.rows && Array.isArray(newValue.main_menu.rows)) {
+          keyboardConfig.main_menu.rows = JSON.parse(JSON.stringify(newValue.main_menu.rows))
+        }
+      }
+      if (newValue.inline_keyboards) {
+        keyboardConfig.inline_keyboards = newValue.inline_keyboards
+      }
+      if (newValue.reply_keyboards) {
+        keyboardConfig.reply_keyboards = newValue.reply_keyboards
+      }
+      if (newValue.quick_actions) {
+        keyboardConfig.quick_actions = newValue.quick_actions
+      }
+    }
   },
-  { deep: true }
+  { deep: true, immediate: true }
 )
 
 // 组件挂载时初始化数据
@@ -421,7 +475,8 @@ onMounted(() => {
     }
   }
   
-  emit('update:modelValue', JSON.parse(JSON.stringify(keyboardConfig)))
+  // 移除自动emit，避免递归更新
+  // emit('update:modelValue', JSON.parse(JSON.stringify(keyboardConfig)))
 })
 </script>
 

@@ -56,37 +56,18 @@ export class ConfigUpdateService {
    */
   static async updateBotCommands(botId: string, commands: any[]): Promise<void> {
     try {
-      // 开始事务
-      await query('BEGIN');
+      console.log(`🔄 更新机器人菜单命令: ${botId}, 命令数量: ${commands?.length || 0}`);
+      
+      // 直接更新 telegram_bots 表的 menu_commands 字段
+      await query(
+        'UPDATE telegram_bots SET menu_commands = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [JSON.stringify(commands || []), botId]
+      );
 
-      // 删除现有命令
-      await query('DELETE FROM telegram_bot_commands WHERE bot_id = $1', [botId]);
-
-      // 插入新命令
-      if (commands && commands.length > 0) {
-        const values = commands.map((cmd, index) => 
-          `($1, $${index * 3 + 2}, $${index * 3 + 3}, $${index * 3 + 4})`
-        ).join(', ');
-
-        const params = [botId];
-        commands.forEach(cmd => {
-          params.push(cmd.command, cmd.description, cmd.scope || 'default');
-        });
-
-        await query(
-          `INSERT INTO telegram_bot_commands (bot_id, command, description, scope) VALUES ${values}`,
-          params
-        );
-      }
-
-      // 提交事务
-      await query('COMMIT');
-      console.log(`✅ 机器人命令更新成功，共 ${commands?.length || 0} 个命令`);
+      console.log(`✅ 机器人菜单命令更新成功，共 ${commands?.length || 0} 个命令`);
     } catch (error) {
-      // 回滚事务
-      await query('ROLLBACK');
-      console.error('更新机器人命令失败:', error);
-      throw new Error(`更新机器人命令失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      console.error('更新机器人菜单命令失败:', error);
+      throw new Error(`更新机器人菜单命令失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }
 
@@ -95,41 +76,16 @@ export class ConfigUpdateService {
    */
   static async updateCustomCommands(botId: string, customCommands: any[]): Promise<void> {
     try {
-      // 开始事务
-      await query('BEGIN');
+      console.log(`🔄 更新机器人自定义命令: ${botId}, 命令数量: ${customCommands?.length || 0}`);
+      
+      // 直接更新 telegram_bots 表的 custom_commands 字段
+      await query(
+        'UPDATE telegram_bots SET custom_commands = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [JSON.stringify(customCommands || []), botId]
+      );
 
-      // 删除现有自定义命令
-      await query('DELETE FROM telegram_bot_custom_commands WHERE bot_id = $1', [botId]);
-
-      // 插入新的自定义命令
-      if (customCommands && customCommands.length > 0) {
-        const values = customCommands.map((_, index) => 
-          `($1, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4}, $${index * 4 + 5})`
-        ).join(', ');
-
-        const params = [botId];
-        customCommands.forEach(cmd => {
-          params.push(
-            cmd.command,
-            cmd.response_message,
-            cmd.response_type || 'text',
-            cmd.keyboard_config ? JSON.stringify(cmd.keyboard_config) : null
-          );
-        });
-
-        await query(
-          `INSERT INTO telegram_bot_custom_commands (bot_id, command, response_message, response_type, keyboard_config) 
-           VALUES ${values}`,
-          params
-        );
-      }
-
-      // 提交事务
-      await query('COMMIT');
       console.log(`✅ 自定义命令更新成功，共 ${customCommands?.length || 0} 个命令`);
     } catch (error) {
-      // 回滚事务
-      await query('ROLLBACK');
       console.error('更新自定义命令失败:', error);
       throw new Error(`更新自定义命令失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
@@ -144,21 +100,13 @@ export class ConfigUpdateService {
     metadata?: any
   ): Promise<void> {
     try {
-      const updateData: any = {
-        status,
-        last_activity: new Date(),
-        updated_at: new Date()
-      };
-
-      if (metadata) {
-        updateData.metadata = JSON.stringify(metadata);
-      }
-
       await query(
-        `UPDATE telegram_bot_status 
-         SET status = $1, last_activity = $2, metadata = $3, updated_at = $4
-         WHERE bot_id = $5`,
-        [status, updateData.last_activity, updateData.metadata || null, updateData.updated_at, botId]
+        `UPDATE telegram_bots 
+         SET health_status = $2, 
+             last_health_check = NOW(),
+             updated_at = NOW()
+         WHERE id = $1`,
+        [botId, status]
       );
 
       console.log(`✅ 机器人状态更新成功: ${status}`);
@@ -211,17 +159,19 @@ export class ConfigUpdateService {
       };
 
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
           message,
-          data,
+          action,
+          context,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
-          'update',
+          'info',
           `机器人信息更新: ${Object.keys(updateData).join(', ')}`,
+          'update',
           JSON.stringify(logData)
         ]
       );
@@ -258,13 +208,13 @@ export class ConfigUpdateService {
         );
       }
 
-      // 更新价格配置
-      if (configs.priceConfig !== undefined) {
-        await query(
-          'UPDATE telegram_bots SET price_config = $1 WHERE id = $2',
-          [JSON.stringify(configs.priceConfig), botId]
-        );
-      }
+      // 价格配置暂不支持（数据库中没有 price_config 字段）
+      // if (configs.priceConfig !== undefined) {
+      //   await query(
+      //     'UPDATE telegram_bots SET price_config = $1 WHERE id = $2',
+      //     [JSON.stringify(configs.priceConfig), botId]
+      //   );
+      // }
 
       // 更新菜单命令
       if (configs.menuCommands !== undefined) {
@@ -304,13 +254,23 @@ export class ConfigUpdateService {
       const result = await query(
         `SELECT 
           keyboard_config,
-          price_config,
           work_mode,
           webhook_url,
-          settings,
-          name,
+          webhook_secret,
+          max_connections,
+          bot_name as name,
           description,
-          short_description
+          short_description,
+          welcome_message,
+          help_message,
+          custom_commands,
+          menu_button_enabled,
+          menu_button_text,
+          menu_type,
+          web_app_url,
+          menu_commands,
+          network_id,
+          is_active
          FROM telegram_bots 
          WHERE id = $1`,
         [botId]
@@ -324,17 +284,19 @@ export class ConfigUpdateService {
 
       // 保存备份到日志表
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
           message,
-          data,
+          action,
+          context,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
-          'backup',
+          'info',
           '配置备份',
+          'backup',
           JSON.stringify({
             backup_time: new Date().toISOString(),
             config: backup
@@ -363,41 +325,63 @@ export class ConfigUpdateService {
         `UPDATE telegram_bots 
          SET 
            keyboard_config = $1,
-           price_config = $2,
-           work_mode = $3,
-           webhook_url = $4,
-           settings = $5,
-           name = $6,
+           work_mode = $2,
+           webhook_url = $3,
+           webhook_secret = $4,
+           max_connections = $5,
+           bot_name = $6,
            description = $7,
            short_description = $8,
+           welcome_message = $9,
+           help_message = $10,
+           custom_commands = $11,
+           menu_button_enabled = $12,
+           menu_button_text = $13,
+           menu_type = $14,
+           web_app_url = $15,
+           menu_commands = $16,
+           network_id = $17,
+           is_active = $18,
            updated_at = NOW()
-         WHERE id = $9`,
+         WHERE id = $19`,
         [
           JSON.stringify(backupData.keyboard_config),
-          JSON.stringify(backupData.price_config),
           backupData.work_mode,
           backupData.webhook_url,
-          JSON.stringify(backupData.settings),
+          backupData.webhook_secret,
+          backupData.max_connections,
           backupData.name,
           backupData.description,
           backupData.short_description,
+          backupData.welcome_message,
+          backupData.help_message,
+          JSON.stringify(backupData.custom_commands),
+          backupData.menu_button_enabled,
+          backupData.menu_button_text,
+          backupData.menu_type,
+          backupData.web_app_url,
+          JSON.stringify(backupData.menu_commands),
+          backupData.network_id,
+          backupData.is_active,
           botId
         ]
       );
 
       // 记录恢复日志
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
           message,
-          data,
+          action,
+          context,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
-          'restore',
+          'info',
           '配置恢复',
+          'restore',
           JSON.stringify({
             restore_time: new Date().toISOString(),
             restored_config: backupData
@@ -423,12 +407,12 @@ export class ConfigUpdateService {
     try {
       const result = await query(
         `SELECT 
-          log_type,
+          action as log_type,
           message,
-          data,
+          context as log_data,
           created_at
-         FROM telegram_bot_logs 
-         WHERE bot_id = $1 AND log_type IN ('update', 'backup', 'restore')
+         FROM bot_logs 
+         WHERE bot_id = $1 AND action IN ('update', 'backup', 'restore')
          ORDER BY created_at DESC 
          LIMIT $2`,
         [botId, limit]
@@ -466,7 +450,7 @@ export class ConfigUpdateService {
         const expectedValue = expectedData[key as keyof UpdateBotData];
         const actualValue = bot[key];
 
-        if (key === 'keyboard_config' || key === 'price_config' || key === 'settings') {
+        if (key === 'keyboard_config' || key === 'custom_commands' || key === 'menu_commands') {
           // JSON字段需要特殊处理
           const expectedJson = JSON.stringify(expectedValue);
           const actualJson = JSON.stringify(actualValue);

@@ -58,8 +58,23 @@ export class PriceConfigMessageBuilder {
       // 构建内嵌键盘（如果有配置）
       let replyMarkup = undefined;
       if (inlineKeyboardConfig && inlineKeyboardConfig.enabled && inlineKeyboardConfig.buttons) {
+        let inlineKeyboard;
+        if (Array.isArray(inlineKeyboardConfig.buttons)) {
+          // 如果 buttons 是数组，检查第一个元素是否也是数组
+          if (inlineKeyboardConfig.buttons.length > 0 && Array.isArray(inlineKeyboardConfig.buttons[0])) {
+            // 已经是正确的格式 (数组的数组)
+            inlineKeyboard = inlineKeyboardConfig.buttons;
+          } else {
+            // 是按钮对象的数组，需要根据 buttons_per_row 配置分组
+            inlineKeyboard = this.groupButtonsIntoRows(inlineKeyboardConfig.buttons, inlineKeyboardConfig.buttons_per_row || 2);
+          }
+        } else {
+          // 不是数组，跳过
+          inlineKeyboard = [];
+        }
+        
         replyMarkup = {
-          inline_keyboard: inlineKeyboardConfig.buttons
+          inline_keyboard: inlineKeyboard
         };
       }
 
@@ -311,6 +326,45 @@ export class PriceConfigMessageBuilder {
     }
 
     return message;
+  }
+
+  /**
+   * 将按钮数组按照每行按钮数分组，并处理特殊按钮（全宽）
+   */
+  private groupButtonsIntoRows(buttons: any[], buttonsPerRow: number = 2): any[][] {
+    const rows: any[][] = [];
+    
+    // 识别特殊按钮（标记为isSpecial或者是最后一个按钮）
+    let regularButtons = [];
+    let specialButtons = [];
+    
+    buttons.forEach((button, index) => {
+      if (button.isSpecial || (index === buttons.length - 1 && buttons.length > 4)) {
+        // 特殊按钮：明确标记的或者是最后一个按钮且总数大于4个
+        specialButtons.push({
+          text: button.text,
+          callback_data: button.callback_data
+        });
+      } else {
+        regularButtons.push({
+          text: button.text,
+          callback_data: button.callback_data
+        });
+      }
+    });
+    
+    // 先处理常规按钮，按照每行指定数量分组
+    for (let i = 0; i < regularButtons.length; i += buttonsPerRow) {
+      const row = regularButtons.slice(i, i + buttonsPerRow);
+      rows.push(row);
+    }
+    
+    // 然后处理特殊按钮，每个单独一行
+    specialButtons.forEach(button => {
+      rows.push([button]);
+    });
+    
+    return rows;
   }
 
 }

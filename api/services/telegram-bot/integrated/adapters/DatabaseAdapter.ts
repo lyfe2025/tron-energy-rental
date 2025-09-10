@@ -25,7 +25,10 @@ export class DatabaseAdapter {
   async getBotConfigByToken(token: string): Promise<any | null> {
     try {
       const result = await query(
-        `SELECT tb.*, tn.* 
+        `SELECT tb.*, 
+         tn.id as network_table_id, tn.name as network_name, tn.rpc_url, tn.api_key, 
+         tn.network_type, tn.is_active as network_is_active, 
+         tn.created_at as network_created_at, tn.updated_at as network_updated_at
          FROM telegram_bots tb
          LEFT JOIN tron_networks tn ON tb.network_id = tn.id
          WHERE tb.bot_token = $1 AND tb.is_active = true`,
@@ -40,7 +43,7 @@ export class DatabaseAdapter {
       return {
         bot: {
           id: row.id,
-          name: row.name,
+          bot_name: row.bot_name,
           bot_username: row.bot_username,
           bot_token: row.bot_token,
           description: row.description,
@@ -60,12 +63,12 @@ export class DatabaseAdapter {
           updated_at: row.updated_at
         },
         network: row.network_id ? {
-          id: row.network_id,
-          name: row.name_1 || row.network_name, // 处理可能的字段名冲突
-          api_url: row.api_url,
-          api_key: row.api_key,
-          is_testnet: row.is_testnet,
-          is_active: row.is_active_1 || row.network_active,
+          id: row.network_table_id,
+          name: row.network_name,
+          rpcUrl: row.rpc_url,
+          apiKey: row.api_key,
+          isTestnet: row.network_type === 'testnet',
+          isActive: row.network_is_active !== false,
           created_at: row.network_created_at,
           updated_at: row.network_updated_at
         } : null
@@ -82,7 +85,10 @@ export class DatabaseAdapter {
   async getBotConfigById(botId: string): Promise<any | null> {
     try {
       const result = await query(
-        `SELECT tb.*, tn.* 
+        `SELECT tb.*, 
+         tn.id as network_table_id, tn.name as network_name, tn.rpc_url, tn.api_key, 
+         tn.network_type, tn.is_active as network_is_active, 
+         tn.created_at as network_created_at, tn.updated_at as network_updated_at
          FROM telegram_bots tb
          LEFT JOIN tron_networks tn ON tb.network_id = tn.id
          WHERE tb.id = $1`,
@@ -184,11 +190,33 @@ export class DatabaseAdapter {
     data?: any
   ): Promise<void> {
     try {
+      // 验证 bot_id 是否存在于 telegram_bots 表中
+      const botExists = await query(
+        'SELECT id FROM telegram_bots WHERE id = $1',
+        [botId]
+      );
+
+      if (!botExists || !botExists.rows || botExists.rows.length === 0) {
+        console.warn(`⚠️ 尝试记录不存在的机器人日志: botId=${botId}, logType=${logType}, message=${message}`);
+        console.warn('可能原因：botId 设置错误（可能使用了 network_id 而非实际的 bot_id）');
+        return; // 跳过日志记录，避免外键约束错误
+      }
+
+      // 将 logType 映射到适当的 level
+      let level: 'info' | 'warn' | 'error' | 'debug' = 'info';
+      if (logType.includes('error') || logType.includes('failed')) {
+        level = 'error';
+      } else if (logType.includes('warn')) {
+        level = 'warn';
+      } else if (logType.includes('debug')) {
+        level = 'debug';
+      }
+
       await query(
-        `INSERT INTO telegram_bot_logs 
-         (bot_id, log_type, message, data, created_at)
-         VALUES ($1, $2, $3, $4, NOW())`,
-        [botId, logType, message, data ? JSON.stringify(data) : null]
+        `INSERT INTO bot_logs 
+         (bot_id, level, action, message, metadata, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())`,
+        [botId, level, logType, message, data ? JSON.stringify(data) : null]
       );
     } catch (error) {
       console.error('记录机器人日志失败:', error);
@@ -330,9 +358,9 @@ export class DatabaseAdapter {
 
       const logsResult = await query(
         `SELECT COUNT(*) as total_logs,
-                COUNT(CASE WHEN log_type = 'error' THEN 1 END) as error_logs,
+                COUNT(CASE WHEN level = 'error' THEN 1 END) as error_logs,
                 COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as recent_logs
-         FROM telegram_bot_logs 
+         FROM bot_logs 
          WHERE bot_id = $1`,
         [botId]
       );
@@ -406,10 +434,10 @@ export class DatabaseAdapter {
       network: row.network_id ? {
         id: row.network_id,
         name: row.network_name || row.name_1,
-        api_url: row.api_url,
-        api_key: row.api_key,
-        is_testnet: row.is_testnet,
-        is_active: row.network_active || row.is_active_1,
+        rpcUrl: row.rpc_url,
+        apiKey: row.api_key,
+        isTestnet: row.network_type === 'testnet',
+        isActive: row.network_active || row.is_active_1,
         created_at: row.network_created_at,
         updated_at: row.network_updated_at
       } : null
@@ -448,7 +476,7 @@ export class DatabaseAdapter {
   async cleanupOldLogs(daysOld = 30): Promise<number> {
     try {
       const result = await query(
-        'DELETE FROM telegram_bot_logs WHERE created_at < NOW() - INTERVAL $1 DAY',
+        'DELETE FROM bot_logs WHERE created_at < NOW() - INTERVAL $1 DAY',
         [daysOld]
       );
 

@@ -2,9 +2,15 @@
  * 价格配置消息处理器
  * 处理价格配置相关的回复键盘按钮和文本消息
  */
+import fs from 'fs';
 import TelegramBot from 'node-telegram-bot-api';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { query } from '../../../config/database.js';
 import { WebhookURLService } from '../utils/WebhookURLService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class PriceConfigMessageHandler {
   private bot: TelegramBot;
@@ -91,21 +97,47 @@ export class PriceConfigMessageHandler {
     // 构建内嵌键盘
     let replyMarkup = undefined;
     if (keyboardConfig && keyboardConfig.enabled && keyboardConfig.buttons) {
+      // 确保 inline_keyboard 是数组的数组格式 (rows)
+      let inlineKeyboard;
+      if (Array.isArray(keyboardConfig.buttons)) {
+        // 如果 buttons 是数组，检查第一个元素是否也是数组
+        if (keyboardConfig.buttons.length > 0 && Array.isArray(keyboardConfig.buttons[0])) {
+          // 已经是正确的格式 (数组的数组)
+          inlineKeyboard = keyboardConfig.buttons;
+        } else {
+          // 是按钮对象的数组，需要根据 buttons_per_row 配置分组
+          inlineKeyboard = this.groupButtonsIntoRows(keyboardConfig.buttons, keyboardConfig.buttons_per_row || 2);
+        }
+      } else {
+        // 不是数组，跳过
+        inlineKeyboard = [];
+      }
+      
       replyMarkup = {
-        inline_keyboard: keyboardConfig.buttons
+        inline_keyboard: inlineKeyboard
       };
     }
 
     // 发送消息 - 根据是否启用图片决定发送方式
     if (enableImage && imageUrl) {
-      // 构建完整的图片URL
-      let fullImageUrl = imageUrl;
+      // 构建本地文件路径或使用远程URL
+      let photoSource = imageUrl;
+      
       if (WebhookURLService.needsFullUrl(imageUrl)) {
-        fullImageUrl = await WebhookURLService.buildResourceUrl(this.botId, imageUrl);
+        // 如果是相对路径，使用本地文件
+        const projectRoot = path.resolve(__dirname, '../../../../');
+        const localPath = path.join(projectRoot, 'public', imageUrl.replace(/^\//, ''));
+        
+        if (fs.existsSync(localPath)) {
+          photoSource = localPath;
+        } else {
+          // 如果本地文件不存在，构建完整URL（备用方案）
+          photoSource = await WebhookURLService.buildResourceUrl(this.botId, imageUrl);
+        }
       }
 
       // 发送带图片的消息
-      await this.bot.sendPhoto(chatId, fullImageUrl, {
+      await this.bot.sendPhoto(chatId, photoSource, {
         caption: message,
         reply_markup: replyMarkup,
         parse_mode: 'Markdown'
@@ -120,18 +152,35 @@ export class PriceConfigMessageHandler {
   }
 
   /**
-   * 格式化能量闪租消息（1:1复现前端预览）
+   * 格式化能量闪租消息（1:1复现前端预览，支持换行配置）
    */
   private formatEnergyFlashMessage(name: string, config: any, keyboardConfig: any): string {
     const displayTexts = config.display_texts || {};
+    const lineBreaks = displayTexts.line_breaks || {
+      after_title: 0,
+      after_subtitle: 0,
+      after_details: 0,
+      before_warning: 0,
+      before_notes: 0
+    };
+    
     const title = displayTexts.title || keyboardConfig?.title || name || '⚡闪租能量（需要时）';
     
     let message = `*${title}*\n`;
     
+    // 标题后换行
+    if (lineBreaks.after_title > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_title);
+    }
+    
     // 处理副标题模板 - 支持数组和计算表达式
     const subtitleFormatted = this.formatSubtitleTemplates(displayTexts.subtitle_template, config.single_price || 0, config.max_transactions || 0);
     if (subtitleFormatted) {
-      message += `${subtitleFormatted}\n\n`;
+      message += `${subtitleFormatted}\n`;
+      // 副标题后换行
+      if (lineBreaks.after_subtitle > 0) {
+        message += this.generateLineBreaks(lineBreaks.after_subtitle);
+      }
     }
     
     // 租期时效
@@ -144,30 +193,60 @@ export class PriceConfigMessageHandler {
     
     // 最大购买
     const maxLabel = this.formatTemplateText(displayTexts.max_label || '🔢 最大购买：{max}笔', { max: config.max_transactions || 0 });
-    message += `${maxLabel}\n\n`;
+    message += `${maxLabel}\n`;
     
     // 下单地址（支持点击复制）
     if (config.payment_address) {
       const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址自动复制）';
       message += `${addressLabel}\n`;
       // 使用 Telegram 的 monospace 格式让地址可以长按复制
-      message += `\`${config.payment_address}\`\n\n`;
+      message += `\`${config.payment_address}\`\n`;
+    }
+    
+    // 详细信息后换行
+    if (lineBreaks.after_details > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_details);
+    }
+    
+    // 警告信息前换行
+    if (config.double_energy_for_no_usdt && lineBreaks.before_warning > 0) {
+      message += this.generateLineBreaks(lineBreaks.before_warning);
     }
     
     // 双倍能量警告
     if (config.double_energy_for_no_usdt) {
       const doubleEnergyWarning = displayTexts.double_energy_warning || '⚠️ 注意：账户无USDT将消耗双倍能量';
-      message += `${doubleEnergyWarning}\n\n`;
+      message += `${doubleEnergyWarning}\n`;
+    }
+    
+    // 注意事项前换行
+    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
+      message += this.generateLineBreaks(lineBreaks.before_notes);
     }
     
     // 注意事项
     if (config.notes && config.notes.length > 0) {
+      message += `注意事项：\n`;
       config.notes.forEach((note: string) => {
-        message += `🔺 ${note}\n`;
+        message += `${note}\n`;
       });
     }
 
     return message;
+  }
+
+  /**
+   * 生成指定数量的换行符
+   */
+  private generateLineBreaks(count: number): string {
+    return count > 0 ? '\n'.repeat(count) : '';
+  }
+
+  /**
+   * 格式化副标题，替换dailyFee占位符
+   */
+  private formatSubtitleWithDailyFee(template: string, dailyFee: number): string {
+    return template.replace(/\{dailyFee\}/g, dailyFee.toString());
   }
 
   /**
@@ -264,21 +343,58 @@ export class PriceConfigMessageHandler {
   }
 
   /**
-   * 格式化笔数套餐消息
+   * 格式化笔数套餐消息（支持换行配置）
    */
   private formatTransactionPackageMessage(name: string, config: any, keyboardConfig: any): string {
-    const title = keyboardConfig?.title || name;
-    const description = keyboardConfig?.description || '无时间限制的长期套餐';
+    const displayTexts = config.display_texts || {};
+    const lineBreaks = displayTexts.line_breaks || {
+      after_title: 0,
+      after_subtitle: 0,
+      after_packages: 0,
+      before_usage_rules: 0,
+      before_notes: 0
+    };
     
-    let message = `*${title}*\n\n`;
-    message += `📝 **服务说明**：\n${description}\n\n`;
+    const title = displayTexts.title || keyboardConfig?.title || name;
+    const subtitle = this.formatSubtitleWithDailyFee(displayTexts.subtitle_template || '（24小时不使用，则扣{dailyFee}笔占费）', config.daily_fee || 12);
+    
+    let message = `*${title}*\n`;
+    
+    // 标题后换行
+    if (lineBreaks.after_title > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_title);
+    }
+    
+    if (subtitle) {
+      message += `${subtitle}\n`;
+      // 副标题后换行
+      if (lineBreaks.after_subtitle > 0) {
+        message += this.generateLineBreaks(lineBreaks.after_subtitle);
+      }
+    }
 
     if (config.packages && config.packages.length > 0) {
       message += `📦 **可选套餐**：\n`;
       config.packages.forEach((pkg: any) => {
         message += `• **${pkg.name}**: ${pkg.transaction_count}笔 - ${pkg.price} ${pkg.currency || 'TRX'}\n`;
       });
-      message += `\n`;
+      
+      // 套餐列表后换行
+      if (lineBreaks.after_packages > 0) {
+        message += this.generateLineBreaks(lineBreaks.after_packages);
+      }
+    }
+
+    // 使用规则前换行
+    if (config.usage_rules && config.usage_rules.length > 0 && lineBreaks.before_usage_rules > 0) {
+      message += this.generateLineBreaks(lineBreaks.before_usage_rules);
+    }
+
+    if (config.usage_rules && config.usage_rules.length > 0) {
+      message += `💡 **使用规则**：\n`;
+      config.usage_rules.forEach((rule: string) => {
+        message += `${rule}\n`;
+      });
     }
 
     if (config.transferable !== undefined) {
@@ -293,18 +409,96 @@ export class PriceConfigMessageHandler {
       message += `💰 **日费用**: ${config.daily_fee} TRX\n`;
     }
 
+    // 注意事项前换行
+    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
+      message += this.generateLineBreaks(lineBreaks.before_notes);
+    }
+
+    if (config.notes && config.notes.length > 0) {
+      message += `📌 **注意事项**：\n`;
+      config.notes.forEach((note: string) => {
+        message += `${note}\n`;
+      });
+    }
+
     return message;
   }
 
   /**
-   * 格式化TRX闪兑消息
+   * 将按钮数组按照每行按钮数分组，并处理特殊按钮（全宽）
+   */
+  private groupButtonsIntoRows(buttons: any[], buttonsPerRow: number = 2): any[][] {
+    const rows: any[][] = [];
+    
+    // 识别特殊按钮（标记为isSpecial或者是最后一个按钮）
+    let regularButtons = [];
+    let specialButtons = [];
+    
+    buttons.forEach((button, index) => {
+      if (button.isSpecial || (index === buttons.length - 1 && buttons.length > 4)) {
+        // 特殊按钮：明确标记的或者是最后一个按钮且总数大于4个
+        specialButtons.push({
+          text: button.text,
+          callback_data: button.callback_data
+        });
+      } else {
+        regularButtons.push({
+          text: button.text,
+          callback_data: button.callback_data
+        });
+      }
+    });
+    
+    // 先处理常规按钮，按照每行指定数量分组
+    for (let i = 0; i < regularButtons.length; i += buttonsPerRow) {
+      const row = regularButtons.slice(i, i + buttonsPerRow);
+      rows.push(row);
+    }
+    
+    // 然后处理特殊按钮，每个单独一行
+    specialButtons.forEach(button => {
+      rows.push([button]);
+    });
+    
+    return rows;
+  }
+
+  /**
+   * 格式化TRX闪兑消息（支持换行配置）
    */
   private formatTrxExchangeMessage(name: string, config: any, keyboardConfig: any): string {
-    const title = keyboardConfig?.title || name;
-    const description = keyboardConfig?.description || 'USDT自动兑换TRX服务';
+    const displayTexts = config.display_texts || {};
+    const lineBreaks = displayTexts.line_breaks || {
+      after_title: 0,
+      after_subtitle: 0,
+      after_rates: 0,
+      after_address: 0,
+      before_notes: 0
+    };
     
-    let message = `🔄 **${title}**\n\n`;
-    message += `📝 **服务说明**：\n${description}\n\n`;
+    const title = displayTexts.title || keyboardConfig?.title || name;
+    const subtitle = this.formatTemplateText(displayTexts.subtitle_template || '（转U自动回TRX，{min_amount}U起换）', { min_amount: config.min_amount || 1.1 });
+    
+    let message = `*${title}*\n`;
+    
+    // 标题后换行
+    if (lineBreaks.after_title > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_title);
+    }
+    
+    if (subtitle) {
+      message += `${subtitle}\n`;
+      // 副标题后换行
+      if (lineBreaks.after_subtitle > 0) {
+        message += this.generateLineBreaks(lineBreaks.after_subtitle);
+      }
+    }
+
+    // 汇率信息
+    const rateTitle = displayTexts.rate_title || '📊 当前汇率';
+    if (rateTitle) {
+      message += `${rateTitle}\n`;
+    }
 
     if (config.usdt_to_trx_rate) {
       message += `💱 **USDT→TRX汇率**: 1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
@@ -314,12 +508,25 @@ export class PriceConfigMessageHandler {
       message += `💱 **TRX→USDT汇率**: 1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
     }
 
-    if (config.min_amount) {
-      message += `💰 **最小兑换**: ${config.min_amount} USDT起\n`;
+    if (displayTexts.rate_description) {
+      message += `${displayTexts.rate_description}\n`;
     }
 
+    // 汇率信息后换行
+    if (lineBreaks.after_rates > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_rates);
+    }
+
+    // 地址信息
     if (config.exchange_address) {
-      message += `📍 **兑换地址**: \`${config.exchange_address}\`\n`;
+      const addressLabel = displayTexts.address_label || '📍 兑换地址';
+      message += `${addressLabel}\n`;
+      message += `\`${config.exchange_address}\`\n`;
+    }
+
+    // 地址信息后换行
+    if (lineBreaks.after_address > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_address);
     }
 
     if (config.is_auto_exchange) {
@@ -330,8 +537,13 @@ export class PriceConfigMessageHandler {
       message += `🔄 **汇率更新**: 每${config.rate_update_interval}分钟\n`;
     }
 
+    // 注意事项前换行
+    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
+      message += this.generateLineBreaks(lineBreaks.before_notes);
+    }
+
     if (config.notes && config.notes.length > 0) {
-      message += `\n📌 **注意事项**：\n`;
+      message += `📌 **注意事项**：\n`;
       config.notes.forEach((note: string) => {
         message += `${note}\n`;
       });

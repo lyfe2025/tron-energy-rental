@@ -36,15 +36,17 @@ export class DeleteService {
 
       // 记录删除日志
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
+          action,
           message,
-          data,
+          metadata,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
+          'info',
           'soft_delete',
           '机器人软删除',
           JSON.stringify({
@@ -92,7 +94,7 @@ export class DeleteService {
       // 按依赖关系顺序删除相关数据
       
       // 1. 删除日志记录
-      await query('DELETE FROM telegram_bot_logs WHERE bot_id = $1', [botId]);
+      await query('DELETE FROM bot_logs WHERE bot_id = $1', [botId]);
       console.log('✅ 已删除机器人日志');
 
       // 2. 删除状态记录
@@ -368,15 +370,17 @@ export class DeleteService {
 
       // 记录恢复日志
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
+          action,
           message,
-          data,
+          metadata,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
+          'info',
           'restore',
           '机器人恢复',
           JSON.stringify({
@@ -404,17 +408,17 @@ export class DeleteService {
     try {
       const result = await query(
         `SELECT 
-          tbl.bot_id,
-          tb.name as bot_name,
+          bl.bot_id,
+          tb.bot_name as bot_name,
           tb.bot_username,
-          tbl.log_type,
-          tbl.message,
-          tbl.data,
-          tbl.created_at
-         FROM telegram_bot_logs tbl
-         LEFT JOIN telegram_bots tb ON tbl.bot_id = tb.id
-         WHERE tbl.log_type IN ('soft_delete', 'hard_delete', 'restore')
-         ORDER BY tbl.created_at DESC 
+          bl.action as log_type,
+          bl.message,
+          bl.metadata as data,
+          bl.created_at
+         FROM bot_logs bl
+         LEFT JOIN telegram_bots tb ON bl.bot_id = tb.id
+         WHERE bl.action IN ('soft_delete', 'hard_delete', 'restore')
+         ORDER BY bl.created_at DESC 
          LIMIT $1`,
         [limit]
       );

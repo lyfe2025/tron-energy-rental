@@ -118,12 +118,17 @@ export class ModuleManager {
       );
 
       // 创建价格配置消息处理器
-      const priceConfigMessageHandler = await this.createModule('priceConfigMessageHandler', PriceConfigMessageHandler, 
-        ['botLogger'], {
-          bot: this.bot,
-          botId: this.config.botId
-        }
-      );
+      const priceConfigMessageHandler = new PriceConfigMessageHandler(this.bot, this.config.botId!);
+      
+      this.modules.set('priceConfigMessageHandler', {
+        name: 'priceConfigMessageHandler',
+        instance: priceConfigMessageHandler,
+        dependencies: ['botLogger'],
+        initialized: false,
+        health: 'unknown'
+      });
+
+      console.log(`✅ 模块创建成功: priceConfigMessageHandler`);
 
       // 7. 初始化所有模块
       await this.initializeInOrder();

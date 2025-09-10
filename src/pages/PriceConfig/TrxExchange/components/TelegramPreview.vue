@@ -41,24 +41,40 @@
               <div class="font-bold text-sm mb-1 text-green-600">
                 {{ getDisplayText('title', '🟢USDT自动兑换TRX🔴') }}
               </div>
+              <!-- 标题后换行 -->
+              <div v-for="n in lineBreaks.after_title" :key="'title-break-' + n" class="h-4"></div>
               
               <!-- 副标题 -->
               <div class="text-xs text-gray-600 mb-2">
                 {{ formatSubtitle() }}
               </div>
+              <!-- 副标题后换行 -->
+              <div v-for="n in lineBreaks.after_subtitle" :key="'subtitle-break-' + n" class="h-4"></div>
               
               <!-- 汇率信息 -->
               <div class="text-xs space-y-1">
                 <div class="font-medium">{{ getDisplayText('rate_title', '📊 当前汇率') }}</div>
                 <div>USDT → TRX: {{ config.config.usdt_to_trx_rate || '0' }}</div>
                 <div>TRX → USDT: {{ config.config.trx_to_usdt_rate || '0' }}</div>
-                <div class="pt-1 border-t border-gray-200">{{ getDisplayText('address_label', '📍 兑换地址') }}</div>
-                <div class="font-mono text-xs text-blue-600 break-all">{{ config.config.exchange_address || 'TExample...' }}</div>
                 
-                <!-- 兑换描述 -->
+                <!-- 汇率描述 -->
                 <div class="text-xs text-gray-600 mt-2">
                   {{ getDisplayText('rate_description', '当前汇率仅供参考') }}
                 </div>
+                
+                <!-- 汇率信息后换行 -->
+                <div v-for="n in lineBreaks.after_rates" :key="'rates-break-' + n" class="h-4"></div>
+                
+                <div class="pt-1 border-t border-gray-200">{{ getDisplayText('address_label', '📍 兑换地址') }}</div>
+                <div class="font-mono text-xs text-blue-600 break-all">{{ config.config.exchange_address || 'TExample...' }}</div>
+                
+                <!-- 地址信息后换行 -->
+                <div v-for="n in lineBreaks.after_address" :key="'address-break-' + n" class="h-4"></div>
+                
+                <!-- 注意事项前换行 -->
+                <template v-if="config.config.notes && config.config.notes.length > 0">
+                  <div v-for="n in lineBreaks.before_notes" :key="'before-notes-break-' + n" class="h-4"></div>
+                </template>
                 
                 <!-- 注意事项 -->
                 <div v-if="config.config.notes && config.config.notes.length > 0" class="mt-2 pt-2 border-t border-gray-200">
@@ -82,12 +98,33 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 interface Props {
   config: any
   getDisplayText: (key: string, defaultValue: string) => string
   formatSubtitle: () => string
   handleImageError: (event: Event) => void
+  lineBreaks?: any
+  generateLineBreaks?: (count: number) => string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 默认换行配置
+const lineBreaks = computed(() => {
+  return props.lineBreaks || {
+    after_title: 0,
+    after_subtitle: 0,
+    after_rates: 0,
+    after_address: 0,
+    before_notes: 0
+  }
+})
+
+// 生成换行字符串
+const generateLineBreaks = (count: number): string => {
+  return props.generateLineBreaks ? props.generateLineBreaks(count) : (count > 0 ? '\n'.repeat(count) : '')
+}
+
 </script>

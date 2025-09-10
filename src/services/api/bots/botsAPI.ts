@@ -68,6 +68,12 @@ export interface BotOperationResponse {
     keyboardSyncError?: string | null
   }
   syncLogs?: string[]
+  sync_result?: {
+    success: boolean
+    results: Record<string, boolean>
+    errors: string[]
+    summary: string
+  }
 }
 
 export interface BotTestResponse {

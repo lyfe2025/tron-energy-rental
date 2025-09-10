@@ -45,8 +45,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 静态文件服务 - 用于提供上传的图片
+// 静态文件服务 - 用于提供上传的图片和默认资源
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
+app.use('/assets', express.static(path.join(process.cwd(), 'public/assets')));
 
 // 全局请求日志中间件（用于调试）
 app.use((req: Request, res: Response, next: NextFunction) => {

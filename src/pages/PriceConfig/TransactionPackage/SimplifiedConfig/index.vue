@@ -42,6 +42,8 @@
           :imageAlt="imageAlt"
           :usageRules="usageRules"
           :notes="notes"
+          :lineBreaks="lineBreaks"
+          :generateLineBreaks="generateLineBreaks"
         />
 
       <!-- 右侧：简化配置 -->
@@ -80,6 +82,9 @@
           :removeUsageRule="removeUsageRule"
           :addNote="addNote"
           :removeNote="removeNote"
+          :lineBreaks="lineBreaks"
+          :updateLineBreak="updateLineBreak"
+          :setLineBreakPreset="setLineBreakPreset"
         />
         
         <!-- 保存按钮 -->
@@ -124,6 +129,7 @@ const {
   specialButton,
   usageRules,
   notes,
+  lineBreaks,
   handleToggle,
   handleSave,
   simulateButtonClick,
@@ -145,7 +151,10 @@ const {
   addUsageRule,
   removeUsageRule,
   addNote,
-  removeNote
+  removeNote,
+  updateLineBreak,
+  setLineBreakPreset,
+  generateLineBreaks
 } = usePackageConfig(props)
 
 // 解构props以便访问

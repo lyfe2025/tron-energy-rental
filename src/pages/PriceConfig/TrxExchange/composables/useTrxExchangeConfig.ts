@@ -52,7 +52,24 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
           subtitle_template: '',
           rate_title: '',
           rate_description: '当前汇率仅供参考',
-          address_label: ''
+          address_label: '',
+          line_breaks: {
+            after_title: 0,
+            after_subtitle: 0,
+            after_rates: 0,
+            after_address: 0,
+            before_notes: 0
+          }
+        }
+      }
+      // 确保 line_breaks 存在
+      if (!props.config.config.display_texts.line_breaks) {
+        props.config.config.display_texts.line_breaks = {
+          after_title: 0,
+          after_subtitle: 0,
+          after_rates: 0,
+          after_address: 0,
+          before_notes: 0
         }
       }
       // 确保 notes 数组存在
@@ -97,6 +114,17 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
   // 计算属性：安全访问 notes
   const notes = computed(() => {
     return props.config?.config?.notes || []
+  })
+
+  // 计算属性：安全访问 line_breaks
+  const lineBreaks = computed(() => {
+    return props.config?.config?.display_texts?.line_breaks || {
+      after_title: 0,
+      after_subtitle: 0,
+      after_rates: 0,
+      after_address: 0,
+      before_notes: 0
+    }
   })
 
   // 获取显示文本，如果没有配置则使用默认值
@@ -151,6 +179,50 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     }
   }
 
+  // 换行配置预设方法
+  const setLineBreakPreset = (presetType: string) => {
+    if (!props.config?.config?.display_texts?.line_breaks) return
+    
+    const presets = {
+      compact: {
+        after_title: 0,
+        after_subtitle: 0,
+        after_rates: 0,
+        after_address: 0,
+        before_notes: 0
+      },
+      normal: {
+        after_title: 1,
+        after_subtitle: 1,
+        after_rates: 1,
+        after_address: 1,
+        before_notes: 1
+      },
+      spacious: {
+        after_title: 2,
+        after_subtitle: 2,
+        after_rates: 2,
+        after_address: 2,
+        before_notes: 2
+      },
+      custom: {
+        after_title: 1,
+        after_subtitle: 1,
+        after_rates: 1,
+        after_address: 1,
+        before_notes: 1
+      }
+    }
+    
+    const preset = presets[presetType] || presets.normal
+    Object.assign(props.config.config.display_texts.line_breaks, preset)
+  }
+
+  // 生成额外换行字符串
+  const generateLineBreaks = (count: number): string => {
+    return count > 0 ? '\n'.repeat(count) : ''
+  }
+
   onMounted(() => {
     // 调试当前布局
     nextTick(() => {
@@ -167,6 +239,7 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     layoutContainer,
     displayTexts,
     notes,
+    lineBreaks,
     handleToggle,
     handleSave,
     initializeConfig,
@@ -178,6 +251,8 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     toggleImageEnabled,
     addNote,
     removeNote,
+    setLineBreakPreset,
+    generateLineBreaks,
     debugLayout
   }
 }

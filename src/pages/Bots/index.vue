@@ -113,6 +113,7 @@
       v-model:visible="showEditModal"
       :bot-data="selectedBot"
       @save="handleUpdateBot"
+      @refresh="handleRefreshBots"
     />
 
     <!-- 网络配置弹窗 -->
@@ -162,6 +163,7 @@
       :sync-status="syncDialogData.syncStatus"
       :logs="syncDialogData.logs"
       :is-loading="syncDialogData.isLoading"
+      :sync-result="syncDialogData.syncResult"
       @retry="handleRetrySyncBot"
     />
 
@@ -195,7 +197,8 @@ const showSyncDialog = ref(false)
 const syncDialogData = ref({
   isLoading: false,
   syncStatus: {},
-  logs: []
+  logs: [],
+  syncResult: null
 })
 
 
@@ -243,6 +246,7 @@ const {
 
 // 页面特有方法
 const handleEdit = (bot: any) => {
+  // 简化处理，避免过度复杂化
   selectedBot.value = bot
   showEditModal.value = true
 }
@@ -284,7 +288,8 @@ const handleCreateBot = async (data: any) => {
     syncDialogData.value = {
       isLoading: true,
       syncStatus: {},
-      logs: []
+      logs: [],
+      syncResult: null
     }
     
     const response = await botsAPI.createBot(createData)
@@ -292,14 +297,32 @@ const handleCreateBot = async (data: any) => {
     if (response.data?.success) {
       console.log('✅ 机器人创建API调用成功')
       
-      // 更新同步状态
-      const syncStatus = response.data.data?.syncStatus || {}
-      const syncLogs = response.data.data?.syncLogs || []
+      // 更新同步状态 - 修复数据格式不匹配问题
+      const syncResult = response.data.data?.sync_result
+      const rawSyncStatus = syncResult?.results || response.data.data?.syncStatus || {}
+      
+      // 将后端返回的键名映射到前端期望的格式 - 使用安全的属性访问
+      const syncStatus = {
+        nameSync: (rawSyncStatus as any)?.name ?? null,
+        descriptionSync: (rawSyncStatus as any)?.description ?? null,
+        shortDescriptionSync: (rawSyncStatus as any)?.shortDescription ?? null,
+        commandsSync: (rawSyncStatus as any)?.commands ?? null,
+        menuButtonSync: (rawSyncStatus as any)?.menuButton ?? null,
+        webhookSync: (rawSyncStatus as any)?.webhook ?? null,
+        priceConfigSync: (rawSyncStatus as any)?.priceConfig ?? null
+      }
+      
+      // 组合日志：包括成功信息和错误信息
+      const syncLogs = [
+        ...(syncResult?.summary ? [syncResult.summary] : []),
+        ...(syncResult?.errors || response.data.data?.syncLogs || [])
+      ]
       
       syncDialogData.value = {
         isLoading: false,
         syncStatus,
-        logs: syncLogs
+        logs: syncLogs,
+        syncResult: syncResult
       }
       
       // 显示同步日志到控制台
@@ -355,7 +378,7 @@ const handleUpdateBot = async (data: any) => {
       menu_type: data.menu_type || 'commands',
       web_app_url: data.web_app_url,
       menu_commands: data.menu_commands || [],
-      keyboard_config: data.keyboard_config,
+      keyboard_config: data.keyboard_config && Object.keys(data.keyboard_config).length > 0 ? data.keyboard_config : null,
       is_active: data.is_active
     }
     
@@ -366,7 +389,8 @@ const handleUpdateBot = async (data: any) => {
     syncDialogData.value = {
       isLoading: true,
       syncStatus: {},
-      logs: []
+      logs: [],
+      syncResult: null
     }
     
     const response = await botsAPI.updateBot(data.id, updateData)
@@ -374,14 +398,33 @@ const handleUpdateBot = async (data: any) => {
     if (response.data?.success) {
       console.log('✅ 机器人更新API调用成功')
       
-      // 更新同步状态
-      const syncStatus = response.data.data?.syncStatus || {}
-      const syncLogs = response.data.data?.syncLogs || []
+      // 更新同步状态 - 修复数据格式不匹配问题
+      const syncResult = response.data.data?.sync_result
+      const rawSyncStatus = syncResult?.results || response.data.data?.syncStatus || {}
+      
+      
+      // 将后端返回的键名映射到前端期望的格式 - 使用安全的属性访问
+      const syncStatus = {
+        nameSync: (rawSyncStatus as any)?.name ?? null,
+        descriptionSync: (rawSyncStatus as any)?.description ?? null,
+        shortDescriptionSync: (rawSyncStatus as any)?.shortDescription ?? null,
+        commandsSync: (rawSyncStatus as any)?.commands ?? null,
+        menuButtonSync: (rawSyncStatus as any)?.menuButton ?? null,
+        webhookSync: (rawSyncStatus as any)?.webhook ?? null,
+        priceConfigSync: (rawSyncStatus as any)?.priceConfig ?? null
+      }
+      
+      // 组合日志：包括成功信息和错误信息
+      const syncLogs = [
+        ...(syncResult?.summary ? [syncResult.summary] : []),
+        ...(syncResult?.errors || response.data.data?.syncLogs || [])
+      ]
       
       syncDialogData.value = {
         isLoading: false,
         syncStatus,
-        logs: syncLogs
+        logs: syncLogs,
+        syncResult: syncResult
       }
       
       // 显示同步日志到控制台
@@ -421,6 +464,17 @@ const handleNetworkUpdated = async () => {
   console.log('🔄 [Bots] 网络配置更新，开始刷新数据...')
   await refreshData()
   console.log('✅ [Bots] 数据刷新完成')
+}
+
+// 处理健康检查后的刷新
+const handleRefreshBots = async () => {
+  console.log('🔄 [Bots] 健康检查完成，开始刷新机器人列表...')
+  try {
+    await refreshData()
+    console.log('✅ [Bots] 机器人列表刷新完成')
+  } catch (error) {
+    console.error('❌ [Bots] 刷新机器人列表失败:', error)
+  }
 }
 
 // 重试同步

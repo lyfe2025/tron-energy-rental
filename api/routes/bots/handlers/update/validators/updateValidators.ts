@@ -354,16 +354,34 @@ export class UpdateValidators {
         }
       }
 
-      // 3. 验证Token
+      // 3. 验证Token（只在Token真正变化时验证）
       if (updateData.token) {
-        const tokenAvailable = await this.validateTokenAvailable(updateData.token, botId);
-        if (!tokenAvailable.available) {
-          errors.push(tokenAvailable.message!);
-        } else {
-          const tokenFormat = await this.validateTokenFormat(updateData.token);
-          if (!tokenFormat.isValid) {
-            errors.push(tokenFormat.message!);
+        // 检查Token是否真正发生变化
+        const currentToken = botExists.bot?.bot_token;
+        const tokenChanged = currentToken !== updateData.token;
+        
+        if (tokenChanged) {
+          console.log(`🔍 Token发生变化，开始验证: ${updateData.token.substring(0, 10)}...`);
+          
+          const tokenAvailable = await this.validateTokenAvailable(updateData.token, botId);
+          if (!tokenAvailable.available) {
+            errors.push(tokenAvailable.message!);
+          } else {
+            const tokenFormat = await this.validateTokenFormat(updateData.token);
+            if (!tokenFormat.isValid) {
+              // 如果是网络连接问题，添加警告而不是错误
+              if (tokenFormat.message?.includes('网络连接')) {
+                warnings.push(`Token验证警告: ${tokenFormat.message} - 更新将继续进行，请稍后手动验证Token有效性`);
+                console.log(`⚠️ Token验证网络问题，添加警告: ${tokenFormat.message}`);
+              } else {
+                errors.push(tokenFormat.message!);
+              }
+            } else {
+              console.log(`✅ Token验证成功: ${tokenFormat.botInfo?.username || 'Unknown'}`);
+            }
           }
+        } else {
+          console.log(`🔄 Token未变化，跳过验证: ${updateData.token.substring(0, 10)}...`);
         }
       }
 

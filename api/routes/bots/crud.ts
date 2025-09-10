@@ -11,15 +11,15 @@ import { Router } from 'express';
 import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
 
 // 导入分离后的处理器
-import { getBotsList, getBotDetails, getBotsSelector } from './handlers/botListHandler.js';
 import { createBot, verifyBotToken } from './handlers/botCreateHandler.js';
-import { updateBot, deleteBot } from './handlers/botUpdateHandler.js';
-import { 
-  switchBotMode, 
-  getBotWebhookStatus, 
-  applyWebhookSettings, 
-  syncBotFromTelegram 
+import { getBotDetails, getBotsList, getBotsSelector } from './handlers/botListHandler.js';
+import {
+    applyWebhookSettings,
+    getBotWebhookStatus,
+    switchBotMode,
+    syncBotFromTelegram
 } from './handlers/botModeHandler.js';
+import { deleteBot, updateBot } from './handlers/botUpdateHandler.js';
 
 const router: Router = Router();
 

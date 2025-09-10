@@ -15,7 +15,7 @@ const API_BASE_URL = getApiBaseUrl();
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // 增加前端请求超时时间到30秒
   headers: {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -64,6 +64,32 @@ apiClient.interceptors.response.use(
       message: error.message
     });
     
+    // 超时错误处理
+    if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
+      console.error('🔍 [API Client] 请求超时:', {
+        code: error.code,
+        message: error.message,
+        url: error.config?.url,
+        timeout: error.config?.timeout
+      });
+      
+      // 添加友好的错误信息
+      error.friendlyMessage = '请求超时，操作可能需要更长时间完成。请稍后再试或检查网络连接。';
+      
+      // 触发超时事件
+      window.dispatchEvent(new CustomEvent('api:request_timeout', {
+        detail: {
+          code: error.code,
+          message: '请求超时，请稍后重试',
+          url: error.config?.url,
+          method: error.config?.method,
+          timeout: error.config?.timeout
+        }
+      }));
+      
+      return Promise.reject(error);
+    }
+
     // 网络连接错误处理（后端服务未启动或无法连接）
     if (!error.response && (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error'))) {
       console.error('🔍 [API Client] 后端服务连接失败:', {

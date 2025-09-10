@@ -56,6 +56,12 @@ export interface BotData {
   welcome_message?: string
   help_message?: string
   keyboard_config?: any
+  menu_button_enabled?: boolean
+  menu_button_text?: string
+  menu_type?: 'commands' | 'web_app'
+  web_app_url?: string
+  menu_commands?: MenuCommand[]
+  custom_commands?: CustomCommand[]
   status: string
   health_status?: string
   last_health_check?: string
@@ -277,9 +283,18 @@ export const useBotForm = (mode: 'create' | 'edit' = 'create') => {
     return basicValid
   })
 
+  // 防止重复请求的标记
+  let fetchingPriceConfigs = false
+
   // 获取价格配置状态
   const fetchPriceConfigsStatus = async () => {
+    // 防止重复调用
+    if (fetchingPriceConfigs) {
+      return
+    }
+
     try {
+      fetchingPriceConfigs = true
       const response = await fetch('/api/price-configs/public/active')
       if (response.ok) {
         const configs = await response.json()
@@ -287,32 +302,68 @@ export const useBotForm = (mode: 'create' | 'edit' = 'create') => {
         configs.forEach((config: any) => {
           statusMap[config.mode_type] = config.is_active
         })
-        priceConfigsStatus.value = statusMap
+        // 检查是否实际发生了变化，避免不必要的更新
+        const currentStatus = JSON.stringify(priceConfigsStatus.value)
+        const newStatus = JSON.stringify(statusMap)
+        if (currentStatus !== newStatus) {
+          priceConfigsStatus.value = statusMap
+        }
       }
     } catch (error) {
       console.error('获取价格配置状态失败:', error)
+    } finally {
+      fetchingPriceConfigs = false
     }
   }
 
+  // 防止重复初始化的标记
+  let initializing = false
+
   // 初始化表单数据（编辑模式）
   const initializeFormData = (botData?: BotData | null) => {
-    if (!botData) return
+    if (!botData || initializing) return
     
-    Object.assign(formData, {
-      name: botData.name || '',
-      username: botData.username || '',
-      token: botData.token || '',
-      description: botData.description || '',
-      short_description: botData.short_description || '',
-      work_mode: botData.work_mode || 'polling',
-      webhook_url: botData.webhook_url || '',
-      webhook_secret: botData.webhook_secret || '',
-      max_connections: botData.max_connections || 40,
-      welcome_message: botData.welcome_message || '',
-      help_message: botData.help_message || '',
-      keyboard_config: botData.keyboard_config || getDefaultKeyboardConfig(),
-      is_active: botData.status === 'active'
-    })
+    console.log('🔄 初始化表单数据:', botData)
+    
+    // 防止重复初始化
+    initializing = true
+    
+    try {
+      // 构建新数据对象
+      const newData = {
+        name: botData.name || '',
+        username: botData.username || '',
+        token: botData.token || '',
+        description: botData.description || '',
+        short_description: botData.short_description || '',
+        work_mode: (botData.work_mode as 'polling' | 'webhook') || 'polling',
+        webhook_url: botData.webhook_url || '',
+        webhook_secret: botData.webhook_secret || '',
+        max_connections: botData.max_connections || 40,
+        welcome_message: botData.welcome_message || '',
+        help_message: botData.help_message || '',
+        keyboard_config: botData.keyboard_config || getDefaultKeyboardConfig(),
+        menu_button_enabled: botData.menu_button_enabled || false,
+        menu_button_text: botData.menu_button_text || '菜单',
+        menu_type: (botData.menu_type as 'commands' | 'web_app') || 'commands',
+        web_app_url: botData.web_app_url || '',
+        menu_commands: botData.menu_commands || [],
+        custom_commands: botData.custom_commands || [],
+        is_active: botData.status === 'active'
+      }
+
+      console.log('📝 准备更新表单数据:', newData)
+
+      // 直接批量更新，不检查变化（因为这是初始化）
+      Object.assign(formData, newData)
+      
+      console.log('✅ 表单数据初始化完成:', formData)
+    } finally {
+      // 延迟重置标记，确保同步操作完成
+      setTimeout(() => {
+        initializing = false
+      }, 50)
+    }
   }
 
   // 重置表单

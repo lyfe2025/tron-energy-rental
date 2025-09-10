@@ -26,15 +26,18 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
     // 构建查询条件
     const { whereClause, queryParams, paramIndex } = buildWhereClause({ status, search });
     
-    // 查询机器人列表，包含网络配置信息
+    // 查询机器人列表，包含网络配置信息和健康状态
     const botsQuery = `
       SELECT 
         tb.id, tb.bot_name as name, tb.bot_username as username, tb.bot_token as token,
         tb.description, tb.short_description, tb.welcome_message, tb.help_message,
+        tb.menu_button_enabled, tb.menu_button_text, tb.menu_type, tb.web_app_url,
+        tb.menu_commands, tb.custom_commands,
         tb.is_active,
         CASE WHEN tb.is_active THEN 'active' ELSE 'inactive' END as status,
         tb.work_mode, tb.webhook_url, tb.webhook_secret, tb.max_connections, 
         tb.keyboard_config, tb.created_at, tb.updated_at, tb.network_id,
+        tb.health_status, tb.last_health_check,
         (SELECT COUNT(*) FROM users WHERE bot_id = tb.id) as total_users,
         (SELECT COUNT(*) FROM orders WHERE bot_id = tb.id) as total_orders,
         tn.id as network_id_ref, tn.name as network_name, tn.network_type, 
@@ -61,6 +64,12 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
       short_description: bot.short_description,
       welcome_message: bot.welcome_message,
       help_message: bot.help_message,
+      menu_button_enabled: bot.menu_button_enabled,
+      menu_button_text: bot.menu_button_text,
+      menu_type: bot.menu_type,
+      web_app_url: bot.web_app_url,
+      menu_commands: bot.menu_commands,
+      custom_commands: bot.custom_commands,
       is_active: bot.is_active,
       status: bot.status,
       work_mode: bot.work_mode,
@@ -71,6 +80,8 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
       created_at: bot.created_at,
       updated_at: bot.updated_at,
       network_id: bot.network_id,
+      health_status: bot.health_status,
+      last_health_check: bot.last_health_check,
       total_users: parseInt(bot.total_users) || 0,
       total_orders: parseInt(bot.total_orders) || 0,
       current_network: bot.network_id ? {
@@ -128,7 +139,9 @@ export const getBotDetails: RouteHandler = async (req: Request, res: Response) =
         COALESCE(tb.work_mode, 'polling') as work_mode,
         tb.webhook_url, tb.webhook_secret, tb.max_connections, tb.keyboard_config,
         tb.description, tb.short_description, tb.welcome_message, tb.help_message,
-        tb.created_at, tb.updated_at,
+        tb.menu_button_enabled, tb.menu_button_text, tb.menu_type, tb.web_app_url,
+        tb.menu_commands, tb.custom_commands,
+        tb.created_at, tb.updated_at, tb.health_status, tb.last_health_check,
         COALESCE(user_stats.total_users, 0) as total_users,
         COALESCE(order_stats.total_orders, 0) as total_orders,
         tn.id as network_id, tn.name as network_name, tn.network_type,
@@ -198,6 +211,12 @@ export const getBotDetails: RouteHandler = async (req: Request, res: Response) =
       short_description: rawBot.short_description,
       welcome_message: rawBot.welcome_message,
       help_message: rawBot.help_message,
+      menu_button_enabled: rawBot.menu_button_enabled,
+      menu_button_text: rawBot.menu_button_text,
+      menu_type: rawBot.menu_type,
+      web_app_url: rawBot.web_app_url,
+      menu_commands: rawBot.menu_commands,
+      custom_commands: rawBot.custom_commands,
       is_active: rawBot.is_active,
       status: rawBot.status,
       work_mode: rawBot.work_mode,
@@ -209,6 +228,8 @@ export const getBotDetails: RouteHandler = async (req: Request, res: Response) =
       total_orders: rawBot.total_orders,
       created_at: rawBot.created_at,
       updated_at: rawBot.updated_at,
+      health_status: rawBot.health_status,
+      last_health_check: rawBot.last_health_check,
       current_network: rawBot.network_id ? {
         id: rawBot.network_id,
         name: rawBot.network_name,

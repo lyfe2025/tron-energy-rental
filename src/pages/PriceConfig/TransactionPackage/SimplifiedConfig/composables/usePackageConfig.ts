@@ -63,10 +63,27 @@ export function usePackageConfig(props: ConfigCardProps) {
         props.config.config.display_texts = {
           title: '',
           subtitle_template: '（24小时不使用，则扣{dailyFee}笔占费）',
-          address_prompt: '请输入能量接收地址:'
+          address_prompt: '请输入能量接收地址:',
+          line_breaks: {
+            after_title: 0,
+            after_subtitle: 0,
+            after_packages: 0,
+            before_usage_rules: 0,
+            before_notes: 0
+          }
         }
       } else {
         console.log('🔧 [TransactionPackage] display_texts 已存在:', props.config.config.display_texts)
+        // 确保 line_breaks 存在
+        if (!props.config.config.display_texts.line_breaks) {
+          props.config.config.display_texts.line_breaks = {
+            after_title: 0,
+            after_subtitle: 0,
+            after_packages: 0,
+            before_usage_rules: 0,
+            before_notes: 0
+          }
+        }
       }
       
       console.log('🔧 [TransactionPackage] 初始化完成后的 config:', props.config.config)
@@ -177,7 +194,14 @@ export function usePackageConfig(props: ConfigCardProps) {
         subtitle: `（24小时不使用，则扣${dailyFee.value}笔占费）`,
         subtitle_template: subtitleTemplate.value,
         usage_title: '💡 笔数开/关按钮，可查询账单，开/关笔数',
-        address_prompt: replyMessage.value
+        address_prompt: replyMessage.value,
+        line_breaks: props.config.config.display_texts?.line_breaks || {
+          after_title: 0,
+          after_subtitle: 0,
+          after_packages: 0,
+          before_usage_rules: 0,
+          before_notes: 0
+        }
       }
       
       // 更新套餐数据
@@ -353,6 +377,68 @@ export function usePackageConfig(props: ConfigCardProps) {
     notes.value.splice(index, 1)
   }
 
+  // 换行配置计算属性
+  const lineBreaks = computed(() => {
+    return props.config?.config?.display_texts?.line_breaks || {
+      after_title: 0,
+      after_subtitle: 0,
+      after_packages: 0,
+      before_usage_rules: 0,
+      before_notes: 0
+    }
+  })
+
+  // 更新换行配置方法
+  const updateLineBreak = (field: string, value: number) => {
+    if (props.config?.config?.display_texts?.line_breaks) {
+      props.config.config.display_texts.line_breaks[field] = value
+    }
+  }
+
+  // 换行配置预设方法
+  const setLineBreakPreset = (presetType: string) => {
+    if (!props.config?.config?.display_texts?.line_breaks) return
+    
+    const presets = {
+      compact: {
+        after_title: 0,
+        after_subtitle: 0,
+        after_packages: 0,
+        before_usage_rules: 0,
+        before_notes: 0
+      },
+      normal: {
+        after_title: 1,
+        after_subtitle: 1,
+        after_packages: 1,
+        before_usage_rules: 1,
+        before_notes: 1
+      },
+      spacious: {
+        after_title: 2,
+        after_subtitle: 2,
+        after_packages: 2,
+        before_usage_rules: 2,
+        before_notes: 2
+      },
+      custom: {
+        after_title: 1,
+        after_subtitle: 1,
+        after_packages: 1,
+        before_usage_rules: 1,
+        before_notes: 1
+      }
+    }
+    
+    const preset = presets[presetType] || presets.normal
+    Object.assign(props.config.config.display_texts.line_breaks, preset)
+  }
+
+  // 生成额外换行字符串
+  const generateLineBreaks = (count: number): string => {
+    return count > 0 ? '\n'.repeat(count) : ''
+  }
+
   console.log('🎯 [TransactionPackage] return时的响应式变量:')
   console.log('🎯 [TransactionPackage] usageRules.value:', usageRules.value)
   console.log('🎯 [TransactionPackage] notes.value:', notes.value)
@@ -372,6 +458,7 @@ export function usePackageConfig(props: ConfigCardProps) {
     buttons,
     usageRules,
     notes,
+    lineBreaks,
     
     // 计算属性
     regularButtons,
@@ -399,6 +486,9 @@ export function usePackageConfig(props: ConfigCardProps) {
     addUsageRule,
     removeUsageRule,
     addNote,
-    removeNote
+    removeNote,
+    updateLineBreak,
+    setLineBreakPreset,
+    generateLineBreaks
   }
 }

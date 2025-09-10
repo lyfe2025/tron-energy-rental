@@ -6,14 +6,20 @@ import TelegramBot from 'node-telegram-bot-api';
 import { query } from '../../../config/database.js';
 import { orderService } from '../../order.js';
 import { UserService } from '../../user.js';
+import { UserAuthService } from '../../user/modules/UserAuthService.js';
 
 export class CommandHandler {
   private bot: TelegramBot;
   private userService: UserService;
   private orderService: typeof orderService;
 
-  constructor(bot: TelegramBot) {
-    this.bot = bot;
+  constructor(params: { bot: TelegramBot } | TelegramBot) {
+    // Handle both old style (direct bot) and new style (params object)
+    if (params && typeof params === 'object' && 'bot' in params) {
+      this.bot = params.bot;
+    } else {
+      this.bot = params as TelegramBot;
+    }
     this.userService = new UserService();
     this.orderService = orderService;
   }
@@ -51,7 +57,7 @@ export class CommandHandler {
 
     try {
       // 注册或获取用户
-      const user = await UserService.registerTelegramUser({
+      const user = await UserAuthService.registerTelegramUser({
         telegram_id: telegramUser.id,
         username: telegramUser.username,
         first_name: telegramUser.first_name,
@@ -79,29 +85,50 @@ export class CommandHandler {
       // 替换用户名占位符
       welcomeMessage = welcomeMessage.replace('{first_name}', telegramUser.first_name || '用户');
 
-      // 构建内嵌键盘
+      // 构建键盘（内嵌键盘或回复键盘）
       let messageOptions: any = {};
       
       if (botConfig?.keyboard_config?.main_menu?.is_enabled) {
         const keyboardConfig = botConfig.keyboard_config.main_menu;
         
         if (keyboardConfig.rows && keyboardConfig.rows.length > 0) {
-          const inlineKeyboard = keyboardConfig.rows
+          const enabledRows = keyboardConfig.rows
             .filter(row => row.is_enabled)
             .map(row => 
               row.buttons
                 .filter(button => button.is_enabled)
-                .map(button => ({
-                  text: button.text,
-                  callback_data: button.callback_data
-                }))
+                .map(button => button.text)
             )
             .filter(row => row.length > 0);
           
-          if (inlineKeyboard.length > 0) {
-            messageOptions.reply_markup = {
-              inline_keyboard: inlineKeyboard
-            };
+          if (enabledRows.length > 0) {
+            // 根据键盘类型构建不同的键盘
+            if (keyboardConfig.type === 'reply') {
+              messageOptions.reply_markup = {
+                keyboard: enabledRows,
+                resize_keyboard: true,
+                one_time_keyboard: false
+              };
+            } else {
+              // 内嵌键盘（保持原有逻辑）
+              const inlineKeyboard = keyboardConfig.rows
+                .filter(row => row.is_enabled)
+                .map(row => 
+                  row.buttons
+                    .filter(button => button.is_enabled)
+                    .map(button => ({
+                      text: button.text,
+                      callback_data: button.callback_data
+                    }))
+                )
+                .filter(row => row.length > 0);
+              
+              if (inlineKeyboard.length > 0) {
+                messageOptions.reply_markup = {
+                  inline_keyboard: inlineKeyboard
+                };
+              }
+            }
           }
         }
       }
@@ -119,10 +146,65 @@ export class CommandHandler {
    * 处理 /menu 命令
    */
   async handleMenuCommand(msg: TelegramBot.Message): Promise<void> {
-    // 这个方法需要调用键盘构建器来显示菜单
-    // 在主服务中会被重写
     const chatId = msg.chat.id;
-    await this.bot.sendMessage(chatId, '📱 主菜单正在加载...');
+    
+    try {
+      // 获取机器人配置
+      const botConfig = await this.getActiveBotConfig();
+      
+      let menuMessage = '📱 TRON能量租赁主菜单\n\n请选择您需要的服务：';
+      let messageOptions: any = {};
+      
+      if (botConfig?.keyboard_config?.main_menu?.is_enabled) {
+        const keyboardConfig = botConfig.keyboard_config.main_menu;
+        
+        if (keyboardConfig.rows && keyboardConfig.rows.length > 0) {
+          const enabledRows = keyboardConfig.rows
+            .filter(row => row.is_enabled)
+            .map(row => 
+              row.buttons
+                .filter(button => button.is_enabled)
+                .map(button => button.text)
+            )
+            .filter(row => row.length > 0);
+          
+          if (enabledRows.length > 0) {
+            // 根据键盘类型构建不同的键盘
+            if (keyboardConfig.type === 'reply') {
+              messageOptions.reply_markup = {
+                keyboard: enabledRows,
+                resize_keyboard: true,
+                one_time_keyboard: false
+              };
+            } else {
+              // 内嵌键盘
+              const inlineKeyboard = keyboardConfig.rows
+                .filter(row => row.is_enabled)
+                .map(row => 
+                  row.buttons
+                    .filter(button => button.is_enabled)
+                    .map(button => ({
+                      text: button.text,
+                      callback_data: button.callback_data
+                    }))
+                )
+                .filter(row => row.length > 0);
+              
+              if (inlineKeyboard.length > 0) {
+                messageOptions.reply_markup = {
+                  inline_keyboard: inlineKeyboard
+                };
+              }
+            }
+          }
+        }
+      }
+      
+      await this.bot.sendMessage(chatId, menuMessage, messageOptions);
+    } catch (error) {
+      console.error('Error in handleMenuCommand:', error);
+      await this.bot.sendMessage(chatId, '❌ 加载菜单失败，请重试。');
+    }
   }
 
   /**
@@ -268,38 +350,85 @@ export class CommandHandler {
   }
 
   /**
+   * 处理回复键盘消息
+   */
+  async handleReplyKeyboardMessage(message: TelegramBot.Message): Promise<boolean> {
+    if (!message.text) {
+      return false;
+    }
+
+    const text = message.text.trim();
+    const chatId = message.chat.id;
+
+    try {
+      // 价格配置相关的按钮不在这里处理，让它们传递给 PriceConfigMessageHandler
+      const priceConfigButtons = ['⚡ 能量闪租', '🔥 笔数套餐', '🔄 TRX闪兑'];
+      if (priceConfigButtons.includes(text)) {
+        return false; // 让 PriceConfigMessageHandler 处理这些按钮
+      }
+
+      // 根据按钮文本处理对应功能（非价格配置按钮）
+      switch (text) {
+        case '📋 我的订单':
+          await this.handleOrdersCommand(message);
+          return true;
+        case '💰 账户余额':
+          await this.handleBalanceCommand(message);
+          return true;
+        case '❓ 帮助支持':
+          await this.handleHelpCommand(message);
+          return true;
+        case '🔄 刷新菜单':
+          await this.handleMenuCommand(message);
+          return true;
+        default:
+          return false; // 不是已知的回复键盘按钮
+      }
+    } catch (error) {
+      console.error(`处理回复键盘消息 ${text} 失败:`, error);
+      return false;
+    }
+  }
+
+  /**
    * 统一的命令处理方法
    */
   async handleCommand(message: TelegramBot.Message): Promise<boolean> {
-    if (!message.text || !message.text.startsWith('/')) {
-      return false; // 不是命令
+    if (!message.text) {
+      return false;
     }
 
-    const command = message.text.split(' ')[0].toLowerCase();
-    
-    try {
-      switch (command) {
-        case '/start':
-          await this.handleStartCommand(message);
-          return true;
-        case '/menu':
-          await this.handleMenuCommand(message);
-          return true;
-        case '/help':
-          await this.handleHelpCommand(message);
-          return true;
-        case '/orders':
-          await this.handleOrdersCommand(message);
-          return true;
-        case '/balance':
-          await this.handleBalanceCommand(message);
-          return true;
-        default:
-          return false; // 未知命令
+    // 优先处理斜杠命令
+    if (message.text.startsWith('/')) {
+      const command = message.text.split(' ')[0].toLowerCase();
+      
+      try {
+        switch (command) {
+          case '/start':
+            await this.handleStartCommand(message);
+            return true;
+          case '/menu':
+            await this.handleMenuCommand(message);
+            return true;
+          case '/help':
+            await this.handleHelpCommand(message);
+            return true;
+          case '/orders':
+            await this.handleOrdersCommand(message);
+            return true;
+          case '/balance':
+            await this.handleBalanceCommand(message);
+            return true;
+          default:
+            return false; // 未知命令
+        }
+      } catch (error) {
+        console.error(`处理命令 ${command} 失败:`, error);
+        return false;
       }
-    } catch (error) {
-      console.error(`处理命令 ${command} 失败:`, error);
-      return false;
+    } else {
+      // 处理回复键盘消息
+      return await this.handleReplyKeyboardMessage(message);
     }
   }
 

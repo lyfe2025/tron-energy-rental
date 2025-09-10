@@ -116,12 +116,27 @@
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-500">健康状态:</span>
           <div class="flex items-center gap-2">
-            <span 
-              :class="getHealthStatusColor(bot.health_status)"
-              class="px-2 py-1 text-xs font-medium rounded-full"
-            >
-              {{ getHealthStatusText(bot.health_status) }}
-            </span>
+            <div class="relative group">
+              <span 
+                :class="getHealthStatusColor(bot.health_status)"
+                class="px-2 py-1 text-xs font-medium rounded-full cursor-pointer"
+              >
+                {{ getHealthStatusText(bot.health_status) }}
+              </span>
+              <!-- 详细信息悬浮提示 -->
+              <div 
+                v-if="bot.health_status === 'unhealthy' && lastHealthCheckResult"
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap max-w-xs"
+              >
+                <div class="font-medium mb-1">检查失败原因:</div>
+                <div>{{ lastHealthCheckResult.error_message || '未知错误' }}</div>
+                <div class="text-gray-300 text-xs mt-1">
+                  检查时间: {{ formatTime(lastHealthCheckResult.last_check) }}
+                </div>
+                <!-- 小箭头 -->
+                <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+              </div>
+            </div>
             <button
               @click="handleHealthCheck"
               :disabled="healthChecking || !bot.id"
@@ -234,7 +249,7 @@ import { ElMessage } from 'element-plus'
 import { Activity, Bell, Bot, Edit, ExternalLink, Loader2, MoreHorizontal, Network } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getHealthStatusColor, getHealthStatusText } from '../composables/useBotFormShared'
+import { formatTime, getHealthStatusColor, getHealthStatusText } from '../composables/useBotFormShared'
 
 // 类型定义
 interface CurrentNetwork {
@@ -280,6 +295,7 @@ interface Emits {
   'configure-network': [bot: BotConfig]
   'dropdown-command': [command: string, bot: BotConfig]
   'open-notifications': [bot: BotConfig]
+  'update:health-status': [value: { botId: string; status: string; lastCheck: string }]
 }
 
 const emit = defineEmits<Emits>()
@@ -289,6 +305,7 @@ const router = useRouter()
 
 // 响应式数据
 const healthChecking = ref(false)
+const lastHealthCheckResult = ref<any>(null)
 
 // 监控网络配置变化
 watch(() => props.bot.current_network, (newVal, oldVal) => {
@@ -336,12 +353,40 @@ const handleHealthCheck = async () => {
     healthChecking.value = true
     console.log('开始健康检查:', props.bot.id)
     
-    await botsAPI.performHealthCheck(props.bot.id)
-    ElMessage.success('健康检查已触发，请稍等片刻刷新查看结果')
+    const response = await botsAPI.performHealthCheck(props.bot.id)
+    const result = response.data
+    
+    // 保存健康检查结果
+    if (result?.success && result?.data) {
+      lastHealthCheckResult.value = result.data
+      console.log('健康检查结果:', result.data)
+      
+      if ((result.data as any).status === 'healthy') {
+        ElMessage.success('健康检查通过')
+      } else {
+        ElMessage.warning(`健康检查发现问题：${(result.data as any).error_message || '未知错误'}`)
+      }
+      
+      // 触发父组件刷新机器人列表
+      emit('update:health-status', {
+        botId: props.bot.id,
+        status: (result.data as any).status || 'unknown',
+        lastCheck: (result.data as any).last_check || new Date().toISOString()
+      })
+    } else {
+      ElMessage.error(`健康检查失败：${result?.message || '未知错误'}`)
+    }
     
   } catch (error: any) {
     console.error('健康检查失败:', error)
     ElMessage.error(`健康检查失败：${error.message || '未知错误'}`)
+    
+    // 即使出错也保存错误信息
+    lastHealthCheckResult.value = {
+      error_message: error.message || '健康检查请求失败',
+      status: 'unhealthy',
+      last_check: new Date().toISOString()
+    }
   } finally {
     healthChecking.value = false
   }

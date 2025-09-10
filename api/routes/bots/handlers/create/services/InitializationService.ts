@@ -220,15 +220,17 @@ export class InitializationService {
       };
 
       await query(
-        `INSERT INTO telegram_bot_logs (
+        `INSERT INTO bot_logs (
           bot_id,
-          log_type,
+          level,
+          action,
           message,
-          data,
+          metadata,
           created_at
-        ) VALUES ($1, $2, $3, $4, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           botId,
+          'info',
           'creation',
           `机器人创建: ${data.name} (@${data.username})`,
           JSON.stringify(logData)
@@ -301,7 +303,7 @@ export class InitializationService {
       console.log(`开始回滚机器人 ${botId} 的创建...`);
 
       // 删除相关记录（按依赖顺序）
-      await query('DELETE FROM telegram_bot_logs WHERE bot_id = $1', [botId]);
+      await query('DELETE FROM bot_logs WHERE bot_id = $1', [botId]);
       await query('DELETE FROM telegram_bot_status WHERE bot_id = $1', [botId]);
       await query('DELETE FROM telegram_bot_work_modes WHERE bot_id = $1', [botId]);
       await query('DELETE FROM telegram_bot_custom_commands WHERE bot_id = $1', [botId]);

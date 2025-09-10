@@ -24,7 +24,7 @@ export class ConfigAdapter {
       webhookUrl: dbConfig.webhook_url || undefined,
       webhookSecret: dbConfig.webhook_secret || undefined,
       botId: dbConfig.id?.toString() || 'unknown',
-      name: dbConfig.name,
+      name: dbConfig.bot_name,
       username: dbConfig.bot_username,
       description: dbConfig.description,
       isActive: dbConfig.is_active,

@@ -41,11 +41,23 @@
               <div class="font-bold text-sm mb-1 text-green-600">
                 🔥 {{ displayTitle }} 🔥（{{ isUnlimited ? '无时间限制' : '有时间限制' }}）
               </div>
+              <!-- 标题后换行 -->
+              <div v-for="n in lineBreaks.after_title" :key="'title-break-' + n" class="h-4"></div>
               
               <!-- 副标题 -->
               <div class="text-xs text-gray-600 mb-2">
                 {{ formatSubtitle(subtitleTemplate, dailyFee) }}
               </div>
+              <!-- 副标题后换行 -->
+              <div v-for="n in lineBreaks.after_subtitle" :key="'subtitle-break-' + n" class="h-4"></div>
+              
+              <!-- 套餐列表后换行 -->
+              <div v-for="n in lineBreaks.after_packages" :key="'packages-break-' + n" class="h-4"></div>
+              
+              <!-- 使用规则前换行 -->
+              <template v-if="usageRules.length > 0">
+                <div v-for="n in lineBreaks.before_usage_rules" :key="'before-rules-break-' + n" class="h-4"></div>
+              </template>
               
               <!-- 使用规则 -->
               <div v-if="usageRules.length > 0" class="space-y-1 mb-2">
@@ -57,6 +69,11 @@
                   {{ rule }}
                 </div>
               </div>
+              
+              <!-- 注意事项前换行 -->
+              <template v-if="notes.length > 0">
+                <div v-for="n in lineBreaks.before_notes" :key="'before-notes-break-' + n" class="h-4"></div>
+              </template>
               
               <!-- 注意事项 -->
               <div v-if="notes.length > 0" class="space-y-1 mb-3">
@@ -115,6 +132,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Button } from '../composables/usePackageConfig'
 
 interface Props {
@@ -133,15 +151,34 @@ interface Props {
   imageAlt: string
   usageRules: string[]
   notes: string[]
+  lineBreaks?: any
+  generateLineBreaks?: (count: number) => string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 默认换行配置
+const lineBreaks = computed(() => {
+  return props.lineBreaks || {
+    after_title: 0,
+    after_subtitle: 0,
+    after_packages: 0,
+    before_usage_rules: 0,
+    before_notes: 0
+  }
+})
+
+// 生成换行字符串
+const generateLineBreaks = (count: number): string => {
+  return props.generateLineBreaks ? props.generateLineBreaks(count) : (count > 0 ? '\n'.repeat(count) : '')
+}
 
 // 格式化副标题模板，支持变量替换
 const formatSubtitle = (template: string, dailyFee: number) => {
   if (!template) return ''
   return template.replace(/\{dailyFee\}/g, dailyFee.toString())
 }
+
 
 // 图片加载错误处理
 const handleImageError = (event: Event) => {
