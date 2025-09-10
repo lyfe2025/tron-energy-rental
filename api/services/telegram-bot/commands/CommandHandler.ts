@@ -268,6 +268,42 @@ export class CommandHandler {
   }
 
   /**
+   * 统一的命令处理方法
+   */
+  async handleCommand(message: TelegramBot.Message): Promise<boolean> {
+    if (!message.text || !message.text.startsWith('/')) {
+      return false; // 不是命令
+    }
+
+    const command = message.text.split(' ')[0].toLowerCase();
+    
+    try {
+      switch (command) {
+        case '/start':
+          await this.handleStartCommand(message);
+          return true;
+        case '/menu':
+          await this.handleMenuCommand(message);
+          return true;
+        case '/help':
+          await this.handleHelpCommand(message);
+          return true;
+        case '/orders':
+          await this.handleOrdersCommand(message);
+          return true;
+        case '/balance':
+          await this.handleBalanceCommand(message);
+          return true;
+        default:
+          return false; // 未知命令
+      }
+    } catch (error) {
+      console.error(`处理命令 ${command} 失败:`, error);
+      return false;
+    }
+  }
+
+  /**
    * 注册所有命令处理器
    */
   registerCommands(): void {

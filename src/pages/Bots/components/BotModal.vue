@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-xl w-full mx-4 max-h-[90vh] overflow-y-auto" :class="mode === 'view' ? 'max-w-6xl' : 'max-w-2xl'">
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-6 border-b">
         <h3 class="text-lg font-semibold text-gray-900">
@@ -17,7 +17,37 @@
       <!-- Modal Content -->
       <div class="p-6">
         <!-- View Mode -->
-        <div v-if="mode === 'view'" class="space-y-6">
+        <div v-if="mode === 'view'">
+          <!-- 标签页导航 -->
+          <div class="mb-6">
+            <nav class="flex space-x-8" aria-label="Tabs">
+              <button
+                @click="activeTab = 'info'"
+                :class="[
+                  activeTab === 'info'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                  'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm'
+                ]"
+              >
+                📋 基本信息
+              </button>
+              <button
+                @click="activeTab = 'notifications'"
+                :class="[
+                  activeTab === 'notifications'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                  'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm'
+                ]"
+              >
+                🔔 通知管理
+              </button>
+            </nav>
+          </div>
+
+          <!-- 基本信息标签页 -->
+          <div v-show="activeTab === 'info'" class="space-y-6">
           <!-- Basic Info -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -138,6 +168,16 @@
               <Zap class="w-4 h-4" />
               测试连接
             </button>
+          </div>
+          </div>
+
+          <!-- 通知管理标签页 -->
+          <div v-show="activeTab === 'notifications'" class="space-y-6">
+            <NotificationConfigPanel 
+              v-if="bot?.id"
+              :bot-id="bot.id"
+              class="min-h-[600px]"
+            />
           </div>
         </div>
 
@@ -328,7 +368,8 @@
 <script setup lang="ts">
 import type { Bot } from '@/types/api'
 import { Edit, Loader2, X, Zap } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import NotificationConfigPanel from '@/components/BotManagement/NotificationConfigPanel.vue'
 import type { BotForm, BotModalMode } from '../types/bot.types'
 
 interface Props {
@@ -353,6 +394,16 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// 标签页状态
+const activeTab = ref('info')
+
+// 监听模态框显示状态，重置标签页
+watch(() => props.show, (newValue) => {
+  if (newValue) {
+    activeTab.value = 'info'
+  }
+})
 
 const modalTitle = computed(() => {
   switch (props.mode) {

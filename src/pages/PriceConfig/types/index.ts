@@ -5,9 +5,14 @@
 export interface PriceConfig {
   id: string
   mode_type: string
+  name: string
+  description: string
   is_active: boolean
   config: any
   inline_keyboard_config?: any
+  image_url?: string
+  image_alt?: string
+  enable_image: boolean
   created_at: string
   updated_at: string
 }

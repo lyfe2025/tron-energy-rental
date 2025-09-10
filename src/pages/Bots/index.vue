@@ -56,6 +56,7 @@
           @edit="handleEdit"
           @configure-network="handleConfigureNetwork"
           @dropdown-command="handleDropdownCommand"
+          @open-notifications="handleOpenNotifications"
         />
     </div>
 
@@ -163,6 +164,7 @@
       :is-loading="syncDialogData.isLoading"
       @retry="handleRetrySyncBot"
     />
+
   </div>
 </template>
 
@@ -425,6 +427,11 @@ const handleNetworkUpdated = async () => {
 const handleRetrySyncBot = () => {
   ElMessage.info('重试功能开发中，请重新保存机器人配置')
   showSyncDialog.value = false
+}
+
+// 处理通知管理（现在通过路由跳转）
+const handleOpenNotifications = (bot: any) => {
+  console.log('🚀 This event is no longer used, navigation is handled in BotCard component')
 }
 
 // 生命周期

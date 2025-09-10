@@ -46,7 +46,17 @@ export class PriceConfigController {
   // 创建新的价格配置
   createConfig = async (req: Request, res: Response) => {
     try {
-      const { mode_type, name, description, config, inline_keyboard_config, is_active } = req.body
+      const { 
+        mode_type, 
+        name, 
+        description, 
+        config, 
+        inline_keyboard_config, 
+        image_url, 
+        image_alt, 
+        enable_image, 
+        is_active 
+      } = req.body
       const userId = req.user?.id
 
       if (!userId) {
@@ -65,6 +75,9 @@ export class PriceConfigController {
         description,
         config,
         inline_keyboard_config,
+        image_url,
+        image_alt,
+        enable_image: enable_image ?? false,
         is_active: is_active ?? true,
         created_by: userId
       })
@@ -83,13 +96,24 @@ export class PriceConfigController {
   updateConfig = async (req: Request, res: Response) => {
     try {
       const { modeType } = req.params
-      const { config, name, description, inline_keyboard_config } = req.body
+      const { 
+        config, 
+        name, 
+        description, 
+        inline_keyboard_config, 
+        image_url, 
+        image_alt, 
+        enable_image 
+      } = req.body
 
       const updatedConfig = await this.priceConfigService.updateConfig(modeType, {
         config,
         name,
         description,
-        inline_keyboard_config
+        inline_keyboard_config,
+        image_url,
+        image_alt,
+        enable_image
       })
 
       if (!updatedConfig) {

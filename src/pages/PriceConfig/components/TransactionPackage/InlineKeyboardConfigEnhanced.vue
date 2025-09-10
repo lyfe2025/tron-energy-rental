@@ -66,7 +66,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- 左侧：配置区域 -->
         <div class="space-y-6">
           <!-- 智能配置向导 -->

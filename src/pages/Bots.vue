@@ -58,10 +58,14 @@
       :pagination="pagination"
       @view="viewBot"
       @edit="editBot"
-      @toggle="toggleBotStatus"
+      @toggle-status="toggleBotStatus"
       @recharge="rechargeBalance"
       @test-connection="testConnection"
       @add-bot="goToConfig"
+      @open-notifications="openNotifications"
+      @page-change="(page) => pagination.currentPage = page"
+      @toggle-menu="(botId) => showBotMenu = showBotMenu === botId ? null : botId"
+      @close-menu="() => showBotMenu = null"
     />
 
     <!-- Batch Actions -->
@@ -91,11 +95,40 @@
       @test-connection="testConnection"
       @submit="saveBot"
     />
+
+    <!-- Notification Management Modal -->
+    <div v-if="showNotificationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b">
+          <h3 class="text-lg font-semibold text-gray-900">
+            🔔 {{ notificationBot?.name }} - 通知管理
+          </h3>
+          <button
+            @click="closeNotificationModal"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X class="w-6 h-6" />
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+          <NotificationConfigPanel 
+            v-if="notificationBot?.id"
+            :bot-id="notificationBot.id"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, RotateCcw } from 'lucide-vue-next'
+import NotificationConfigPanel from '@/components/BotManagement/NotificationConfigPanel.vue'
+import type { Bot } from '@/types/api'
+import { Plus, RotateCcw, X } from 'lucide-vue-next'
+import { ref } from 'vue'
 import BotActions from './Bots/components/BotActions.vue'
 import BotList from './Bots/components/BotList.vue'
 import BotModal from './Bots/components/BotModal.vue'
@@ -153,6 +186,24 @@ const {
   // 其他功能
   exportData
 } = useBotManagement()
+
+// 通知管理模态框
+const showNotificationModal = ref(false)
+const notificationBot = ref<Bot | null>(null)
+
+// 打开通知管理面板
+const openNotifications = (bot: Bot) => {
+  console.log('🚀 Main page: Opening notifications for bot:', bot.name, bot.id)
+  notificationBot.value = bot
+  showNotificationModal.value = true
+  console.log('🚀 Modal state:', { showNotificationModal: showNotificationModal.value, notificationBot: notificationBot.value })
+}
+
+// 关闭通知管理面板
+const closeNotificationModal = () => {
+  showNotificationModal.value = false
+  notificationBot.value = null
+}
 
 // Lifecycle
 // useBotManagement already handles onMounted and onUnmounted

@@ -61,6 +61,13 @@ export class BotAPIHandler {
   }
 
   /**
+   * 获取机器人信息
+   */
+  async getMe(): Promise<TelegramBot.User> {
+    return await this.bot.getMe();
+  }
+
+  /**
    * 发送消息
    */
   async sendMessage(chatId: number, message: string, options?: TelegramBot.SendMessageOptions): Promise<TelegramBot.Message> {

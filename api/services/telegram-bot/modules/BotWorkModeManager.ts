@@ -209,4 +209,36 @@ export class BotWorkModeManager {
   updateConfig(config: BotConfig): void {
     this.config = config;
   }
+
+  /**
+   * 启动工作模式管理器
+   */
+  async start(): Promise<void> {
+    // 工作模式管理器启动逻辑（如果需要）
+    console.log(`工作模式管理器已启动: ${this.config.workMode || (this.config.polling ? 'polling' : 'webhook')}`);
+  }
+
+  /**
+   * 停止工作模式管理器
+   */
+  async stop(): Promise<void> {
+    // 工作模式管理器停止逻辑（如果需要）
+    console.log('工作模式管理器已停止');
+  }
+
+  /**
+   * 重启工作模式管理器
+   */
+  async restart(): Promise<void> {
+    await this.stop();
+    await this.start();
+  }
+
+  /**
+   * 检查是否已启动
+   */
+  isStarted(): boolean {
+    // 简单实现，总是返回 true
+    return true;
+  }
 }

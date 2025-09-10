@@ -1,8 +1,8 @@
 import pool from '../config/database'
 import {
-  validateEnergyFlashConfig,
-  validateTransactionPackageConfig,
-  validateTrxExchangeConfig
+    validateEnergyFlashConfig,
+    validateTransactionPackageConfig,
+    validateTrxExchangeConfig
 } from '../middleware/validation'
 import { logger } from '../utils/logger'
 
@@ -13,6 +13,9 @@ export interface PriceConfig {
   description: string
   config: any
   inline_keyboard_config?: any
+  image_url?: string
+  image_alt?: string
+  enable_image: boolean
   is_active: boolean
   created_by: string
   created_at: Date
@@ -25,6 +28,9 @@ export interface CreatePriceConfigData {
   description: string
   config: any
   inline_keyboard_config?: any
+  image_url?: string
+  image_alt?: string
+  enable_image?: boolean
   is_active: boolean
   created_by: string
 }
@@ -34,6 +40,9 @@ export interface UpdatePriceConfigData {
   description?: string
   config?: any
   inline_keyboard_config?: any
+  image_url?: string
+  image_alt?: string
+  enable_image?: boolean
 }
 
 export class PriceConfigService {
@@ -42,6 +51,7 @@ export class PriceConfigService {
     try {
       const query = `
         SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               image_url, image_alt, enable_image, 
                is_active, created_by, created_at, updated_at
         FROM price_configs
         ORDER BY created_at DESC
@@ -59,6 +69,7 @@ export class PriceConfigService {
     try {
       const query = `
         SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               image_url, image_alt, enable_image, 
                is_active, created_by, created_at, updated_at
         FROM price_configs
         WHERE mode_type = $1
@@ -76,6 +87,7 @@ export class PriceConfigService {
     try {
       const query = `
         SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               image_url, image_alt, enable_image, 
                is_active, created_by, created_at, updated_at
         FROM price_configs
         WHERE is_active = true
@@ -93,9 +105,11 @@ export class PriceConfigService {
   async createConfig(data: CreatePriceConfigData): Promise<PriceConfig> {
     try {
       const query = `
-        INSERT INTO price_configs (mode_type, name, description, config, inline_keyboard_config, is_active, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO price_configs (mode_type, name, description, config, inline_keyboard_config, 
+                                 image_url, image_alt, enable_image, is_active, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  image_url, image_alt, enable_image, 
                   is_active, created_by, created_at, updated_at
       `
       const values = [
@@ -104,6 +118,9 @@ export class PriceConfigService {
         data.description,
         JSON.stringify(data.config),
         data.inline_keyboard_config ? JSON.stringify(data.inline_keyboard_config) : null,
+        data.image_url || null,
+        data.image_alt || null,
+        data.enable_image || false,
         data.is_active,
         data.created_by
       ]
@@ -143,6 +160,21 @@ export class PriceConfigService {
         values.push(data.inline_keyboard_config ? JSON.stringify(data.inline_keyboard_config) : null)
       }
 
+      if (data.image_url !== undefined) {
+        setParts.push(`image_url = $${paramIndex++}`)
+        values.push(data.image_url)
+      }
+
+      if (data.image_alt !== undefined) {
+        setParts.push(`image_alt = $${paramIndex++}`)
+        values.push(data.image_alt)
+      }
+
+      if (data.enable_image !== undefined) {
+        setParts.push(`enable_image = $${paramIndex++}`)
+        values.push(data.enable_image)
+      }
+
       if (setParts.length === 0) {
         throw new Error('No fields to update')
       }
@@ -155,6 +187,7 @@ export class PriceConfigService {
         SET ${setParts.join(', ')}
         WHERE mode_type = $${paramIndex}
         RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  image_url, image_alt, enable_image, 
                   is_active, created_by, created_at, updated_at
       `
 
@@ -174,6 +207,7 @@ export class PriceConfigService {
         SET is_active = $1, updated_at = CURRENT_TIMESTAMP
         WHERE mode_type = $2
         RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  image_url, image_alt, enable_image, 
                   is_active, created_by, created_at, updated_at
       `
       const result = await pool.query(query, [isActive, modeType])
@@ -283,6 +317,7 @@ export class PriceConfigService {
     try {
       const query = `
         SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               image_url, image_alt, enable_image, 
                is_active, created_by, created_at, updated_at
         FROM price_configs
         WHERE is_active = true 

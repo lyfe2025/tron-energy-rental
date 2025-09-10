@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <div v-if="config" class="flex flex-col lg:flex-row gap-6">
+    <div v-if="config" class="flex flex-col md:flex-row gap-6">
       <!-- 左侧：Telegram 显示预览 -->
       <TelegramPreview
         :packages="config.config.packages"
@@ -34,7 +34,7 @@
       />
 
       <!-- 右侧：配置表单 -->
-      <div class="lg:w-2/3 space-y-6">
+      <div class="md:w-2/3 space-y-6">
         <!-- 基础配置 -->
         <BasicConfig
           :config="{

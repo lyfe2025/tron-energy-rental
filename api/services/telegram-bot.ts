@@ -1,5 +1,5 @@
 /**
- * Telegram机器人服务 - 多机器人管理架构
+ * Telegram机器人服务 - 统一的模块化架构
  */
 export { MultiBotManager, multiBotManager } from './telegram-bot/MultiBotManager.js';
 export { TelegramBotService } from './telegram-bot/TelegramBotService.js';

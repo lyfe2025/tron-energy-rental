@@ -2,17 +2,25 @@
  * 机器人路由相关类型定义
  */
 import type { Request, Response } from 'express';
+import TelegramBot from 'node-telegram-bot-api';
+
+// 导出 TelegramBot 类型
+export type { TelegramBot };
 
 // 机器人基础信息接口
 export interface Bot {
   id: string;
   name: string;
   username: string;
+  bot_username: string;
+  bot_token?: string;
   status: 'active' | 'inactive' | 'maintenance';
+  is_active: boolean;
   work_mode: 'polling' | 'webhook';
   webhook_url?: string;
   webhook_secret?: string;
   max_connections?: number;
+  network_id?: string;
   total_users: number;
   total_orders: number;
   network_configurations?: BotNetworkConfiguration[];
@@ -55,6 +63,7 @@ export interface CreateBotData {
   web_app_url?: string;
   menu_commands?: MenuCommand[];
   keyboard_config?: any;
+  price_config?: any;
   is_active?: boolean;
 }
 
@@ -80,6 +89,7 @@ export interface UpdateBotData {
   web_app_url?: string;
   menu_commands?: MenuCommand[];
   keyboard_config?: any;
+  price_config?: any;
   is_active?: boolean;
 }
 

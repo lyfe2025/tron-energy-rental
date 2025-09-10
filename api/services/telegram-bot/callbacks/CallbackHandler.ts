@@ -21,6 +21,19 @@ export class CallbackHandler {
   }
 
   /**
+   * 统一的回调处理方法（别名）
+   */
+  async handleCallback(callbackQuery: TelegramBot.CallbackQuery): Promise<boolean> {
+    try {
+      await this.handleCallbackQuery(callbackQuery);
+      return true;
+    } catch (error) {
+      console.error('处理回调失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 处理主要的回调查询路由
    */
   async handleCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {

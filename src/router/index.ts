@@ -57,6 +57,12 @@ const router = createRouter({
           component: () => import('@/pages/Bots/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
+        {
+          path: 'bots/:botId/notification-config',
+          name: 'BotNotificationConfig',
+          component: () => import('@/pages/BotNotificationConfig/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
 
         // 配置管理路由
         {

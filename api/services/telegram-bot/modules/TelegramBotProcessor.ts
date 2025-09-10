@@ -395,27 +395,42 @@ export class TelegramBotProcessor {
   private formatEnergyFlashMessage(name: string, config: any, keyboardConfig: any): string {
     const displayTexts = config.display_texts || {};
     const title = displayTexts.title || keyboardConfig?.title || name;
-    const description = keyboardConfig?.description || '单笔能量闪租服务';
     
-    let message = `${title}\n\n`;
-    message += `📝 **服务说明**：\n${description}\n\n`;
+    let message = `${title}\n`;
     
-    if (config.single_price) {
-      message += `💰 **${displayTexts.price_label || '单笔价格'}** ${config.single_price} ${config.currency || 'TRX'}\n`;
+    // 添加副标题模板（价格和最大笔数信息）
+    if (displayTexts.subtitle_template && config.single_price && config.max_transactions) {
+      const subtitle = displayTexts.subtitle_template
+        .replace('{price}', config.single_price)
+        .replace('{max}', config.max_transactions);
+      message += `${subtitle}\n\n`;
     }
     
-    if (config.max_amount) {
-      message += `📊 **${displayTexts.max_label || '最大租用'}** ${config.max_amount}笔\n`;
+    // 租用时效
+    if (config.expiry_hours && displayTexts.duration_label) {
+      message += `${displayTexts.duration_label}${config.expiry_hours}小时\n`;
     }
     
-    if (config.expiry_hours) {
-      message += `⏰ **${displayTexts.duration_label || '租用时效'}** ${config.expiry_hours}小时\n`;
+    // 单笔价格
+    if (config.single_price && displayTexts.price_label) {
+      message += `${displayTexts.price_label}${config.single_price} ${config.currency || 'TRX'}\n`;
+    }
+    
+    // 最大租用（使用max_transactions而不是max_amount）
+    if (config.max_transactions && displayTexts.max_label) {
+      message += `${displayTexts.max_label}${config.max_transactions}笔\n\n`;
+    }
+    
+    // 收款地址
+    if (config.payment_address && displayTexts.address_label) {
+      message += `${displayTexts.address_label}\n`;
+      message += `${config.payment_address} (点击地址自动复制)\n\n`;
     }
 
+    // 注意事项（使用🔺前缀）
     if (config.notes && config.notes.length > 0) {
-      message += `\n📌 **注意事项**：\n`;
       config.notes.forEach((note: string) => {
-        message += `• ${note}\n`;
+        message += `🔺 ${note}\n`;
       });
     }
 

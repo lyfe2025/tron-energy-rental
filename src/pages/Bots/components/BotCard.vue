@@ -149,6 +149,14 @@
           <Network class="w-3 h-3" />
           网络配置
         </button>
+        <button
+          @click="handleNotificationPanel"
+          class="px-2 py-1 text-xs text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition-colors flex items-center gap-1"
+          title="通知管理"
+        >
+          <Bell class="w-3 h-3" />
+          通知配置
+        </button>
       </div>
       <div class="relative">
         <button
@@ -166,6 +174,12 @@
             class="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-lg"
           >
             查看详情
+          </button>
+          <button
+            @click="handleDropdownCommand('notifications')"
+            class="w-full px-3 py-2 text-left text-sm text-purple-700 hover:bg-purple-50"
+          >
+            通知配置
           </button>
           <button
             @click="handleDropdownCommand('copy')"
@@ -193,8 +207,9 @@
 </template>
 
 <script setup lang="ts">
-import { Bot, Edit, ExternalLink, MoreHorizontal, Network } from 'lucide-vue-next'
+import { Bell, Bot, Edit, ExternalLink, MoreHorizontal, Network } from 'lucide-vue-next'
 import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 类型定义
 interface CurrentNetwork {
@@ -237,9 +252,13 @@ interface Emits {
   'edit': [bot: BotConfig]
   'configure-network': [bot: BotConfig]
   'dropdown-command': [command: string, bot: BotConfig]
+  'open-notifications': [bot: BotConfig]
 }
 
 const emit = defineEmits<Emits>()
+
+// 路由实例
+const router = useRouter()
 
 // 监控网络配置变化
 watch(() => props.bot.current_network, (newVal, oldVal) => {
@@ -262,7 +281,19 @@ const toggleMenu = () => {
 
 const handleDropdownCommand = (command: string) => {
   props.bot.showMenu = false
-  emit('dropdown-command', command, props.bot)
+  if (command === 'notifications') {
+    // 跳转到通知配置页面
+    router.push(`/bots/${props.bot.id}/notification-config`)
+  } else {
+    emit('dropdown-command', command, props.bot)
+  }
+}
+
+// 处理通知管理面板
+const handleNotificationPanel = () => {
+  console.log('🔔 Opening notification config page for bot:', props.bot.name)
+  // 跳转到通知配置页面
+  router.push(`/bots/${props.bot.id}/notification-config`)
 }
 
 // 预览机器人

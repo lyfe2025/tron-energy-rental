@@ -33,6 +33,7 @@ export interface TelegramBotConfig {
   webhookSecret?: string;
   maxConnections?: number;
   isActive: boolean;
+  networkId?: string;
   networkConfig: any;
   webhookConfig: any;
   messageTemplates: any;
@@ -41,6 +42,16 @@ export interface TelegramBotConfig {
   config: any;
   healthStatus: string;
   description?: string;
+  welcomeMessage?: string;
+  helpMessage?: string;
+  customCommands?: any;
+  keyboardConfig?: any;
+  priceConfig?: any;
+  menuButtonEnabled?: boolean;
+  menuButtonText?: string;
+  menuType?: string;
+  menuCommands?: any;
+  webAppUrl?: string;
   networks?: TronNetworkConfig[];
 }
 

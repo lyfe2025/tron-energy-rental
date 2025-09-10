@@ -84,15 +84,15 @@ export class MultiBotManager {
     try {
       this.logger.info(`🔧 创建机器人实例: ${botConfig.botName} (${botConfig.id})`);
 
-      // 创建机器人服务实例（跳过自动初始化）
+      // 创建机器人服务实例
       const botService = new TelegramBotService({
         token: botConfig.botToken,
         polling: botConfig.workMode === 'polling',
         webhook: botConfig.workMode === 'webhook'
-      }, true); // skipAutoInit = true
+      });
 
-      // 手动设置机器人配置
-      await botService.initializeWithConfig(botConfig);
+      // 手动初始化机器人配置
+      await botService.initializeFromDatabase(botConfig.botToken);
 
       const botInstance: BotInstance = {
         id: botConfig.id,

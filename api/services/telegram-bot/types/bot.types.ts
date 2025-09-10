@@ -91,6 +91,7 @@ export interface BotError {
 // 配置类型
 export interface BotConfig {
   token: string;
+  workMode?: 'polling' | 'webhook';
   polling?: boolean;
   webhook?: boolean;
   webhookConfig?: {

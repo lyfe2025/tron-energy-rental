@@ -27,33 +27,53 @@
 
     <!-- 标签页内容 -->
     <div class="mt-6">
+      <!-- 加载状态 -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-2 text-gray-600">正在加载配置...</span>
+      </div>
+      
       <!-- 能量闪租配置 -->
       <EnergyFlashConfig 
-        v-if="activeTab === 'energy_flash'"
+        v-else-if="activeTab === 'energy_flash' && energyFlashConfig"
         :config="energyFlashConfig"
         :saving="saving"
         :onToggle="toggleMode"
         :onSave="saveConfig"
       />
+      
+      <!-- 配置不存在的提示 -->
+      <div v-else-if="activeTab === 'energy_flash' && !loading" class="text-center py-12">
+        <p class="text-gray-600">暂无能量闪租配置，请联系管理员创建配置。</p>
+      </div>
 
       <!-- 笔数套餐配置 -->
       <TransactionPackageConfig 
-        v-if="activeTab === 'transaction_package'"
+        v-else-if="activeTab === 'transaction_package' && transactionPackageConfig"
         :config="transactionPackageConfig"
         :saving="saving"
         :onToggle="toggleMode"
         :onSave="saveConfig"
       />
-
+      
+      <!-- 配置不存在的提示 -->
+      <div v-else-if="activeTab === 'transaction_package' && !loading" class="text-center py-12">
+        <p class="text-gray-600">暂无笔数套餐配置，请联系管理员创建配置。</p>
+      </div>
 
       <!-- TRX闪兑配置 -->
       <TrxExchangeConfig 
-        v-if="activeTab === 'trx_exchange'"
+        v-else-if="activeTab === 'trx_exchange' && trxExchangeConfig"
         :config="trxExchangeConfig"
         :saving="saving"
         :onToggle="toggleMode"
         :onSave="saveConfig"
       />
+      
+      <!-- 配置不存在的提示 -->
+      <div v-else-if="activeTab === 'trx_exchange' && !loading" class="text-center py-12">
+        <p class="text-gray-600">暂无TRX闪兑配置，请联系管理员创建配置。</p>
+      </div>
     </div>
   </div>
 </template>

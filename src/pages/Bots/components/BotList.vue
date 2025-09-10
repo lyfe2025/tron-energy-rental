@@ -81,6 +81,13 @@
                   查看
                 </button>
                 <button
+                  @click="openNotificationPanel(bot)"
+                  class="text-purple-600 hover:text-purple-900 text-sm bg-purple-50 px-2 py-1 rounded border border-purple-200"
+                  title="通知管理"
+                >
+                  🔔 通知
+                </button>
+                <button
                   @click="goToConfig(bot.id)"
                   class="text-green-600 hover:text-green-900 text-sm"
                 >
@@ -199,6 +206,13 @@
                   查看详情
                 </button>
                 <button
+                  @click="openNotificationPanel(bot); $emit('close-menu')"
+                  class="block w-full text-left px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 bg-purple-25"
+                >
+                  <Bell class="w-4 h-4 mr-2 inline text-purple-600" />
+                  🔔 通知管理
+                </button>
+                <button
                   @click="goToConfig(bot.id); $emit('close-menu')"
                   class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
@@ -297,15 +311,16 @@
 <script setup lang="ts">
 import type { Bot as BotType } from '@/types/api';
 import {
-    Bot,
-    CreditCard,
-    Eye,
-    FileText,
-    MoreVertical,
-    Power,
-    RotateCcw,
-    Settings,
-    Wifi
+  Bell,
+  Bot,
+  CreditCard,
+  Eye,
+  FileText,
+  MoreVertical,
+  Power,
+  RotateCcw,
+  Settings,
+  Wifi
 } from 'lucide-vue-next';
 import { toast } from 'sonner';
 import { computed } from 'vue';
@@ -345,6 +360,7 @@ const emit = defineEmits<{
   (e: 'page-change', page: number): void
   (e: 'toggle-menu', botId: string): void
   (e: 'close-menu'): void
+  (e: 'open-notifications', bot: BotType): void
 }>()
 
 const selectedBots = computed({
@@ -375,5 +391,11 @@ const goToConfig = (botId?: string) => {
   } else {
     toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
   }
+}
+
+// 打开通知管理面板
+const openNotificationPanel = (bot: BotType) => {
+  console.log('🔔 Opening notification panel for bot:', bot.name)
+  emit('open-notifications', bot)
 }
 </script>

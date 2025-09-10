@@ -5,6 +5,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import path from 'path';
 import adminsRoutes from './routes/admins.ts';
 import agentsRoutes from './routes/agents.ts';
 import authRoutes from './routes/auth.ts';
@@ -24,10 +25,12 @@ import stakeRoutes from './routes/stake.ts';
 import statisticsRoutes from './routes/statistics/index.ts';
 import systemConfigsRoutes from './routes/system-configs/index.ts';
 import systemRoutes from './routes/system/index.js';
+import telegramBotNotificationsRoutes from './routes/telegram-bot-notifications/index.js';
 import telegramRoutes from './routes/telegram.ts';
 import testRoutes from './routes/test.ts';
 import tronNetworksRoutes from './routes/tron-networks/index.js';
 import tronRoutes from './routes/tron.ts';
+import uploadsRoutes from './routes/uploads.ts';
 import userLevelsRoutes from './routes/user-levels.ts';
 import usersRoutes from './routes/users.ts';
 
@@ -41,6 +44,9 @@ const app: express.Application = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 静态文件服务 - 用于提供上传的图片
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // 全局请求日志中间件（用于调试）
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -71,6 +77,7 @@ app.use('/api/statistics', statisticsRoutes);
 app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/telegram-bot-notifications', telegramBotNotificationsRoutes);
 app.use('/api/multi-bot', multiBotStatusRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/tron-networks', tronNetworksRoutes);
@@ -82,6 +89,7 @@ app.use('/api/energy-pool', energyPoolRoutes);
 app.use('/api/energy-pool/stake', stakeRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 app.use('/api/network-logs', networkLogsRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 /**
  * health check - direct access
@@ -137,6 +145,7 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/energy-pool',
       '/api/energy-pool/stake',
       '/api/monitoring',
+      '/api/uploads',
       '/api/health'
     ]
   });

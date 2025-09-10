@@ -4,7 +4,7 @@
  */
 import { type Request, type Response } from 'express';
 import { query } from '../../../config/database.js';
-import { TelegramBotService } from '../../../services/telegram-bot/TelegramBotService.js';
+import { TelegramBotService } from '../../../services/telegram-bot.js';
 import type { BotModeSwitchData, RouteHandler } from '../types.js';
 
 /**

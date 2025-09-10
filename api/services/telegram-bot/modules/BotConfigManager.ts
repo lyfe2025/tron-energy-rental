@@ -100,4 +100,14 @@ export class BotConfigManager {
     this.botConfig = botConfig;
     this.networks = networks;
   }
+
+  /**
+   * 刷新配置（如果需要）
+   */
+  async refreshConfigIfNeeded(): Promise<void> {
+    // 检查配置是否需要刷新的逻辑
+    // 这里可以添加时间戳检查、版本检查等
+    console.log('检查配置是否需要刷新...');
+    // 如果需要刷新，可以调用 reloadConfiguration
+  }
 }

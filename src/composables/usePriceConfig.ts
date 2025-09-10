@@ -7,6 +7,10 @@ export interface PriceConfig {
   name: string
   description: string
   config: any
+  inline_keyboard_config?: any
+  image_url?: string
+  image_alt?: string
+  enable_image: boolean
   is_active: boolean
   created_by: string
   created_at: string

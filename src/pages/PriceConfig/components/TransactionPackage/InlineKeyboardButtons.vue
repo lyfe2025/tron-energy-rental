@@ -95,7 +95,7 @@
           
           <!-- 按钮配置表单 -->
           <div class="flex-1">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">按钮文本</label>
                 <input
