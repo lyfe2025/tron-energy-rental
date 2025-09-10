@@ -112,6 +112,28 @@
           </span>
         </div>
         
+        <!-- 健康状态 -->
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-500">健康状态:</span>
+          <div class="flex items-center gap-2">
+            <span 
+              :class="getHealthStatusColor(bot.health_status)"
+              class="px-2 py-1 text-xs font-medium rounded-full"
+            >
+              {{ getHealthStatusText(bot.health_status) }}
+            </span>
+            <button
+              @click="handleHealthCheck"
+              :disabled="healthChecking || !bot.id"
+              class="inline-flex items-center gap-1 px-1 py-0.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="检查机器人健康状态"
+            >
+              <Loader2 v-if="healthChecking" :size="10" class="animate-spin" />
+              <Activity v-else :size="10" />
+            </button>
+          </div>
+        </div>
+        
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-500">创建时间:</span>
           <span class="text-gray-700 text-xs">{{ formatDateToSeconds(bot.created_at) }}</span>
@@ -207,9 +229,12 @@
 </template>
 
 <script setup lang="ts">
-import { Bell, Bot, Edit, ExternalLink, MoreHorizontal, Network } from 'lucide-vue-next'
-import { watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Activity, Bell, Bot, Edit, ExternalLink, Loader2, MoreHorizontal, Network } from 'lucide-vue-next'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { botsAPI } from '@/services/api/bots/botsAPI'
+import { getHealthStatusColor, getHealthStatusText } from '../composables/useBotFormShared'
 
 // 类型定义
 interface CurrentNetwork {
@@ -235,6 +260,8 @@ interface BotConfig {
   showMenu?: boolean
   total_users?: number
   total_orders?: number
+  health_status?: 'healthy' | 'unhealthy' | 'unknown'
+  last_health_check?: string
 }
 
 // Props
@@ -259,6 +286,9 @@ const emit = defineEmits<Emits>()
 
 // 路由实例
 const router = useRouter()
+
+// 响应式数据
+const healthChecking = ref(false)
 
 // 监控网络配置变化
 watch(() => props.bot.current_network, (newVal, oldVal) => {
@@ -294,6 +324,27 @@ const handleNotificationPanel = () => {
   console.log('🔔 Opening notification config page for bot:', props.bot.name)
   // 跳转到通知配置页面
   router.push(`/bots/${props.bot.id}/notification-config`)
+}
+
+// 健康检查处理
+const handleHealthCheck = async () => {
+  if (!props.bot?.id || healthChecking.value) {
+    return
+  }
+  
+  try {
+    healthChecking.value = true
+    console.log('开始健康检查:', props.bot.id)
+    
+    await botsAPI.performHealthCheck(props.bot.id)
+    ElMessage.success('健康检查已触发，请稍等片刻刷新查看结果')
+    
+  } catch (error: any) {
+    console.error('健康检查失败:', error)
+    ElMessage.error(`健康检查失败：${error.message || '未知错误'}`)
+  } finally {
+    healthChecking.value = false
+  }
 }
 
 // 预览机器人

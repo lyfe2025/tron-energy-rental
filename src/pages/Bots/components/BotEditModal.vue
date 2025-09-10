@@ -65,16 +65,28 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                   健康状态
                 </label>
-                <div class="flex items-center gap-2">
-                  <span 
-                    :class="getHealthStatusColor(botData?.health_status)"
-                    class="px-2 py-1 rounded-full text-xs font-medium"
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <span 
+                      :class="getHealthStatusColor(botData?.health_status)"
+                      class="px-2 py-1 rounded-full text-xs font-medium"
+                    >
+                      {{ getHealthStatusText(botData?.health_status) }}
+                    </span>
+                    <span class="text-sm text-gray-500">
+                      {{ formatTime(botData?.last_health_check) || '未检查' }}
+                    </span>
+                  </div>
+                  <button
+                    @click="handleHealthCheck"
+                    :disabled="healthChecking || !botData?.id"
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="检查机器人健康状态"
                   >
-                    {{ getHealthStatusText(botData?.health_status) }}
-                  </span>
-                  <span class="text-sm text-gray-500">
-                    {{ formatTime(botData?.last_health_check) || '未检查' }}
-                  </span>
+                    <Loader2 v-if="healthChecking" :size="12" class="animate-spin" />
+                    <Activity v-else :size="12" />
+                    {{ healthChecking ? '检查中...' : '立即检查' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -164,6 +176,7 @@
 import { ElMessage } from 'element-plus'
 import { Activity, Loader2, X } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
+import { botsAPI } from '@/services/api/bots/botsAPI'
 import type { BotData } from '../composables/useBotFormShared'
 import { formatTime, getHealthStatusColor, getHealthStatusText, useBotForm } from '../composables/useBotFormShared'
 import BotFormBasicInfo from './BotFormBasicInfo.vue'
@@ -202,6 +215,7 @@ const {
 // 响应式数据
 const saving = ref(false)
 const syncing = ref(false)
+const healthChecking = ref(false)
 const originalMode = ref<'polling' | 'webhook'>('polling')
 
 // 计算属性：基础信息
@@ -338,6 +352,36 @@ const handleSave = async () => {
     console.error('表单提交失败:', error)
   } finally {
     saving.value = false
+  }
+}
+
+// 健康检查处理
+const handleHealthCheck = async () => {
+  if (!props.botData?.id || healthChecking.value) {
+    return
+  }
+  
+  try {
+    healthChecking.value = true
+    console.log('开始健康检查:', props.botData.id)
+    
+    await botsAPI.performHealthCheck(props.botData.id)
+    ElMessage.success('健康检查已触发，正在检查中...')
+    
+    // 触发父组件刷新数据以获取最新的健康状态
+    setTimeout(() => {
+      emit('save', {
+        id: props.botData!.id,
+        ...formData,
+        status: formData.is_active ? 'active' : 'inactive'
+      })
+    }, 2000) // 2秒后刷新，给后端时间完成检查
+    
+  } catch (error: any) {
+    console.error('健康检查失败:', error)
+    ElMessage.error(`健康检查失败：${error.message || '未知错误'}`)
+  } finally {
+    healthChecking.value = false
   }
 }
 

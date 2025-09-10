@@ -334,7 +334,7 @@ export class TelegramBotProcessor {
 
       // 从数据库获取价格配置
       const priceConfigResult = await query(
-        'SELECT name, description, config, inline_keyboard_config FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
+        'SELECT name, description, config, inline_keyboard_config, image_url, image_alt, enable_image FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
         [configType]
       );
 
@@ -345,6 +345,8 @@ export class TelegramBotProcessor {
       const priceConfig = priceConfigResult.rows[0];
       const config = priceConfig.config;
       const keyboardConfig = priceConfig.inline_keyboard_config;
+      const enableImage = priceConfig.enable_image;
+      const imageUrl = priceConfig.image_url;
 
       // 使用配置中的真实数据生成响应消息
       let responseMessage = '';
@@ -359,9 +361,36 @@ export class TelegramBotProcessor {
         responseMessage = `${priceConfig.name}\n\n${priceConfig.description}`;
       }
 
-      await this.api.sendMessage(message.chat.id, responseMessage, {
-        parse_mode: 'Markdown'
-      });
+      // 构建内嵌键盘
+      let replyMarkup = undefined;
+      if (keyboardConfig && keyboardConfig.enabled && keyboardConfig.buttons) {
+        replyMarkup = {
+          inline_keyboard: keyboardConfig.buttons
+        };
+      }
+
+      // 发送消息 - 根据是否启用图片决定发送方式
+      if (enableImage && imageUrl && this.bot) {
+        // 构建完整的图片URL
+        let fullImageUrl = imageUrl;
+        if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('/assets/')) {
+          const baseUrl = await this.getWebhookBaseUrl();
+          fullImageUrl = `${baseUrl}${imageUrl}`;
+        }
+
+        // 发送带图片的消息
+        await this.bot.sendPhoto(message.chat.id, fullImageUrl, {
+          caption: responseMessage,
+          reply_markup: replyMarkup,
+          parse_mode: 'Markdown'
+        });
+      } else {
+        // 发送纯文本消息
+        await this.api.sendMessage(message.chat.id, responseMessage, {
+          reply_markup: replyMarkup,
+          parse_mode: 'Markdown'
+        });
+      }
 
       await this.logger.logBotActivity('info', `price_config_${configType}`, `价格配置响应: ${buttonText}`, {
         configType,
@@ -390,44 +419,47 @@ export class TelegramBotProcessor {
   }
 
   /**
-   * 格式化能量闪租消息
+   * 格式化能量闪租消息（1:1复现前端预览）
    */
   private formatEnergyFlashMessage(name: string, config: any, keyboardConfig: any): string {
     const displayTexts = config.display_texts || {};
-    const title = displayTexts.title || keyboardConfig?.title || name;
+    const title = displayTexts.title || keyboardConfig?.title || name || '⚡闪租能量（需要时）';
     
-    let message = `${title}\n`;
+    let message = `*${title}*\n`;
     
-    // 添加副标题模板（价格和最大笔数信息）
-    if (displayTexts.subtitle_template && config.single_price && config.max_transactions) {
-      const subtitle = displayTexts.subtitle_template
-        .replace('{price}', config.single_price)
-        .replace('{max}', config.max_transactions);
-      message += `${subtitle}\n\n`;
+    // 处理副标题模板 - 支持数组和计算表达式
+    const subtitleFormatted = this.formatSubtitleTemplates(displayTexts.subtitle_template, config.single_price || 0, config.max_transactions || 0);
+    if (subtitleFormatted) {
+      message += `${subtitleFormatted}\n\n`;
     }
     
-    // 租用时效
-    if (config.expiry_hours && displayTexts.duration_label) {
-      message += `${displayTexts.duration_label}${config.expiry_hours}小时\n`;
-    }
+    // 租期时效
+    const durationLabel = this.formatTemplateText(displayTexts.duration_label || '⏱ 租期时效：{duration}小时', { duration: config.expiry_hours || 0 });
+    message += `${durationLabel}\n`;
     
     // 单笔价格
-    if (config.single_price && displayTexts.price_label) {
-      message += `${displayTexts.price_label}${config.single_price} ${config.currency || 'TRX'}\n`;
+    const priceLabel = this.formatTemplateText(displayTexts.price_label || '💰 单笔价格：{price}TRX', { price: config.single_price || 0 });
+    message += `${priceLabel}\n`;
+    
+    // 最大购买
+    const maxLabel = this.formatTemplateText(displayTexts.max_label || '🔢 最大购买：{max}笔', { max: config.max_transactions || 0 });
+    message += `${maxLabel}\n\n`;
+    
+    // 下单地址（支持点击复制）
+    if (config.payment_address) {
+      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址自动复制）';
+      message += `${addressLabel}\n`;
+      // 使用 Telegram 的 monospace 格式让地址可以长按复制
+      message += `\`${config.payment_address}\`\n\n`;
     }
     
-    // 最大租用（使用max_transactions而不是max_amount）
-    if (config.max_transactions && displayTexts.max_label) {
-      message += `${displayTexts.max_label}${config.max_transactions}笔\n\n`;
+    // 双倍能量警告
+    if (config.double_energy_for_no_usdt) {
+      const doubleEnergyWarning = displayTexts.double_energy_warning || '⚠️ 注意：账户无USDT将消耗双倍能量';
+      message += `${doubleEnergyWarning}\n\n`;
     }
     
-    // 收款地址
-    if (config.payment_address && displayTexts.address_label) {
-      message += `${displayTexts.address_label}\n`;
-      message += `${config.payment_address} (点击地址自动复制)\n\n`;
-    }
-
-    // 注意事项（使用🔺前缀）
+    // 注意事项
     if (config.notes && config.notes.length > 0) {
       config.notes.forEach((note: string) => {
         message += `🔺 ${note}\n`;
@@ -435,6 +467,99 @@ export class TelegramBotProcessor {
     }
 
     return message;
+  }
+
+  /**
+   * 格式化副标题模板 - 支持数组和计算表达式
+   */
+  private formatSubtitleTemplates(subtitleTemplate: string | string[] | undefined, price: number, max: number): string {
+    if (!subtitleTemplate) {
+      // 默认模板
+      return `（${price}TRX/笔，最多买${max}笔）`;
+    }
+
+    let templates: string[] = [];
+    
+    // 兼容旧版本：如果是字符串，转换为数组
+    if (typeof subtitleTemplate === 'string') {
+      templates = subtitleTemplate ? [subtitleTemplate] : [];
+    } else if (Array.isArray(subtitleTemplate)) {
+      templates = subtitleTemplate;
+    }
+
+    if (templates.length === 0) {
+      return `（${price}TRX/笔，最多买${max}笔）`;
+    }
+
+    // 格式化所有模板并用换行符连接
+    const formattedTemplates = templates
+      .filter(t => t.trim() !== '')
+      .map(template => this.formatTemplateWithCalculations(template, price, max));
+    
+    return formattedTemplates.join('\n');
+  }
+
+  /**
+   * 格式化模板，支持动态计算和多种变量
+   */
+  private formatTemplateWithCalculations(template: string, price: number, max: number): string {
+    let result = template;
+    
+    // 先处理所有计算表达式（必须在基础变量之前处理）
+    
+    // price计算表达式
+    result = result.replace(/\{price\*(\d+)\}/g, (match, multiplier) => {
+      return (price * parseInt(multiplier)).toString();
+    });
+    
+    result = result.replace(/\{price\/(\d+)\}/g, (match, divisor) => {
+      const div = parseInt(divisor);
+      return div > 0 ? (price / div).toString() : price.toString();
+    });
+    
+    result = result.replace(/\{price\+(\d+)\}/g, (match, addend) => {
+      return (price + parseInt(addend)).toString();
+    });
+    
+    result = result.replace(/\{price\-(\d+)\}/g, (match, subtrahend) => {
+      return (price - parseInt(subtrahend)).toString();
+    });
+    
+    // max计算表达式
+    result = result.replace(/\{max\*(\d+)\}/g, (match, multiplier) => {
+      return (max * parseInt(multiplier)).toString();
+    });
+    
+    result = result.replace(/\{max\/(\d+)\}/g, (match, divisor) => {
+      const div = parseInt(divisor);
+      return div > 0 ? (max / div).toString() : max.toString();
+    });
+    
+    result = result.replace(/\{max\+(\d+)\}/g, (match, addend) => {
+      return (max + parseInt(addend)).toString();
+    });
+    
+    result = result.replace(/\{max\-(\d+)\}/g, (match, subtrahend) => {
+      return (max - parseInt(subtrahend)).toString();
+    });
+    
+    // 最后处理基础变量
+    result = result.replace(/\{price\}/g, price.toString());
+    result = result.replace(/\{max\}/g, max.toString());
+    
+    return result;
+  }
+
+  /**
+   * 格式化模板文本，替换单个占位符
+   */
+  private formatTemplateText(template: string, values: { [key: string]: any }): string {
+    let result = template;
+    for (const [key, value] of Object.entries(values)) {
+      const placeholder = `{${key}}`;
+      result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value?.toString() || '0');
+    }
+    return result;
   }
 
   /**
@@ -512,5 +637,18 @@ export class TelegramBotProcessor {
     }
 
     return message;
+  }
+
+  /**
+   * 从当前机器人的webhook URL获取基础域名
+   */
+  private async getWebhookBaseUrl(): Promise<string> {
+    try {
+      // 这里我们使用环境变量或默认值，因为在这个上下文中我们可能没有bot ID
+      return process.env.APP_BASE_URL || 'http://localhost:3001';
+    } catch (error) {
+      console.error('获取webhook基础URL失败:', error);
+      return process.env.APP_BASE_URL || 'http://localhost:3001';
+    }
   }
 }
