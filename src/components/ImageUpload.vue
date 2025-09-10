@@ -17,8 +17,43 @@
           ×
         </button>
       </div>
-      <div v-if="imageAlt" class="text-xs text-gray-500 mt-1">
-        {{ imageAlt }}
+      <div v-if="imageAlt || usingDefaultImage" class="text-xs text-gray-500 mt-1">
+        <div v-if="usingDefaultImage" class="inline-flex items-center space-x-1">
+          <span class="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+          <span>默认图片</span>
+        </div>
+        <span v-if="imageAlt">{{ imageAlt }}</span>
+      </div>
+    </div>
+
+    <!-- 默认图片选择区域 -->
+    <div v-if="showDefaultOption" class="default-image-option mb-4">
+      <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <img 
+              :src="recommendedDefaultImage?.url" 
+              :alt="recommendedDefaultImage?.alt"
+              class="w-16 h-16 rounded-md object-cover border"
+            />
+            <div>
+              <h4 class="text-sm font-medium text-gray-900">推荐默认图片</h4>
+              <p class="text-xs text-gray-500">{{ recommendedDefaultImage?.alt }}</p>
+            </div>
+          </div>
+          <button
+            @click="selectDefaultImage"
+            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+          >
+            使用此图片
+          </button>
+        </div>
+      </div>
+      
+      <div class="flex items-center my-4">
+        <div class="flex-1 h-px bg-gray-300"></div>
+        <span class="px-3 text-sm text-gray-500">或者</span>
+        <div class="flex-1 h-px bg-gray-300"></div>
       </div>
     </div>
 
@@ -81,14 +116,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { api } from '../utils/api'
+import { useDefaultImages } from '../composables/useDefaultImages'
 
 interface Props {
   modelValue?: string
   imageAlt?: string
   maxSize?: number // MB
   accept?: string[]
+  configType?: string // 配置类型，用于显示对应的默认图片
 }
 
 interface Emits {
@@ -101,7 +138,8 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   imageAlt: '',
   maxSize: 5,
-  accept: () => ['jpg', 'jpeg', 'png', 'gif', 'webp']
+  accept: () => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+  configType: ''
 })
 
 const emit = defineEmits<Emits>()
@@ -113,6 +151,15 @@ const uploading = ref(false)
 const uploadProgress = ref(0)
 const error = ref('')
 const isDragging = ref(false)
+
+// 默认图片相关
+const { recommendedDefaultImage, isDefaultImage } = useDefaultImages(props.configType)
+const showDefaultOption = computed(() => {
+  return !previewUrl.value && recommendedDefaultImage.value && props.configType
+})
+const usingDefaultImage = computed(() => {
+  return previewUrl.value && isDefaultImage(previewUrl.value)
+})
 
 // 监听 modelValue 变化
 watch(() => props.modelValue, (newValue) => {
@@ -240,6 +287,14 @@ const removeImage = () => {
 const handleImageError = () => {
   console.error('图片加载失败:', previewUrl.value)
   // 可以在这里添加默认图片或其他处理
+}
+
+// 选择默认图片
+const selectDefaultImage = () => {
+  if (recommendedDefaultImage.value) {
+    previewUrl.value = recommendedDefaultImage.value.url
+    emit('update:modelValue', recommendedDefaultImage.value.url)
+  }
 }
 </script>
 

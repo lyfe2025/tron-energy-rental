@@ -6,7 +6,7 @@
         <input
           v-model="notes[index]"
           type="text"
-          :placeholder="`注意事项 ${index + 1}`"
+          placeholder="注意事项"
           class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button

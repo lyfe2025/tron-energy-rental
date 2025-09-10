@@ -33,6 +33,7 @@
           <ImageUpload
             v-model="config.image_url"
             :image-alt="config.image_alt"
+            config-type="trx_exchange"
             @upload-success="handleImageUploadSuccess"
             @upload-error="handleImageUploadError"
           />
@@ -80,41 +81,6 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">汇率更新间隔</label>
-          <div class="flex items-center space-x-2">
-            <input
-              v-model.number="config.config.rate_update_interval"
-              type="number"
-              min="1"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span class="text-gray-500">分钟</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <div class="flex items-center justify-between">
-            <div>
-              <label class="text-sm font-medium text-gray-700">自动兑换</label>
-              <p class="text-xs text-gray-500">启用自动汇率更新</p>
-            </div>
-            <button
-              @click="toggleAutoExchange"
-              :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                config.config.is_auto_exchange ? 'bg-blue-600' : 'bg-gray-200'
-              ]"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  config.config.is_auto_exchange ? 'translate-x-6' : 'translate-x-1'
-                ]"
-              />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -158,7 +124,6 @@ interface Props {
   toggleImageEnabled: () => void
   handleImageUploadSuccess: (data: { url: string; filename: string }) => void
   handleImageUploadError: (error: string) => void
-  toggleAutoExchange: () => void
 }
 
 defineProps<Props>()

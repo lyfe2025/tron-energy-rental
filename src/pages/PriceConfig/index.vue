@@ -188,7 +188,7 @@ const saveConfig = async (modeType: string) => {
     }
     
     loadingId = showLoading('正在保存配置...')
-    await updateConfig(modeType, config.config)
+    await updateConfig(modeType, config.config, config)
     
     if (loadingId) dismiss(loadingId)
     success('配置保存成功')

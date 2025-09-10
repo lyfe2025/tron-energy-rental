@@ -41,7 +41,6 @@
           :toggleImageEnabled="toggleImageEnabled"
           :handleImageUploadSuccess="handleImageUploadSuccess"
           :handleImageUploadError="handleImageUploadError"
-          :toggleAutoExchange="toggleAutoExchange"
         />
 
         <!-- 显示文本配置 -->
@@ -94,7 +93,6 @@ const {
   handleImageUploadSuccess,
   handleImageUploadError,
   toggleImageEnabled,
-  toggleAutoExchange,
   addNote,
   removeNote
 } = useTrxExchangeConfig(props)

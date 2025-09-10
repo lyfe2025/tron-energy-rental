@@ -70,7 +70,7 @@
                   </div>
                   
                   <!-- 副标题 -->
-                  <div class="text-xs text-gray-600 mb-2">
+                  <div class="text-xs text-gray-600 mb-2 whitespace-pre-line">
                     {{ formatSubtitle() }}
                   </div>
                   
@@ -79,8 +79,23 @@
                     <div>{{ formatText('duration_label', '⏱ 租期时效：{duration}小时', config.config.expiry_hours) }}</div>
                     <div>{{ formatText('price_label', '💰 单笔价格：{price}TRX', config.config.single_price) }}</div>
                     <div>{{ formatText('max_label', '🔢 最大购买：{max}笔', config.config.max_transactions) }}</div>
-                    <div class="pt-1 border-t border-gray-200">{{ getDisplayText('address_label', '📍 支付地址') }}</div>
-                    <div class="font-mono text-xs text-blue-600 break-all">{{ config.config.payment_address || 'TExample...' }}</div>
+                    <div class="pt-1 border-t border-gray-200">{{ getDisplayText('address_label', '💰 下单地址：（点击地址自动复制）') }}</div>
+                    <div 
+                      class="font-mono text-xs text-blue-600 break-all cursor-pointer hover:bg-blue-50 p-1 rounded transition-colors"
+                      @click="copyAddress"
+                      :title="'点击复制地址: ' + (config.config.payment_address || 'TExample...')"
+                    >
+                      {{ config.config.payment_address || 'TExample...' }}
+                    </div>
+                    <div v-if="copyStatus" class="text-xs text-center mt-1 transition-opacity duration-300">
+                      <span :class="{
+                        'text-green-600': copyStatus.includes('✅'),
+                        'text-red-600': copyStatus.includes('❌'),
+                        'text-yellow-600': copyStatus.includes('⚠️')
+                      }">
+                        {{ copyStatus }}
+                      </span>
+                    </div>
                     
                     <!-- 双倍能量警告 -->
                     <div v-if="config.config.double_energy_for_no_usdt" class="text-xs text-red-600 bg-red-50 p-2 rounded mt-2">
@@ -91,7 +106,7 @@
                     <div v-if="config.config.notes && config.config.notes.length > 0" class="mt-2 pt-2 border-t border-gray-200">
                       <div class="text-xs font-medium text-gray-700 mb-1">注意事项：</div>
                       <div v-for="(note, index) in config.config.notes" :key="index" class="text-xs text-gray-600">
-                        {{ index + 1 }}. {{ note }}
+                        {{ note }}
                       </div>
                     </div>
                   </div>
@@ -140,12 +155,13 @@
             <!-- 图片上传 -->
             <div v-if="config.enable_image">
               <label class="block text-sm font-medium text-gray-700 mb-2">上传图片</label>
-              <ImageUpload
-                v-model="config.image_url"
-                :image-alt="config.image_alt"
-                @upload-success="handleImageUploadSuccess"
-                @upload-error="handleImageUploadError"
-              />
+        <ImageUpload
+          v-model="config.image_url"
+          :image-alt="config.image_alt"
+          config-type="energy_flash"
+          @upload-success="handleImageUploadSuccess"
+          @upload-error="handleImageUploadError"
+        />
             </div>
 
             <!-- 图片描述 -->
@@ -255,13 +271,34 @@
 
             <div class="form-group">
               <label class="block text-sm font-medium text-gray-700 mb-2">副标题模板</label>
-              <input
-                v-model="displayTexts.subtitle_template"
-                type="text"
-                placeholder="（{price}TRX/笔，最多买{max}笔）"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p class="text-xs text-gray-500 mt-1">支持变量：{price} 价格，{max} 最大数量</p>
+              <div class="space-y-3">
+                <div v-for="(template, index) in subtitleTemplates" :key="index" class="flex gap-2">
+                  <input
+                    v-model="subtitleTemplates[index]"
+                    type="text"
+                    :placeholder="`副标题模板 ${index + 1}（例如：🔸转账 ${index === 0 ? '{price}' : '{price*' + (index + 1) + '}'} Trx= ${index + 1} 笔能量）`"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    @click="removeSubtitleTemplate(index)"
+                    :disabled="subtitleTemplates.length <= 1"
+                    class="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    删除
+                  </button>
+                </div>
+                <button
+                  @click="addSubtitleTemplate"
+                  class="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                >
+                  添加副标题模板
+                </button>
+                <p class="text-xs text-gray-500">
+                  支持变量：{price} 价格，{max} 最大数量<br/>
+                  支持计算：{price*2} 乘法，{price+1} 加法，{price-1} 减法，{price/2} 除法<br/>
+                  例如："🔸转账 {price*2} Trx= 2 笔能量"。所有模板都会显示，每行一个。
+                </p>
+              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,7 +337,7 @@
                 <input
                   v-model="displayTexts.address_label"
                   type="text"
-                  placeholder="📍 支付地址"
+                  placeholder="💰 下单地址：（点击地址自动复制）"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -326,7 +363,7 @@
               <input
                 v-model="notes[index]"
                 type="text"
-                :placeholder="`注意事项 ${index + 1}`"
+                placeholder="注意事项"
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
@@ -377,13 +414,24 @@ const initializeConfig = () => {
     if (!props.config.config.display_texts) {
       props.config.config.display_texts = {
         title: '',
-        subtitle_template: '',
+        subtitle_template: [''],
         duration_label: '',
         price_label: '',
         max_label: '',
-        address_label: '',
+        address_label: '💰 下单地址：（点击地址自动复制）',
         double_energy_warning: ''
       }
+    }
+    // 兼容旧版本：如果subtitle_template是字符串，转换为数组
+    if (typeof props.config.config.display_texts.subtitle_template === 'string') {
+      const oldTemplate = props.config.config.display_texts.subtitle_template
+      props.config.config.display_texts.subtitle_template = oldTemplate ? [oldTemplate] : ['']
+    }
+    // 确保subtitle_template是数组且至少有一个元素
+    if (!Array.isArray(props.config.config.display_texts.subtitle_template)) {
+      props.config.config.display_texts.subtitle_template = ['']
+    } else if (props.config.config.display_texts.subtitle_template.length === 0) {
+      props.config.config.display_texts.subtitle_template = ['']
     }
     // 确保 notes 数组存在
     if (!props.config.config.notes) {
@@ -414,15 +462,22 @@ const displayTexts = computed(() => {
   if (!props.config?.config?.display_texts) {
     return {
       title: '',
-      subtitle_template: '',
+      subtitle_template: [''],
       duration_label: '',
       price_label: '',
       max_label: '',
-      address_label: '',
+      address_label: '💰 下单地址：（点击地址自动复制）',
       double_energy_warning: ''
     }
   }
   return props.config.config.display_texts
+})
+
+// 计算属性：安全访问 subtitle_templates 数组
+const subtitleTemplates = computed(() => {
+  return Array.isArray(displayTexts.value.subtitle_template) 
+    ? displayTexts.value.subtitle_template 
+    : ['']
 })
 
 // 计算属性：安全访问 notes
@@ -435,12 +490,71 @@ const getDisplayText = (key: string, defaultValue: string): string => {
   return props.config?.config.display_texts?.[key] || defaultValue
 }
 
-// 格式化副标题，替换占位符
+// 格式化副标题，替换占位符 - 显示所有副标题模板，支持动态计算
 const formatSubtitle = (): string => {
-  const template = getDisplayText('subtitle_template', '（{price}TRX/笔，最多买{max}笔）')
-  return template
-    .replace('{price}', props.config?.config.single_price?.toString() || '0')
-    .replace('{max}', props.config?.config.max_transactions?.toString() || '0')
+  const templates = subtitleTemplates.value.filter(t => t.trim() !== '')
+  if (templates.length === 0) {
+    // 如果没有有效模板，使用默认模板
+    const defaultTemplate = '（{price}TRX/笔，最多买{max}笔）'
+    return formatTemplate(defaultTemplate)
+  }
+  
+  // 格式化所有模板并用换行符连接
+  const formattedTemplates = templates.map(template => formatTemplate(template))
+  
+  return formattedTemplates.join('\n')
+}
+
+// 格式化单个模板，支持动态计算和多种变量
+const formatTemplate = (template: string): string => {
+  const price = props.config?.config.single_price || 0
+  const max = props.config?.config.max_transactions || 0
+  
+  let result = template
+  
+  // 先处理所有计算表达式（必须在基础变量之前处理）
+  
+  // price计算表达式
+  result = result.replace(/\{price\*(\d+)\}/g, (match, multiplier) => {
+    return (price * parseInt(multiplier)).toString()
+  })
+  
+  result = result.replace(/\{price\/(\d+)\}/g, (match, divisor) => {
+    const div = parseInt(divisor)
+    return div > 0 ? (price / div).toString() : price.toString()
+  })
+  
+  result = result.replace(/\{price\+(\d+)\}/g, (match, addend) => {
+    return (price + parseInt(addend)).toString()
+  })
+  
+  result = result.replace(/\{price\-(\d+)\}/g, (match, subtrahend) => {
+    return (price - parseInt(subtrahend)).toString()
+  })
+  
+  // max计算表达式
+  result = result.replace(/\{max\*(\d+)\}/g, (match, multiplier) => {
+    return (max * parseInt(multiplier)).toString()
+  })
+  
+  result = result.replace(/\{max\/(\d+)\}/g, (match, divisor) => {
+    const div = parseInt(divisor)
+    return div > 0 ? (max / div).toString() : max.toString()
+  })
+  
+  result = result.replace(/\{max\+(\d+)\}/g, (match, addend) => {
+    return (max + parseInt(addend)).toString()
+  })
+  
+  result = result.replace(/\{max\-(\d+)\}/g, (match, subtrahend) => {
+    return (max - parseInt(subtrahend)).toString()
+  })
+  
+  // 最后处理基础变量
+  result = result.replace(/\{price\}/g, price.toString())
+  result = result.replace(/\{max\}/g, max.toString())
+  
+  return result
 }
 
 // 格式化文本，替换单个占位符
@@ -486,6 +600,26 @@ const toggleDoubleEnergy = () => {
   }
 }
 
+// 副标题模板管理
+const addSubtitleTemplate = () => {
+  if (props.config?.config?.display_texts?.subtitle_template) {
+    if (Array.isArray(props.config.config.display_texts.subtitle_template)) {
+      props.config.config.display_texts.subtitle_template.push('')
+    }
+  }
+}
+
+const removeSubtitleTemplate = (index: number) => {
+  if (props.config?.config?.display_texts?.subtitle_template) {
+    if (Array.isArray(props.config.config.display_texts.subtitle_template)) {
+      // 至少保留一个模板
+      if (props.config.config.display_texts.subtitle_template.length > 1) {
+        props.config.config.display_texts.subtitle_template.splice(index, 1)
+      }
+    }
+  }
+}
+
 // 注意事项管理
 const addNote = () => {
   if (props.config && props.config.config.notes) {
@@ -497,6 +631,48 @@ const removeNote = (index: number) => {
   if (props.config && props.config.config.notes) {
     props.config.config.notes.splice(index, 1)
   }
+}
+
+// 复制状态
+const copyStatus = ref('')
+
+// 复制地址到剪贴板
+const copyAddress = async () => {
+  const address = props.config?.config?.payment_address
+  if (!address) {
+    copyStatus.value = '⚠️ 没有地址可复制'
+    setTimeout(() => {
+      copyStatus.value = ''
+    }, 2000)
+    return
+  }
+  
+  try {
+    await navigator.clipboard.writeText(address)
+    copyStatus.value = '✅ 已复制！'
+    console.log('地址已复制到剪贴板:', address)
+  } catch (err) {
+    console.error('复制失败:', err)
+    // 降级方案：使用传统的复制方法
+    try {
+      const textArea = document.createElement('textarea')
+      textArea.value = address
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      copyStatus.value = '✅ 已复制！'
+      console.log('地址已复制到剪贴板（降级方案）:', address)
+    } catch (fallbackErr) {
+      console.error('降级复制方案也失败:', fallbackErr)
+      copyStatus.value = '❌ 复制失败'
+    }
+  }
+  
+  // 2秒后清除状态提示
+  setTimeout(() => {
+    copyStatus.value = ''
+  }, 2000)
 }
 
 // 组件挂载时初始化

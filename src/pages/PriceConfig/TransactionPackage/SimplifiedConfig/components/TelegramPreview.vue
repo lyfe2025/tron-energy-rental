@@ -24,42 +24,49 @@
           </div>
           <div class="flex-1">
             <div class="bg-gray-100 rounded-lg p-3 max-w-xs">
-              <!-- 红色横幅图片模拟 -->
-              <div class="bg-red-500 text-white text-center py-2 px-3 rounded mb-2 text-xs font-bold">
-                笔数套餐 转账0手续费<br>
-                转U不扣TRX
+              <!-- 图片显示（如果启用） -->
+              <div v-if="imageEnabled && imageUrl" class="mb-3">
+                <img 
+                  :src="imageUrl" 
+                  :alt="imageAlt || '笔数套餐配置图片'" 
+                  class="w-full rounded-lg border"
+                  @error="handleImageError"
+                />
+                <div v-if="imageAlt" class="text-xs text-gray-500 mt-1 text-center">
+                  {{ imageAlt }}
+                </div>
               </div>
               
               <!-- 标题 -->
-              <div class="font-bold text-sm mb-1">
+              <div class="font-bold text-sm mb-1 text-green-600">
                 🔥 {{ displayTitle }} 🔥（{{ isUnlimited ? '无时间限制' : '有时间限制' }}）
               </div>
               
               <!-- 副标题 -->
               <div class="text-xs text-gray-600 mb-2">
-                （24小时不使用，则扣{{ dailyFee }}笔占费）
+                {{ formatSubtitle(subtitleTemplate, dailyFee) }}
               </div>
               
               <!-- 使用规则 -->
-              <div class="space-y-1 mb-2">
-                <div class="text-xs text-red-600 flex items-start gap-1">
-                  <span class="text-red-500 mt-0.5">🔺</span>
-                  <span>对方有U没U都是扣除一笔转账</span>
-                </div>
-                <div class="text-xs text-red-600 flex items-start gap-1">
-                  <span class="text-red-500 mt-0.5">🔺</span>
-                  <span>转移笔数到其他地址请联系客服</span>
-                </div>
-                <div class="text-xs text-red-600 flex items-start gap-1">
-                  <span class="text-red-500 mt-0.5">🔺</span>
-                  <span>为他人购买，填写他人地址即可</span>
+              <div v-if="usageRules.length > 0" class="space-y-1 mb-2">
+                <div 
+                  v-for="(rule, index) in usageRules" 
+                  :key="index"
+                  class="text-xs text-red-600"
+                >
+                  {{ rule }}
                 </div>
               </div>
               
-              <!-- 使用说明 -->
-              <div class="text-xs text-yellow-600 mb-3 flex items-start gap-1">
-                <span class="text-yellow-500 mt-0.5">💡</span>
-                <span>笔数开/关按钮，可查询账单，开/关笔数</span>
+              <!-- 注意事项 -->
+              <div v-if="notes.length > 0" class="space-y-1 mb-3">
+                <div 
+                  v-for="(note, index) in notes" 
+                  :key="index"
+                  class="text-xs text-yellow-600"
+                >
+                  {{ note }}
+                </div>
               </div>
               
               <!-- 内嵌键盘 -->
@@ -112,6 +119,7 @@ import type { Button } from '../composables/usePackageConfig'
 
 interface Props {
   displayTitle: string
+  subtitleTemplate: string
   dailyFee: number
   isUnlimited: boolean
   replyMessage: string
@@ -120,9 +128,26 @@ interface Props {
   regularButtons: Button[]
   specialButton: Button | undefined
   simulateButtonClick: (button: Button) => void
+  imageEnabled: boolean
+  imageUrl: string
+  imageAlt: string
+  usageRules: string[]
+  notes: string[]
 }
 
 defineProps<Props>()
+
+// 格式化副标题模板，支持变量替换
+const formatSubtitle = (template: string, dailyFee: number) => {
+  if (!template) return ''
+  return template.replace(/\{dailyFee\}/g, dailyFee.toString())
+}
+
+// 图片加载错误处理
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  console.error('图片加载失败:', img.src)
+}
 </script>
 
 <style scoped>

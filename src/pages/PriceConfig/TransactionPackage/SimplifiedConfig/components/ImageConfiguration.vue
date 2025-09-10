@@ -32,6 +32,7 @@
           :modelValue="imageUrl"
           @update:modelValue="(value) => $emit('update:imageUrl', value)"
           :image-alt="imageAlt"
+          config-type="transaction_package"
           @upload-success="handleImageUploadSuccess"
           @upload-error="handleImageUploadError"
         />

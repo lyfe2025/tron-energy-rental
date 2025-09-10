@@ -26,17 +26,23 @@
 
     <div v-if="config" class="flex flex-col md:flex-row gap-6">
       <!-- 左侧：实时预览 -->
-      <TelegramPreview
-        :displayTitle="displayTitle"
-        :dailyFee="dailyFee"
-        :isUnlimited="isUnlimited"
-        :replyMessage="replyMessage"
-        :showReply="showReply"
-        :currentTime="currentTime"
-        :regularButtons="regularButtons"
-        :specialButton="specialButton"
-        :simulateButtonClick="simulateButtonClick"
-      />
+        <TelegramPreview
+          :displayTitle="displayTitle"
+          :subtitleTemplate="subtitleTemplate"
+          :dailyFee="dailyFee"
+          :isUnlimited="isUnlimited"
+          :replyMessage="replyMessage"
+          :showReply="showReply"
+          :currentTime="currentTime"
+          :regularButtons="regularButtons"
+          :specialButton="specialButton"
+          :simulateButtonClick="simulateButtonClick"
+          :imageEnabled="imageEnabled"
+          :imageUrl="imageUrl"
+          :imageAlt="imageAlt"
+          :usageRules="usageRules"
+          :notes="notes"
+        />
 
       <!-- 右侧：简化配置 -->
       <div class="md:w-2/3 space-y-4">
@@ -44,8 +50,8 @@
         <ImageConfiguration
           :imageUrl="imageUrl"
           :imageAlt="imageAlt"
-          @update:imageUrl="(value: string) => (imageUrl as any).value = value"
-          @update:imageAlt="(value: string) => (imageAlt as any).value = value"
+          @update:imageUrl="updateImageUrl"
+          @update:imageAlt="updateImageAlt"
           :imageEnabled="imageEnabled"
           :toggleImageEnabled="toggleImageEnabled"
           :handleImageUploadSuccess="handleImageUploadSuccess"
@@ -55,17 +61,25 @@
         <!-- 基础设置和按钮配置 -->
         <PackageSettings
           :displayTitle="displayTitle"
+          :subtitleTemplate="subtitleTemplate"
           :dailyFee="dailyFee"
           :isUnlimited="isUnlimited"
           :replyMessage="replyMessage"
-          @update:displayTitle="(value: string) => (displayTitle as any).value = value"
-          @update:dailyFee="(value: number) => (dailyFee as any).value = value"
-          @update:isUnlimited="(value: boolean) => (isUnlimited as any).value = value"
-          @update:replyMessage="(value: string) => (replyMessage as any).value = value"
+          @update:displayTitle="updateDisplayTitle"
+          @update:subtitleTemplate="updateSubtitleTemplate"
+          @update:dailyFee="updateDailyFee"
+          @update:isUnlimited="updateIsUnlimited"
+          @update:replyMessage="updateReplyMessage"
           :buttons="buttons"
           :addButton="addButton"
           :removeButton="removeButton"
           :applyTemplate="applyTemplate"
+          :usageRules="usageRules"
+          :notes="notes"
+          :addUsageRule="addUsageRule"
+          :removeUsageRule="removeUsageRule"
+          :addNote="addNote"
+          :removeNote="removeNote"
         />
         
         <!-- 保存按钮 -->
@@ -96,6 +110,7 @@ const props = defineProps<ConfigCardProps>()
 // 使用composable管理所有业务逻辑
 const {
   displayTitle,
+  subtitleTemplate,
   dailyFee,
   isUnlimited,
   replyMessage,
@@ -107,6 +122,8 @@ const {
   buttons,
   regularButtons,
   specialButton,
+  usageRules,
+  notes,
   handleToggle,
   handleSave,
   simulateButtonClick,
@@ -116,15 +133,32 @@ const {
   toggleImageEnabled,
   handleImageUploadSuccess,
   handleImageUploadError,
-  updateTime
+  updateTime,
+  initializeFromConfig,
+  updateDisplayTitle,
+  updateSubtitleTemplate,
+  updateDailyFee,
+  updateIsUnlimited,
+  updateReplyMessage,
+  updateImageUrl,
+  updateImageAlt,
+  addUsageRule,
+  removeUsageRule,
+  addNote,
+  removeNote
 } = usePackageConfig(props)
 
 // 解构props以便访问
 const { config, saving } = props
 
 // 每次props变化时初始化
-watch(() => props.config, () => {
+watch(() => props.config, (newConfig) => {
+  console.log('🔄 [TransactionPackage] watch 被触发')
+  console.log('🔄 [TransactionPackage] 新配置:', newConfig)
+  console.log('🔄 [TransactionPackage] 模式类型:', newConfig?.mode_type)
+  
   // 配置变化时重新初始化
+  initializeFromConfig()
 }, { immediate: true })
 
 onMounted(() => {

@@ -16,6 +16,20 @@
           />
         </div>
         
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">套餐副标题模板</label>
+          <input
+            :value="subtitleTemplate"
+            @input="(e) => $emit('update:subtitleTemplate', (e.target as HTMLInputElement).value)"
+            type="text"
+            placeholder="（24小时不使用，则扣{dailyFee}笔占费）"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            支持变量：{dailyFee} 会被替换为占费笔数
+          </p>
+        </div>
+        
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">占费(笔/24h)</label>
@@ -139,6 +153,60 @@
         </div>
       </div>
     </div>
+
+    <!-- 显示文本配置 -->
+    <div class="bg-white border border-gray-200 rounded-lg p-4">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">📝 显示文本配置</h3>
+      <div class="space-y-3">
+        <div v-for="(rule, index) in usageRules" :key="index" class="flex gap-2">
+          <input
+            v-model="usageRules[index]"
+            type="text"
+            placeholder="显示文本"
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            @click="removeUsageRule(index)"
+            class="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+          >
+            删除
+          </button>
+        </div>
+        <button
+          @click="addUsageRule"
+          class="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+        >
+          添加显示文本
+        </button>
+      </div>
+    </div>
+
+    <!-- 注意事项配置 -->
+    <div class="bg-white border border-gray-200 rounded-lg p-4">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">📋 注意事项配置</h3>
+      <div class="space-y-3">
+        <div v-for="(note, index) in notes" :key="index" class="flex gap-2">
+          <input
+            v-model="notes[index]"
+            type="text"
+            placeholder="注意事项"
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            @click="removeNote(index)"
+            class="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+          >
+            删除
+          </button>
+        </div>
+        <button
+          @click="addNote"
+          class="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+        >
+          添加注意事项
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -151,18 +219,31 @@ interface Props {
   removeButton: (index: number) => void
   applyTemplate: (templateType: string) => void
   displayTitle: string
+  subtitleTemplate: string
   dailyFee: number
   isUnlimited: boolean
   replyMessage: string
+  usageRules: string[]
+  notes: string[]
+  addUsageRule: () => void
+  removeUsageRule: (index: number) => void
+  addNote: () => void
+  removeNote: (index: number) => void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits<{
   'update:displayTitle': [value: string]
+  'update:subtitleTemplate': [value: string]
   'update:dailyFee': [value: number]
   'update:isUnlimited': [value: boolean]
   'update:replyMessage': [value: string]
 }>()
+
+// 添加调试日志
+console.log('📝 [PackageSettings] Props received:')
+console.log('📝 [PackageSettings] usageRules:', props.usageRules)
+console.log('📝 [PackageSettings] notes:', props.notes)
 </script>
 
 <style scoped>

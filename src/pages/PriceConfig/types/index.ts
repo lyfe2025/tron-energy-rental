@@ -19,7 +19,7 @@ export interface PriceConfig {
 
 export interface EnergyFlashDisplayTexts {
   title: string
-  subtitle_template: string  // 支持 {price} 和 {max} 占位符
+  subtitle_template: string | string[]  // 支持 {price} 和 {max} 占位符，可以是单个字符串或字符串数组
   duration_label: string
   price_label: string
   max_label: string

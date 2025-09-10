@@ -75,11 +75,30 @@ export function usePriceConfig() {
   }
 
   // 更新配置
-  const updateConfig = async (modeType: string, configData: any) => {
+  const updateConfig = async (modeType: string, configData: any, fullConfigObject?: any) => {
     try {
-      const response = await api.put(`/price-configs/${modeType}`, {
+      // 如果传递了完整的配置对象，使用它来提取图片相关字段
+      const requestData: any = {
         config: configData
-      })
+      }
+      
+      // 如果有完整配置对象，添加图片相关字段
+      if (fullConfigObject) {
+        if (fullConfigObject.enable_image !== undefined) {
+          requestData.enable_image = fullConfigObject.enable_image
+        }
+        if (fullConfigObject.image_url !== undefined) {
+          requestData.image_url = fullConfigObject.image_url
+        }
+        if (fullConfigObject.image_alt !== undefined) {
+          requestData.image_alt = fullConfigObject.image_alt
+        }
+        if (fullConfigObject.inline_keyboard_config !== undefined) {
+          requestData.inline_keyboard_config = fullConfigObject.inline_keyboard_config
+        }
+      }
+      
+      const response = await api.put(`/price-configs/${modeType}`, requestData)
       
       // 更新本地数据
       const index = configs.value.findIndex(c => c.mode_type === modeType)

@@ -57,14 +57,14 @@
                 
                 <!-- 兑换描述 -->
                 <div class="text-xs text-gray-600 mt-2">
-                  {{ getDisplayText('rate_description', '汇率每分钟自动更新') }}
+                  {{ getDisplayText('rate_description', '当前汇率仅供参考') }}
                 </div>
                 
                 <!-- 注意事项 -->
                 <div v-if="config.config.notes && config.config.notes.length > 0" class="mt-2 pt-2 border-t border-gray-200">
                   <div class="text-xs font-medium text-gray-700 mb-1">注意事项：</div>
                   <div v-for="(note, index) in config.config.notes" :key="index" class="text-xs text-gray-600">
-                    {{ index + 1 }}. {{ note }}
+                    {{ note }}
                   </div>
                 </div>
               </div>

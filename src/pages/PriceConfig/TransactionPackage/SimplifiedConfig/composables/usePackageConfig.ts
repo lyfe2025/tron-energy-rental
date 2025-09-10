@@ -11,6 +11,7 @@ export interface Button {
 export function usePackageConfig(props: ConfigCardProps) {
   // 响应式数据
   const displayTitle = ref('笔数套餐')
+  const subtitleTemplate = ref('（24小时不使用，则扣{dailyFee}笔占费）')
   const dailyFee = ref(1)
   const isUnlimited = ref(true)
   const replyMessage = ref('请输入能量接收地址:')
@@ -19,6 +20,132 @@ export function usePackageConfig(props: ConfigCardProps) {
   const imageEnabled = ref(false)
   const imageUrl = ref('')
   const imageAlt = ref('')
+  const usageRules = ref<string[]>([])
+  const notes = ref<string[]>([])
+
+  // 初始化默认配置
+  const initializeConfig = () => {
+    console.log('🔧 [TransactionPackage] initializeConfig 被调用')
+    console.log('🔧 [TransactionPackage] props.config:', props.config)
+    
+    if (props.config) {
+      // 确保 config 对象存在
+      if (!props.config.config) {
+        console.log('🔧 [TransactionPackage] 创建空的 config 对象')
+        props.config.config = {}
+      }
+      
+      // 确保 usage_rules 数组存在且不为空
+      if (!props.config.config.usage_rules || props.config.config.usage_rules.length === 0) {
+        console.log('🔧 [TransactionPackage] 设置默认 usage_rules (原数组为空或不存在)')
+        props.config.config.usage_rules = [
+          '🔺对方有U没U都是扣除一笔转账',
+          '🔺转移笔数到其他地址请联系客服',
+          '🔺为他人购买，填写他人地址即可'
+        ]
+      } else {
+        console.log('🔧 [TransactionPackage] usage_rules 已存在且有内容:', props.config.config.usage_rules)
+      }
+      
+      // 确保 notes 数组存在且不为空
+      if (!props.config.config.notes || props.config.config.notes.length === 0) {
+        console.log('🔧 [TransactionPackage] 设置默认 notes (原数组为空或不存在)')
+        props.config.config.notes = [
+          '⚠️笔数开/关按钮，可查询账单，开/关笔数'
+        ]
+      } else {
+        console.log('🔧 [TransactionPackage] notes 已存在且有内容:', props.config.config.notes)
+      }
+      
+      // 确保 display_texts 存在
+      if (!props.config.config.display_texts) {
+        console.log('🔧 [TransactionPackage] 设置默认 display_texts')
+        props.config.config.display_texts = {
+          title: '',
+          subtitle_template: '（24小时不使用，则扣{dailyFee}笔占费）',
+          address_prompt: '请输入能量接收地址:'
+        }
+      } else {
+        console.log('🔧 [TransactionPackage] display_texts 已存在:', props.config.config.display_texts)
+      }
+      
+      console.log('🔧 [TransactionPackage] 初始化完成后的 config:', props.config.config)
+    } else {
+      console.log('❌ [TransactionPackage] props.config 为空')
+    }
+  }
+
+  // 初始化方法，从props.config中加载数据
+  const initializeFromConfig = () => {
+    console.log('📊 [TransactionPackage] initializeFromConfig 被调用')
+    console.log('📊 [TransactionPackage] props.config:', props.config)
+    
+    if (props.config) {
+      // 先初始化配置确保默认值存在
+      initializeConfig()
+      
+      // 加载图片配置
+      imageEnabled.value = props.config.enable_image || false
+      imageUrl.value = props.config.image_url || ''
+      imageAlt.value = props.config.image_alt || ''
+      
+      // 加载其他配置（如果存在）
+      if (props.config.config) {
+        dailyFee.value = props.config.config.daily_fee || 1
+        
+        if (props.config.config.display_texts) {
+          replyMessage.value = props.config.config.display_texts.address_prompt || '请输入能量接收地址:'
+          // 从完整标题中提取显示标题
+          if (props.config.config.display_texts.title) {
+            const titleText = props.config.config.display_texts.title
+            // 移除 🔥 和括号部分，提取核心标题
+            const match = titleText.match(/🔥\s*([^🔥]+?)\s*🔥/)
+            if (match && match[1]) {
+              displayTitle.value = match[1].trim()
+            }
+          }
+          
+          // 加载副标题模板
+          if (props.config.config.display_texts.subtitle_template) {
+            subtitleTemplate.value = props.config.config.display_texts.subtitle_template
+          }
+          
+          // 从副标题中提取每日费用信息（向后兼容）
+          if (props.config.config.display_texts.subtitle) {
+            const subtitleText = props.config.config.display_texts.subtitle
+            const feeMatch = subtitleText.match(/扣(\d+)笔占费/)
+            if (feeMatch && feeMatch[1]) {
+              dailyFee.value = parseInt(feeMatch[1])
+            }
+            // 如果没有subtitle_template，从旧的subtitle推断模板
+            if (!props.config.config.display_texts.subtitle_template) {
+              subtitleTemplate.value = subtitleText.replace(/扣\d+笔占费/, '扣{dailyFee}笔占费')
+            }
+          }
+        }
+        
+        // 加载套餐数据
+        if (props.config.config.packages && Array.isArray(props.config.config.packages)) {
+          buttons.value = props.config.config.packages.map((pkg: any, index: number) => ({
+            id: (index + 1).toString(),
+            count: pkg.transaction_count || 10,
+            price: pkg.price || 200,
+            isSpecial: index === props.config.config.packages.length - 1 // 最后一个设为特殊按钮
+          }))
+        }
+        
+        // 加载使用规则（现在已经确保数组存在）
+        console.log('📊 [TransactionPackage] 加载 usage_rules:', props.config.config.usage_rules)
+        usageRules.value = [...props.config.config.usage_rules]
+        console.log('📊 [TransactionPackage] usageRules.value 设置为:', usageRules.value)
+        
+        // 加载注意事项（现在已经确保数组存在）
+        console.log('📊 [TransactionPackage] 加载 notes:', props.config.config.notes)
+        notes.value = [...props.config.config.notes]
+        console.log('📊 [TransactionPackage] notes.value 设置为:', notes.value)
+      }
+    }
+  }
 
   // 根据真实截图配置7个按钮：10笔、20笔、50笔、100笔、200笔、300笔、500笔（最后一个全宽）
   const buttons = ref<Button[]>([
@@ -48,6 +175,7 @@ export function usePackageConfig(props: ConfigCardProps) {
       props.config.config.display_texts = {
         title: `🔥 ${displayTitle.value} 🔥（${isUnlimited.value ? '无时间限制' : '有时间限制'}）`,
         subtitle: `（24小时不使用，则扣${dailyFee.value}笔占费）`,
+        subtitle_template: subtitleTemplate.value,
         usage_title: '💡 笔数开/关按钮，可查询账单，开/关笔数',
         address_prompt: replyMessage.value
       }
@@ -59,6 +187,15 @@ export function usePackageConfig(props: ConfigCardProps) {
         price: button.price,
         currency: 'TRX'
       }))
+      
+      // 更新使用规则和注意事项
+      props.config.config.usage_rules = [...usageRules.value]
+      props.config.config.notes = [...notes.value]
+      
+      // 更新图片配置
+      props.config.enable_image = imageEnabled.value
+      props.config.image_url = imageUrl.value || null
+      props.config.image_alt = imageAlt.value || null
       
       // 更新内嵌键盘配置
       props.config.inline_keyboard_config = {
@@ -169,9 +306,61 @@ export function usePackageConfig(props: ConfigCardProps) {
     })
   }
 
+  // 更新函数
+  const updateDisplayTitle = (value: string) => {
+    displayTitle.value = value
+  }
+
+  const updateSubtitleTemplate = (value: string) => {
+    subtitleTemplate.value = value
+  }
+
+  const updateDailyFee = (value: number) => {
+    dailyFee.value = value
+  }
+
+  const updateIsUnlimited = (value: boolean) => {
+    isUnlimited.value = value
+  }
+
+  const updateReplyMessage = (value: string) => {
+    replyMessage.value = value
+  }
+
+  const updateImageUrl = (value: string) => {
+    imageUrl.value = value
+  }
+
+  const updateImageAlt = (value: string) => {
+    imageAlt.value = value
+  }
+
+  // 使用规则管理
+  const addUsageRule = () => {
+    usageRules.value.push('')
+  }
+
+  const removeUsageRule = (index: number) => {
+    usageRules.value.splice(index, 1)
+  }
+
+  // 注意事项管理
+  const addNote = () => {
+    notes.value.push('')
+  }
+
+  const removeNote = (index: number) => {
+    notes.value.splice(index, 1)
+  }
+
+  console.log('🎯 [TransactionPackage] return时的响应式变量:')
+  console.log('🎯 [TransactionPackage] usageRules.value:', usageRules.value)
+  console.log('🎯 [TransactionPackage] notes.value:', notes.value)
+
   return {
     // 响应式数据
     displayTitle,
+    subtitleTemplate,
     dailyFee,
     isUnlimited,
     replyMessage,
@@ -181,6 +370,8 @@ export function usePackageConfig(props: ConfigCardProps) {
     imageUrl,
     imageAlt,
     buttons,
+    usageRules,
+    notes,
     
     // 计算属性
     regularButtons,
@@ -196,6 +387,18 @@ export function usePackageConfig(props: ConfigCardProps) {
     toggleImageEnabled,
     handleImageUploadSuccess,
     handleImageUploadError,
-    updateTime
+    updateTime,
+    initializeFromConfig,
+    updateDisplayTitle,
+    updateSubtitleTemplate,
+    updateDailyFee,
+    updateIsUnlimited,
+    updateReplyMessage,
+    updateImageUrl,
+    updateImageAlt,
+    addUsageRule,
+    removeUsageRule,
+    addNote,
+    removeNote
   }
 }

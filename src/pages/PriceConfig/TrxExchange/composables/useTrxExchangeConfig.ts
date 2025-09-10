@@ -51,7 +51,7 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
           title: '',
           subtitle_template: '',
           rate_title: '',
-          rate_description: '',
+          rate_description: '当前汇率仅供参考',
           address_label: ''
         }
       }
@@ -87,7 +87,7 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
         title: '',
         subtitle_template: '',
         rate_title: '',
-        rate_description: '',
+        rate_description: '当前汇率仅供参考',
         address_label: ''
       }
     }
@@ -137,12 +137,6 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     }
   }
 
-  // 自动兑换开关
-  const toggleAutoExchange = () => {
-    if (props.config) {
-      props.config.config.is_auto_exchange = !props.config.config.is_auto_exchange
-    }
-  }
 
   // 注意事项管理
   const addNote = () => {
@@ -182,7 +176,6 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     handleImageUploadSuccess,
     handleImageUploadError,
     toggleImageEnabled,
-    toggleAutoExchange,
     addNote,
     removeNote,
     debugLayout

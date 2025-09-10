@@ -50,7 +50,7 @@
         <textarea
           v-model="displayTexts.rate_description"
           rows="2"
-          placeholder="汇率每分钟自动更新"
+          placeholder="当前汇率仅供参考"
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         ></textarea>
       </div>
