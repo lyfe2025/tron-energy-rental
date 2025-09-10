@@ -5,6 +5,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { CallbackHandler } from '../../callbacks/CallbackHandler.js';
 import { CommandHandler } from '../../commands/CommandHandler.js';
+import { PriceConfigMessageHandler } from '../../handlers/PriceConfigMessageHandler.js';
 import { KeyboardBuilder } from '../../keyboards/KeyboardBuilder.js';
 import { BotAPIHandler } from '../../modules/BotAPIHandler.js';
 import { BotConfigManager } from '../../modules/BotConfigManager.js';
@@ -46,6 +47,7 @@ export class ModuleManager {
     callbackHandler: CallbackHandler;
     keyboardBuilder: KeyboardBuilder;
     botUtils: BotUtils;
+    priceConfigMessageHandler: PriceConfigMessageHandler;
   }> {
     try {
       // 1. 创建基础模块（无依赖）
@@ -115,6 +117,14 @@ export class ModuleManager {
         }
       );
 
+      // 创建价格配置消息处理器
+      const priceConfigMessageHandler = await this.createModule('priceConfigMessageHandler', PriceConfigMessageHandler, 
+        ['botLogger'], {
+          bot: this.bot,
+          botId: this.config.botId
+        }
+      );
+
       // 7. 初始化所有模块
       await this.initializeInOrder();
 
@@ -127,7 +137,8 @@ export class ModuleManager {
         commandHandler,
         callbackHandler,
         keyboardBuilder,
-        botUtils
+        botUtils,
+        priceConfigMessageHandler
       };
 
     } catch (error) {

@@ -22,9 +22,9 @@ const getBotExtendedConfig: RouteHandler = async (req: Request, res: Response) =
     const botResult = await query(
       `SELECT 
         id, bot_name, bot_username,
-        network_config, webhook_config, message_templates,
-        rate_limits, security_settings, last_health_check,
-        health_status, description, config
+        network_configurations, webhook_url as webhook_config, custom_commands as message_templates,
+        max_connections as rate_limits, bot_token as security_settings, last_health_check,
+        health_status, description, keyboard_config as config
        FROM telegram_bots 
        WHERE id = $1`,
       [id]
@@ -74,7 +74,7 @@ const getBotExtendedConfig: RouteHandler = async (req: Request, res: Response) =
         bot_id: bot.id,
         bot_name: bot.bot_name,
         bot_username: bot.bot_username,
-        network_config: bot.network_config || {},
+        network_config: bot.network_configurations || {},
         webhook_config: bot.webhook_config || {},
         message_templates: bot.message_templates || {},
         rate_limits: bot.rate_limits || {},
@@ -126,32 +126,32 @@ const updateBotExtendedConfig: RouteHandler = async (req: Request, res: Response
     let paramIndex = 1;
     
     if (configData.network_config !== undefined) {
-      updateFields.push(`network_config = $${paramIndex}`);
+      updateFields.push(`network_configurations = $${paramIndex}`);
       updateValues.push(JSON.stringify(configData.network_config));
       paramIndex++;
     }
     
     if (configData.webhook_config !== undefined) {
-      updateFields.push(`webhook_config = $${paramIndex}`);
-      updateValues.push(JSON.stringify(configData.webhook_config));
+      updateFields.push(`webhook_url = $${paramIndex}`);
+      updateValues.push(configData.webhook_config?.url || null);
       paramIndex++;
     }
     
     if (configData.message_templates !== undefined) {
-      updateFields.push(`message_templates = $${paramIndex}`);
+      updateFields.push(`custom_commands = $${paramIndex}`);
       updateValues.push(JSON.stringify(configData.message_templates));
       paramIndex++;
     }
     
     if (configData.rate_limits !== undefined) {
-      updateFields.push(`rate_limits = $${paramIndex}`);
-      updateValues.push(JSON.stringify(configData.rate_limits));
+      updateFields.push(`max_connections = $${paramIndex}`);
+      updateValues.push((configData.rate_limits as any)?.max_connections || 40);
       paramIndex++;
     }
     
     if (configData.security_settings !== undefined) {
-      updateFields.push(`security_settings = $${paramIndex}`);
-      updateValues.push(JSON.stringify(configData.security_settings));
+      updateFields.push(`bot_token = $${paramIndex}`);
+      updateValues.push((configData.security_settings as any)?.token || null);
       paramIndex++;
     }
     
@@ -173,8 +173,8 @@ const updateBotExtendedConfig: RouteHandler = async (req: Request, res: Response
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING 
-        id, network_config, webhook_config, message_templates,
-        rate_limits, security_settings, updated_at
+        id, network_configurations as network_config, webhook_url as webhook_config, custom_commands as message_templates,
+        max_connections as rate_limits, bot_token as security_settings, updated_at
     `;
     
     const updatedBot = await query(updateQuery, updateValues);
@@ -225,7 +225,7 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
     
     // 检查机器人是否存在
     const botResult = await query(
-      `SELECT id, bot_token, webhook_url, network_config FROM telegram_bots WHERE id = $1`,
+      `SELECT id, bot_token, webhook_url, network_configurations FROM telegram_bots WHERE id = $1`,
       [id]
     );
     
@@ -244,33 +244,112 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
     const networkStatus: Record<string, 'connected' | 'disconnected' | 'error'> = {};
     
     try {
-      // 检查机器人Token有效性（模拟检查）
-      // 在实际实现中，这里应该调用Telegram Bot API
+      console.log('开始健康检查:', bot.id, bot.bot_token ? 'Token存在' : 'Token不存在');
       
-      // 检查关联的网络连接状态
-      const networkConfigsResult = await query(
-        `SELECT tn.id, tn.name, tn.rpc_url, tn.health_check_url
-         FROM telegram_bots tb
-         CROSS JOIN LATERAL jsonb_array_elements(tb.network_configurations) AS nc
-         JOIN tron_networks tn ON (nc->>'network_id')::UUID = tn.id
-         WHERE tb.id = $1 AND (nc->>'is_active')::BOOLEAN = true`,
-        [id]
-      );
-      
-      for (const network of networkConfigsResult.rows) {
+      // 基础检查
+      if (!bot.bot_token) {
+        healthStatus = 'unhealthy';
+        errorMessage = '缺少Bot Token';
+      } else if (bot.bot_token.length < 20) {
+        healthStatus = 'unhealthy';
+        errorMessage = 'Bot Token格式无效';
+      } else {
+        // 获取机器人的工作模式
+        const modeResult = await query(
+          'SELECT work_mode, webhook_url FROM telegram_bots WHERE id = $1',
+          [id]
+        );
+        
+        const workMode = modeResult.rows[0]?.work_mode || 'polling';
+        const webhookUrl = modeResult.rows[0]?.webhook_url;
+        
+        console.log('机器人工作模式:', workMode, 'Webhook URL:', webhookUrl);
+        
+        // 检查Telegram Bot API连接
         try {
-          // 模拟网络连接检查
-          // 在实际实现中，这里应该检查TRON网络连接
-          networkStatus[network.id] = 'connected';
-        } catch (networkError) {
-          networkStatus[network.id] = 'error';
+          const telegramApiUrl = `https://api.telegram.org/bot${bot.bot_token}/getMe`;
+          
+          // 使用内置的fetch或http模块进行请求
+          const https = require('https');
+          const url = require('url');
+          
+          const apiUrl = new URL(telegramApiUrl);
+          
+          const response: any = await new Promise((resolve, reject) => {
+            const options = {
+              hostname: apiUrl.hostname,
+              port: apiUrl.port || 443,
+              path: apiUrl.pathname + apiUrl.search,
+              method: 'GET',
+              timeout: 5000,
+              headers: {
+                'User-Agent': 'TronEnergyRental-Bot-Health-Check'
+              }
+            };
+            
+            const req = https.request(options, (res: any) => {
+              let data = '';
+              res.on('data', (chunk: string) => data += chunk);
+              res.on('end', () => {
+                try {
+                  const jsonData = JSON.parse(data);
+                  resolve({ ok: res.statusCode === 200, data: jsonData, status: res.statusCode });
+                } catch (err) {
+                  reject(new Error('Invalid JSON response'));
+                }
+              });
+            });
+            
+            req.on('error', (err: Error) => reject(err));
+            req.on('timeout', () => {
+              req.destroy();
+              reject(new Error('Request timeout'));
+            });
+            
+            req.end();
+          });
+          
+          if (response.ok && response.data.ok) {
+            console.log('Telegram Bot API检查通过:', response.data.result.username);
+            healthStatus = 'healthy';
+            errorMessage = '';
+            
+            // 对于webhook模式，额外检查webhook URL
+            if (workMode === 'webhook') {
+              if (!webhookUrl) {
+                healthStatus = 'unhealthy';
+                errorMessage = 'Webhook模式但未设置webhook URL';
+              } else {
+                try {
+                  const webhookCheckUrl = new URL(webhookUrl);
+                  if (!webhookCheckUrl.protocol.startsWith('http')) {
+                    healthStatus = 'unhealthy';
+                    errorMessage = 'Webhook URL格式无效';
+                  }
+                  // 如果Telegram API正常且webhook URL格式正确，认为是健康的
+                } catch (urlError) {
+                  healthStatus = 'unhealthy';
+                  errorMessage = 'Webhook URL格式错误';
+                }
+              }
+            }
+            
+          } else {
+            healthStatus = 'unhealthy';
+            errorMessage = `Telegram API错误: ${response.data?.description || '未知错误'}`;
+          }
+          
+        } catch (apiError) {
           healthStatus = 'unhealthy';
+          errorMessage = `Telegram API检查失败: ${apiError instanceof Error ? apiError.message : '网络错误'}`;
+          console.error('API检查错误:', apiError);
         }
       }
       
     } catch (error) {
       healthStatus = 'unhealthy';
       errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('健康检查过程中出错:', error);
     }
     
     const responseTime = Date.now() - startTime;
@@ -291,6 +370,8 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
       error_message: errorMessage || undefined,
       network_status: networkStatus
     };
+    
+    console.log('健康检查完成:', healthCheckResult);
     
     res.status(200).json({
       success: true,

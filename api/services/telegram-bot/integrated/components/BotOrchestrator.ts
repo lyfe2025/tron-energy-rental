@@ -5,6 +5,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { CallbackHandler } from '../../callbacks/CallbackHandler.js';
 import { CommandHandler } from '../../commands/CommandHandler.js';
+import { PriceConfigMessageHandler } from '../../handlers/PriceConfigMessageHandler.js';
 import { KeyboardBuilder } from '../../keyboards/KeyboardBuilder.js';
 import { BotAPIHandler } from '../../modules/BotAPIHandler.js';
 import { BotConfigManager } from '../../modules/BotConfigManager.js';
@@ -24,6 +25,7 @@ export class BotOrchestrator {
   // 模块实例
   private commandHandler: CommandHandler;
   private callbackHandler: CallbackHandler;
+  private priceConfigMessageHandler: PriceConfigMessageHandler;
   private keyboardBuilder: KeyboardBuilder;
   private botUtils: BotUtils;
   private botInitializer: BotInitializer;
@@ -38,6 +40,7 @@ export class BotOrchestrator {
     modules: {
       commandHandler: CommandHandler;
       callbackHandler: CallbackHandler;
+      priceConfigMessageHandler: PriceConfigMessageHandler;
       keyboardBuilder: KeyboardBuilder;
       botUtils: BotUtils;
       botInitializer: BotInitializer;
@@ -53,6 +56,7 @@ export class BotOrchestrator {
     // 注入模块
     this.commandHandler = modules.commandHandler;
     this.callbackHandler = modules.callbackHandler;
+    this.priceConfigMessageHandler = modules.priceConfigMessageHandler;
     this.keyboardBuilder = modules.keyboardBuilder;
     this.botUtils = modules.botUtils;
     this.botInitializer = modules.botInitializer;
@@ -153,15 +157,20 @@ export class BotOrchestrator {
       const handled = await this.commandHandler.handleCommand(message);
       
       if (!handled) {
-        // 如果命令处理器没有处理，分发到其他消息处理器
-        for (const handler of this.messageHandlers) {
-          try {
-            await handler(message);
-          } catch (error) {
-            await this.botLogger.logBotActivity('error', 'message_handler_failed', '消息处理器执行失败', {
-              botId: this.config.botId,
-              error: error instanceof Error ? error.message : '未知错误'
-            });
+        // 优先尝试价格配置消息处理器
+        const priceConfigHandled = await this.priceConfigMessageHandler.handleMessage(message);
+        
+        if (!priceConfigHandled) {
+          // 如果价格配置处理器也没有处理，分发到其他消息处理器
+          for (const handler of this.messageHandlers) {
+            try {
+              await handler(message);
+            } catch (error) {
+              await this.botLogger.logBotActivity('error', 'message_handler_failed', '消息处理器执行失败', {
+                botId: this.config.botId,
+                error: error instanceof Error ? error.message : '未知错误'
+              });
+            }
           }
         }
       }

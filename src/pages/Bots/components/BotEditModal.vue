@@ -173,10 +173,10 @@
 </template>
 
 <script setup lang="ts">
+import { botsAPI } from '@/services/api/bots/botsAPI'
 import { ElMessage } from 'element-plus'
 import { Activity, Loader2, X } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
-import { botsAPI } from '@/services/api/bots/botsAPI'
 import type { BotData } from '../composables/useBotFormShared'
 import { formatTime, getHealthStatusColor, getHealthStatusText, useBotForm } from '../composables/useBotFormShared'
 import BotFormBasicInfo from './BotFormBasicInfo.vue'

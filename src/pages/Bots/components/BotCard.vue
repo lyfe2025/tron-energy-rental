@@ -229,11 +229,11 @@
 </template>
 
 <script setup lang="ts">
+import { botsAPI } from '@/services/api/bots/botsAPI'
 import { ElMessage } from 'element-plus'
 import { Activity, Bell, Bot, Edit, ExternalLink, Loader2, MoreHorizontal, Network } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { botsAPI } from '@/services/api/bots/botsAPI'
 import { getHealthStatusColor, getHealthStatusText } from '../composables/useBotFormShared'
 
 // 类型定义

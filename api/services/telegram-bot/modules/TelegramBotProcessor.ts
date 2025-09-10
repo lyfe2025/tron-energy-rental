@@ -20,7 +20,8 @@ export class TelegramBotProcessor {
     private logger: {
       logBotActivity: (level: string, action: string, message: string, metadata?: any) => Promise<void>;
     },
-    private bot?: TelegramBot
+    private bot?: TelegramBot,
+    private botId?: string
   ) {}
 
   /**
@@ -644,10 +645,43 @@ export class TelegramBotProcessor {
    */
   private async getWebhookBaseUrl(): Promise<string> {
     try {
-      // 这里我们使用环境变量或默认值，因为在这个上下文中我们可能没有bot ID
-      return process.env.APP_BASE_URL || 'http://localhost:3001';
+      // 如果没有机器人ID，使用默认值
+      if (!this.botId) {
+        console.warn('没有机器人ID，使用默认域名');
+        return process.env.APP_BASE_URL || 'http://localhost:3001';
+      }
+
+      // 从数据库获取当前机器人的webhook URL
+      const result = await query(
+        'SELECT webhook_url FROM telegram_bots WHERE id = $1 AND is_active = true',
+        [this.botId]
+      );
+
+      if (result.rows.length === 0 || !result.rows[0].webhook_url) {
+        // 如果没有webhook URL，回退到环境变量或默认值
+        console.warn(`机器人 ${this.botId} 没有配置webhook URL，使用默认域名`);
+        return process.env.APP_BASE_URL || 'http://localhost:3001';
+      }
+
+      const webhookUrl = result.rows[0].webhook_url;
+      
+      // 从webhook URL中提取域名和协议
+      // 例如：https://ed1cfac836d2.ngrok-free.app/api/telegram/webhook/bot-id
+      // 提取：https://ed1cfac836d2.ngrok-free.app
+      try {
+        const url = new URL(webhookUrl);
+        const baseUrl = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
+        
+        console.log(`📡 机器人 ${this.botId} webhook基础URL: ${baseUrl}`);
+        return baseUrl;
+      } catch (urlError) {
+        console.error(`解析webhook URL失败 (${webhookUrl}):`, urlError);
+        // 回退到环境变量或默认值
+        return process.env.APP_BASE_URL || 'http://localhost:3001';
+      }
     } catch (error) {
-      console.error('获取webhook基础URL失败:', error);
+      console.error(`获取机器人 ${this.botId} webhook基础URL失败:`, error);
+      // 回退到环境变量或默认值
       return process.env.APP_BASE_URL || 'http://localhost:3001';
     }
   }
