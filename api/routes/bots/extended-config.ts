@@ -269,9 +269,9 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
         try {
           const telegramApiUrl = `https://api.telegram.org/bot${bot.bot_token}/getMe`;
           
-          // 使用内置的fetch或http模块进行请求
-          const https = require('https');
-          const url = require('url');
+          // 使用内置的https模块进行请求
+          const https = await import('https');
+          const url = await import('url');
           
           const apiUrl = new URL(telegramApiUrl);
           
@@ -281,7 +281,7 @@ const performHealthCheck: RouteHandler = async (req: Request, res: Response) => 
               port: apiUrl.port || 443,
               path: apiUrl.pathname + apiUrl.search,
               method: 'GET',
-              timeout: 5000,
+              timeout: 10000,
               headers: {
                 'User-Agent': 'TronEnergyRental-Bot-Health-Check'
               }

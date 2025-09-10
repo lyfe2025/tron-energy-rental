@@ -155,22 +155,18 @@ export class DatabaseAdapter {
    * 更新机器人状态
    */
   async updateBotStatus(
-    botId: string,
+    botId: string, 
     status: string,
     metadata?: any
   ): Promise<void> {
     try {
       await query(
-        `INSERT INTO telegram_bot_status 
-         (bot_id, status, last_activity, metadata, updated_at) 
-         VALUES ($1, $2, NOW(), $3, NOW())
-         ON CONFLICT (bot_id) 
-         DO UPDATE SET 
-           status = EXCLUDED.status,
-           last_activity = EXCLUDED.last_activity,
-           metadata = EXCLUDED.metadata,
-           updated_at = EXCLUDED.updated_at`,
-        [botId, status, metadata ? JSON.stringify(metadata) : null]
+        `UPDATE telegram_bots 
+         SET health_status = $2, 
+             last_health_check = NOW(),
+             updated_at = NOW()
+         WHERE id = $1`,
+        [botId, status]
       );
     } catch (error) {
       console.error('更新机器人状态失败:', error);

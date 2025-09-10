@@ -4,6 +4,7 @@
  */
 import TelegramBot from 'node-telegram-bot-api';
 import { query } from '../../../../config/database.js';
+import { WebhookURLService } from '../../utils/WebhookURLService.js';
 
 export class PriceConfigMessageBuilder {
   private bot: TelegramBot;
@@ -66,10 +67,8 @@ export class PriceConfigMessageBuilder {
       if (enableImage && imageUrl) {
         // 构建完整的图片URL
         let fullImageUrl = imageUrl;
-        if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('/assets/')) {
-          // 如果是相对路径，从当前机器人的webhook URL获取域名
-          const baseUrl = await this.getWebhookBaseUrl();
-          fullImageUrl = `${baseUrl}${imageUrl}`;
+        if (WebhookURLService.needsFullUrl(imageUrl)) {
+          fullImageUrl = await WebhookURLService.buildResourceUrl(this.botId, imageUrl);
         }
 
         // 发送带图片的消息
@@ -314,40 +313,4 @@ export class PriceConfigMessageBuilder {
     return message;
   }
 
-  /**
-   * 从当前机器人的webhook URL获取基础域名
-   */
-  private async getWebhookBaseUrl(): Promise<string> {
-    try {
-      // 从数据库获取当前机器人的webhook URL
-      const result = await query(
-        'SELECT webhook_url FROM telegram_bots WHERE id = $1 AND is_active = true',
-        [this.botId]
-      );
-
-      if (result.rows.length === 0 || !result.rows[0].webhook_url) {
-        // 如果没有webhook URL，回退到环境变量或默认值
-        console.warn(`机器人 ${this.botId} 没有配置webhook URL，使用默认域名`);
-        return process.env.APP_BASE_URL || 'http://localhost:3001';
-      }
-
-      const webhookUrl = result.rows[0].webhook_url;
-      
-      // 从webhook URL中提取域名和协议
-      // 例如：https://ed1cfac836d2.ngrok-free.app/api/telegram/webhook/bot-id
-      // 提取：https://ed1cfac836d2.ngrok-free.app
-      try {
-        const url = new URL(webhookUrl);
-        return `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
-      } catch (urlError) {
-        console.error('解析webhook URL失败:', urlError);
-        // 回退到环境变量或默认值
-        return process.env.APP_BASE_URL || 'http://localhost:3001';
-      }
-    } catch (error) {
-      console.error('获取webhook基础URL失败:', error);
-      // 回退到环境变量或默认值
-      return process.env.APP_BASE_URL || 'http://localhost:3001';
-    }
-  }
 }
