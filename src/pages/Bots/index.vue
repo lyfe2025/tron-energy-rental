@@ -176,14 +176,12 @@
       @refresh-logs="refreshBotLogs"
     />
 
-    <!-- Telegram同步状态弹窗 -->
-    <SyncStatusDialog
-      v-model="showSyncDialog"
-      :sync-status="syncDialogData.syncStatus"
-      :logs="syncDialogData.logs"
-      :is-loading="syncDialogData.isLoading"
-      :sync-result="syncDialogData.syncResult"
-      @retry="handleRetrySyncBot"
+    <!-- 手动同步对话框 -->
+    <ManualSyncDialog
+      v-model="showManualSyncDialog"
+      :bot-data="manualSyncBotData"
+      :current-form-data="manualSyncFormData"
+      @sync-success="handleManualSyncSuccess"
     />
 
   </div>
@@ -202,23 +200,19 @@ import BotDetailDialog from './components/BotDetailDialog.vue'
 import BotEditModal from './components/BotEditModal.vue'
 import BotFilters from './components/BotFilters.vue'
 import BotLogsDialog from './components/BotLogsDialog.vue'
-import SyncStatusDialog from './components/SyncStatusDialog.vue'
+import ManualSyncDialog from './components/ManualSyncDialog.vue'
 import { useBotManagement } from './composables/useBotManagementIntegrated'
 
 // 弹窗状态
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showNetworkModal = ref(false)
+const showManualSyncDialog = ref(false)
 const selectedBot = ref<any>(null)
+const manualSyncBotData = ref<any>(null)
+const manualSyncFormData = ref<any>(null)
 
-// 同步状态对话框
-const showSyncDialog = ref(false)
-const syncDialogData = ref({
-  isLoading: false,
-  syncStatus: {},
-  logs: [],
-  syncResult: null
-})
+// 注意：同步状态对话框相关变量已移除，改为手动同步模式
 
 // Telegram API连接检测状态
 const connectivityState = ref({
@@ -315,76 +309,39 @@ const handleCreateBot = async (data: any) => {
     
     console.log('🚀 开始创建机器人，数据:', createData)
     
-    // 显示同步状态对话框
-    showSyncDialog.value = true
-    syncDialogData.value = {
-      isLoading: true,
-      syncStatus: {},
-      logs: [],
-      syncResult: null
-    }
-    
     const response = await botsAPI.createBot(createData)
     
     if (response.data?.success) {
       console.log('✅ 机器人创建API调用成功')
       
-      // 更新同步状态 - 修复数据格式不匹配问题
-      const syncResult = response.data.data?.sync_result
-      const rawSyncStatus = syncResult?.results || response.data.data?.syncStatus || {}
-      
-      // 将后端返回的键名映射到前端期望的格式 - 使用安全的属性访问
-      const syncStatus = {
-        nameSync: (rawSyncStatus as any)?.name ?? null,
-        descriptionSync: (rawSyncStatus as any)?.description ?? null,
-        shortDescriptionSync: (rawSyncStatus as any)?.shortDescription ?? null,
-        commandsSync: (rawSyncStatus as any)?.commands ?? null,
-        menuButtonSync: (rawSyncStatus as any)?.menuButton ?? null,
-        webhookSync: (rawSyncStatus as any)?.webhook ?? null,
-        priceConfigSync: (rawSyncStatus as any)?.priceConfig ?? null
-      }
-      
-      // 组合日志：包括成功信息和错误信息
-      const syncLogs = [
-        ...(syncResult?.summary ? [syncResult.summary] : []),
-        ...(syncResult?.errors || response.data.data?.syncLogs || [])
-      ]
-      
-      syncDialogData.value = {
-        isLoading: false,
-        syncStatus,
-        logs: syncLogs,
-        syncResult: syncResult
-      }
-      
-      // 显示同步日志到控制台
-      if (syncLogs.length > 0) {
-        console.log('📋 Telegram同步日志:')
-        syncLogs.forEach((log: string) => {
-          console.log(log)
-        })
-      }
+      // 显示成功消息
+      ElMessage.success('机器人创建成功！数据已保存到数据库')
       
       showCreateModal.value = false
       await refreshData()
       
-      // 同步完成，不自动关闭对话框，让用户查看日志后手动关闭
-      // const successCount = Object.values(syncStatus).filter(Boolean).length
-      // const totalCount = Object.values(syncStatus).filter(v => v !== null).length
-      // if (successCount === totalCount) {
-      //   setTimeout(() => {
-      //     showSyncDialog.value = false
-      //   }, 3000)
-      // }
+      // 自动弹出手动同步对话框
+      const createdBot = response.data.data.bot
+      if (createdBot) {
+        // 确保传递完整的机器人数据，包括token用于同步
+        manualSyncBotData.value = {
+          ...createdBot,
+          token: createData.token // 添加token用于同步
+        }
+        manualSyncFormData.value = { ...createData }
+        showManualSyncDialog.value = true
+        
+        // 额外提示用户可以选择同步
+        setTimeout(() => {
+          ElMessage.info('机器人已创建完成，现在可以选择性地同步设置到Telegram')
+        }, 500)
+      }
       
     } else {
-      syncDialogData.value.isLoading = false
       throw new Error(response.data?.message || '创建失败')
     }
   } catch (error: any) {
     console.error('❌ 创建机器人失败:', error)
-    syncDialogData.value.isLoading = false
-    showSyncDialog.value = false
     ElMessage.error(error.message || '创建机器人失败')
   }
 }
@@ -416,77 +373,23 @@ const handleUpdateBot = async (data: any) => {
     
     console.log('🚀 开始更新机器人，数据:', updateData)
     
-    // 显示同步状态对话框
-    showSyncDialog.value = true
-    syncDialogData.value = {
-      isLoading: true,
-      syncStatus: {},
-      logs: [],
-      syncResult: null
-    }
-    
     const response = await botsAPI.updateBot(data.id, updateData)
     
     if (response.data?.success) {
       console.log('✅ 机器人更新API调用成功')
       
-      // 更新同步状态 - 修复数据格式不匹配问题
-      const syncResult = response.data.data?.sync_result
-      const rawSyncStatus = syncResult?.results || response.data.data?.syncStatus || {}
-      
-      
-      // 将后端返回的键名映射到前端期望的格式 - 使用安全的属性访问
-      const syncStatus = {
-        nameSync: (rawSyncStatus as any)?.name ?? null,
-        descriptionSync: (rawSyncStatus as any)?.description ?? null,
-        shortDescriptionSync: (rawSyncStatus as any)?.shortDescription ?? null,
-        commandsSync: (rawSyncStatus as any)?.commands ?? null,
-        menuButtonSync: (rawSyncStatus as any)?.menuButton ?? null,
-        webhookSync: (rawSyncStatus as any)?.webhook ?? null,
-        priceConfigSync: (rawSyncStatus as any)?.priceConfig ?? null
-      }
-      
-      // 组合日志：包括成功信息和错误信息
-      const syncLogs = [
-        ...(syncResult?.summary ? [syncResult.summary] : []),
-        ...(syncResult?.errors || response.data.data?.syncLogs || [])
-      ]
-      
-      syncDialogData.value = {
-        isLoading: false,
-        syncStatus,
-        logs: syncLogs,
-        syncResult: syncResult
-      }
-      
-      // 显示同步日志到控制台
-      if (syncLogs.length > 0) {
-        console.log('📋 Telegram同步日志:')
-        syncLogs.forEach((log: string) => {
-          console.log(log)
-        })
-      }
+      // 显示成功消息
+      ElMessage.success('机器人更新成功！数据已保存到数据库，如需同步到Telegram请使用手动同步功能')
       
       showEditModal.value = false
       selectedBot.value = null
       await refreshData()
       
-      // 同步完成，不自动关闭对话框，让用户查看日志后手动关闭
-      // const successCount = Object.values(syncStatus).filter(Boolean).length
-      // const totalCount = Object.values(syncStatus).filter(v => v !== null).length
-      // if (successCount === totalCount) {
-      //   setTimeout(() => {
-      //     showSyncDialog.value = false
-      //   }, 3000)
-      // }
-      
     } else {
-      syncDialogData.value.isLoading = false
       throw new Error(response.data?.message || '更新失败')
     }
   } catch (error: any) {
     console.error('❌ 更新机器人失败:', error)
-    syncDialogData.value.isLoading = false
     
     // 针对超时错误给出更友好的提示
     if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
@@ -496,14 +399,6 @@ const handleUpdateBot = async (data: any) => {
         duration: 6000,
         showClose: true
       })
-      
-      // 显示同步状态，即使超时也让用户知道可能的情况
-      syncDialogData.value = {
-        isLoading: false,
-        syncStatus: {},
-        logs: ['操作超时，数据库更新可能已完成', '请刷新页面查看最新机器人状态', '如果问题持续，请检查网络连接'],
-        syncResult: null
-      }
       
       // 自动刷新数据
       setTimeout(async () => {
@@ -516,10 +411,22 @@ const handleUpdateBot = async (data: any) => {
       }, 2000)
       
     } else {
-      showSyncDialog.value = false
       ElMessage.error(error.friendlyMessage || error.message || '更新机器人失败')
     }
   }
+}
+
+// 处理手动同步成功
+const handleManualSyncSuccess = (syncResult?: any) => {
+  console.log('📡 手动同步完成:', syncResult)
+  if (syncResult?.success) {
+    ElMessage.success('Telegram同步完成！')
+  } else if (syncResult?.hasPartialSuccess) {
+    ElMessage.warning('Telegram同步部分成功，请查看详细日志')
+  }
+  
+  // 刷新机器人数据以获取最新状态
+  refreshData()
 }
 
 const handleNetworkUpdated = async () => {
@@ -537,12 +444,6 @@ const handleRefreshBots = async () => {
   } catch (error) {
     console.error('❌ [Bots] 刷新机器人列表失败:', error)
   }
-}
-
-// 重试同步
-const handleRetrySyncBot = () => {
-  ElMessage.info('重试功能开发中，请重新保存机器人配置')
-  showSyncDialog.value = false
 }
 
 // Telegram API连接检测

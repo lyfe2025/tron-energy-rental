@@ -199,20 +199,8 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
-        <!-- 左侧同步按钮 -->
-        <button
-          type="button"
-          @click="handleSyncFromTelegram"
-          :disabled="syncing || !props.botData"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          <Loader2 v-if="syncing" class="w-4 h-4 animate-spin" />
-          <Activity v-else class="w-4 h-4" />
-          {{ syncing ? '同步中...' : '从Telegram同步' }}
-        </button>
-        
-        <!-- 右侧操作按钮 -->
+      <div class="flex justify-end items-center px-6 py-4 border-t bg-gray-50">
+        <!-- 操作按钮 -->
         <div class="flex gap-3">
           <button
             type="button"
@@ -230,10 +218,27 @@
             <Loader2 v-if="saving" class="w-4 h-4 animate-spin" />
             {{ saving ? '保存中...' : '保存修改' }}
           </button>
+          <button
+            type="button"
+            @click="showManualSyncDialog = true"
+            :disabled="saving || !props.botData"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Activity class="w-4 h-4" />
+            手动同步
+          </button>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- 手动同步对话框 -->
+  <ManualSyncDialog
+    v-model="showManualSyncDialog"
+    :bot-data="botData"
+    :current-form-data="formData"
+    @sync-success="handleSyncSuccess"
+  />
 </template>
 
 <script setup lang="ts">
@@ -249,6 +254,7 @@ import BotFormMessages from './BotFormMessages.vue'
 import BotFormWebhookConfig from './BotFormWebhookConfig.vue'
 import BotFormWorkMode from './BotFormWorkMode.vue'
 import KeyboardConfigEditor from './KeyboardConfigEditor.vue'
+import ManualSyncDialog from './ManualSyncDialog.vue'
 
 // Props
 interface Props {
@@ -273,18 +279,18 @@ const {
   fetchPriceConfigsStatus, 
   initializeFormData, 
   resetForm,
-  syncFromTelegram,
   applyModeChange 
 } = useBotForm('edit')
 
 // 响应式数据
 const saving = ref(false)
-const syncing = ref(false)
 const healthChecking = ref(false)
 const originalMode = ref<'polling' | 'webhook'>('polling')
 // 健康检查结果状态
 const healthCheckResult = ref<any>(null)
 const showHealthDetails = ref(false)
+// 手动同步对话框状态
+const showManualSyncDialog = ref(false)
 
 // 计算属性：基础信息（只读，避免递归更新）
 const basicInfo = computed(() => ({
@@ -450,26 +456,12 @@ const handleApplyModeChange = async () => {
   }
 }
 
-// 从Telegram同步机器人信息
-const handleSyncFromTelegram = async () => {
-  if (!props.botData) return
-  
-  try {
-    syncing.value = true
-    const result = await syncFromTelegram(props.botData.id)
-    
-    if (result.success) {
-      ElMessage.success('同步成功！机器人信息已更新')
-      
-      // 触发父组件刷新数据（不触发更新操作）
-      emit('refresh')
-    }
-  } catch (error: any) {
-    console.error('同步失败:', error)
-    ElMessage.error(`同步失败：${error.message}`)
-  } finally {
-    syncing.value = false
-  }
+// 手动同步成功处理
+const handleSyncSuccess = () => {
+  showManualSyncDialog.value = false
+  ElMessage.success('同步操作已完成！')
+  // 触发父组件刷新数据
+  emit('refresh')
 }
 
 // 事件处理

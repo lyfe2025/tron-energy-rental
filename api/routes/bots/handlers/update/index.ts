@@ -87,100 +87,38 @@ export class BotUpdateHandler {
           await ConfigUpdateService.updateCustomCommands(id, updateData.custom_commands);
         }
 
-        // 8. 同步到Telegram API
-        if (updatedBot.bot_token) {
-          console.log('🔄 同步到Telegram API...');
-          
-          // 构建同步配置 - 只同步发生变化的字段
-          const syncConfig: any = {};
-          
-          // 基于实际变更构建同步配置
-          let menuButtonNeedsSync = false;
-          
-          comparison.changes.forEach(change => {
-            switch (change.field) {
-              case 'name':
-                syncConfig.name = change.newValue;
-                break;
-              case 'description':
-                syncConfig.description = change.newValue;
-                break;
-              case 'short_description':
-                syncConfig.shortDescription = change.newValue;
-                break;
-              case 'menu_commands':
-                syncConfig.commands = change.newValue;
-                break;
-              case 'work_mode':
-                syncConfig.workMode = change.newValue;
-                // 当工作模式变化时，同时获取相关配置
-                syncConfig.webhookUrl = updateData.webhook_url || updatedBot.webhook_url;
-                syncConfig.webhookSecret = updateData.webhook_secret || updatedBot.webhook_secret;
-                break;
-              case 'webhook_url':
-              case 'webhook_secret':
-                // 如果webhook相关配置发生变化，且当前是webhook模式
-                if (updatedBot.work_mode === 'webhook') {
-                  syncConfig.workMode = 'webhook';
-                  syncConfig.webhookUrl = updatedBot.webhook_url;
-                  syncConfig.webhookSecret = updatedBot.webhook_secret;
-                }
-                break;
-              // 菜单按钮相关字段
-              case 'menu_button_enabled':
-              case 'menu_button_text':
-              case 'menu_type':
-              case 'web_app_url':
-                menuButtonNeedsSync = true;
-                break;
-            }
-          });
-
-          // 如果菜单按钮相关字段发生变化，构建菜单按钮同步配置
-          if (menuButtonNeedsSync) {
-            syncConfig.menuButton = {
-              is_enabled: updatedBot.menu_button_enabled || false,
-              button_text: updatedBot.menu_button_text || '菜单',
-              menu_type: updatedBot.menu_type || 'commands',
-              web_app_url: updatedBot.web_app_url || '',
-              commands: updatedBot.menu_commands || []
-            };
+        // 8. 数据库保存成功 - 不再自动同步到Telegram API
+        console.log('💾 数据库更新成功，不会自动同步到Telegram API');
+        console.log('ℹ️ 如需同步到Telegram，请使用手动同步功能');
+        
+        // 记录需要同步的变更类型（用于提醒用户）
+        const syncableChanges = [];
+        comparison.changes.forEach(change => {
+          switch (change.field) {
+            case 'name':
+            case 'description':
+            case 'short_description':
+            case 'menu_commands':
+            case 'work_mode':
+            case 'webhook_url':
+            case 'webhook_secret':
+            case 'menu_button_enabled':
+            case 'menu_button_text':
+            case 'menu_type':
+            case 'web_app_url':
+              syncableChanges.push(change.field);
+              break;
           }
-
-          console.log(`📋 将同步 ${Object.keys(syncConfig).length} 个配置项:`, Object.keys(syncConfig));
-
-          // 执行逐步同步 - 网络错误不应影响数据库更新的成功状态
-          if (Object.keys(syncConfig).length > 0) {
-            try {
-              syncResult = await SynchronizationService.stepByStepSync(
-                updatedBot.bot_token,
-                syncConfig
-              );
-
-              // 如果同步失败且是关键更新，记录警告但不影响主流程
-              if (!syncResult.success && syncResult.errors.length > 0) {
-                const criticalErrors = syncResult.errors.filter((error: string) => 
-                  error.includes('Token无效') || error.includes('无权限')
-                );
-                
-                if (criticalErrors.length > 0) {
-                  console.warn('⚠️ 检测到关键同步错误，但不回滚数据库更新');
-                } else {
-                  console.log('🔄 同步过程中遇到网络问题，数据库更新已成功完成');
-                }
-              }
-            } catch (syncError) {
-              // 同步过程中的网络错误不应导致整个更新失败
-              console.error('🚫 同步过程中出现错误，但数据库更新已成功:', syncError);
-              syncResult = {
-                success: false,
-                results: {},
-                errors: [`同步失败: ${syncError instanceof Error ? syncError.message : '网络连接问题'}`],
-                summary: '数据库更新成功，但同步到Telegram失败'
-              };
-            }
-          }
-        }
+        });
+        
+        // 设置同步提醒信息
+        syncResult = {
+          success: null, // 表示未进行同步
+          skipped: true,
+          syncableChanges: syncableChanges,
+          message: '数据库保存成功，如需同步到Telegram请使用手动同步功能',
+          summary: '数据库更新成功，未同步到Telegram'
+        };
 
         // 9. 更新机器人状态
         await ConfigUpdateService.updateBotStatus(id, 'updated', {

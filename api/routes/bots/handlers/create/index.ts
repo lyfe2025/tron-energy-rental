@@ -46,34 +46,34 @@ export class BotCreateHandler {
       console.log('生成机器人配置...');
       const configs = await ConfigProcessor.generateBotConfig(data);
 
-      // 5. 设置网络配置（与Telegram API同步）
-      console.log('设置网络配置...');
-      const networkSetupResult = await NetworkSetup.setupBotNetwork(data.token, {
-        name: data.name,
-        description: configs.description,
-        shortDescription: configs.shortDescription,
-        commands: configs.menuCommands,
-        workMode: data.work_mode || 'polling',
-        webhookUrl: data.webhook_url,
-        menuButton: (configs.keyboardConfig as any)?.menuButton,
-        priceConfig: data.price_config
-      });
-
-      // 检查网络设置是否有严重错误
-      if (!networkSetupResult.success && networkSetupResult.errors.length > 0) {
-        // 如果有关键错误，可能需要中止创建
-        const criticalErrors = networkSetupResult.errors.filter(error => 
-          error.includes('Token无效') || error.includes('无权限')
-        );
-        
-        if (criticalErrors.length > 0) {
-          res.status(400).json(CreateUtils.createErrorResponse(
-            '网络设置失败，无法创建机器人',
-            criticalErrors
-          ));
-          return;
-        }
+      // 5. 验证Token有效性（但不进行同步）
+      console.log('验证Token有效性...');
+      const tokenTest = await NetworkSetup.testBotConnection(data.token);
+      if (!tokenTest.success) {
+        res.status(400).json(CreateUtils.createErrorResponse(
+          'Token验证失败，无法创建机器人',
+          [tokenTest.error || 'Token无效']
+        ));
+        return;
       }
+
+      // 设置创建结果（不进行实际的Telegram API同步）
+      const networkSetupResult = {
+        success: null, // 表示跳过同步
+        skipped: true,
+        message: '数据库保存成功，如需同步到Telegram请使用手动同步功能',
+        results: {
+          name: null,
+          description: null,
+          shortDescription: null,
+          commands: null,
+          webhook: null,
+          menuButton: null,
+          priceConfig: null
+        },
+        errors: [],
+        summary: '机器人创建成功，未同步到Telegram'
+      };
 
       // 6. 初始化机器人（数据库操作）
       console.log('初始化机器人...');

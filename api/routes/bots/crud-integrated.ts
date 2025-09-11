@@ -16,8 +16,8 @@ import { getBotDetails, getBotsList, getBotsSelector } from './handlers/botListH
 import {
     applyWebhookSettings,
     getBotWebhookStatus,
-    switchBotMode,
-    syncBotFromTelegram
+    manualSyncToTelegram,
+    switchBotMode
 } from './handlers/botModeHandler.js';
 import { deleteBot, updateBot } from './handlers/botUpdateHandler.js';
 
@@ -29,7 +29,7 @@ router.get('/selector', authenticateToken, getBotsSelector);  // 选择器端点
 router.post('/:id/switch-mode', authenticateToken, requireAdmin, switchBotMode);  // 模式切换端点
 router.get('/:id/webhook-status', authenticateToken, requireAdmin, getBotWebhookStatus);  // Webhook状态端点
 router.post('/:id/apply-webhook', authenticateToken, requireAdmin, applyWebhookSettings);  // 应用Webhook设置端点
-router.post('/:id/sync-from-telegram', authenticateToken, requireAdmin, syncBotFromTelegram);  // 从Telegram同步信息端点
+router.post('/:id/manual-sync', authenticateToken, requireAdmin, manualSyncToTelegram);  // 手动同步到Telegram端点
 router.get('/', authenticateToken, requireAdmin, getBotsList);
 router.get('/:id', authenticateToken, requireAdmin, getBotDetails);
 router.post('/', authenticateToken, requireAdmin, createBot);
