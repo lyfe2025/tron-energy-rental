@@ -235,6 +235,18 @@ export const botsAPI = {
     apiClient.post<ApiResponse<unknown>>(`/api/bots/${id}/health-check`),
 
   /**
+   * 检查Telegram API连接性
+   */
+  checkTelegramApiConnectivity: () => 
+    apiClient.get<ApiResponse<{
+      accessible: boolean;
+      latency?: number;
+      status?: 'excellent' | 'good' | 'slow';
+      error?: string;
+      suggestions: string[];
+    }>>('/api/bots/telegram-api-connectivity'),
+
+  /**
    * 获取机器人配置历史
    */
   getBotConfigHistory: (id: string, params?: { page?: number; limit?: number }) => 

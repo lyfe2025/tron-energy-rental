@@ -15,7 +15,7 @@ const API_BASE_URL = getApiBaseUrl();
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 增加前端请求超时时间到30秒
+  timeout: 60000, // 增加前端请求超时时间到60秒，给后端更多时间处理
   headers: {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -73,8 +73,20 @@ apiClient.interceptors.response.use(
         timeout: error.config?.timeout
       });
       
-      // 添加友好的错误信息
-      error.friendlyMessage = '请求超时，操作可能需要更长时间完成。请稍后再试或检查网络连接。';
+      // 添加友好的错误信息，针对机器人更新操作给出更具体的指导
+      if (error.config?.url?.includes('/api/bots/')) {
+        error.friendlyMessage = '机器人更新操作超时。数据库更新可能已完成，但与Telegram的同步可能因网络问题失败。请刷新页面查看最新状态或检查Telegram API连接。';
+        
+        // 触发建议检查连接的事件
+        window.dispatchEvent(new CustomEvent('api:suggest_connectivity_check', {
+          detail: {
+            reason: 'bot_update_timeout',
+            message: '建议检查Telegram API连接状态'
+          }
+        }));
+      } else {
+        error.friendlyMessage = '请求超时，操作可能需要更长时间完成。请稍后再试或检查网络连接。';
+      }
       
       // 触发超时事件
       window.dispatchEvent(new CustomEvent('api:request_timeout', {

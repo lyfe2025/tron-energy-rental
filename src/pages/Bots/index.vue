@@ -16,6 +16,25 @@
           刷新
         </button>
         <button
+          @click="() => checkTelegramConnection()"
+          :disabled="connectivityState.checking"
+          :class="{
+            'px-4 py-2 border rounded-lg transition-colors flex items-center gap-2': true,
+            'text-green-600 bg-green-50 border-green-200 hover:bg-green-100': connectivityState.status === 'connected',
+            'text-red-600 bg-red-50 border-red-200 hover:bg-red-100': connectivityState.status === 'disconnected',
+            'text-yellow-600 bg-yellow-50 border-yellow-200 hover:bg-yellow-100': connectivityState.status === 'slow',
+            'text-gray-700 bg-white border-gray-300 hover:bg-gray-50': connectivityState.status === null,
+            'opacity-50 cursor-not-allowed': connectivityState.checking
+          }"
+        >
+          <component 
+            :is="getConnectivityIcon()" 
+            :class="{ 'animate-spin': connectivityState.checking }" 
+            class="w-4 h-4" 
+          />
+          {{ getConnectivityText() }}
+        </button>
+        <button
           @click="exportData"
           class="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
         >
@@ -175,8 +194,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import NetworkConfigModal from '@/components/NetworkConfigModal.vue'
 import { botsAPI } from '@/services/api/bots/botsAPI'
 import { ElMessage } from 'element-plus'
-import { Bot, Download, Plus, RefreshCw } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { AlertTriangle, Bot, CheckCircle, Download, Plus, RefreshCw, Wifi, XCircle } from 'lucide-vue-next'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import BotCard from './components/BotCard.vue'
 import BotCreateModal from './components/BotCreateModal.vue'
 import BotDetailDialog from './components/BotDetailDialog.vue'
@@ -200,6 +219,19 @@ const syncDialogData = ref({
   logs: [],
   syncResult: null
 })
+
+// Telegram API连接检测状态
+const connectivityState = ref({
+  checking: false,
+  status: null as 'connected' | 'disconnected' | 'slow' | null,
+  latency: null as number | null,
+  error: null as string | null,
+  suggestions: [] as string[],
+  lastChecked: null as Date | null
+})
+
+// 防抖控制：防止用户快速重复点击
+let lastManualCheck = 0
 
 
 // 使用组合式函数
@@ -455,8 +487,38 @@ const handleUpdateBot = async (data: any) => {
   } catch (error: any) {
     console.error('❌ 更新机器人失败:', error)
     syncDialogData.value.isLoading = false
-    showSyncDialog.value = false
-    ElMessage.error(error.message || '更新机器人失败')
+    
+    // 针对超时错误给出更友好的提示
+    if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
+      ElMessage({
+        type: 'warning',
+        message: error.friendlyMessage || '操作超时，数据库更新可能已完成，请刷新页面查看最新状态',
+        duration: 6000,
+        showClose: true
+      })
+      
+      // 显示同步状态，即使超时也让用户知道可能的情况
+      syncDialogData.value = {
+        isLoading: false,
+        syncStatus: {},
+        logs: ['操作超时，数据库更新可能已完成', '请刷新页面查看最新机器人状态', '如果问题持续，请检查网络连接'],
+        syncResult: null
+      }
+      
+      // 自动刷新数据
+      setTimeout(async () => {
+        try {
+          await refreshData()
+          console.log('🔄 数据已自动刷新')
+        } catch (refreshError) {
+          console.warn('自动刷新失败:', refreshError)
+        }
+      }, 2000)
+      
+    } else {
+      showSyncDialog.value = false
+      ElMessage.error(error.friendlyMessage || error.message || '更新机器人失败')
+    }
   }
 }
 
@@ -483,6 +545,161 @@ const handleRetrySyncBot = () => {
   showSyncDialog.value = false
 }
 
+// Telegram API连接检测
+const checkTelegramConnection = async (silent = false) => {
+  if (connectivityState.value.checking) return
+
+  // 防抖：手动检测间隔至少3秒
+  if (!silent) {
+    const now = Date.now()
+    if (now - lastManualCheck < 3000) {
+      ElMessage.info('检测过于频繁，请稍后再试')
+      return
+    }
+    lastManualCheck = now
+  }
+
+  console.log('🔍 开始检测Telegram API连接...')
+  connectivityState.value.checking = true
+  connectivityState.value.status = null
+
+  try {
+    const response = await botsAPI.checkTelegramApiConnectivity()
+    
+    if (response.data?.success && response.data.data?.accessible) {
+      const data = response.data.data
+      
+      // 根据延迟设置状态
+      const status = data.status === 'excellent' ? 'connected' :
+                   data.status === 'good' ? 'connected' :
+                   'slow'
+      
+      connectivityState.value = {
+        checking: false,
+        status,
+        latency: data.latency || null,
+        error: null,
+        suggestions: data.suggestions || [],
+        lastChecked: new Date()
+      }
+
+      console.log(`✅ Telegram API连接正常，延迟: ${data.latency}ms`)
+      
+      // 只在非静默模式下显示成功消息
+      if (!silent) {
+        const statusText = status === 'connected' && data.status === 'excellent' ? '优秀' :
+                          status === 'connected' && data.status === 'good' ? '良好' :
+                          '较慢'
+        ElMessage.success(`Telegram API连接正常，网络状态: ${statusText} (${data.latency}ms)`)
+        
+        // 如果有建议，显示警告信息
+        if (data.suggestions && data.suggestions.length > 0) {
+          ElMessage({
+            type: 'warning',
+            message: `网络建议: ${data.suggestions[0]}`,
+            duration: 5000
+          })
+        }
+      }
+      
+    } else {
+      // 连接失败
+      const errorData = response.data?.data
+      connectivityState.value = {
+        checking: false,
+        status: 'disconnected',
+        latency: null,
+        error: errorData?.error || '连接失败',
+        suggestions: errorData?.suggestions || [],
+        lastChecked: new Date()
+      }
+
+      console.error('❌ Telegram API连接失败:', errorData?.error)
+      
+      // 只在非静默模式下显示错误消息
+      if (!silent) {
+        const suggestions = errorData?.suggestions || []
+        const primaryMessage = '🚨 Telegram API连接失败！'
+        const suggestionText = suggestions.length > 0 ? 
+          `\n建议：${suggestions.slice(0, 2).join('; ')}` : 
+          '\n建议：检查网络设置或更换IP地址'
+
+        ElMessage({
+          type: 'error',
+          message: primaryMessage + suggestionText,
+          duration: 8000,
+          showClose: true
+        })
+
+        // 如果有多个建议，分别显示
+        if (suggestions.length > 2) {
+          setTimeout(() => {
+            ElMessage({
+              type: 'warning',
+              message: `其他建议：${suggestions.slice(2).join('; ')}`,
+              duration: 6000,
+              showClose: true
+            })
+          }, 1000)
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('❌ 检测Telegram API连接失败:', error)
+    
+    connectivityState.value = {
+      checking: false,
+      status: 'disconnected',
+      latency: null,
+      error: error.message || '检测失败',
+      suggestions: ['请检查网络连接', '尝试更换IP地址'],
+      lastChecked: new Date()
+    }
+
+    // 只在非静默模式下显示错误消息
+    if (!silent) {
+      ElMessage({
+        type: 'error',
+        message: `网络检测失败: ${error.message || '未知错误'}`,
+        duration: 5000,
+        showClose: true
+      })
+    }
+  }
+}
+
+// 获取连接状态图标
+const getConnectivityIcon = () => {
+  if (connectivityState.value.checking) return RefreshCw
+  
+  switch (connectivityState.value.status) {
+    case 'connected':
+      return CheckCircle
+    case 'slow':
+      return AlertTriangle
+    case 'disconnected':
+      return XCircle
+    default:
+      return Wifi
+  }
+}
+
+// 获取连接状态文本
+const getConnectivityText = () => {
+  if (connectivityState.value.checking) return '检测中...'
+  
+  switch (connectivityState.value.status) {
+    case 'connected':
+      return `API正常 (${connectivityState.value.latency}ms)`
+    case 'slow':
+      return `连接较慢 (${connectivityState.value.latency}ms)`
+    case 'disconnected':
+      return 'API不可用'
+    default:
+      return '检测连接'
+  }
+}
+
 // 处理通知管理（现在通过路由跳转）
 const handleOpenNotifications = (bot: any) => {
   console.log('🚀 This event is no longer used, navigation is handled in BotCard component')
@@ -491,6 +708,58 @@ const handleOpenNotifications = (bot: any) => {
 // 生命周期
 onMounted(() => {
   refreshData()
+  
+  // 页面加载后自动检测一次Telegram API连接（静默模式）
+  setTimeout(() => {
+    checkTelegramConnection(true) // 静默模式，不显示消息提示
+  }, 2000)
+  
+  // 每10分钟自动检测一次（静默模式，避免过于频繁的消息提示）
+  const connectivityCheckInterval = setInterval(() => {
+    // 只有在用户不在执行其他操作时才自动检测
+    if (!connectivityState.value.checking && !loading.value) {
+      console.log('🔄 执行定期Telegram API连接检测...')
+      checkTelegramConnection(true) // 静默模式
+    }
+  }, 10 * 60 * 1000) // 10分钟
+  
+  // 监听API错误事件，自动建议检查连接
+  const handleConnectivitySuggestion = (event: any) => {
+    const { reason, message } = event.detail
+    console.log('📡 收到连接检测建议:', { reason, message })
+    
+    // 如果当前连接状态未知或已断开，显示建议检测的消息
+    if (!connectivityState.value.checking && 
+        (connectivityState.value.status === null || connectivityState.value.status === 'disconnected')) {
+      
+      ElMessage({
+        type: 'info',
+        message: `${message}。点击"检测连接"按钮进行检查`,
+        duration: 6000,
+        showClose: true
+      })
+      
+      // 可选：自动进行一次检测（静默模式）
+      setTimeout(() => {
+        if (!connectivityState.value.checking) {
+          console.log('🔄 自动执行连接检测...')
+          checkTelegramConnection(true) // 静默模式，避免重复消息
+        }
+      }, 3000)
+    }
+  }
+  
+  // 添加事件监听
+  window.addEventListener('api:suggest_connectivity_check', handleConnectivitySuggestion)
+  
+  // 页面卸载时清理定时器和事件监听
+  const cleanup = () => {
+    clearInterval(connectivityCheckInterval)
+    window.removeEventListener('api:suggest_connectivity_check', handleConnectivitySuggestion)
+  }
+  
+  // 页面卸载时清理定时器
+  onBeforeUnmount(cleanup)
 })
 </script>
 

@@ -531,6 +531,52 @@ export class BotUpdateHandler {
   }
 
   /**
+   * 检查Telegram API连接性
+   */
+  static async checkTelegramApiConnectivity(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('\n🔍 收到Telegram API连接检测请求');
+
+      const result = await SynchronizationService.checkTelegramApiAccessibility();
+
+      if (result.accessible) {
+        console.log(`✅ Telegram API连接正常，延迟: ${result.latency}ms`);
+        res.json({
+          success: true,
+          message: 'Telegram API连接正常',
+          data: {
+            accessible: true,
+            latency: result.latency,
+            status: result.latency && result.latency < 1000 ? 'excellent' : 
+                   result.latency && result.latency < 3000 ? 'good' : 'slow',
+            suggestions: result.suggestions
+          }
+        });
+      } else {
+        console.log('❌ Telegram API连接失败:', result.error);
+        res.json({
+          success: false,
+          message: 'Telegram API连接失败',
+          data: {
+            accessible: false,
+            error: result.error,
+            suggestions: result.suggestions
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('检测Telegram API连接失败:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      res.status(500).json(UpdateUtils.createErrorResponse(
+        '检测Telegram API连接失败',
+        [errorMessage]
+      ));
+    }
+  }
+
+  /**
    * 健康检查
    */
   static async healthCheck(req: Request, res: Response): Promise<void> {
@@ -550,3 +596,4 @@ export class BotUpdateHandler {
 // 兼容性导出，支持原始函数调用方式
 export const updateBot = BotUpdateHandler.updateBot;
 export const deleteBot = BotUpdateHandler.deleteBot;
+export const checkTelegramApiConnectivity = BotUpdateHandler.checkTelegramApiConnectivity;

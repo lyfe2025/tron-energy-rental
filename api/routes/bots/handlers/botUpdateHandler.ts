@@ -62,6 +62,13 @@ export const getDeleteHistory: RouteHandler = BotUpdateHandler.getDeleteHistory;
 export const cleanupExpiredDeletes: RouteHandler = BotUpdateHandler.cleanupExpiredDeletes;
 
 /**
+ * 检查Telegram API连接性
+ * GET /api/bots/telegram-api-connectivity
+ * 权限：认证用户
+ */
+export const checkTelegramApiConnectivity: RouteHandler = BotUpdateHandler.checkTelegramApiConnectivity;
+
+/**
  * 健康检查
  * GET /api/bots/update-health
  * 权限：公开

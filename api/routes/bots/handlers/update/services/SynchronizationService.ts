@@ -11,9 +11,9 @@ interface SyncStep {
 
 export class SynchronizationService {
   private static readonly TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
-  private static readonly MAX_RETRIES = 3;
-  private static readonly RETRY_DELAY = 1000;
-  private static readonly REQUEST_TIMEOUT = 30000; // 30秒超时
+  private static readonly MAX_RETRIES = 2; // 减少重试次数
+  private static readonly RETRY_DELAY = 500; // 减少重试延迟
+  private static readonly REQUEST_TIMEOUT = 15000; // 减少到15秒超时
 
   /**
    * 调用Telegram API的通用方法
@@ -66,6 +66,14 @@ export class SynchronizationService {
         return this.callTelegramAPI(token, method, data, retries + 1);
       }
       
+      // 添加网络错误的特殊处理
+      if (isNetworkError) {
+        const networkError = new Error(`Telegram API 网络连接失败: ${error.message}`);
+        (networkError as any).isNetworkError = true;
+        (networkError as any).originalError = error;
+        throw networkError;
+      }
+      
       throw error;
     }
   }
@@ -107,7 +115,14 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人名称失败:', error);
-      // 重新抛出错误，保留原始错误信息
+      
+      // 如果是网络错误，返回false而不是抛出错误，允许其他步骤继续
+      if ((error as any).isNetworkError) {
+        console.warn('⚠️ 网络连接问题，跳过名称同步');
+        return false;
+      }
+      
+      // 其他错误（如Token无效）仍然抛出
       throw error;
     }
   }
@@ -154,7 +169,14 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 同步机器人命令失败:', error);
-      // 重新抛出错误，保留原始错误信息
+      
+      // 如果是网络错误，返回false而不是抛出错误，允许其他步骤继续
+      if ((error as any).isNetworkError) {
+        console.warn('⚠️ 网络连接问题，跳过命令同步');
+        return false;
+      }
+      
+      // 其他错误（如Token无效）仍然抛出
       throw error;
     }
   }
@@ -548,6 +570,143 @@ export class SynchronizationService {
       return {
         connected: false,
         error: error instanceof Error ? error.message : '连接失败'
+      };
+    }
+  }
+
+  /**
+   * 检查当前服务器IP是否能访问Telegram API
+   * 不需要具体的机器人token，只检查基础连接
+   */
+  static async checkTelegramApiAccessibility(): Promise<{
+    accessible: boolean;
+    latency?: number;
+    error?: string;
+    ipInfo?: {
+      country?: string;
+      region?: string;
+      isp?: string;
+    };
+    suggestions: string[];
+  }> {
+    const suggestions: string[] = [];
+    
+    try {
+      console.log('🔍 开始检测Telegram API可访问性...');
+      
+      const startTime = Date.now();
+      
+      // 使用一个无效token测试基础连接
+      const testUrl = `${this.TELEGRAM_API_BASE}invalid_test_token/getMe`;
+      console.log(`📡 测试URL: ${testUrl}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+      
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      const latency = Date.now() - startTime;
+      
+      console.log(`📊 收到响应: 状态码=${response.status}, 延迟=${latency}ms`);
+      
+      // 能收到HTTP响应说明基础连接正常
+      // Telegram API可能返回401(token无效)、400(请求错误)、404(端点不存在)等
+      // 这些都表示网络连接正常，只是我们的测试请求有问题
+      if (response.status >= 200 && response.status < 500) {
+        console.log(`✅ Telegram API连接正常 (状态码: ${response.status})`);
+        
+        // 尝试读取响应内容以获取更多信息
+        try {
+          const responseText = await response.text();
+          console.log(`📄 响应内容: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+        } catch (e) {
+          console.log('📄 无法读取响应内容');
+        }
+        
+        // 添加性能建议
+        if (latency > 3000) {
+          suggestions.push('网络延迟较高，建议更换网络环境');
+        } else if (latency > 1000) {
+          suggestions.push('当前网络到Telegram服务器延迟较高');
+        }
+        
+        return {
+          accessible: true,
+          latency,
+          suggestions
+        };
+      } else {
+        // 5xx错误可能是服务器问题，但连接本身是通的
+        if (response.status >= 500) {
+          console.log(`⚠️ Telegram服务器错误 (状态码: ${response.status})，但网络连接正常`);
+          
+          // 即使是服务器错误，网络连接也是正常的
+          return {
+            accessible: true,
+            latency,
+            suggestions: ['Telegram服务器暂时出现问题，但网络连接正常']
+          };
+        }
+        
+        // 其他情况
+        const errorText = await response.text();
+        console.log(`⚠️ 收到意外响应状态: ${response.status}`);
+        
+        suggestions.push(`收到HTTP状态码: ${response.status}`);
+        suggestions.push('这可能表示网络代理或防火墙的干扰');
+        
+        return {
+          accessible: false,
+          error: `HTTP状态码: ${response.status}`,
+          suggestions
+        };
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Telegram API连接检测失败:', error);
+      
+      const errorMessage = error.message || '未知错误';
+      
+      // 根据错误类型给出具体建议
+      if (error.name === 'AbortError' || errorMessage.includes('timeout')) {
+        suggestions.push('请求超时，可能的原因：');
+        suggestions.push('• 当前IP被Telegram限制或屏蔽');
+        suggestions.push('• 网络连接不稳定');
+        suggestions.push('• 防火墙阻止了连接');
+        suggestions.push('建议：更换IP地址或使用VPN/代理');
+      } else if (errorMessage.includes('ECONNRESET') || errorMessage.includes('ECONNREFUSED')) {
+        suggestions.push('连接被重置或拒绝，可能的原因：');
+        suggestions.push('• 当前IP被Telegram屏蔽');
+        suggestions.push('• 网络运营商限制了访问');
+        suggestions.push('• 服务器防火墙设置问题');
+        suggestions.push('建议：立即更换IP地址或联系网络管理员');
+      } else if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
+        suggestions.push('DNS解析失败，可能的原因：');
+        suggestions.push('• DNS服务器问题');
+        suggestions.push('• 网络配置错误');
+        suggestions.push('建议：更换DNS服务器或检查网络设置');
+      } else if (errorMessage.includes('fetch failed')) {
+        suggestions.push('网络请求失败，可能的原因：');
+        suggestions.push('• 当前IP无法访问Telegram API');
+        suggestions.push('• 网络连接问题');
+        suggestions.push('• SSL/TLS证书问题');
+        suggestions.push('建议：更换网络环境或IP地址');
+      } else {
+        suggestions.push('网络连接异常');
+        suggestions.push('建议：检查网络设置或更换IP地址');
+      }
+      
+      return {
+        accessible: false,
+        error: errorMessage,
+        suggestions
       };
     }
   }

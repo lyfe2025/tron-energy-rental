@@ -19,12 +19,13 @@ import {
     switchBotMode,
     syncBotFromTelegram
 } from './handlers/botModeHandler.js';
-import { deleteBot, updateBot } from './handlers/botUpdateHandler.js';
+import { checkTelegramApiConnectivity, deleteBot, updateBot } from './handlers/botUpdateHandler.js';
 
 const router: Router = Router();
 
 // 注册路由 - 保持与原来完全相同的路由结构
 router.post('/verify-token', verifyBotToken);  // Token验证端点（无需认证，用于创建机器人时验证）
+router.get('/telegram-api-connectivity', authenticateToken, checkTelegramApiConnectivity);  // Telegram API连接检测（无需管理员权限）
 router.get('/selector', authenticateToken, getBotsSelector);  // 选择器端点，只需认证
 router.post('/:id/switch-mode', authenticateToken, requireAdmin, switchBotMode);  // 模式切换端点
 router.get('/:id/webhook-status', authenticateToken, requireAdmin, getBotWebhookStatus);  // Webhook状态端点
