@@ -6,7 +6,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { CommandHandler } from '../commands/CommandHandler.js';
 import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import { TelegramBotProcessorRefactored } from '../modules/TelegramBotProcessorRefactored.js';
+import { TelegramBotProcessor } from '../modules/TelegramBotProcessor.js';
 
 /**
  * 扩展现有的 TelegramBotService 以支持新的重构处理器
@@ -14,7 +14,7 @@ import { TelegramBotProcessorRefactored } from '../modules/TelegramBotProcessorR
 export class TelegramBotServiceWithRefactoredProcessor {
   private bot: TelegramBot;
   private botId: string;
-  private processor: TelegramBotProcessorRefactored;
+  private processor: TelegramBotProcessor;
   private commandHandler: CommandHandler;
   private keyboardBuilder: KeyboardBuilder;
   private logger: {
@@ -43,12 +43,17 @@ export class TelegramBotServiceWithRefactoredProcessor {
     this.logger = logger;
 
     // 🔥 关键：使用新的重构处理器，确保传递 botId
-    this.processor = new TelegramBotProcessorRefactored(
-      this.bot,
-      this.botId,  // 📡 确保每个机器人使用自己的 ID
+    this.processor = new TelegramBotProcessor(
       this.commandHandler,
+      null,  // callbackHandler - 需要传入实际的回调处理器
       this.keyboardBuilder,
-      this.logger
+      {
+        sendMessage: (chatId, message, options) => this.bot.sendMessage(chatId, message, options),
+        answerCallbackQuery: (callbackQueryId, options) => this.bot.answerCallbackQuery(callbackQueryId, options)
+      },
+      this.logger,
+      this.bot,
+      this.botId
     );
 
     console.log(`✅ 机器人 ${this.botId} 已初始化重构处理器`);
@@ -95,26 +100,24 @@ export class TelegramBotServiceWithRefactoredProcessor {
   }
 
   /**
-   * 获取处理器统计信息
+   * 获取更新路由器（用于高级操作）
    */
-  getProcessorStats(): any {
-    return this.processor.getDispatcherStats();
+  getUpdateRouter() {
+    return this.processor.getUpdateRouter();
   }
 
   /**
-   * 刷新按钮映射配置
+   * 获取消息处理器（用于直接访问）
    */
-  async refreshButtonMappings(): Promise<void> {
-    await this.processor.refreshButtonMappings();
-    console.log(`🔄 机器人 ${this.botId} 按钮映射已刷新`);
+  getMessageProcessor() {
+    return this.processor.getMessageProcessor();
   }
 
   /**
-   * 动态注册新的回调处理器
+   * 使用新的更新处理方法（推荐）
    */
-  registerCallbackHandler(actionType: string, handler: any): void {
-    this.processor.registerCallbackHandler(actionType, handler);
-    console.log(`📋 机器人 ${this.botId} 已注册处理器: ${actionType}`);
+  async processUpdate(update: any) {
+    return await this.processor.processUpdate(update);
   }
 }
 
@@ -128,7 +131,7 @@ export function integrateRefactoredProcessorIntoExistingService() {
  */
 
 // 1. 在 TelegramBotService 类中添加新的属性
-private refactoredProcessor: TelegramBotProcessorRefactored;
+private refactoredProcessor: TelegramBotProcessor;
 private currentBotId: string;
 
 // 2. 在 createHandlers 方法中保存 botId
@@ -158,15 +161,20 @@ private initializeModules(): void {
   // ... 其他模块初始化 ...
 
   // 🔥 使用新的重构处理器替代旧的处理器
-  this.refactoredProcessor = new TelegramBotProcessorRefactored(
-    this.bot,
-    this.currentBotId,  // 📡 确保传递正确的 botId
+  this.refactoredProcessor = new TelegramBotProcessor(
     this.commandHandler,
+    this.callbackHandler,  // 传入正确的回调处理器
     this.keyboardBuilder,
+    {
+      sendMessage: (chatId, message, options) => this.bot.sendMessage(chatId, message, options),
+      answerCallbackQuery: (callbackQueryId, options) => this.bot.answerCallbackQuery(callbackQueryId, options)
+    },
     {
       logBotActivity: (level, action, message, metadata) => 
         this.logger.logBotActivity(level, action, message, metadata)
-    }
+    },
+    this.bot,
+    this.currentBotId  // 📡 确保传递正确的 botId
   );
 
   // 设置消息处理
