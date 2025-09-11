@@ -85,9 +85,9 @@ import { usePriceConfig } from '../../composables/usePriceConfig'
 import { useToast } from '../../composables/useToast'
 
 // 导入子组件
-import EnergyFlashConfig from './components/EnergyFlashConfig.vue'
-import TransactionPackageConfig from './components/TransactionPackageConfig.vue'
-import TrxExchangeConfig from './components/TrxExchangeConfig.vue'
+import EnergyFlashConfig from './EnergyFlash/index.vue'
+import TransactionPackageConfig from './TransactionPackage/index.vue'
+import TrxExchangeConfig from './TrxExchange/index.vue'
 
 // 保持所有原有逻辑不变
 const {
