@@ -417,19 +417,23 @@ const getDependentButtons = (): number => {
 }
 
 // 监听配置变化，同步到父组件
-// 暂时禁用deep watcher，避免递归更新
-// watch(
-//   () => keyboardConfig,
-//   (newConfig) => {
-//     emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
-//   },
-//   { deep: true }
-// )
+let isUpdatingFromParent = false
+
+watch(
+  () => keyboardConfig,
+  (newConfig) => {
+    if (!isUpdatingFromParent) {
+      emit('update:modelValue', JSON.parse(JSON.stringify(newConfig)))
+    }
+  },
+  { deep: true }
+)
 
 // 监听外部数据变化
 watch(
   () => props.modelValue,
   (newValue) => {
+    isUpdatingFromParent = true
     if (newValue) {
       // 深度合并数据，特别处理数组类型
       if (newValue.main_menu) {
@@ -449,12 +453,17 @@ watch(
         keyboardConfig.quick_actions = newValue.quick_actions
       }
     }
+    // 使用nextTick确保更新完成后再重置标志
+    setTimeout(() => {
+      isUpdatingFromParent = false
+    }, 0)
   },
   { deep: true, immediate: true }
 )
 
 // 组件挂载时初始化数据
 onMounted(() => {
+  isUpdatingFromParent = true
   if (props.modelValue) {
     // 深度合并数据，特别处理数组类型
     if (props.modelValue.main_menu) {
@@ -475,8 +484,10 @@ onMounted(() => {
     }
   }
   
-  // 移除自动emit，避免递归更新
-  // emit('update:modelValue', JSON.parse(JSON.stringify(keyboardConfig)))
+  // 初始化完成后重置标志
+  setTimeout(() => {
+    isUpdatingFromParent = false
+  }, 0)
 })
 </script>
 

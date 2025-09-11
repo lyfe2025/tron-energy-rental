@@ -367,7 +367,7 @@ const handleUpdateBot = async (data: any) => {
       menu_type: data.menu_type || 'commands',
       web_app_url: data.web_app_url,
       menu_commands: data.menu_commands || [],
-      keyboard_config: data.keyboard_config && Object.keys(data.keyboard_config).length > 0 ? data.keyboard_config : null,
+      keyboard_config: data.keyboard_config || null,
       is_active: data.is_active
     }
     

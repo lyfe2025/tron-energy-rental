@@ -11,7 +11,7 @@
           手动同步到Telegram
         </h3>
         <button
-          @click="handleClose"
+          @click="handleXButtonClick"
           class="text-gray-400 hover:text-gray-600 transition-colors"
         >
           <X class="w-6 h-6" />
@@ -322,7 +322,7 @@
           <button
             v-if="!syncing && !syncResult"
             type="button"
-            @click="handleClose"
+            @click="handleCancel"
             class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             取消
@@ -589,15 +589,39 @@ const handleRetry = () => {
   handleStartSync()
 }
 
-// 关闭对话框
+// 取消操作 - 不触发成功事件
+const handleCancel = () => {
+  emit('update:modelValue', false)
+  
+  // 延迟重置状态
+  setTimeout(() => {
+    resetState()
+  }, 100)
+}
+
+// 关闭对话框 - 只有在同步完成后才触发成功事件
 const handleClose = () => {
   emit('update:modelValue', false)
-  emit('sync-success', syncResult.value)
+  
+  // 只有当同步结果存在时才触发成功事件
+  if (syncResult.value) {
+    emit('sync-success', syncResult.value)
+  }
   
   // 延迟重置状态，确保用户能看到最终结果
   setTimeout(() => {
     resetState()
   }, 100)
+}
+
+// 处理X按钮点击
+const handleXButtonClick = () => {
+  // 如果有同步结果，调用关闭；否则调用取消
+  if (syncResult.value) {
+    handleClose()
+  } else {
+    handleCancel()
+  }
 }
 
 // 监听对话框打开，重置状态
