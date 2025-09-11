@@ -19,7 +19,7 @@ import {
     switchBotMode,
     syncBotFromTelegram
 } from './handlers/botModeHandler.js';
-import { checkTelegramApiConnectivity, deleteBot, updateBot } from './handlers/botUpdateHandler.js';
+import { checkTelegramApiConnectivity, deleteBot, restoreBot, updateBot } from './handlers/botUpdateHandler.js';
 
 const router: Router = Router();
 
@@ -36,5 +36,6 @@ router.get('/:id', authenticateToken, requireAdmin, getBotDetails);
 router.post('/', authenticateToken, requireAdmin, createBot);
 router.put('/:id', authenticateToken, requireAdmin, updateBot);
 router.delete('/:id', authenticateToken, requireAdmin, deleteBot);
+router.post('/:id/restore', authenticateToken, requireAdmin, restoreBot);
 
 export default router;

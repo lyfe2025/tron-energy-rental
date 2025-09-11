@@ -54,7 +54,9 @@ export class BotCreateHandler {
         shortDescription: configs.shortDescription,
         commands: configs.menuCommands,
         workMode: data.work_mode || 'polling',
-        webhookUrl: data.webhook_url
+        webhookUrl: data.webhook_url,
+        menuButton: (configs.keyboardConfig as any)?.menuButton,
+        priceConfig: data.price_config
       });
 
       // 检查网络设置是否有严重错误
@@ -195,8 +197,8 @@ export class BotCreateHandler {
    */
   static async getDefaultConfigs(req: Request, res: Response): Promise<void> {
     try {
-      const { network_id = 1, variant = 'full' } = req.query;
-      const networkId = parseInt(String(network_id));
+      const { network_id = '07e9d3d0-8431-41b0-b96b-ab94d5d55a63', variant = 'full' } = req.query;
+      const networkId = String(network_id);
 
       // 生成默认配置
       const keyboardConfig = ConfigProcessor.generateDefaultKeyboardConfig(networkId);
@@ -242,8 +244,7 @@ export class BotCreateHandler {
 
       // 检查配置冲突
       const conflicts = ConfigProcessor.checkConfigConflicts(
-        configs.keyboardConfig,
-        configs.priceConfig
+        configs.keyboardConfig
       );
 
       // 计算复杂度
@@ -286,10 +287,16 @@ export class BotCreateHandler {
       ? CreateUtils.generateWebhookSecret()
       : body.webhook_secret;
 
-    // 如果是webhook模式但没有提供URL，生成默认URL
+    // 处理Webhook URL
     let webhookUrl = body.webhook_url;
-    if (body.work_mode === 'webhook' && !webhookUrl && process.env.WEBHOOK_BASE_URL) {
-      webhookUrl = CreateUtils.generateWebhookUrl(process.env.WEBHOOK_BASE_URL, token);
+    if (body.work_mode === 'webhook') {
+      if (!webhookUrl && process.env.WEBHOOK_BASE_URL) {
+        // 如果没有提供URL但有环境变量，生成默认URL
+        webhookUrl = CreateUtils.generateWebhookUrl(process.env.WEBHOOK_BASE_URL, username);
+      } else if (webhookUrl && !webhookUrl.includes(`/${username}`)) {
+        // 如果提供了URL但不包含username，添加username
+        webhookUrl = CreateUtils.generateWebhookUrl(webhookUrl, username);
+      }
     }
 
     return {
@@ -301,7 +308,7 @@ export class BotCreateHandler {
       work_mode: body.work_mode || 'polling',
       webhook_url: webhookUrl || null,
       webhook_secret: webhookSecret || null,
-      network_id: body.network_id || 1,
+      network_id: body.network_id || '07e9d3d0-8431-41b0-b96b-ab94d5d55a63', // 默认使用TRON Mainnet
       keyboard_config: body.keyboard_config || null,
       price_config: body.price_config || null,
       menu_commands: body.menu_commands || null,

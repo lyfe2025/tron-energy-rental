@@ -140,7 +140,7 @@ private createHandlers(bot: TelegramBot, botId: string): {
 } {
   this.currentBotId = botId; // 🔥 保存当前机器人 ID
   
-  this.commandHandler = new CommandHandler(bot);
+  this.commandHandler = new CommandHandler({ bot, botId });
   this.callbackHandler = new CallbackHandler(bot);
   this.keyboardBuilder = new KeyboardBuilder(bot, botId);
   this.botUtils = new BotUtils(bot);

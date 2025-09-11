@@ -26,7 +26,7 @@
           placeholder="https://your-domain.com/api/telegram/webhook （路径固定，不可修改）"
         />
         <div class="absolute inset-y-0 right-0 flex items-center px-3 text-xs text-gray-500 bg-gray-50 rounded-r-lg border-l">
-          /机器人ID
+          /bot_username
         </div>
       </div>
       <div class="mt-2 space-y-2">
@@ -34,7 +34,7 @@
         <div class="p-2 bg-blue-50 border border-blue-200 rounded-lg">
           <div class="flex items-center justify-between">
             <div class="text-xs text-blue-700 flex items-center gap-2">
-              <span>🔧 仅域名可自定义 • 路径必须是 /api/telegram/webhook • 系统自动添加机器人ID</span>
+              <span>🔧 仅域名可自定义 • 路径必须是 /api/telegram/webhook • 系统自动添加机器人用户名</span>
             </div>
             <button
               type="button"
@@ -54,9 +54,9 @@
             <h5 class="text-sm font-medium text-purple-800 mb-2">📐 URL格式要求</h5>
             <div class="text-xs text-purple-700 space-y-2">
               <div class="font-medium">标准格式：</div>
-              <div class="bg-white p-2 rounded border font-mono text-xs">
-                <span class="text-green-600">https://您的域名.com</span><span class="text-red-600">/api/telegram/webhook</span><span class="text-blue-600">/机器人ID</span>
-              </div>
+                  <div class="bg-white p-2 rounded border font-mono text-xs">
+                    <span class="text-green-600">https://您的域名.com</span><span class="text-red-600">/api/telegram/webhook</span><span class="text-blue-600">/bot_username</span>
+                  </div>
               <div class="grid grid-cols-1 gap-2">
                 <div class="flex items-start gap-2">
                   <span class="text-green-600 font-medium">✅ 可自定义部分：</span>
@@ -70,7 +70,7 @@
                   <span class="text-red-600 font-medium">❌ 固定不可变：</span>
                   <div class="flex-1">
                     <div>• API路径：必须是 /api/telegram/webhook</div>
-                    <div>• 机器人ID：系统自动添加，不可手动指定</div>
+                    <div>• 机器人用户名：系统自动添加，不可手动指定</div>
                   </div>
                 </div>
               </div>
@@ -85,7 +85,7 @@
                 <div class="font-medium">正确示例：</div>
                 <div class="bg-white p-2 rounded border space-y-1 font-mono text-xs">
                   <div><span class="text-gray-500">您输入：</span> https://your-domain.com/api/telegram/webhook</div>
-                  <div><span class="text-gray-500">系统生成：</span> https://your-domain.com/api/telegram/webhook/<span class="text-blue-600">abc123-def456</span></div>
+                  <div><span class="text-gray-500">系统生成：</span> https://your-domain.com/api/telegram/webhook/<span class="text-blue-600">your_bot_username</span></div>
                 </div>
               </div>
               <div class="space-y-1">
@@ -103,9 +103,9 @@
           <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <h5 class="text-sm font-medium text-blue-800 mb-2">🔧 URL自动处理机制</h5>
             <div class="text-xs text-blue-700 space-y-1">
-              <p>• <strong>您只需填写基础URL</strong>：系统会自动添加机器人ID避免冲突</p>
+              <p>• <strong>您只需填写基础URL</strong>：系统会自动添加机器人用户名避免冲突</p>
               <p>• <strong>防止多机器人冲突</strong>：每个机器人都有独立的接收地址</p>
-              <p>• <strong>无需手动管理ID</strong>：创建后系统自动生成最终URL</p>
+              <p>• <strong>无需手动管理</strong>：创建后系统自动生成最终URL</p>
               <p>• <strong>路由自动识别</strong>：消息自动路由到对应的机器人实例</p>
             </div>
           </div>
@@ -347,6 +347,7 @@ interface WebhookConfig {
 
 interface BotData {
   id?: string
+  username?: string
   work_mode?: 'polling' | 'webhook'
 }
 
@@ -355,6 +356,7 @@ interface Props {
   workMode: 'polling' | 'webhook'
   mode?: 'create' | 'edit'
   botData?: BotData | null
+  botUsername?: string  // 在创建模式下传递的用户名
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -394,26 +396,34 @@ const finalWebhookUrl = computed(() => {
   
   const cleanBaseUrl = baseUrl.replace(/\/+$/, '') // 移除末尾斜杠
   
-  if (props.mode === 'edit' && props.botData?.id) {
-    // 编辑模式：使用实际的机器人ID
-    return `${cleanBaseUrl}/${props.botData.id}`
+  if (props.mode === 'edit' && props.botData?.username) {
+    // 编辑模式：使用实际的机器人用户名
+    return `${cleanBaseUrl}/${props.botData.username}`
+  } else if (props.mode === 'create' && props.botUsername) {
+    // 创建模式：使用传入的用户名
+    return `${cleanBaseUrl}/${props.botUsername}`
   } else {
-    // 创建模式：显示示例ID
-    return `${cleanBaseUrl}/[机器人ID将在创建后自动生成]`
+    // 默认显示示例
+    return `${cleanBaseUrl}/[机器人用户名]`
   }
 })
 
-// 从完整URL中提取基础URL（移除机器人ID部分）
+// 从完整URL中提取基础URL（移除机器人用户名部分）
 const extractBaseUrl = (fullUrl: string) => {
   if (!fullUrl) return ''
   
-  // 如果URL以机器人ID结尾，则移除它
+  // 如果URL以机器人用户名结尾，则移除它
+  if (props.botData?.username && fullUrl.endsWith(`/${props.botData.username}`)) {
+    return fullUrl.replace(`/${props.botData.username}`, '')
+  }
+  
+  // 兼容旧的ID格式（如果没有username但有ID）
   if (props.botData?.id && fullUrl.endsWith(`/${props.botData.id}`)) {
     return fullUrl.replace(`/${props.botData.id}`, '')
   }
   
-  // 否则直接返回
-  return fullUrl
+  // 移除所有可能的后缀（包括UUID格式）
+  return fullUrl.replace(/\/[a-f0-9\-]{36}$/, '').replace(/\/[a-zA-Z0-9_]+$/, '')
 }
 
 // 更新字段值

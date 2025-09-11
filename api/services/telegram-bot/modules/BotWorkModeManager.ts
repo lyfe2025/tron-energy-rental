@@ -93,7 +93,7 @@ export class BotWorkModeManager {
       }
       
       // 重新初始化处理器
-      const commandHandler = new CommandHandler(bot);
+      const commandHandler = new CommandHandler({ bot, botId });
       const callbackHandler = new CallbackHandler(bot);
       const keyboardBuilder = new KeyboardBuilder(bot, botId || 'unknown');
       const botUtils = new BotUtils(bot);

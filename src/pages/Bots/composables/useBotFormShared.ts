@@ -164,23 +164,40 @@ export const getDefaultFormData = (mode: 'create' | 'edit' = 'create'): BotFormD
   webhook_url: '',
   webhook_secret: '',
   max_connections: 40,
-  welcome_message: mode === 'create' ? `欢迎使用TRON能量租赁机器人！
+  welcome_message: mode === 'create' ? `🎉 欢迎使用TRON能量租赁机器人！
 
-🎯 我们提供：
-⚡ 能量闪租 - 快速获取能量
-🔥 笔数套餐 - 批量交易优惠  
-🔄 TRX闪兑 - 便捷兑换服务
+👋 你好，{first_name}！
 
-点击下方按钮开始使用👇` : '',
-  help_message: mode === 'create' ? `📋 使用帮助
+🔋 我们提供快速、安全的TRON能量租赁服务：
+• 💰 超低价格，性价比最高
+• ⚡ 秒级到账，即买即用
+• 🛡️ 安全可靠，无需私钥
+• 🎯 多种套餐，满足不同需求
 
-🔹 /start - 显示主菜单
-🔹 /help - 显示此帮助信息
-🔹 /balance - 查询账户余额
-🔹 /orders - 查看我的订单
+📱 使用 /menu 查看主菜单
+❓ 使用 /help 获取帮助` : '',
+  help_message: mode === 'create' ? `📖 TRON能量租赁机器人使用指南
 
-❓ 遇到问题？
-联系客服：@support` : '',
+🤖 基础命令：
+• /start - 启动机器人
+• /menu - 显示主菜单
+• /help - 显示帮助信息
+• /balance - 查询账户余额
+• /orders - 查看订单历史
+
+🔋 能量租赁流程：
+1️⃣ 选择能量套餐
+2️⃣ 输入接收地址
+3️⃣ 确认订单信息
+4️⃣ 完成支付
+5️⃣ 等待能量到账
+
+💡 注意事项：
+• 请确保TRON地址正确
+• 支付后请耐心等待确认
+• 能量有效期为24小时
+
+🆘 如需帮助，请联系客服` : '',
   custom_commands: [],
   menu_button_enabled: false,
   menu_button_text: '菜单',

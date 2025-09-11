@@ -2,7 +2,7 @@
  * 创建工具类
  * 提供机器人创建过程中的辅助功能
  */
-import type { CreateBotData, Bot } from '../../../types.js';
+import type { Bot, CreateBotData } from '../../../types.js';
 
 export class CreateUtils {
   /**
@@ -73,6 +73,14 @@ export class CreateUtils {
    * 创建成功响应
    */
   static createSuccessResponse(bot: Bot, networkSetupResult?: any): object {
+    // 构建同步状态结果，前端可以直接使用
+    const syncResult = networkSetupResult ? {
+      success: networkSetupResult.success,
+      results: networkSetupResult.results,
+      errors: networkSetupResult.errors || [],
+      summary: `机器人创建${networkSetupResult.success ? '成功' : '完成但部分功能同步失败'}`,
+    } : null;
+
     return {
       success: true,
       message: '机器人创建成功',
@@ -85,7 +93,8 @@ export class CreateUtils {
           work_mode: bot.work_mode,
           created_at: bot.created_at
         },
-        network_setup: networkSetupResult || null
+        network_setup: networkSetupResult || null,
+        sync_result: syncResult
       }
     };
   }
@@ -127,16 +136,24 @@ export class CreateUtils {
 
   /**
    * 生成默认Webhook URL
+   * 现在使用 bot_username 而不是 ID
    */
-  static generateWebhookUrl(baseUrl: string, botToken: string): string {
-    const botId = this.parseBotIdFromToken(botToken);
-    if (!botId) {
-      throw new Error('无效的Bot Token');
+  static generateWebhookUrl(baseUrl: string, botUsername: string): string {
+    if (!botUsername) {
+      throw new Error('无效的Bot Username');
     }
     
     // 移除末尾的斜杠
-    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-    return `${cleanBaseUrl}/api/webhook/telegram/${botId}`;
+    let cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    
+    // 检查URL是否已经包含 /api/telegram/webhook 路径
+    if (cleanBaseUrl.includes('/api/telegram/webhook')) {
+      // 如果已经包含路径，只添加用户名
+      return `${cleanBaseUrl}/${botUsername}`;
+    } else {
+      // 如果不包含路径，添加完整路径和用户名
+      return `${cleanBaseUrl}/api/telegram/webhook/${botUsername}`;
+    }
   }
 
   /**

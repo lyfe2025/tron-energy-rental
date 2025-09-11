@@ -100,10 +100,7 @@ export class ModuleManager {
       const commandHandler = await this.createModule('commandHandler', CommandHandler, 
         ['botLogger', 'botConfigManager', 'keyboardBuilder'], {
           bot: this.bot,
-          config: this.config,
-          logger: botLogger,
-          configManager: botConfigManager,
-          keyboardBuilder: keyboardBuilder
+          botId: this.config.botId
         }
       );
 

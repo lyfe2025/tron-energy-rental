@@ -12,11 +12,13 @@ export class CommandHandler {
   private bot: TelegramBot;
   private userService: UserService;
   private orderService: typeof orderService;
+  private botId?: string;
 
-  constructor(params: { bot: TelegramBot } | TelegramBot) {
+  constructor(params: { bot: TelegramBot; botId?: string } | TelegramBot) {
     // Handle both old style (direct bot) and new style (params object)
     if (params && typeof params === 'object' && 'bot' in params) {
       this.bot = params.bot;
+      this.botId = params.botId;
     } else {
       this.bot = params as TelegramBot;
     }
@@ -25,13 +27,35 @@ export class CommandHandler {
   }
 
   /**
-   * 获取活跃机器人配置
+   * 替换消息中的用户占位符
    */
-  private async getActiveBotConfig(): Promise<any> {
+  private replacePlaceholders(message: string, telegramUser: TelegramBot.User): string {
+    return message
+      .replace(/{first_name}/g, telegramUser.first_name || '用户')
+      .replace(/{last_name}/g, telegramUser.last_name || '')
+      .replace(/{username}/g, telegramUser.username || '')
+      .replace(/{full_name}/g, `${telegramUser.first_name || ''}${telegramUser.last_name ? ' ' + telegramUser.last_name : ''}`.trim() || '用户');
+  }
+
+  /**
+   * 获取当前机器人配置
+   */
+  private async getBotConfig(): Promise<any> {
     try {
-      const result = await query(
-        'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE is_active = true ORDER BY created_at DESC LIMIT 1'
-      );
+      let result;
+      
+      if (this.botId) {
+        // 优先使用机器人ID获取特定机器人的配置
+        result = await query(
+          'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
+          [this.botId]
+        );
+      } else {
+        // 兼容模式：如果没有机器人ID，获取任意一个活跃机器人的配置
+        result = await query(
+          'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE is_active = true AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1'
+        );
+      }
       
       if (result.rows.length > 0) {
         return result.rows[0];
@@ -66,10 +90,10 @@ export class CommandHandler {
       });
 
       // 获取机器人配置
-      const botConfig = await this.getActiveBotConfig();
+      const botConfig = await this.getBotConfig();
       
       // 使用配置的欢迎消息，如果没有配置则使用默认消息
-      let welcomeMessage = botConfig?.welcome_message || `🎉 欢迎使用TRON能量租赁机器人！
+      let welcomeMessage = `🎉 欢迎使用TRON能量租赁机器人！
 
 👋 你好，${telegramUser.first_name}！
 
@@ -82,8 +106,13 @@ export class CommandHandler {
 📱 使用 /menu 查看主菜单
 ❓ 使用 /help 获取帮助`;
 
-      // 替换用户名占位符
-      welcomeMessage = welcomeMessage.replace('{first_name}', telegramUser.first_name || '用户');
+      // 如果机器人配置了自定义欢迎消息，则使用自定义消息
+      if (botConfig?.welcome_message && botConfig.welcome_message.trim()) {
+        welcomeMessage = botConfig.welcome_message;
+      }
+
+      // 替换用户占位符
+      welcomeMessage = this.replacePlaceholders(welcomeMessage, telegramUser);
 
       // 构建键盘（内嵌键盘或回复键盘）
       let messageOptions: any = {};
@@ -150,7 +179,7 @@ export class CommandHandler {
     
     try {
       // 获取机器人配置
-      const botConfig = await this.getActiveBotConfig();
+      const botConfig = await this.getBotConfig();
       
       let menuMessage = '📱 TRON能量租赁主菜单\n\n请选择您需要的服务：';
       let messageOptions: any = {};
@@ -212,13 +241,19 @@ export class CommandHandler {
    */
   async handleHelpCommand(msg: TelegramBot.Message): Promise<void> {
     const chatId = msg.chat.id;
+    const telegramUser = msg.from;
+    
+    if (!telegramUser) {
+      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息。');
+      return;
+    }
     
     try {
       // 获取机器人配置
-      const botConfig = await this.getActiveBotConfig();
+      const botConfig = await this.getBotConfig();
       
       // 使用配置的帮助消息，如果没有配置则使用默认消息
-      const helpMessage = botConfig?.help_message || `📖 TRON能量租赁机器人使用指南
+      let helpMessage = `📖 TRON能量租赁机器人使用指南
 
 🤖 基础命令：
 • /start - 启动机器人
@@ -240,6 +275,14 @@ export class CommandHandler {
 • 能量有效期为24小时
 
 🆘 如需帮助，请联系客服`;
+
+      // 如果机器人配置了自定义帮助消息，则使用自定义消息
+      if (botConfig?.help_message && botConfig.help_message.trim()) {
+        helpMessage = botConfig.help_message;
+      }
+
+      // 替换用户占位符
+      helpMessage = this.replacePlaceholders(helpMessage, telegramUser);
 
       await this.bot.sendMessage(chatId, helpMessage);
     } catch (error) {

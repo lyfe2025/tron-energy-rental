@@ -175,6 +175,42 @@ export class NetworkSetup {
   }
 
   /**
+   * 验证价格配置
+   */
+  static async validatePriceConfig(priceConfig?: any): Promise<boolean> {
+    try {
+      if (!priceConfig) {
+        console.log('价格配置为空，跳过验证');
+        return true; // 空配置也算成功
+      }
+      
+      // 基本价格配置验证
+      if (typeof priceConfig !== 'object') {
+        throw new Error('价格配置格式无效');
+      }
+      
+      // 如果有租赁价格配置，验证格式
+      if (priceConfig.rental_prices) {
+        if (!Array.isArray(priceConfig.rental_prices)) {
+          throw new Error('租赁价格配置格式无效');
+        }
+        
+        for (const price of priceConfig.rental_prices) {
+          if (!price.amount || !price.price || price.amount <= 0 || price.price <= 0) {
+            throw new Error('租赁价格配置数值无效');
+          }
+        }
+      }
+      
+      console.log('价格配置验证通过');
+      return true;
+    } catch (error) {
+      console.error('价格配置验证失败:', error);
+      throw new Error(`价格配置验证失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }
+
+  /**
    * 综合设置机器人所有网络配置
    */
   static async setupBotNetwork(
@@ -187,6 +223,7 @@ export class NetworkSetup {
       workMode: string;
       webhookUrl?: string;
       menuButton?: any;
+      priceConfig?: any;
     }
   ): Promise<{
     success: boolean;
@@ -197,6 +234,7 @@ export class NetworkSetup {
       commands: boolean;
       webhook: boolean;
       menuButton: boolean;
+      priceConfig: boolean;
     };
     errors: string[];
   }> {
@@ -206,7 +244,8 @@ export class NetworkSetup {
       shortDescription: false,
       commands: false,
       webhook: false,
-      menuButton: false
+      menuButton: false,
+      priceConfig: false
     };
     const errors: string[] = [];
 
@@ -256,6 +295,13 @@ export class NetworkSetup {
       results.menuButton = await this.setMenuButton(token, config.menuButton);
     } catch (error) {
       errors.push(`设置菜单按钮失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+
+    // 7. 验证价格配置
+    try {
+      results.priceConfig = await this.validatePriceConfig(config.priceConfig);
+    } catch (error) {
+      errors.push(`验证价格配置失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
 
     const success = Object.values(results).every(result => result === true);

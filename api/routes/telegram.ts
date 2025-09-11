@@ -5,15 +5,15 @@ const router: Router = Router();
 
 /**
  * 多机器人 Webhook 路由
- * 支持特定机器人的 Webhook 处理
+ * 支持特定机器人的 Webhook 处理 - 使用 bot_username 而不是 ID
  */
-router.post('/webhook/:botId', async (req, res) => {
+router.post('/webhook/:botUsername', async (req, res) => {
   try {
-    const { botId } = req.params;
+    const { botUsername } = req.params;
     const update = req.body;
     
     console.log('🔄 Received multi-bot webhook update:', { 
-      botId,
+      botUsername,
       updateId: update.update_id,
       hasMessage: !!update.message,
       hasCallback: !!update.callback_query
@@ -28,11 +28,11 @@ router.post('/webhook/:botId', async (req, res) => {
         // 等待多机器人管理器初始化
         await multiBotManager.waitForInitialization();
         
-        // 获取指定的机器人实例
-        const botInstance = multiBotManager.getBotInstance(botId);
+        // 根据 bot_username 获取机器人实例
+        const botInstance = multiBotManager.getBotInstanceByUsername(botUsername);
         
         if (!botInstance) {
-          console.warn(`⚠️ 未找到机器人实例: ${botId}`);
+          console.warn(`⚠️ 未找到机器人实例: ${botUsername}`);
           return;
         }
         
@@ -44,20 +44,20 @@ router.post('/webhook/:botId', async (req, res) => {
         // 使用指定机器人处理消息
         await botInstance.service.processWebhookUpdate(update);
         
-        console.log(`✅ Webhook消息已处理: 机器人 ${botInstance.name}`);
+        console.log(`✅ Webhook消息已处理: 机器人 ${botInstance.name} (@${botUsername})`);
         
       } catch (processingError) {
-        console.error(`❌ 机器人 ${botId} Webhook消息处理失败:`, processingError);
+        console.error(`❌ 机器人 ${botUsername} Webhook消息处理失败:`, processingError);
         
         // 记录处理失败日志到多机器人管理器
         if (multiBotManager) {
-          const botInstance = multiBotManager.getBotInstance(botId);
+          const botInstance = multiBotManager.getBotInstanceByUsername(botUsername);
           if (botInstance) {
             await botInstance.service.logBotActivity(
               'error', 
               'webhook_processing_failed', 
               `Webhook消息处理失败: ${processingError.message}`,
-              { error: processingError.stack, update, botId }
+              { error: processingError.stack, update, botUsername }
             );
           }
         }

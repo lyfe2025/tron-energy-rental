@@ -11,28 +11,102 @@ export class InitializationService {
    */
   static async createBotRecord(data: CreateBotData, config: {
     keyboardConfig: object;
-    priceConfig: object;
     description: string;
     shortDescription: string;
   }): Promise<Bot> {
     try {
+      // 获取网络配置信息
+      const networkId = data.network_id || '07e9d3d0-8431-41b0-b96b-ab94d5d55a63';
+      const networkResult = await query('SELECT * FROM tron_networks WHERE id = $1', [networkId]);
+      
+      if (networkResult.rows.length === 0) {
+        throw new Error(`网络配置不存在: ${networkId}`);
+      }
+      
+      const networkConfig = networkResult.rows[0];
+      
+      // 构建网络配置数组
+      const networkConfigurations = [{
+        id: networkConfig.id,
+        network_id: networkConfig.id,
+        network_name: networkConfig.name,
+        network_type: networkConfig.network_type,
+        rpc_url: networkConfig.rpc_url,
+        is_active: networkConfig.is_active,
+        is_primary: true, // 默认网络设为主网络
+        priority: 1,
+        config: networkConfig.config || {},
+        api_settings: {
+          api_key: networkConfig.api_key,
+          timeout: networkConfig.timeout_ms || 30000,
+          retry_count: networkConfig.retry_count || 3
+        },
+        contract_addresses: (networkConfig.config && networkConfig.config.contract_addresses) || {},
+        gas_settings: (networkConfig.config && networkConfig.config.gas_settings) || {},
+        monitoring_settings: {
+          enabled: true,
+          check_interval: 60000
+        },
+        sync_status: 'success',
+        error_count: 0
+      }];
+
+      // 定义默认消息
+      const defaultWelcomeMessage = `🎉 欢迎使用TRON能量租赁机器人！
+
+👋 你好，{first_name}！
+
+🔋 我们提供快速、安全的TRON能量租赁服务：
+• 💰 超低价格，性价比最高
+• ⚡ 秒级到账，即买即用
+• 🛡️ 安全可靠，无需私钥
+• 🎯 多种套餐，满足不同需求
+
+📱 使用 /menu 查看主菜单
+❓ 使用 /help 获取帮助`;
+
+      const defaultHelpMessage = `📖 TRON能量租赁机器人使用指南
+
+🤖 基础命令：
+• /start - 启动机器人
+• /menu - 显示主菜单
+• /help - 显示帮助信息
+• /balance - 查询账户余额
+• /orders - 查看订单历史
+
+🔋 能量租赁流程：
+1️⃣ 选择能量套餐
+2️⃣ 输入接收地址
+3️⃣ 确认订单信息
+4️⃣ 完成支付
+5️⃣ 等待能量到账
+
+💡 注意事项：
+• 请确保TRON地址正确
+• 支付后请耐心等待确认
+• 能量有效期为24小时
+
+🆘 如需帮助，请联系客服`;
+
       const result = await query(
         `INSERT INTO telegram_bots (
-          name, 
+          bot_name, 
           bot_username, 
           bot_token, 
           description,
           short_description,
+          welcome_message,
+          help_message,
           is_active, 
           work_mode, 
           webhook_url,
           webhook_secret,
           keyboard_config,
-          price_config,
           network_id,
+          network_configurations,
           created_at,
           updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW()) 
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW()) 
         RETURNING *`,
         [
           data.name,
@@ -40,13 +114,15 @@ export class InitializationService {
           data.token,
           config.description,
           config.shortDescription,
+          data.welcome_message || defaultWelcomeMessage,
+          data.help_message || defaultHelpMessage,
           true, // is_active
           data.work_mode || 'polling',
           data.webhook_url || null,
           data.webhook_secret || null,
           JSON.stringify(config.keyboardConfig),
-          JSON.stringify(config.priceConfig),
-          data.network_id || 1
+          networkId,
+          JSON.stringify(networkConfigurations)
         ]
       );
 
@@ -55,7 +131,7 @@ export class InitializationService {
       }
 
       const bot = result.rows[0];
-      console.log(`机器人记录创建成功，ID: ${bot.id}`);
+      console.log(`机器人记录创建成功，ID: ${bot.id}，已设置网络配置: ${networkConfig.name}`);
       return bot;
     } catch (error) {
       console.error('创建机器人记录失败:', error);
@@ -68,25 +144,11 @@ export class InitializationService {
    */
   static async saveMenuCommands(botId: string | number, commands: any[]): Promise<void> {
     try {
-      // 删除现有命令
-      await query('DELETE FROM telegram_bot_commands WHERE bot_id = $1', [botId]);
-
-      // 插入新命令
-      if (commands.length > 0) {
-        const values = commands.map((cmd, index) => 
-          `($1, $${index * 3 + 2}, $${index * 3 + 3}, $${index * 3 + 4})`
-        ).join(', ');
-
-        const params = [botId];
-        commands.forEach(cmd => {
-          params.push(cmd.command, cmd.description, cmd.scope || 'default');
-        });
-
-        await query(
-          `INSERT INTO telegram_bot_commands (bot_id, command, description, scope) VALUES ${values}`,
-          params
-        );
-      }
+      // 直接更新 telegram_bots 表中的 menu_commands 字段
+      await query(
+        'UPDATE telegram_bots SET menu_commands = $1 WHERE id = $2',
+        [JSON.stringify(commands), botId]
+      );
 
       console.log(`机器人 ${botId} 菜单命令保存成功，共 ${commands.length} 个命令`);
     } catch (error) {
@@ -100,31 +162,11 @@ export class InitializationService {
    */
   static async saveCustomCommands(botId: string | number, commands: any[]): Promise<void> {
     try {
-      // 删除现有自定义命令
-      await query('DELETE FROM telegram_bot_custom_commands WHERE bot_id = $1', [botId]);
-
-      // 插入新的自定义命令
-      if (commands.length > 0) {
-        const values = commands.map((_, index) => 
-          `($1, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4}, $${index * 4 + 5})`
-        ).join(', ');
-
-        const params = [botId];
-        commands.forEach(cmd => {
-          params.push(
-            cmd.command,
-            cmd.response_message,
-            cmd.response_type || 'text',
-            cmd.keyboard_config ? JSON.stringify(cmd.keyboard_config) : null
-          );
-        });
-
-        await query(
-          `INSERT INTO telegram_bot_custom_commands (bot_id, command, response_message, response_type, keyboard_config) 
-           VALUES ${values}`,
-          params
-        );
-      }
+      // 直接更新 telegram_bots 表中的 custom_commands 字段
+      await query(
+        'UPDATE telegram_bots SET custom_commands = $1 WHERE id = $2',
+        [JSON.stringify(commands), botId]
+      );
 
       console.log(`机器人 ${botId} 自定义命令保存成功，共 ${commands.length} 个命令`);
     } catch (error) {
@@ -168,30 +210,20 @@ export class InitializationService {
    */
   static async createWorkModeConfig(botId: string | number, workMode: string, webhookUrl?: string): Promise<void> {
     try {
-      const configData = {
-        mode: workMode,
-        webhook_url: webhookUrl || null,
-        polling_interval: workMode === 'polling' ? 2000 : null,
-        webhook_max_connections: workMode === 'webhook' ? 40 : null,
-        allowed_updates: ['message', 'callback_query', 'inline_query']
-      };
-
+      // 更新 telegram_bots 表中的工作模式相关字段
       await query(
-        `INSERT INTO telegram_bot_work_modes (
-          bot_id,
-          mode,
-          config,
-          is_active,
-          created_at,
-          updated_at
-        ) VALUES ($1, $2, $3, true, NOW(), NOW())
-        ON CONFLICT (bot_id) 
-        DO UPDATE SET 
-          mode = EXCLUDED.mode,
-          config = EXCLUDED.config,
-          is_active = EXCLUDED.is_active,
-          updated_at = NOW()`,
-        [botId, workMode, JSON.stringify(configData)]
+        `UPDATE telegram_bots SET 
+          work_mode = $1,
+          webhook_url = $2,
+          max_connections = $3,
+          updated_at = NOW()
+        WHERE id = $4`,
+        [
+          workMode,
+          webhookUrl || null,
+          workMode === 'webhook' ? 40 : null,
+          botId
+        ]
       );
 
       console.log(`机器人 ${botId} 工作模式配置创建成功: ${workMode}`);
@@ -213,7 +245,7 @@ export class InitializationService {
           name: data.name,
           username: data.username,
           work_mode: data.work_mode || 'polling',
-          network_id: data.network_id || 1,
+          network_id: data.network_id || '07e9d3d0-8431-41b0-b96b-ab94d5d55a63',
           network_setup_result: networkSetupResult,
           timestamp: new Date().toISOString()
         }
@@ -264,11 +296,11 @@ export class InitializationService {
       const bot = botResult.rows[0];
 
       // 检查必要字段
-      if (!bot.name) missingData.push('机器人名称');
+      if (!bot.bot_name) missingData.push('机器人名称');
       if (!bot.bot_username) missingData.push('机器人用户名');
       if (!bot.bot_token) missingData.push('机器人Token');
       if (!bot.keyboard_config) missingData.push('键盘配置');
-      if (!bot.price_config) missingData.push('价格配置');
+      // 价格配置现在从 price_configs 表动态获取，不再验证此字段
 
       // 检查状态记录
       const statusResult = await query('SELECT * FROM telegram_bot_status WHERE bot_id = $1', [botId]);
@@ -276,9 +308,8 @@ export class InitializationService {
         missingData.push('机器人状态记录');
       }
 
-      // 检查工作模式配置
-      const workModeResult = await query('SELECT * FROM telegram_bot_work_modes WHERE bot_id = $1', [botId]);
-      if (workModeResult.rows.length === 0) {
+      // 检查工作模式配置 - 检查主表中的 work_mode 字段
+      if (!botResult.rows[0].work_mode) {
         missingData.push('工作模式配置');
       }
 
@@ -302,12 +333,11 @@ export class InitializationService {
     try {
       console.log(`开始回滚机器人 ${botId} 的创建...`);
 
-      // 删除相关记录（按依赖顺序）
+      // 删除相关记录（只删除存在的表）
       await query('DELETE FROM bot_logs WHERE bot_id = $1', [botId]);
       await query('DELETE FROM telegram_bot_status WHERE bot_id = $1', [botId]);
-      await query('DELETE FROM telegram_bot_work_modes WHERE bot_id = $1', [botId]);
-      await query('DELETE FROM telegram_bot_custom_commands WHERE bot_id = $1', [botId]);
-      await query('DELETE FROM telegram_bot_commands WHERE bot_id = $1', [botId]);
+      // telegram_bot_work_modes, telegram_bot_custom_commands, telegram_bot_commands 表不存在
+      // 相关数据存储在 telegram_bots 表的 JSONB 字段中，删除主记录时会一并删除
       await query('DELETE FROM telegram_bots WHERE id = $1', [botId]);
 
       console.log(`机器人 ${botId} 回滚完成`);
@@ -324,7 +354,6 @@ export class InitializationService {
     data: CreateBotData,
     config: {
       keyboardConfig: object;
-      priceConfig: object;
       menuCommands: any[];
       customCommands: any[];
       description: string;

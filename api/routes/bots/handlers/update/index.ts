@@ -192,7 +192,21 @@ export class BotUpdateHandler {
         // 10. 记录更新日志
         await ConfigUpdateService.logUpdate(id, updateData, syncResult, req.user?.id);
 
-        // 11. 生成响应
+        // 11. 通知配置变更
+        try {
+          const { configService } = await import('../../../../services/config/ConfigService.js');
+          configService.emit('cache:refreshed', {
+            type: 'telegram_bots',
+            botId: id,
+            action: 'update',
+            changes: comparison.changes
+          });
+          console.log('📢 已发送配置变更通知');
+        } catch (notifyError) {
+          console.warn('⚠️ 发送配置变更通知失败:', notifyError);
+        }
+
+        // 12. 生成响应
         const response = UpdateUtils.createSuccessResponse(updatedBot, comparison.changes, syncResult);
         
         // 添加更新摘要（如果请求）

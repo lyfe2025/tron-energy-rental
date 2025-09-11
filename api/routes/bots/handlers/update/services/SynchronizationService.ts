@@ -201,7 +201,14 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 设置Webhook失败:', error);
-      // 重新抛出错误，保留原始错误信息
+      
+      // 如果是网络错误，返回false而不是抛出错误，允许其他步骤继续
+      if ((error as any).isNetworkError) {
+        console.warn('⚠️ 网络连接问题，跳过Webhook设置');
+        return false;
+      }
+      
+      // 其他错误（如Token无效、URL格式错误）仍然抛出
       throw error;
     }
   }
@@ -218,7 +225,14 @@ export class SynchronizationService {
       return true;
     } catch (error) {
       console.error('❌ 删除Webhook失败:', error);
-      // 重新抛出错误，保留原始错误信息
+      
+      // 如果是网络错误，返回false而不是抛出错误，允许其他步骤继续
+      if ((error as any).isNetworkError) {
+        console.warn('⚠️ 网络连接问题，跳过Webhook删除');
+        return false;
+      }
+      
+      // 其他错误（如Token无效）仍然抛出
       throw error;
     }
   }

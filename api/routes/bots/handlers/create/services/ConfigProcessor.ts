@@ -9,7 +9,7 @@ export class ConfigProcessor {
   /**
    * 生成默认键盘配置
    */
-  static generateDefaultKeyboardConfig(networkId: number): object {
+  static generateDefaultKeyboardConfig(networkId: string): object {
     return {
       main_menu: {
         rows: [
@@ -40,7 +40,7 @@ export class ConfigProcessor {
   /**
    * 生成默认价格配置
    */
-  static generateDefaultPriceConfig(networkId: number): object {
+  static generateDefaultPriceConfig(networkId: string): object {
     return {
       energy_flash: {
         enabled: true,
@@ -125,7 +125,7 @@ export class ConfigProcessor {
   /**
    * 处理自定义键盘配置
    */
-  static processKeyboardConfig(customConfig: object | null, networkId: number): object {
+  static processKeyboardConfig(customConfig: object | null, networkId: string): object {
     if (!customConfig) {
       return this.generateDefaultKeyboardConfig(networkId);
     }
@@ -142,7 +142,7 @@ export class ConfigProcessor {
   /**
    * 处理自定义价格配置
    */
-  static processPriceConfig(customConfig: object | null, networkId: number): object {
+  static processPriceConfig(customConfig: object | null, networkId: string): object {
     if (!customConfig) {
       return this.generateDefaultPriceConfig(networkId);
     }
@@ -213,7 +213,7 @@ export class ConfigProcessor {
   /**
    * 获取网络配置
    */
-  static async getNetworkConfig(networkId: number): Promise<any> {
+  static async getNetworkConfig(networkId: string): Promise<any> {
     try {
       const result = await query(
         'SELECT * FROM tron_networks WHERE id = $1',
@@ -234,14 +234,15 @@ export class ConfigProcessor {
   /**
    * 验证网络配置
    */
-  static async validateNetworkConfig(networkId: number): Promise<{ isValid: boolean; message?: string }> {
+  static async validateNetworkConfig(networkId: string): Promise<{ isValid: boolean; message?: string }> {
     try {
       const networkConfig = await this.getNetworkConfig(networkId);
       
-      if (!networkConfig.api_url || !networkConfig.api_key) {
+      // 数据库中使用的是 rpc_url 而不是 api_url
+      if (!networkConfig.rpc_url || !networkConfig.api_key) {
         return {
           isValid: false,
-          message: '网络配置不完整，缺少API配置'
+          message: '网络配置不完整，缺少RPC或API配置'
         };
       }
 
@@ -266,14 +267,13 @@ export class ConfigProcessor {
    */
   static async generateBotConfig(data: CreateBotData): Promise<{
     keyboardConfig: object;
-    priceConfig: object;
     menuCommands: any[];
     customCommands: any[];
     description: string;
     shortDescription: string;
   }> {
     // 使用默认网络ID或从数据中获取
-    const networkId = typeof data.network_id === 'string' ? parseInt(data.network_id) : (data.network_id || 1);
+    const networkId = data.network_id || '07e9d3d0-8431-41b0-b96b-ab94d5d55a63'; // 默认使用TRON Mainnet
 
     // 验证网络配置
     const networkValidation = await this.validateNetworkConfig(networkId);
@@ -283,7 +283,7 @@ export class ConfigProcessor {
 
     return {
       keyboardConfig: this.processKeyboardConfig(data.keyboard_config || null, networkId),
-      priceConfig: this.processPriceConfig(data.price_config || null, networkId),
+      // 移除静态 priceConfig 生成，机器人将动态关联价格配置表
       menuCommands: this.processMenuCommands(data.menu_commands || null),
       customCommands: this.processCustomCommands(data.custom_commands || null),
       description: this.generateBotDescription(data),
@@ -296,8 +296,7 @@ export class ConfigProcessor {
    */
   static async updateBotConfigs(
     botId: number,
-    keyboardConfig: object,
-    priceConfig: object
+    keyboardConfig: object
   ): Promise<void> {
     try {
       // 更新键盘配置
@@ -306,11 +305,7 @@ export class ConfigProcessor {
         [JSON.stringify(keyboardConfig), botId]
       );
 
-      // 更新价格配置
-      await query(
-        'UPDATE telegram_bots SET price_config = $1 WHERE id = $2',
-        [JSON.stringify(priceConfig), botId]
-      );
+      // 价格配置从 price_configs 表动态获取，不需要存储到机器人表
 
       console.log(`机器人 ${botId} 配置更新成功`);
     } catch (error) {
@@ -321,32 +316,22 @@ export class ConfigProcessor {
 
   /**
    * 检查配置冲突
+   * 现在价格配置从数据库动态获取，暂时简化冲突检查
    */
-  static checkConfigConflicts(keyboardConfig: any, priceConfig: any): string[] {
+  static checkConfigConflicts(keyboardConfig: any): string[] {
     const conflicts: string[] = [];
 
-    // 检查键盘按钮与价格配置的一致性
+    // 基础键盘配置检查
     if (keyboardConfig.main_menu && keyboardConfig.main_menu.rows) {
       for (const row of keyboardConfig.main_menu.rows) {
-        for (const button of row.buttons || []) {
-          if (button.action === 'buy_energy' && !priceConfig.energy_flash?.enabled) {
-            conflicts.push('键盘包含购买能量按钮，但能量闪购功能未启用');
-          }
-          if (button.action === 'check_price' && (!priceConfig.energy_flash?.enabled && !priceConfig.transaction_package?.enabled)) {
-            conflicts.push('键盘包含价格查询按钮，但价格相关功能均未启用');
-          }
+        if (!row.buttons || row.buttons.length === 0) {
+          conflicts.push('存在空的按钮行');
         }
       }
     }
 
-    // 检查命令与配置的一致性
-    if (keyboardConfig.commands) {
-      for (const cmd of keyboardConfig.commands) {
-        if (cmd.command === 'price' && (!priceConfig.energy_flash?.enabled && !priceConfig.transaction_package?.enabled)) {
-          conflicts.push('包含价格查询命令，但价格相关功能均未启用');
-        }
-      }
-    }
+    // TODO: 将来可以添加与动态价格配置的冲突检查
+    // 需要查询 price_configs 表来验证按钮与价格配置的一致性
 
     return conflicts;
   }

@@ -128,6 +128,18 @@ export class MultiBotManager {
   }
 
   /**
+   * 根据 bot_username 获取机器人实例
+   */
+  getBotInstanceByUsername(botUsername: string): BotInstance | null {
+    for (const [_, instance] of this.botInstances) {
+      if (instance.config.botUsername === botUsername) {
+        return instance;
+      }
+    }
+    return null;
+  }
+
+  /**
    * 获取机器人服务
    */
   getBotService(botId: string): TelegramBotService | null {
@@ -367,11 +379,47 @@ export class MultiBotManager {
         }
       }
 
+      // 重新加载现有机器人的配置（新增逻辑）
+      for (const botConfig of activeBots) {
+        if (currentBotIds.has(botConfig.id)) {
+          await this.reloadBotConfiguration(botConfig.id, botConfig);
+        }
+      }
+
       this.logger.info('✅ 与数据库同步完成');
 
     } catch (error) {
       this.logger.error('❌ 与数据库同步失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 重新加载指定机器人的配置
+   */
+  private async reloadBotConfiguration(botId: string, newConfig: TelegramBotConfig): Promise<void> {
+    try {
+      const botInstance = this.botInstances.get(botId);
+      if (!botInstance) {
+        this.logger.warn(`⚠️ 机器人实例不存在: ${botId}`);
+        return;
+      }
+
+      this.logger.info(`🔄 重新加载机器人配置: ${newConfig.botName}`);
+
+      // 更新机器人实例的配置
+      botInstance.config = newConfig;
+
+      // 调用机器人服务的配置重新加载方法
+      if (typeof botInstance.service.refreshConfig === 'function') {
+        await botInstance.service.refreshConfig();
+        this.logger.info(`✅ 机器人配置重新加载完成: ${newConfig.botName}`);
+      } else {
+        this.logger.warn(`⚠️ 机器人服务不支持配置重新加载: ${newConfig.botName}`);
+      }
+
+    } catch (error) {
+      this.logger.error(`❌ 重新加载机器人配置失败 ${botId}:`, error);
     }
   }
 
