@@ -42,25 +42,20 @@
                 🔥 {{ displayTitle }} 🔥（{{ isUnlimited ? '无时间限制' : '有时间限制' }}）
               </div>
               <!-- 标题后换行 -->
-              <div v-for="n in lineBreaks.after_title" :key="'title-break-' + n" class="h-4"></div>
+              <div v-if="lineBreaks.after_title > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_title) }}</div>
               
               <!-- 副标题 -->
-              <div class="text-xs text-gray-600 mb-2">
+              <div class="text-xs text-gray-600">
                 {{ formatSubtitle(subtitleTemplate, dailyFee) }}
               </div>
               <!-- 副标题后换行 -->
-              <div v-for="n in lineBreaks.after_subtitle" :key="'subtitle-break-' + n" class="h-4"></div>
-              
-              <!-- 套餐列表后换行 -->
-              <div v-for="n in lineBreaks.after_packages" :key="'packages-break-' + n" class="h-4"></div>
+              <div v-if="lineBreaks.after_subtitle > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_subtitle) }}</div>
               
               <!-- 使用规则前换行 -->
-              <template v-if="usageRules.length > 0">
-                <div v-for="n in lineBreaks.before_usage_rules" :key="'before-rules-break-' + n" class="h-4"></div>
-              </template>
+              <div v-if="usageRules.length > 0 && lineBreaks.before_usage_rules > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.before_usage_rules) }}</div>
               
               <!-- 使用规则 -->
-              <div v-if="usageRules.length > 0" class="space-y-1 mb-2">
+              <div v-if="usageRules.length > 0">
                 <div 
                   v-for="(rule, index) in usageRules" 
                   :key="index"
@@ -71,12 +66,10 @@
               </div>
               
               <!-- 注意事项前换行 -->
-              <template v-if="notes.length > 0">
-                <div v-for="n in lineBreaks.before_notes" :key="'before-notes-break-' + n" class="h-4"></div>
-              </template>
+              <div v-if="notes.length > 0 && lineBreaks.before_notes > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.before_notes) }}</div>
               
               <!-- 注意事项 -->
-              <div v-if="notes.length > 0" class="space-y-1 mb-3">
+              <div v-if="notes.length > 0">
                 <div 
                   v-for="(note, index) in notes" 
                   :key="index"
@@ -86,8 +79,11 @@
                 </div>
               </div>
               
+              <!-- 套餐按钮前换行 -->
+              <div v-if="lineBreaks.after_packages > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_packages) }}</div>
+              
               <!-- 内嵌键盘 -->
-              <div class="space-y-1">
+              <div>
                 <!-- 前面的按钮（2列布局） -->
                 <div class="grid grid-cols-2 gap-1">
                   <button

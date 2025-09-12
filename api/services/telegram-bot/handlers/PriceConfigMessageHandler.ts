@@ -164,7 +164,7 @@ export class PriceConfigMessageHandler {
       before_notes: 0
     };
     
-    const title = displayTexts.title || keyboardConfig?.title || name || '⚡闪租能量（需要时）';
+    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : (keyboardConfig?.title || name || '⚡闪租能量（需要时）');
     
     let message = `*${title}*\n`;
     
@@ -198,19 +198,18 @@ export class PriceConfigMessageHandler {
     // 下单地址（支持点击复制）
     if (config.payment_address) {
       const addressLabel = displayTexts.address_label;
-      // 只有当 address_label 不是空字符串时才显示标签
+      // 如果有自定义标签且不是空字符串，使用自定义标签，否则使用默认标签
       if (addressLabel && addressLabel.trim() !== '') {
         message += `${addressLabel}\n`;
-      } else if (addressLabel === undefined || addressLabel === null) {
-        // 如果没有配置 address_label，使用默认标签
+      } else {
+        // 使用默认标签（包括当 address_label 为空字符串时）
         message += '💰 下单地址：（点击地址自动复制）\n';
       }
       // 使用 Telegram 的 monospace 格式让地址可以长按复制
       message += `\`${config.payment_address}\`\n`;
     }
     
-    // 详细信息后换行（智能换行：如果地址标签为空，则使用after_details，否则使用before_warning）
-    const shouldShowAddressLabel = displayTexts.address_label && displayTexts.address_label.trim() !== '';
+    // 详细信息后换行（智能换行：合并after_details和before_warning）
     const totalLineBreaks = Math.max(lineBreaks.after_details || 0, lineBreaks.before_warning || 0);
     
     if (config.double_energy_for_no_usdt && totalLineBreaks > 0) {
@@ -361,7 +360,7 @@ export class PriceConfigMessageHandler {
       before_notes: 0
     };
     
-    const title = displayTexts.title || keyboardConfig?.title || name;
+    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : (keyboardConfig?.title || name);
     const subtitle = this.formatSubtitleWithDailyFee(displayTexts.subtitle_template || '（24小时不使用，则扣{dailyFee}笔占费）', config.daily_fee || 12);
     
     let message = `*${title}*\n`;
@@ -482,7 +481,7 @@ export class PriceConfigMessageHandler {
       before_notes: 0
     };
     
-    const title = displayTexts.title || keyboardConfig?.title || name;
+    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : '🟢USDT自动兑换TRX🔴';
     const subtitle = this.formatTemplateText(displayTexts.subtitle_template || '（转U自动回TRX，{min_amount}U起换）', { min_amount: config.min_amount || 1.1 });
     
     let message = `*${title}*\n`;

@@ -112,14 +112,30 @@ export function usePackageConfig(props: ConfigCardProps) {
         
         if (props.config.config.display_texts) {
           replyMessage.value = props.config.config.display_texts.address_prompt || '请输入能量接收地址:'
-          // 从完整标题中提取显示标题
-          if (props.config.config.display_texts.title) {
-            const titleText = props.config.config.display_texts.title
-            // 移除 🔥 和括号部分，提取核心标题
-            const match = titleText.match(/🔥\s*([^🔥]+?)\s*🔥/)
+          // 从完整标题中提取显示标题（与后端逻辑保持一致）
+          const displayTexts = props.config.config.display_texts || {}
+          const keyboardConfig = (props.config as any).inline_keyboard_config || {}
+          const name = (props.config as any).name || '笔数套餐配置'
+          
+          // 与后端相同的逻辑：只有非空字符串才使用自定义标题
+          const customTitle = (displayTexts as any).title
+          let titleToUse = ''
+          
+          if (customTitle && customTitle.trim() !== '') {
+            titleToUse = customTitle
+          } else {
+            // 使用键盘配置标题或配置名称
+            titleToUse = (keyboardConfig as any).title || name
+          }
+          
+          // 从标题中提取核心部分（移除🔥等装饰）
+          if (titleToUse.includes('🔥')) {
+            const match = titleToUse.match(/🔥\s*([^🔥]+?)\s*🔥/)
             if (match && match[1]) {
               displayTitle.value = match[1].trim()
             }
+          } else {
+            displayTitle.value = titleToUse
           }
           
           // 加载副标题模板
