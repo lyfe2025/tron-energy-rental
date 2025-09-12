@@ -4,17 +4,17 @@
  */
 
 import pool from '../config/database.js';
+import { UserCRUDService } from './user/UserCRUDService.js';
 import { UserService as BaseUserService } from './user/UserService.js';
 import { UserStatsService } from './user/UserStatsService.js';
-import { UserCRUDService } from './user/UserCRUDService.js';
 
 // 导出所有类型定义
 export type {
-    User, UserCreateData, UserSearchParams, UserUpdateData
+  User, UserCreateData, UserSearchParams, UserUpdateData
 } from './user/UserService.js';
 
 export type {
-    UserStats
+  UserStats
 } from './user/UserStatsService.js';
 
 /**
@@ -349,6 +349,8 @@ export class UserService {
     first_name?: string;
     last_name?: string;
     language_code?: string;
+    is_premium?: boolean;  // 新增：Premium用户标识
+    bot_id?: string;       // 机器人ID
   }) {
     return UserCRUDService.registerTelegramUser(telegramData);
   }
@@ -378,6 +380,7 @@ export class UserService {
 
 // 导出分离的服务类供高级用法使用
 export {
-    BaseUserService,
-    UserStatsService
+  BaseUserService,
+  UserStatsService
 };
+

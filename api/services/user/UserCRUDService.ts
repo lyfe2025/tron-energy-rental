@@ -86,6 +86,8 @@ export class UserCRUDService {
     first_name?: string;
     last_name?: string;
     language_code?: string;
+    is_premium?: boolean;  // 新增：Premium用户标识
+    bot_id?: string;       // 机器人ID
   }): Promise<User> {
     return UserAuthService.registerTelegramUser(telegramData);
   }

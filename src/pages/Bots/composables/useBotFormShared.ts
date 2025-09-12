@@ -76,7 +76,7 @@ export interface BotData {
  */
 export const getDefaultKeyboardConfig = () => ({
   main_menu: {
-    type: 'inline',
+    type: 'reply',
     title: 'TRON资源租赁主菜单',
     description: '选择您需要的服务',
     is_enabled: true,

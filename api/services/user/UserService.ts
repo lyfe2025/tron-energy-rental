@@ -21,14 +21,19 @@ export interface User {
   status: 'active' | 'inactive' | 'banned';
   login_type: 'telegram' | 'email';
   type: 'user' | 'agent';
-  user_type: 'regular' | 'vip' | 'premium';
+  user_type: 'regular' | 'vip' | 'premium' | 'normal';  // 添加'normal'类型支持
   agent_id?: string;
+  bot_id?: string;  // 新增：关联的机器人ID
   total_orders?: number;
   total_spent?: number;
   total_energy_used?: number;
   created_at: Date;
   updated_at: Date;
   last_login?: Date;
+  first_name?: string;  // 新增：用户名字
+  last_name?: string;   // 新增：用户姓氏
+  language_code?: string;  // 新增：Telegram用户语言代码
+  is_premium?: boolean;    // 新增：Telegram Premium用户标识
   // 关联的代理商信息
   agent?: {
     id: string;
@@ -321,6 +326,8 @@ export class UserService {
     first_name?: string;
     last_name?: string;
     language_code?: string;
+    is_premium?: boolean;  // 新增：Premium用户标识
+    bot_id?: string;       // 机器人ID
   }): Promise<User> {
     return await UserCRUDService.registerTelegramUser(telegramData);
   }

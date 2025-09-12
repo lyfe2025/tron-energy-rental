@@ -70,8 +70,8 @@
           v-model="keyboardConfig.main_menu.type"
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="inline">内嵌键盘 (Inline Keyboard)</option>
           <option value="reply">回复键盘 (Reply Keyboard)</option>
+          <option value="inline">内嵌键盘 (Inline Keyboard)</option>
         </select>
         <p class="mt-1 text-sm text-gray-500">
           {{ keyboardConfig.main_menu.type === 'inline' ? '内嵌键盘显示在消息下方，支持回调功能' : '回复键盘替换用户输入框，点击后发送文本消息' }}

@@ -80,14 +80,69 @@ export class CommandHandler {
     }
 
     try {
-      // 注册或获取用户
+      // 🔍 详细调试Telegram用户对象内容
+      console.log(`🔍 详细检查Telegram用户对象:`, {
+        telegram_user_full_object: telegramUser,
+        extracted_fields: {
+          id: telegramUser.id,
+          username: telegramUser.username,
+          first_name: telegramUser.first_name,
+          last_name: telegramUser.last_name,
+          language_code: telegramUser.language_code,
+          is_premium: (telegramUser as any).is_premium
+        },
+        language_code_debug: {
+          raw_value: telegramUser.language_code,
+          type: typeof telegramUser.language_code,
+          is_undefined: telegramUser.language_code === undefined,
+          is_null: telegramUser.language_code === null,
+          is_empty_string: telegramUser.language_code === '',
+          truthy: !!telegramUser.language_code
+        }
+      });
+
+      // 注册或获取用户 - 完整版本，保存所有Telegram用户信息
       const user = await UserAuthService.registerTelegramUser({
         telegram_id: telegramUser.id,
         username: telegramUser.username,
         first_name: telegramUser.first_name,
         last_name: telegramUser.last_name,
-        language_code: telegramUser.language_code
+        language_code: telegramUser.language_code,
+        is_premium: (telegramUser as any).is_premium,  // 🆕 保存Premium用户标识
+        bot_id: this.botId  // 🔧 关键修复：关联机器人ID
       });
+
+      // 记录用户通过机器人进入的信息 - 完整日志
+      console.log(`👤 用户通过机器人注册/登录:`, {
+        user_id: user.id,
+        telegram_id: telegramUser.id,
+        username: user.username,
+        first_name: telegramUser.first_name,
+        last_name: telegramUser.last_name,
+        language_code: telegramUser.language_code,
+        is_premium: !!(telegramUser as any).is_premium,
+        bot_id: this.botId,
+        chat_id: chatId,
+        complete_telegram_info: {
+          has_username: !!telegramUser.username,
+          has_last_name: !!telegramUser.last_name,
+          has_language: !!telegramUser.language_code,
+          is_premium_user: !!(telegramUser as any).is_premium
+        }
+      });
+
+      // 验证注册数据完整性
+      if (user.id) {
+        const validation = await UserAuthService.validateTelegramUserRegistration(user.id);
+        if (!validation.isValid) {
+          console.warn(`⚠️ 用户注册数据不完整:`, {
+            user_id: user.id,
+            issues: validation.issues
+          });
+        } else {
+          console.log(`✅ 用户注册数据验证通过: ${user.id}`);
+        }
+      }
 
       // 获取机器人配置
       const botConfig = await this.getBotConfig();
@@ -166,8 +221,14 @@ export class CommandHandler {
       
       return;
     } catch (error) {
-      console.error('Error in handleStartCommand:', error);
-      await this.bot.sendMessage(chatId, '❌ 注册失败，请重试。');
+      console.error('❌ /start命令处理失败:', {
+        error: error instanceof Error ? error.message : error,
+        telegram_id: telegramUser.id,
+        chat_id: chatId,
+        bot_id: this.botId,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      await this.bot.sendMessage(chatId, '❌ 注册失败，请重试。如问题持续存在，请联系客服。');
     }
   }
 
