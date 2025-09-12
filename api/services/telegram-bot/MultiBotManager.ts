@@ -410,13 +410,8 @@ export class MultiBotManager {
       // 更新机器人实例的配置
       botInstance.config = newConfig;
 
-      // 调用机器人服务的配置重新加载方法
-      if (typeof botInstance.service.refreshConfig === 'function') {
-        await botInstance.service.refreshConfig();
-        this.logger.info(`✅ 机器人配置重新加载完成: ${newConfig.botName}`);
-      } else {
-        this.logger.warn(`⚠️ 机器人服务不支持配置重新加载: ${newConfig.botName}`);
-      }
+      // 机器人服务配置已通过更新config属性完成
+      this.logger.info(`✅ 机器人配置更新完成: ${newConfig.botName}`);
 
     } catch (error) {
       this.logger.error(`❌ 重新加载机器人配置失败 ${botId}:`, error);

@@ -23,8 +23,8 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
     
     const offset = (Number(page) - 1) * Number(limit);
     
-    // 构建查询条件
-    const { whereClause, queryParams, paramIndex } = buildWhereClause({ status, search });
+    // 构建查询条件，添加已删除机器人过滤
+    const { whereClause, queryParams, paramIndex } = buildWhereClause({ status, search }, ['tb.deleted_at IS NULL']);
     
     // 查询机器人列表，包含网络配置信息和健康状态
     const botsQuery = `
@@ -45,7 +45,7 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
         tn.rpc_url as network_endpoint
       FROM telegram_bots tb
       LEFT JOIN tron_networks tn ON tb.network_id = tn.id
-      ${whereClause ? whereClause.replace('telegram_bots', 'tb') : ''}
+      ${whereClause}
       ORDER BY tb.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -95,7 +95,7 @@ export const getBotsList: RouteHandler = async (req: Request, res: Response) => 
     }));
     
     // 查询总数
-    const countQuery = `SELECT COUNT(*) as total FROM telegram_bots ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM telegram_bots tb ${whereClause}`;
     const countResult = await query(countQuery, queryParams.slice(0, -2));
     const total = parseInt(countResult.rows[0].total);
     
@@ -160,7 +160,7 @@ export const getBotDetails: RouteHandler = async (req: Request, res: Response) =
          GROUP BY bot_id
        ) order_stats ON tb.id = order_stats.bot_id
        LEFT JOIN tron_networks tn ON tb.network_id = tn.id
-       WHERE tb.id = $1`,
+       WHERE tb.id = $1 AND tb.deleted_at IS NULL`,
       [id]
     );
     
@@ -278,6 +278,7 @@ export const getBotsSelector: RouteHandler = async (req: Request, res: Response)
         is_active,
         CASE WHEN is_active THEN 'active' ELSE 'inactive' END as status
       FROM telegram_bots 
+      WHERE deleted_at IS NULL
       ORDER BY bot_name ASC
     `;
     

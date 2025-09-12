@@ -3,6 +3,7 @@
  * 使用动态回调调度系统，支持灵活的按钮配置
  */
 import TelegramBot from 'node-telegram-bot-api';
+import { query } from '../../../config/database.js';
 import { CommandHandler } from '../commands/CommandHandler.js';
 import { CallbackDispatcher } from '../core/CallbackDispatcher.js';
 import { DynamicButtonMapper } from '../core/DynamicButtonMapper.js';
@@ -269,19 +270,16 @@ export class TelegramBotProcessorRefactored {
    */
   private async handleReplyKeyboardButtonsDynamic(message: any, text: string): Promise<boolean> {
     try {
-      // 检查是否为已知的回复键盘按钮
-      if (!this.buttonMapper.isReplyKeyboardButton(text)) {
-        return false; // 不是回复键盘按钮
-      }
-
-      // 获取按钮映射信息
-      const buttonMapping = this.buttonMapper.getButtonMapping(text);
-      if (!buttonMapping) {
-        console.warn(`未找到按钮映射: ${text}`);
+      console.log(`🔍 开始处理回复键盘按钮: "${text}"`);
+      
+      // 直接从机器人配置查找按钮映射
+      const callbackData = await this.findCallbackDataFromBotConfig(text);
+      if (!callbackData) {
+        console.log(`❌ 未找到按钮 "${text}" 的callback_data映射`);
         return false;
       }
 
-      console.log(`🎯 识别到回复键盘按钮: "${text}" -> ${buttonMapping.callbackData}`);
+      console.log(`🎯 识别到回复键盘按钮: "${text}" -> ${callbackData}`);
 
       // 构建回调查询对象，模拟内联键盘回调
       const mockCallbackQuery = {
@@ -289,7 +287,7 @@ export class TelegramBotProcessorRefactored {
         from: message.from,
         message: message,
         chat_instance: `mock_${message.chat.id}`,
-        data: buttonMapping.callbackData
+        data: callbackData
       };
 
       // 使用调度器处理
@@ -298,8 +296,8 @@ export class TelegramBotProcessorRefactored {
       await this.logger.logBotActivity('info', 'reply_keyboard_handled', `回复键盘按钮处理: ${text}`, { 
         chatId: message.chat.id, 
         buttonText: text,
-        callbackData: buttonMapping.callbackData,
-        actionType: buttonMapping.actionType
+        callbackData: callbackData,
+        actionType: callbackData
       });
 
       return true;
@@ -311,6 +309,49 @@ export class TelegramBotProcessorRefactored {
         chatId: message.chat.id
       });
       return false;
+    }
+  }
+
+  /**
+   * 从机器人配置直接查找callback_data
+   */
+  private async findCallbackDataFromBotConfig(buttonText: string): Promise<string | null> {
+    try {
+      if (!this.botId) {
+        console.error('❌ 缺少botId');
+        return null;
+      }
+
+      // 从数据库查找机器人配置
+      const result = await query('SELECT keyboard_config FROM telegram_bots WHERE id = $1', [this.botId]);
+      
+      if (result.rows.length === 0) {
+        console.error('❌ 未找到机器人配置');
+        return null;
+      }
+
+      const keyboardConfig = result.rows[0].keyboard_config;
+      if (!keyboardConfig?.main_menu?.rows) {
+        console.error('❌ 键盘配置无效');
+        return null;
+      }
+
+      // 遍历所有按钮查找匹配
+      for (const row of keyboardConfig.main_menu.rows) {
+        if (row.buttons) {
+          for (const button of row.buttons) {
+            if (button.text === buttonText) {
+              console.log(`✅ 找到按钮映射: "${buttonText}" -> "${button.callback_data}"`);
+              return button.callback_data;
+            }
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ 查找callback_data失败:', error);
+      return null;
     }
   }
 

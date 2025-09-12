@@ -37,6 +37,7 @@ export function useBotDialogs() {
    * 显示确认弹窗
    */
   const showConfirm = (config: Partial<ConfirmDialogConfig>) => {
+    console.log('🔔 [useBotDialogs] showConfirm called:', config)
     Object.assign(confirmDialogConfig, {
       title: config.title || '确认操作',
       message: config.message || '确定要执行此操作吗？',
@@ -52,6 +53,7 @@ export function useBotDialogs() {
       })
     })
     showConfirmDialog.value = true
+    console.log('🔔 [useBotDialogs] showConfirmDialog set to true, config:', confirmDialogConfig)
   }
 
   /**
@@ -241,6 +243,7 @@ export function useBotDialogs() {
    * 显示删除确认弹窗
    */
   const showDeleteConfirm = (bot: BotConfig, onConfirm: () => Promise<void>) => {
+    console.log('🗑️ [useBotDialogs] showDeleteConfirm called for bot:', bot)
     showConfirm({
       title: '删除机器人',
       message: `确定要删除机器人 "${bot.name}" 吗？`,

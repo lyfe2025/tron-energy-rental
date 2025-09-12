@@ -327,6 +327,7 @@ const toggleMenu = () => {
 }
 
 const handleDropdownCommand = (command: string) => {
+  console.log('🎯 [BotCard] handleDropdownCommand:', command, props.bot)
   props.bot.showMenu = false
   if (command === 'notifications') {
     // 跳转到通知配置页面

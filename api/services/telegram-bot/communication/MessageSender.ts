@@ -247,7 +247,7 @@ export class MessageSender {
   ): Promise<MessageResult> {
     try {
       const result = await this.bot.editMessageReplyMarkup(
-        options?.reply_markup,
+        (options as any)?.reply_markup,
         options
       );
       await this.updateActivity();

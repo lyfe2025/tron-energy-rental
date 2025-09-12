@@ -95,9 +95,14 @@ export class AccountManagementService {
         return { success: false, message: 'No fields to update' };
       }
       
+      // Only add last_updated_at if it's not already in the fields
+      const lastUpdatedClause = fields.some(field => field.startsWith('last_updated_at')) 
+        ? '' 
+        : ', last_updated_at = NOW()';
+      
       const sql = `
         UPDATE energy_pools 
-        SET ${fields.join(', ')}, last_updated_at = NOW()
+        SET ${fields.join(', ')}${lastUpdatedClause}
         WHERE id = $${paramIndex}
       `;
       
@@ -172,9 +177,14 @@ export class AccountManagementService {
           
           const values = updateFields.map(field => updates[field]);
           
+          // Only add last_updated_at if it's not already in the updateFields
+          const lastUpdatedClause = updateFields.includes('last_updated_at') 
+            ? '' 
+            : ', last_updated_at = NOW()';
+          
           const batchUpdateSql = `
             UPDATE energy_pools 
-            SET ${setClause}, last_updated_at = NOW()
+            SET ${setClause}${lastUpdatedClause}
             WHERE id = ANY($1)
           `;
 

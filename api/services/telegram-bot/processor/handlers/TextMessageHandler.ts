@@ -5,30 +5,69 @@
 import { query } from '../../../../config/database.js';
 import { WebhookURLService } from '../../utils/WebhookURLService.js';
 import type {
-    TextMessageHandler as ITextMessageHandler,
-    MessageProcessResult,
-    PriceConfig,
-    ProcessorDependencies,
-    ReplyKeyboardMapping,
-    TemplateVariables
+  TextMessageHandler as ITextMessageHandler,
+  MessageProcessResult,
+  PriceConfig,
+  ProcessorDependencies,
+  TemplateVariables
 } from '../types.js';
 
 export class TextMessageHandler implements ITextMessageHandler {
   private dependencies: ProcessorDependencies;
 
-  // 回复键盘按钮文本映射
-  private readonly buttonMappings: ReplyKeyboardMapping = {
-    '⚡ 能量闪租': 'energy_flash',
-    '🔥 笔数套餐': 'transaction_package', 
-    '🔄 TRX闪兑': 'trx_exchange',
-    '📋 我的订单': 'my_orders',
-    '💰 账户余额': 'check_balance',
-    '❓ 帮助支持': 'help_support',
-    '🔄 刷新菜单': 'refresh_menu'
-  };
+  // 已废弃：不再使用硬编码的按钮文本映射，改为动态查找callback_data
+  // private readonly buttonMappings: ReplyKeyboardMapping = {...}
 
   constructor(dependencies: ProcessorDependencies) {
     this.dependencies = dependencies;
+  }
+
+  /**
+   * 根据按钮文本动态查找对应的callback_data
+   */
+  private async findCallbackDataByText(chatId: number, buttonText: string): Promise<string | null> {
+    try {
+      // 首先获取机器人ID
+      if (!this.dependencies.botId) {
+        console.error('❌ 缺少botId，无法查找按钮配置');
+        return null;
+      }
+
+      // 从数据库查找机器人的键盘配置
+      const result = await query(
+        'SELECT keyboard_config FROM telegram_bots WHERE id = $1',
+        [this.dependencies.botId]
+      );
+
+      if (result.rows.length === 0) {
+        console.error('❌ 未找到机器人配置');
+        return null;
+      }
+
+      const keyboardConfig = result.rows[0].keyboard_config;
+      if (!keyboardConfig || !keyboardConfig.main_menu || !keyboardConfig.main_menu.rows) {
+        console.error('❌ 机器人键盘配置无效');
+        return null;
+      }
+
+      // 遍历所有按钮查找匹配的文本
+      for (const row of keyboardConfig.main_menu.rows) {
+        if (row.buttons) {
+          for (const button of row.buttons) {
+            if (button.text === buttonText) {
+              console.log(`✅ 找到按钮映射: "${buttonText}" -> "${button.callback_data}"`);
+              return button.callback_data;
+            }
+          }
+        }
+      }
+
+      console.log(`❌ 未找到按钮文本 "${buttonText}" 的callback_data映射`);
+      return null;
+    } catch (error) {
+      console.error('❌ 查找callback_data失败:', error);
+      return null;
+    }
   }
 
   /**
@@ -130,7 +169,10 @@ export class TextMessageHandler implements ITextMessageHandler {
    */
   async handleReplyKeyboardButtons(message: any, text: string): Promise<boolean> {
     try {
-      const actionType = this.buttonMappings[text];
+      console.log(`🔍 处理回复键盘按钮: "${text}"`);
+      
+      // 动态查找按钮对应的callback_data
+      const actionType = await this.findCallbackDataByText(message.chat.id, text);
       if (!actionType) {
         return false; // 不是回复键盘按钮
       }
@@ -192,7 +234,9 @@ export class TextMessageHandler implements ITextMessageHandler {
 
       } else if (['energy_flash', 'transaction_package', 'trx_exchange'].includes(actionType)) {
         // 处理价格配置相关的按钮
+        console.log(`🎯 检测到价格配置按钮: ${actionType}, 文本: ${text}`);
         await this.handlePriceConfigButton(message, actionType, text);
+        console.log(`✅ 价格配置按钮处理完成: ${actionType}`);
         return true;
       }
 
@@ -218,7 +262,7 @@ export class TextMessageHandler implements ITextMessageHandler {
    */
   private async handlePriceConfigButton(message: any, configType: string, buttonText: string): Promise<void> {
     try {
-      console.log(`💰 处理价格配置按钮: ${configType}`);
+      console.log(`💰 处理价格配置按钮: ${configType} -> ${buttonText}`);
 
       // 从数据库获取价格配置
       const priceConfigResult = await query(
@@ -244,7 +288,9 @@ export class TextMessageHandler implements ITextMessageHandler {
       } else if (configType === 'transaction_package') {
         responseMessage = this.formatTransactionPackageMessage(priceConfig.name, config, keyboardConfig);
       } else if (configType === 'trx_exchange') {
+        console.log(`🔄 格式化TRX闪兑消息`, { name: priceConfig.name, config, keyboardConfig });
         responseMessage = this.formatTrxExchangeMessage(priceConfig.name, config, keyboardConfig);
+        console.log(`📝 TRX闪兑消息内容:`, responseMessage.substring(0, 200));
       } else {
         responseMessage = `${priceConfig.name}\n\n${priceConfig.description}`;
       }
@@ -258,6 +304,8 @@ export class TextMessageHandler implements ITextMessageHandler {
       }
 
       // 发送消息 - 根据是否启用图片决定发送方式
+      console.log(`📤 准备发送${configType}消息到 chatId: ${message.chat.id}`);
+      
       if (enableImage && imageUrl && this.dependencies.bot) {
         // 构建完整的图片URL
         let fullImageUrl = imageUrl;
@@ -265,6 +313,7 @@ export class TextMessageHandler implements ITextMessageHandler {
           fullImageUrl = await WebhookURLService.buildResourceUrl(this.dependencies.botId, imageUrl);
         }
 
+        console.log(`🖼️ 发送带图片的${configType}消息`, { fullImageUrl, hasReplyMarkup: !!replyMarkup });
         // 发送带图片的消息
         await this.dependencies.bot.sendPhoto(message.chat.id, fullImageUrl, {
           caption: responseMessage,
@@ -272,12 +321,15 @@ export class TextMessageHandler implements ITextMessageHandler {
           parse_mode: 'Markdown'
         });
       } else {
+        console.log(`📝 发送纯文本${configType}消息`, { messageLength: responseMessage.length, hasReplyMarkup: !!replyMarkup });
         // 发送纯文本消息
         await this.dependencies.api.sendMessage(message.chat.id, responseMessage, {
           reply_markup: replyMarkup,
           parse_mode: 'Markdown'
         });
       }
+      
+      console.log(`✅ ${configType}消息发送成功`);
 
       await this.dependencies.logger.logBotActivity(
         'info', 

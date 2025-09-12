@@ -4,89 +4,35 @@
     <EnergyPoolHeader />
 
     <!-- 网络状态栏 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-2">
-            <div class="w-3 h-3 rounded-full" :class="currentNetwork?.is_active ? 'bg-green-500' : 'bg-red-500'"></div>
-            <span class="text-lg font-medium text-gray-900">当前网络: {{ currentNetwork?.name || '未知网络' }}</span>
-          </div>
-          <div class="text-sm text-gray-500">
-            {{ currentNetwork?.rpc_url || '网络描述' }}
-          </div>
-        </div>
-        <div class="flex items-center space-x-3">
-          <button
-            @click="showNetworkSwitcher = true"
-            class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            切换网络
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 网络切换模态框 -->
-    <div v-if="showNetworkSwitcher" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">切换网络</h3>
-        <div class="space-y-3 mb-6">
-          <div
-            v-for="network in availableNetworks"
-            :key="network.id"
-            @click="switchNetwork(network.id)"
-            class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-            :class="network.id === currentNetworkId ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
-          >
-            <div class="flex items-center space-x-3">
-              <div class="w-3 h-3 rounded-full" :class="network.is_active ? 'bg-green-500' : 'bg-red-500'"></div>
-              <div>
-                <div class="font-medium text-gray-900">{{ network.name }}</div>
-                <div class="text-sm text-gray-500">{{ network.rpc_url }}</div>
-              </div>
-            </div>
-            <div v-if="network.id === currentNetworkId" class="text-blue-600">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showNetworkSwitcher = false"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-          >
-            取消
-          </button>
-        </div>
-      </div>
-    </div>
+    <NetworkStatusBar 
+      :current-network="currentNetwork"
+      @switch-network="showNetworkSwitcher = true"
+    />
 
     <!-- 统计信息 -->
     <EnergyPoolStats 
       :statistics="statistics"
       :today-consumption="todayConsumption"
-      :loading="loading"
+      :loading="statisticsLoading"
       :format-energy="formatEnergy"
       @refresh-today-consumption="loadTodayConsumption"
     />
 
     <!-- 搜索和筛选 -->
     <EnergyPoolFilters 
-      v-model:search-query="searchQuery"
-      v-model:status-filter="statusFilter"
+      v-model:search-query="filterState.searchQuery"
+      v-model:status-filter="filterState.statusFilter"
       @reset-filters="resetFilters"
     />
 
     <!-- 操作按钮 -->
     <EnergyPoolActions 
-      :loading="loading"
+      :loading="accountLoading"
       :selected-accounts="selectedAccounts"
-      @refresh-status="() => refreshStatus()"
+      @refresh-status="refreshStatus"
       @show-add-modal="showAddModal = true"
-      @batch-enable="batchEnable"
-      @batch-disable="batchDisable"
+      @batch-enable="() => batchEnableAccounts(selectedAccounts)"
+      @batch-disable="() => batchDisableAccounts(selectedAccounts)"
       @show-batch-network-modal="showBatchNetworkModal = true"
     />
 
@@ -95,7 +41,7 @@
       :filtered-accounts="filteredAccounts"
       :selected-accounts="selectedAccounts"
       :is-all-selected="isAllSelected"
-      :loading="loading"
+      :loading="accountLoading"
       :format-energy="formatEnergy"
       :format-address="formatAddress"
       :get-status-class="getStatusClass"
@@ -104,13 +50,11 @@
       :get-account-type-class="getAccountTypeClass"
       @toggle-select-all="toggleSelectAll"
       @toggle-account-selection="toggleAccountSelection"
-
-      @confirm-disable-account="confirmDisableAccount"
-      @confirm-enable-account="confirmEnableAccount"
-
-      @edit-account="editAccount"
-      @view-details="viewDetails"
-      @confirm-delete-account="confirmDeleteAccount"
+      @confirm-disable-account="handleDisableAccount"
+      @confirm-enable-account="handleEnableAccount"
+      @edit-account="handleEditAccount"
+      @view-details="handleViewDetails"
+      @confirm-delete-account="handleDeleteAccount"
     />
 
     <!-- 添加账户模态框 -->
@@ -138,56 +82,34 @@
       @close="showDetailsModal = false"
       @edit="handleEditFromDetails"
     />
+
+    <!-- 网络切换模态框 -->
+    <NetworkSwitcher
+      :visible="showNetworkSwitcher"
+      :available-networks="availableNetworks"
+      :current-network-id="currentNetworkId"
+      @close="showNetworkSwitcher = false"
+      @network-selected="handleNetworkSelected"
+    />
     
     <!-- 删除确认框 -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">确认删除</h3>
-        <p class="text-sm text-gray-500 mb-6">
-          确定要删除账户 "{{ accountToDelete?.name }}" 吗？此操作不可撤销。
-        </p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showDeleteConfirm = false; accountToDelete = null"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-          >
-            取消
-          </button>
-          <button
-            @click="handleDeleteAccount"
-            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
-          >
-            删除
-          </button>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirmModal
+      :visible="showDeleteConfirm"
+      :account="accountToDelete"
+      :loading="accountLoading.operations"
+      @close="showDeleteConfirm = false; accountToDelete = null"
+      @confirm="confirmDeleteAccount"
+    />
 
     <!-- 启用/停用确认框 -->
-    <div v-if="showEnableConfirm || showDisableConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">确认操作</h3>
-        <p class="text-sm text-gray-500 mb-6">
-          确定要 {{ toggleAction === 'enable' ? '启用' : '停用' }}账户 "{{ accountToToggle?.name }}" 吗？此操作不可撤销。
-        </p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showEnableConfirm = false; showDisableConfirm = false; accountToToggle = null; toggleAction = 'enable'"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-          >
-            取消
-          </button>
-          <button
-            @click="handleToggleAccount"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-          >
-            {{ toggleAction === 'enable' ? '启用' : '停用' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-
+    <ToggleConfirmModal
+      :visible="showToggleConfirm"
+      :account="accountToToggle"
+      :action="toggleAction"
+      :loading="accountLoading.operations"
+      @close="handleToggleModalClose"
+      @confirm="confirmToggleAccount"
+    />
 
     <!-- 批量网络关联模态框 -->
     <BatchNetworkModal
@@ -201,8 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
 
 // 组件导入
 import EnergyPoolActions from './components/EnergyPoolActions.vue'
@@ -210,318 +131,200 @@ import EnergyPoolFilters from './components/EnergyPoolFilters.vue'
 import EnergyPoolHeader from './components/EnergyPoolHeader.vue'
 import EnergyPoolStats from './components/EnergyPoolStats.vue'
 import EnergyPoolTable from './components/EnergyPoolTable.vue'
+import NetworkStatusBar from './components/NetworkStatusBar.vue'
 
 // 模态框组件导入
 import AccountDetailsModal from './components/AccountDetailsModal.vue'
 import AccountModal from './components/AccountModal.vue'
 import BatchNetworkModal from './components/BatchNetworkModal.vue'
+import DeleteConfirmModal from './components/Modals/DeleteConfirmModal.vue'
+import NetworkSwitcher from './components/Modals/NetworkSwitcher.vue'
+import ToggleConfirmModal from './components/Modals/ToggleConfirmModal.vue'
 
-// composable导入
-import { useNetworkStore } from '@/stores/network'
-import { useEnergyPool, type EnergyPoolAccount } from './composables/useEnergyPool'
+// Composables导入
+import { useAccountManagement } from './composables/useAccountManagement'
+import { useEnergyPool } from './composables/useEnergyPool'
+import { useNetworkOperations } from './composables/useNetworkOperations'
+import type { EnergyPoolAccount, ToggleAction } from './types/energy-pool.types'
 
+// 主要数据和统计信息
+const { statistics, todayConsumption, loadStatistics, loadTodayConsumption, formatEnergy } = useEnergyPool()
+
+// 账户管理
 const {
-  statistics,
   accounts,
-  loading,
-  todayConsumption,
-  loadStatistics,
+  selectedAccounts,
+  selectedAccount,
+  filterState,
+  loading: accountLoading,
+  filteredAccounts,
+  isAllSelected,
   loadAccounts,
-  loadNetworks,
-  refreshStatus,
-  loadTodayConsumption,
+  deleteAccount,
   enableAccount,
   disableAccount,
-  deleteAccount,
-  formatEnergy,
+  batchEnableAccounts,
+  batchDisableAccounts,
+  toggleSelectAll,
+  toggleAccountSelection,
+  resetFilters,
   formatAddress,
-  formatDate,
   getStatusClass,
   getStatusText,
   getAccountTypeText,
-  getAccountTypeClass,
-  getEnabledClass,
-  getEnabledText
-} = useEnergyPool()
+  getAccountTypeClass
+} = useAccountManagement()
+
+// 网络操作
+const {
+  currentNetworkId,
+  currentNetwork,
+  availableNetworks,
+  switchNetwork,
+  initializeNetworks
+} = useNetworkOperations()
 
 // 模态框状态
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const showDetailsModal = ref(false)
 const showDeleteConfirm = ref(false)
-const showEnableConfirm = ref(false)
-const showDisableConfirm = ref(false)
-
+const showToggleConfirm = ref(false)
 const showBatchNetworkModal = ref(false)
-const selectedAccount = ref<EnergyPoolAccount | null>(null)
-const accountToDelete = ref(null)
-const accountToToggle = ref(null)
-const toggleAction = ref<'enable' | 'disable'>('enable')
-
-// 路由和网络状态管理
-const route = useRoute()
-const router = useRouter()
-const networkStore = useNetworkStore()
-
-// 从路由参数获取当前网络ID
-const currentNetworkId = computed(() => route.params.networkId as string)
-
-// 网络切换相关状态
 const showNetworkSwitcher = ref(false)
 
-// 计算当前网络信息
-const currentNetwork = computed(() => {
-  return networkStore.networks.find(network => network.id === currentNetworkId.value)
-})
+// 账户操作状态
+const accountToDelete = ref<EnergyPoolAccount | null>(null)
+const accountToToggle = ref<EnergyPoolAccount | null>(null)
+const toggleAction = ref<ToggleAction>('enable')
 
-// 可用网络列表 - 只显示活跃的网络
-const availableNetworks = computed(() => networkStore.networks.filter(network => network.is_active))
+// 统计信息加载状态
+const statisticsLoading = ref(false)
 
-// 筛选和搜索状态
-const selectedAccounts = ref<string[]>([])
-const searchQuery = ref('')
-const statusFilter = ref('')
-
-// 计算属性
-const filteredAccounts = computed(() => {
-  let filtered = accounts.value
-
-  // 搜索过滤
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(account => 
-      account.name.toLowerCase().includes(query) ||
-      account.tron_address.toLowerCase().includes(query)
-    )
+// 刷新状态
+const refreshStatus = async () => {
+  if (currentNetworkId.value) {
+    await Promise.all([
+      loadAccounts(currentNetworkId.value),
+      loadStatistics(),
+      loadTodayConsumption()
+    ])
   }
+}
 
-  // 状态过滤
-  if (statusFilter.value) {
-    filtered = filtered.filter(account => account.status === statusFilter.value)
-  }
-
-  return filtered
-})
-
-const isAllSelected = computed(() => {
-  return filteredAccounts.value.length > 0 && 
-    filteredAccounts.value.every(account => selectedAccounts.value.includes(account.id))
-})
-
-// 方法定义
-const editAccount = (account: any) => {
+// 账户操作处理
+const handleEditAccount = (account: EnergyPoolAccount) => {
   selectedAccount.value = account
   showEditModal.value = true
 }
 
-const viewDetails = (account: any) => {
+const handleViewDetails = (account: EnergyPoolAccount) => {
   selectedAccount.value = account
   showDetailsModal.value = true
 }
 
-const confirmDeleteAccount = (account: any) => {
+const handleDeleteAccount = (account: EnergyPoolAccount) => {
   accountToDelete.value = account
   showDeleteConfirm.value = true
 }
 
-const handleDeleteAccount = async () => {
-  if (!accountToDelete.value) return
-  
+const handleEnableAccount = (account: EnergyPoolAccount) => {
+  accountToToggle.value = account
+  toggleAction.value = 'enable'
+  showToggleConfirm.value = true
+}
+
+const handleDisableAccount = (account: EnergyPoolAccount) => {
+  accountToToggle.value = account
+  toggleAction.value = 'disable'
+  showToggleConfirm.value = true
+}
+
+// 确认操作处理
+const confirmDeleteAccount = async (account: EnergyPoolAccount) => {
   try {
-    await deleteAccount(accountToDelete.value.id)
+    await deleteAccount(account.id)
     showDeleteConfirm.value = false
     accountToDelete.value = null
-    if (currentNetworkId.value) {
-      await loadAccounts(currentNetworkId.value)
-      await loadStatistics()
-    }
+    await refreshStatus()
   } catch (error) {
     console.error('Failed to delete account:', error)
   }
 }
 
-// 确认启用账户
-const confirmEnableAccount = (account: any) => {
-  accountToToggle.value = account
-  toggleAction.value = 'enable'
-  showEnableConfirm.value = true
-}
-
-// 确认停用账户
-const confirmDisableAccount = (account: any) => {
-  accountToToggle.value = account
-  toggleAction.value = 'disable'
-  showDisableConfirm.value = true
-}
-
-// 处理启用/停用确认
-const handleToggleAccount = async () => {
-  if (!accountToToggle.value) return
-  
+const confirmToggleAccount = async (account: EnergyPoolAccount, action: ToggleAction) => {
   try {
-    if (toggleAction.value === 'enable') {
-      await enableAccount(accountToToggle.value.id)
+    if (action === 'enable') {
+      await enableAccount(account.id)
     } else {
-      await disableAccount(accountToToggle.value.id)
+      await disableAccount(account.id)
     }
-    
-    // 关闭确认框并清理状态
-    showEnableConfirm.value = false
-    showDisableConfirm.value = false
-    accountToToggle.value = null
-    toggleAction.value = 'enable'
+    handleToggleModalClose()
   } catch (error) {
     console.error('Failed to toggle account:', error)
   }
 }
 
-// 网络切换方法
-const switchNetwork = async (networkId: string) => {
-  showNetworkSwitcher.value = false
-  if (networkId !== currentNetworkId.value) {
-    // 检查当前路由，决定跳转目标
-    const currentRoute = route.name
-    if (currentRoute === 'config-energy-pools-network') {
-      // 从配置管理进入，跳转到配置管理的其他网络页面
-      await router.push(`/config/energy-pools/${networkId}`)
-    } else {
-      // 从能量池管理进入，跳转到能量池管理的其他网络页面
-      await router.push(`/energy-pool/${networkId}/accounts`)
-    }
-  }
+// 模态框关闭处理
+const handleToggleModalClose = () => {
+  showToggleConfirm.value = false
+  accountToToggle.value = null
+  toggleAction.value = 'enable'
 }
 
-// 监听网络ID变化，重新加载账户数据和统计信息
-watch(currentNetworkId, async (newNetworkId) => {
-  console.log('🔍 [EnergyPool] 网络变化:', newNetworkId);
-  if (newNetworkId) {
-    // 设置当前网络到store
-    networkStore.setCurrentNetwork(newNetworkId)
-    
-    await Promise.all([
-      loadAccounts(newNetworkId),
-      loadStatistics(),
-      loadTodayConsumption()
-    ]);
-  } else {
-    // 如果没有网络ID，清空账户数据
-    accounts.value = [];
-  }
-}, { immediate: true });
+// 网络切换处理
+const handleNetworkSelected = async (networkId: string) => {
+  await switchNetwork(networkId)
+}
 
-const handleAccountAdded = () => {
+// 账户操作成功处理
+const handleAccountAdded = async () => {
   showAddModal.value = false
-  if (currentNetworkId.value) {
-    loadAccounts(currentNetworkId.value)
-    loadStatistics()
-  }
+  await refreshStatus()
 }
 
-const handleAccountUpdated = () => {
+const handleAccountUpdated = async () => {
   showEditModal.value = false
   selectedAccount.value = null
-  if (currentNetworkId.value) {
-    loadAccounts(currentNetworkId.value)
-    loadStatistics()
-  }
+  await refreshStatus()
 }
 
 const handleEditFromDetails = (account: EnergyPoolAccount) => {
-  // 先关闭详情模态框
   showDetailsModal.value = false
-  
-  // 然后打开编辑模态框
   selectedAccount.value = account
   showEditModal.value = true
 }
 
-// 筛选和选择相关方法
-const toggleSelectAll = () => {
-  if (isAllSelected.value) {
-    selectedAccounts.value = []
-  } else {
-    selectedAccounts.value = filteredAccounts.value.map(account => account.id)
-  }
-}
-
-const toggleAccountSelection = (accountId: string) => {
-  const index = selectedAccounts.value.indexOf(accountId)
-  if (index > -1) {
-    selectedAccounts.value.splice(index, 1)
-  } else {
-    selectedAccounts.value.push(accountId)
-  }
-}
-
-const resetFilters = () => {
-  searchQuery.value = ''
-  statusFilter.value = ''
-}
-
-
-
-
-const batchEnable = async () => {
-  loading.batch = true
-  try {
-    for (const accountId of selectedAccounts.value) {
-      await enableAccount(accountId)
-    }
-    selectedAccounts.value = []
-    if (currentNetworkId.value) {
-      await loadAccounts(currentNetworkId.value)
-      await loadStatistics()
-    }
-  } catch (error) {
-    console.error('Failed to batch enable accounts:', error)
-  } finally {
-    loading.batch = false
-  }
-}
-
-const batchDisable = async () => {
-  loading.batch = true
-  try {
-    for (const accountId of selectedAccounts.value) {
-      await disableAccount(accountId)
-    }
-    selectedAccounts.value = []
-    if (currentNetworkId.value) {
-      await loadAccounts(currentNetworkId.value)
-      await loadStatistics()
-    }
-  } catch (error) {
-    console.error('Failed to batch disable accounts:', error)
-  } finally {
-    loading.batch = false
-  }
-}
-
-
-
-
-
-
-
-
-const handleBatchNetworkUpdated = () => {
+const handleBatchNetworkUpdated = async () => {
   showBatchNetworkModal.value = false
   selectedAccounts.value = []
   if (currentNetworkId.value) {
-    loadAccounts(currentNetworkId.value)
+    await loadAccounts(currentNetworkId.value)
   }
 }
 
+// 监听网络ID变化
+watch(currentNetworkId, async (newNetworkId) => {
+  console.log('🔍 [EnergyPool] 网络变化:', newNetworkId)
+  if (newNetworkId) {
+    await Promise.all([
+      loadAccounts(newNetworkId),
+      loadStatistics(),
+      loadTodayConsumption()
+    ])
+  } else {
+    accounts.value = []
+  }
+}, { immediate: true })
+
+// 页面初始化
 onMounted(async () => {
-  console.log('🚀 [EnergyPool] 页面初始化');
-  
+  console.log('🚀 [EnergyPool] 页面初始化')
   try {
-    // 初始化网络状态管理store
-    await networkStore.loadNetworks();
-    
-    console.log('✅ [EnergyPool] 页面初始化完成，当前网络:', currentNetworkId.value);
+    await initializeNetworks()
+    console.log('✅ [EnergyPool] 页面初始化完成，当前网络:', currentNetworkId.value)
   } catch (error) {
-    console.error('❌ [EnergyPool] 页面初始化失败:', error);
+    console.error('❌ [EnergyPool] 页面初始化失败:', error)
   }
 })
 </script>

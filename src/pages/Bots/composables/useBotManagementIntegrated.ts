@@ -45,7 +45,9 @@ export function useBotManagement() {
    * 处理机器人删除
    */
   const handleDeleteBot = async (bot: BotConfig) => {
+    console.log('🗑️ [useBotManagement] handleDeleteBot:', bot)
     botDialogs.showDeleteConfirm(bot, async () => {
+      console.log('🗑️ [useBotManagement] 确认删除，开始删除操作:', bot.id)
       await botOperations.deleteBot(bot.id)
     })
   }
@@ -125,6 +127,7 @@ export function useBotManagement() {
    * 处理下拉命令
    */
   const handleDropdownCommand = (command: string, bot?: BotConfig) => {
+    console.log('🎯 [useBotManagement] handleDropdownCommand:', command, bot)
     switch (command) {
       case 'view':
         if (bot) {
@@ -142,6 +145,7 @@ export function useBotManagement() {
         }
         break
       case 'delete':
+        console.log('🗑️ [useBotManagement] 开始删除流程:', bot)
         if (bot) {
           handleDeleteBot(bot)
         }

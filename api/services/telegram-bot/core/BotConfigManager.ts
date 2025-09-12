@@ -255,7 +255,7 @@ export class BotConfigManager {
       username: this.currentConfig.username,
       workMode: this.currentConfig.polling ? 'polling' : 'webhook',
       networkId: this.currentConfig.networkId,
-      hasWebhook: !!this.currentConfig.webhook_url,
+      hasWebhook: !!this.currentConfig.webhookUrl,
       lastUpdated: new Date().toISOString()
     };
   }

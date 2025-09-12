@@ -30,6 +30,121 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
   }
 
   /**
+   * 处理USDT转换为TRX的兑换请求
+   */
+  async handleTrxExchangeUsdtToTrx(context: CallbackContext, params?: string): Promise<void> {
+    try {
+      // 获取TRX兑换配置
+      const configResult = await query(
+        'SELECT config, name FROM price_configs WHERE mode_type = $1 AND is_active = true LIMIT 1',
+        ['trx_exchange']
+      );
+
+      if (configResult.rows.length === 0) {
+        await this.bot.sendMessage(context.chatId, '❌ TRX兑换服务暂不可用，请稍后再试。');
+        return;
+      }
+
+      const config = configResult.rows[0].config;
+      const serviceName = configResult.rows[0].name;
+
+      // 构建USDT→TRX兑换信息
+      let message = `💱 *${serviceName} - USDT转TRX*\n\n`;
+      
+      if (config.usdt_to_trx_rate) {
+        message += `📊 当前汇率：1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
+      }
+      
+      if (config.min_amount) {
+        message += `💰 最小兑换：${config.min_amount} USDT\n`;
+      }
+      
+      if (config.exchange_address) {
+        message += `📍 兑换地址：\`${config.exchange_address}\`\n\n`;
+      }
+      
+      message += `📝 *操作说明*：\n`;
+      message += `1. 发送USDT到上述兑换地址\n`;
+      message += `2. 系统将自动按汇率兑换为TRX\n`;
+      message += `3. TRX将在确认后发送到您的账户\n\n`;
+      
+      // 添加注意事项
+      if (config.notes && config.notes.length > 0) {
+        message += `⚠️ *注意事项*：\n`;
+        config.notes.forEach((note: string) => {
+          message += `• ${note}\n`;
+        });
+      }
+
+      await this.bot.sendMessage(context.chatId, message, {
+        parse_mode: 'Markdown'
+      });
+
+    } catch (error) {
+      console.error('处理USDT→TRX兑换失败:', error);
+      await this.bot.sendMessage(context.chatId, '❌ 处理兑换请求失败，请稍后再试。');
+    }
+  }
+
+  /**
+   * 处理TRX转换为USDT的兑换请求
+   */
+  async handleTrxExchangeTrxToUsdt(context: CallbackContext, params?: string): Promise<void> {
+    try {
+      // 获取TRX兑换配置
+      const configResult = await query(
+        'SELECT config, name FROM price_configs WHERE mode_type = $1 AND is_active = true LIMIT 1',
+        ['trx_exchange']
+      );
+
+      if (configResult.rows.length === 0) {
+        await this.bot.sendMessage(context.chatId, '❌ TRX兑换服务暂不可用，请稍后再试。');
+        return;
+      }
+
+      const config = configResult.rows[0].config;
+      const serviceName = configResult.rows[0].name;
+
+      // 构建TRX→USDT兑换信息
+      let message = `💱 *${serviceName} - TRX转USDT*\n\n`;
+      
+      if (config.trx_to_usdt_rate) {
+        message += `📊 当前汇率：1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
+      }
+      
+      if (config.min_trx_amount || config.min_amount) {
+        const minAmount = config.min_trx_amount || (config.min_amount * (config.usdt_to_trx_rate || 1));
+        message += `💰 最小兑换：${minAmount} TRX\n`;
+      }
+      
+      if (config.exchange_address) {
+        message += `📍 兑换地址：\`${config.exchange_address}\`\n\n`;
+      }
+      
+      message += `📝 *操作说明*：\n`;
+      message += `1. 发送TRX到上述兑换地址\n`;
+      message += `2. 系统将自动按汇率兑换为USDT\n`;
+      message += `3. USDT将在确认后发送到您的账户\n\n`;
+      
+      // 添加注意事项
+      if (config.notes && config.notes.length > 0) {
+        message += `⚠️ *注意事项*：\n`;
+        config.notes.forEach((note: string) => {
+          message += `• ${note}\n`;
+        });
+      }
+
+      await this.bot.sendMessage(context.chatId, message, {
+        parse_mode: 'Markdown'
+      });
+
+    } catch (error) {
+      console.error('处理TRX→USDT兑换失败:', error);
+      await this.bot.sendMessage(context.chatId, '❌ 处理兑换请求失败，请稍后再试。');
+    }
+  }
+
+  /**
    * 通用方法：根据价格配置发送消息
    */
   private async sendPriceConfigMessage(context: CallbackContext, modeType: string): Promise<void> {

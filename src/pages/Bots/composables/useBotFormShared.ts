@@ -417,18 +417,34 @@ export const useBotForm = (mode: 'create' | 'edit' = 'create') => {
   const applyModeChange = async (botId: string, originalMode: 'polling' | 'webhook') => {
     if (formData.work_mode === originalMode) return
 
+    // 构建请求数据，确保max_connections在有效范围内
+    const requestData: any = {
+      work_mode: formData.work_mode
+    }
+
+    // 如果是webhook模式，包含相关配置
+    if (formData.work_mode === 'webhook') {
+      requestData.webhook_url = formData.webhook_url || null
+      requestData.webhook_secret = formData.webhook_secret || null
+      
+      // 确保max_connections在有效范围内(1-100)
+      const maxConn = formData.max_connections
+      if (maxConn && maxConn >= 1 && maxConn <= 100) {
+        requestData.max_connections = maxConn
+      } else {
+        // 如果无效，使用默认值40
+        requestData.max_connections = 40
+      }
+    }
+    // polling模式不发送webhook相关字段
+
     const response = await fetch(`/api/bots/${botId}/switch-mode`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
       },
-      body: JSON.stringify({
-        work_mode: formData.work_mode,
-        webhook_url: formData.work_mode === 'webhook' ? formData.webhook_url : null,
-        webhook_secret: formData.work_mode === 'webhook' ? formData.webhook_secret : null,
-        max_connections: formData.work_mode === 'webhook' ? formData.max_connections : null
-      })
+      body: JSON.stringify(requestData)
     })
     
     if (response.ok) {

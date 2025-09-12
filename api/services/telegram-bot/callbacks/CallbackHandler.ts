@@ -14,10 +14,61 @@ export class CallbackHandler {
   private userService: UserService;
   private orderService: typeof orderService;
 
-  constructor(bot: TelegramBot) {
-    this.bot = bot;
+  constructor(params: { bot: TelegramBot; config?: any; logger?: any; configManager?: any; keyboardBuilder?: any } | TelegramBot) {
+    // Handle both old style (direct bot) and new style (params object)
+    if (params && typeof params === 'object' && 'bot' in params) {
+      this.bot = params.bot;
+    } else {
+      this.bot = params as TelegramBot;
+    }
     this.userService = new UserService();
     this.orderService = orderService;
+  }
+
+  /**
+   * 安全地发送消息
+   */
+  private async safeSendMessage(chatId: number, text: string, options?: any): Promise<boolean> {
+    try {
+      if (!this.bot) {
+        console.error('Bot instance is null or undefined');
+        return false;
+      }
+
+      if (typeof this.safeSendMessage !== 'function') {
+        console.error('Bot sendMessage method is not available');
+        return false;
+      }
+
+      await this.safeSendMessage(chatId, text, options);
+      return true;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 安全地回答回调查询
+   */
+  private async safeAnswerCallbackQuery(callbackQueryId: string, options?: any): Promise<boolean> {
+    try {
+      if (!this.bot) {
+        console.error('Bot instance is null or undefined');
+        return false;
+      }
+
+      if (typeof this.bot.answerCallbackQuery !== 'function') {
+        console.error('Bot answerCallbackQuery method is not available');
+        return false;
+      }
+
+      await this.bot.answerCallbackQuery(callbackQueryId, options);
+      return true;
+    } catch (error) {
+      console.error('Failed to answer callback query:', error);
+      return false;
+    }
   }
 
   /**
@@ -44,13 +95,15 @@ export class CallbackHandler {
 
     try {
       // 回答回调查询
-      await this.bot.answerCallbackQuery(callbackQuery.id);
+      await this.safeAnswerCallbackQuery(callbackQuery.id);
 
       // 路由到具体处理方法
       await this.routeCallback(chatId, data, callbackQuery);
     } catch (error) {
       console.error('Error handling callback query:', error);
-      await this.bot.sendMessage(chatId, '❌ 处理请求时发生错误，请重试。');
+      
+      // 安全地发送错误消息
+      await this.safeSendMessage(chatId, '❌ 处理请求时发生错误，请重试。');
     }
   }
 
@@ -104,27 +157,27 @@ export class CallbackHandler {
    */
   private async handleEnergyPackageSelection(chatId: number, packageId: string, telegramId?: number): Promise<void> {
     if (!telegramId) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息');
+      await this.safeSendMessage(chatId, '❌ 无法获取用户信息');
       return;
     }
 
     try {
       const packageInfo = await this.getPackageInfo(packageId);
       if (!packageInfo) {
-        await this.bot.sendMessage(chatId, '❌ 套餐不存在或已下架');
+        await this.safeSendMessage(chatId, '❌ 套餐不存在或已下架');
         return;
       }
 
       // 获取用户信息
       const user = await UserService.getUserByTelegramId(telegramId);
       if (!user) {
-        await this.bot.sendMessage(chatId, '❌ 用户信息不存在，请重新开始');
+        await this.safeSendMessage(chatId, '❌ 用户信息不存在，请重新开始');
         return;
       }
 
       // 检查用户TRON地址
       if (!user.tron_address) {
-        await this.bot.sendMessage(chatId, 
+        await this.safeSendMessage(chatId, 
           '❌ 请先设置您的TRON地址\n\n' +
           '使用命令: /setaddress <您的TRON地址>'
         );
@@ -149,12 +202,12 @@ export class CallbackHandler {
         ]
       };
 
-      await this.bot.sendMessage(chatId, confirmationMessage, {
+      await this.safeSendMessage(chatId, confirmationMessage, {
         reply_markup: keyboard
       });
     } catch (error) {
       console.error('Failed to handle package selection:', error);
-      await this.bot.sendMessage(chatId, '❌ 处理套餐选择时发生错误，请重试。');
+      await this.safeSendMessage(chatId, '❌ 处理套餐选择时发生错误，请重试。');
     }
   }
 
@@ -163,21 +216,21 @@ export class CallbackHandler {
    */
   private async handlePackageConfirmation(chatId: number, packageId: string, telegramId?: string): Promise<void> {
     if (!telegramId) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息');
+      await this.safeSendMessage(chatId, '❌ 无法获取用户信息');
       return;
     }
 
     try {
       const packageInfo = await this.getPackageInfo(packageId);
       if (!packageInfo) {
-        await this.bot.sendMessage(chatId, '❌ 套餐不存在');
+        await this.safeSendMessage(chatId, '❌ 套餐不存在');
         return;
       }
 
       // 获取用户信息
       const user = await UserService.getUserByTelegramId(parseInt(telegramId));
       if (!user) {
-        await this.bot.sendMessage(chatId, '❌ 用户信息不存在');
+        await this.safeSendMessage(chatId, '❌ 用户信息不存在');
         return;
       }
 
@@ -193,7 +246,7 @@ export class CallbackHandler {
 
       const order = await this.orderService.createOrder(orderData);
       if (!order) {
-        await this.bot.sendMessage(chatId, '❌ 创建订单失败，请重试');
+        await this.safeSendMessage(chatId, '❌ 创建订单失败，请重试');
         return;
       }
 
@@ -216,7 +269,7 @@ export class CallbackHandler {
         ]
       };
 
-      await this.bot.sendMessage(chatId, paymentMessage, {
+      await this.safeSendMessage(chatId, paymentMessage, {
         reply_markup: keyboard,
         parse_mode: 'Markdown'
       });
@@ -233,7 +286,7 @@ export class CallbackHandler {
       }
     } catch (error) {
       console.error('Failed to handle package confirmation:', error);
-      await this.bot.sendMessage(chatId, '❌ 确认套餐时发生错误，请重试。');
+      await this.safeSendMessage(chatId, '❌ 确认套餐时发生错误，请重试。');
     }
   }
 
@@ -241,7 +294,7 @@ export class CallbackHandler {
    * 处理套餐取消
    */
   private async handlePackageCancellation(chatId: number, packageId: string): Promise<void> {
-    await this.bot.sendMessage(chatId, '❌ 已取消套餐选择');
+    await this.safeSendMessage(chatId, '❌ 已取消套餐选择');
     // 可以返回到能量套餐选择界面
   }
 
@@ -255,17 +308,17 @@ export class CallbackHandler {
       // 获取订单详情
       const order = await this.orderService.getOrderById(orderIdNum);
       if (!order) {
-        await this.bot.sendMessage(chatId, '❌ 订单不存在');
+        await this.safeSendMessage(chatId, '❌ 订单不存在');
         return;
       }
 
       // 检查订单状态
       if (order.status !== 'paid') {
-        await this.bot.sendMessage(chatId, '⏳ 正在确认支付，请稍等...\n\n如果长时间未确认，请联系客服。');
+        await this.safeSendMessage(chatId, '⏳ 正在确认支付，请稍等...\n\n如果长时间未确认，请联系客服。');
         return;
       }
 
-      await this.bot.sendMessage(chatId, '✅ 订单确认成功！正在处理能量委托...');
+      await this.safeSendMessage(chatId, '✅ 订单确认成功！正在处理能量委托...');
       
       // 执行能量委托
       const delegationResult = await energyDelegationService.executeDelegation({
@@ -293,19 +346,19 @@ export class CallbackHandler {
           ]
         };
         
-        await this.bot.sendMessage(chatId, successMessage, {
+        await this.safeSendMessage(chatId, successMessage, {
           reply_markup: keyboard,
           parse_mode: 'Markdown'
         });
       } else {
-        await this.bot.sendMessage(chatId, 
+        await this.safeSendMessage(chatId, 
           '❌ 能量委托失败，请联系客服处理。\n\n' +
           `错误信息: ${delegationResult.error || '未知错误'}`
         );
       }
     } catch (error) {
       console.error('Failed to handle order confirmation:', error);
-      await this.bot.sendMessage(chatId, '❌ 确认订单时发生错误，请重试。');
+      await this.safeSendMessage(chatId, '❌ 确认订单时发生错误，请重试。');
     }
   }
 
@@ -319,26 +372,26 @@ export class CallbackHandler {
       // 获取订单详情
       const order = await this.orderService.getOrderById(orderIdNum);
       if (!order) {
-        await this.bot.sendMessage(chatId, '❌ 订单不存在');
+        await this.safeSendMessage(chatId, '❌ 订单不存在');
         return;
       }
 
       // 检查订单是否可以取消
       if (order.status === 'completed') {
-        await this.bot.sendMessage(chatId, '❌ 订单已完成，无法取消');
+        await this.safeSendMessage(chatId, '❌ 订单已完成，无法取消');
         return;
       }
 
       // 取消订单
       await this.orderService.cancelOrder(orderIdNum);
       
-      await this.bot.sendMessage(chatId, 
+      await this.safeSendMessage(chatId, 
         `✅ 订单 #${orderId} 已成功取消\n\n` +
         `如有疑问，请联系客服。`
       );
     } catch (error) {
       console.error('Failed to handle order cancellation:', error);
-      await this.bot.sendMessage(chatId, '❌ 取消订单时发生错误，请重试。');
+      await this.safeSendMessage(chatId, '❌ 取消订单时发生错误，请重试。');
     }
   }
 
@@ -366,12 +419,12 @@ export class CallbackHandler {
         ]
       };
 
-      await this.bot.sendMessage(chatId, statusMessage, {
+      await this.safeSendMessage(chatId, statusMessage, {
         reply_markup: keyboard
       });
     } catch (error) {
       console.error('Failed to handle delegation status:', error);
-      await this.bot.sendMessage(chatId, '❌ 查询委托状态时发生错误，请重试。');
+      await this.safeSendMessage(chatId, '❌ 查询委托状态时发生错误，请重试。');
     }
   }
 
@@ -398,7 +451,7 @@ export class CallbackHandler {
       } catch (error) {
         console.error('Error in callback query handler:', error);
         if (callbackQuery.message?.chat.id) {
-          await this.bot.sendMessage(callbackQuery.message.chat.id, '❌ 处理请求时发生错误，请重试。');
+          await this.safeSendMessage(callbackQuery.message.chat.id, '❌ 处理请求时发生错误，请重试。');
         }
       }
     });

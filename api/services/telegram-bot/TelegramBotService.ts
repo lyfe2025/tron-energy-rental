@@ -178,6 +178,51 @@ export class TelegramBotService {
   getBotInfo = this.getMe;
   getBotConfig = this.getConfig;
 
+  /**
+   * 获取Webhook信息 (通过WebhookManager代理)
+   */
+  async getWebhookInfo(): Promise<any> {
+    if (!this.webhook) throw new Error('Webhook 管理器未初始化');
+    const result = await this.webhook.getWebhookInfo();
+    if (!result.success) throw new Error(result.error);
+    return result.data;
+  }
+
+  /**
+   * 删除Webhook (通过WebhookManager代理)
+   */
+  async deleteWebhook(): Promise<boolean> {
+    if (!this.webhook) throw new Error('Webhook 管理器未初始化');
+    const result = await this.webhook.deleteWebhook();
+    if (!result.success) throw new Error(result.error);
+    return result.success;
+  }
+
+  /**
+   * 记录机器人活动 (通过DatabaseAdapter代理)
+   */
+  async logBotActivity(level: string, action: string, message: string, metadata?: any): Promise<void> {
+    if (!this.botId) throw new Error('机器人ID未设置');
+    
+    // 使用类中的databaseAdapter
+    if (this.databaseAdapter && typeof this.databaseAdapter.logBotActivity === 'function') {
+      await this.databaseAdapter.logBotActivity(this.botId, action, message, metadata);
+      return;
+    }
+    
+    // 尝试通过orchestrator获取数据库适配器
+    if (this.orchestrator) {
+      const adapter = (this.orchestrator as any).databaseAdapter;
+      if (adapter && typeof adapter.logBotActivity === 'function') {
+        await adapter.logBotActivity(this.botId, action, message, metadata);
+        return;
+      }
+    }
+    
+    // 如果都没有，简单记录到控制台
+    console.log(`[${level.toUpperCase()}] ${action}: ${message}`, metadata);
+  }
+
   // ==================== 私有辅助方法 ====================
 
   private async setupFromInitResult(initResult: InitializationResult): Promise<void> {

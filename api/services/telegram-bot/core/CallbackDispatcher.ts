@@ -110,7 +110,27 @@ export class CallbackDispatcher {
       'check_balance': { action: 'user', method: 'showBalance' },
       'help_support': { action: 'help', method: 'showHelp' },
       'refresh_menu': { action: 'menu', method: 'showMainMenu' },
+      'energy_flash': { action: 'price', method: 'showEnergyFlash' },
+      'transaction_package': { action: 'price', method: 'showTransactionPackage' },
+      'trx_exchange': { action: 'price', method: 'showTrxExchange' },
     };
+
+    // 处理TRX兑换回调
+    if (data.startsWith('trx_exchange_')) {
+      if (data === 'trx_exchange_usdt_to_trx') {
+        return {
+          action: 'price',
+          method: 'handleTrxExchangeUsdtToTrx',
+          params: 'usdt_to_trx'
+        };
+      } else if (data === 'trx_exchange_trx_to_usdt') {
+        return {
+          action: 'price',
+          method: 'handleTrxExchangeTrxToUsdt',
+          params: 'trx_to_usdt'
+        };
+      }
+    }
 
     // 处理以特定前缀开头的回调
     if (data.startsWith('package_')) {
