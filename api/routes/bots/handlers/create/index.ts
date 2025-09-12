@@ -3,6 +3,8 @@
  * 统一管理机器人创建流程
  */
 import type { Request, Response } from 'express';
+import { configService } from '../../../../services/config/ConfigService.js';
+import { multiBotManager } from '../../../../services/telegram-bot.js';
 import type { CreateBotData } from '../../types.js';
 import { ConfigProcessor } from './services/ConfigProcessor.js';
 import { InitializationService } from './services/InitializationService.js';
@@ -91,7 +93,36 @@ export class BotCreateHandler {
         // 这里不阻止创建，只是记录警告
       }
 
-      // 8. 返回成功响应
+      // 8. 动态添加机器人到MultiBotManager（如果机器人是活跃的）
+      if (bot.is_active) {
+        try {
+          console.log('开始动态添加机器人到MultiBotManager...');
+          
+          // 等待MultiBotManager初始化完成
+          await multiBotManager.waitForInitialization();
+          
+          // 获取机器人配置
+          const botConfig = await configService.getTelegramBotById(bot.id);
+          if (botConfig) {
+            // 动态添加新机器人
+            const addResult = await multiBotManager.addBot(botConfig);
+            if (addResult) {
+              console.log('✅ 机器人已动态添动到运行实例:', bot.name, `(@${bot.username})`);
+              networkSetupResult.message += ' - 机器人已自动启动';
+            } else {
+              console.warn('⚠️ 机器人添加到运行实例失败，需要重启服务');
+              networkSetupResult.message += ' - 需要重启服务以启动机器人';
+            }
+          } else {
+            console.warn('⚠️ 无法获取机器人配置，跳过动态添加');
+          }
+        } catch (error) {
+          console.error('动态添加机器人失败:', error);
+          // 不影响创建流程，只是记录错误
+        }
+      }
+
+      // 9. 返回成功响应
       console.log('机器人创建成功:', bot.id);
       const response = CreateUtils.createSuccessResponse(bot, networkSetupResult);
       

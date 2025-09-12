@@ -25,7 +25,12 @@ export class DatabaseKeyboardManager {
       );
       
       if (result.rows.length > 0 && result.rows[0].keyboard_config) {
-        return result.rows[0].keyboard_config;
+        const config = result.rows[0].keyboard_config;
+        
+        // 🔍 添加调试信息
+        console.log('📋 从数据库获取的键盘配置:', JSON.stringify(config, null, 2));
+        
+        return config;
       }
       
       return null;
@@ -142,15 +147,24 @@ export class DatabaseKeyboardManager {
     const keyboardRows: TelegramBot.InlineKeyboardButton[][] = [];
     
     if (config.main_menu && config.main_menu.rows) {
-      config.main_menu.rows.forEach((row: any) => {
+      config.main_menu.rows.forEach((row: any, rowIndex: number) => {
         if (row.is_enabled && row.buttons) {
           const buttonRow: TelegramBot.InlineKeyboardButton[] = [];
           
-          row.buttons.forEach((button: any) => {
+          row.buttons.forEach((button: any, buttonIndex: number) => {
             if (button.is_enabled) {
+              const callbackData = button.callback_data || `action_${Date.now()}`;
+              
+              // 🔍 添加调试信息
+              console.log(`🔘 生成按钮 [${rowIndex}][${buttonIndex}]:`, {
+                text: button.text,
+                callback_data: callbackData,
+                original_callback_data: button.callback_data
+              });
+              
               buttonRow.push({
                 text: button.text,
-                callback_data: button.callback_data || `action_${Date.now()}`
+                callback_data: callbackData
               });
             }
           });
@@ -162,8 +176,13 @@ export class DatabaseKeyboardManager {
       });
     }
     
-    return {
+    const keyboard = {
       inline_keyboard: keyboardRows
     };
+    
+    // 🔍 添加调试信息
+    console.log('🎹 生成的内联键盘:', JSON.stringify(keyboard, null, 2));
+    
+    return keyboard;
   }
 }

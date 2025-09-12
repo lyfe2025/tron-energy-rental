@@ -19,6 +19,28 @@ router.post('/webhook/:botUsername', async (req, res) => {
       hasCallback: !!update.callback_query
     });
     
+    // 🔍 添加详细调试信息
+    console.log('📋 完整更新对象:', JSON.stringify(update, null, 2));
+    
+    if (update.message) {
+      console.log('💬 消息详情:', {
+        messageId: update.message.message_id,
+        chatId: update.message.chat.id,
+        userId: update.message.from?.id,
+        text: update.message.text,
+        hasReplyMarkup: !!update.message.reply_markup
+      });
+    }
+    
+    if (update.callback_query) {
+      console.log('🔘 回调查询详情:', {
+        queryId: update.callback_query.id,
+        userId: update.callback_query.from?.id,
+        data: update.callback_query.data,
+        messageId: update.callback_query.message?.message_id
+      });
+    }
+    
     // 先快速响应Telegram，避免超时
     res.status(200).json({ ok: true });
     

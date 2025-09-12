@@ -35,7 +35,7 @@ export class WebhookSetupService {
     try {
       // 获取机器人信息
       const botResult = await query(
-        'SELECT id, bot_token, work_mode, webhook_url, webhook_secret FROM telegram_bots WHERE id = $1',
+        'SELECT id, bot_token, bot_username, work_mode, webhook_url, webhook_secret FROM telegram_bots WHERE id = $1',
         [botId]
       );
       
@@ -105,52 +105,89 @@ export class WebhookSetupService {
    * @param botToken 机器人Token
    * @param webhookUrl Webhook URL
    * @param webhookSecret Webhook密钥（可选）
+   * @param maxRetries 最大重试次数
    */
   static async setWebhook(
     botToken: string,
     webhookUrl: string,
-    webhookSecret?: string
+    webhookSecret?: string,
+    maxRetries: number = 3
   ): Promise<WebhookSetupResult> {
-    try {
-      // 构建setWebhook请求参数
-      const webhookParams = new URLSearchParams({
-        url: webhookUrl
-      });
-      
-      if (webhookSecret) {
-        webhookParams.append('secret_token', webhookSecret);
-      }
-      
-      // 调用Telegram Bot API设置webhook
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: webhookParams
-      });
-      
-      const data = await response.json();
-      
-      if (!data.ok) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[Webhook] 第 ${attempt} 次尝试设置 Webhook: ${webhookUrl}`);
+        
+        // 构建setWebhook请求参数
+        const webhookParams = new URLSearchParams({
+          url: webhookUrl
+        });
+        
+        if (webhookSecret) {
+          webhookParams.append('secret_token', webhookSecret);
+        }
+        
+        // 调用Telegram Bot API设置webhook
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: webhookParams
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          console.log(`[Webhook] Webhook设置成功`);
+          return {
+            success: true,
+            message: 'Webhook设置成功'
+          };
+        }
+        
+        // 检查是否是速率限制错误
+        if (data.error_code === 429 || (data.description && data.description.includes('Too Many Requests'))) {
+          const retryAfter = data.parameters?.retry_after || 60;
+          console.log(`[Webhook] 触发速率限制，需要等待 ${retryAfter} 秒后重试 (尝试 ${attempt}/${maxRetries})`);
+          
+          if (attempt < maxRetries) {
+            console.log(`[Webhook] 等待 ${retryAfter} 秒...`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            continue;
+          } else {
+            return {
+              success: false,
+              message: `设置Webhook失败: 触发速率限制，已重试 ${maxRetries} 次。请稍后手动重试或等待 ${retryAfter} 秒。`
+            };
+          }
+        }
+        
+        // 其他错误直接返回
         return {
           success: false,
           message: `设置Webhook失败: ${data.description || '未知错误'}`
         };
+        
+      } catch (apiError: any) {
+        console.error(`[Webhook] 第 ${attempt} 次尝试API调用错误:`, apiError);
+        
+        if (attempt < maxRetries) {
+          console.log(`[Webhook] 等待 10 秒后重试...`);
+          await new Promise(resolve => setTimeout(resolve, 10000));
+          continue;
+        } else {
+          return {
+            success: false,
+            message: `Telegram API调用失败: ${apiError.message || '网络错误'}`
+          };
+        }
       }
-      
-      return {
-        success: true,
-        message: 'Webhook设置成功'
-      };
-      
-    } catch (apiError) {
-      console.error('Telegram API调用错误:', apiError);
-      return {
-        success: false,
-        message: 'Telegram API调用失败'
-      };
     }
+    
+    return {
+      success: false,
+      message: '设置Webhook失败: 已达到最大重试次数'
+    };
   }
 
   /**
@@ -187,14 +224,72 @@ export class WebhookSetupService {
   }
 
   /**
-   * 应用机器人的Webhook设置
+   * 应用机器人的Webhook设置（改进版 - 智能URL处理）
+   * @param botId 机器人ID
+   */
+  static async applyBotWebhookSettingsImproved(botId: string): Promise<WebhookSetupResult> {
+    try {
+      // 获取机器人信息
+      const botResult = await query(
+        'SELECT id, bot_token, bot_username, work_mode, webhook_url, webhook_secret FROM telegram_bots WHERE id = $1',
+        [botId]
+      );
+      
+      if (botResult.rows.length === 0) {
+        return {
+          success: false,
+          message: '机器人不存在'
+        };
+      }
+      
+      const bot = botResult.rows[0];
+      
+      if (bot.work_mode !== 'webhook') {
+        return {
+          success: false,
+          message: '该机器人不是Webhook模式'
+        };
+      }
+      
+      if (!bot.webhook_url) {
+        return {
+          success: false,
+          message: 'Webhook URL未配置'
+        };
+      }
+      
+      if (!bot.bot_username) {
+        return {
+          success: false,
+          message: '机器人用户名未配置'
+        };
+      }
+      
+      // 构建完整的Webhook URL（确保包含机器人用户名）
+      const completeWebhookUrl = this.buildCompleteWebhookUrl(bot.webhook_url, bot.bot_username);
+      
+      console.log(`[Webhook] 应用机器人 @${bot.bot_username} 的设置，完整URL: ${completeWebhookUrl}`);
+      
+      return await this.setWebhook(bot.bot_token, completeWebhookUrl, bot.webhook_secret);
+      
+    } catch (error) {
+      console.error('应用Webhook设置错误:', error);
+      return {
+        success: false,
+        message: '服务器内部错误'
+      };
+    }
+  }
+
+  /**
+   * 应用机器人的Webhook设置（原版本 - 保留兼容性）
    * @param botId 机器人ID
    */
   static async applyBotWebhookSettings(botId: string): Promise<WebhookSetupResult> {
     try {
       // 获取机器人信息
       const botResult = await query(
-        'SELECT id, bot_token, work_mode, webhook_url, webhook_secret FROM telegram_bots WHERE id = $1',
+        'SELECT id, bot_token, bot_username, work_mode, webhook_url, webhook_secret FROM telegram_bots WHERE id = $1',
         [botId]
       );
       
@@ -290,6 +385,75 @@ export class WebhookSetupService {
       return {
         success: false,
         message: `Webhook连接失败：${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 构建完整的Webhook URL（包含机器人用户名）
+   * @param baseUrl 基础URL
+   * @param botUsername 机器人用户名
+   */
+  static buildCompleteWebhookUrl(baseUrl: string, botUsername: string): string {
+    // 移除URL末尾的斜杠
+    const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
+    
+    // 检查URL是否已经包含机器人用户名
+    if (cleanBaseUrl.endsWith(`/${botUsername}`)) {
+      return cleanBaseUrl;
+    }
+    
+    // 添加机器人用户名
+    return `${cleanBaseUrl}/${botUsername}`;
+  }
+
+  /**
+   * 设置机器人Webhook（智能URL处理）
+   * @param botId 机器人ID
+   * @param baseWebhookUrl 基础Webhook URL
+   * @param webhookSecret Webhook密钥（可选）
+   */
+  static async setBotWebhookWithUrl(
+    botId: string,
+    baseWebhookUrl: string,
+    webhookSecret?: string
+  ): Promise<WebhookSetupResult> {
+    try {
+      // 获取机器人信息
+      const botResult = await query(
+        'SELECT id, bot_token, bot_username, work_mode FROM telegram_bots WHERE id = $1',
+        [botId]
+      );
+      
+      if (botResult.rows.length === 0) {
+        return {
+          success: false,
+          message: '机器人不存在'
+        };
+      }
+      
+      const bot = botResult.rows[0];
+      
+      if (!bot.bot_username) {
+        return {
+          success: false,
+          message: '机器人用户名未配置'
+        };
+      }
+      
+      // 构建完整的Webhook URL
+      const completeWebhookUrl = this.buildCompleteWebhookUrl(baseWebhookUrl, bot.bot_username);
+      
+      console.log(`[Webhook] 为机器人 @${bot.bot_username} 设置完整URL: ${completeWebhookUrl}`);
+      
+      // 设置Webhook
+      return await this.setWebhook(bot.bot_token, completeWebhookUrl, webhookSecret);
+      
+    } catch (error) {
+      console.error('设置机器人Webhook错误:', error);
+      return {
+        success: false,
+        message: '服务器内部错误'
       };
     }
   }

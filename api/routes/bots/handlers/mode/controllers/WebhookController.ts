@@ -322,8 +322,8 @@ export class WebhookController {
 
         // 6. 同步Webhook URL (Webhook模式必需)
         if (options.webhookUrl && formData.webhook_url) {
-          const webhookResult = await WebhookController.syncWebhookUrl(
-            bot.bot_token, formData.webhook_url, formData.webhook_secret, logs
+          const webhookResult = await WebhookController.syncWebhookUrlWithBotId(
+            id, formData.webhook_url, formData.webhook_secret, logs
           );
           results.webhookUrl = webhookResult.success;
           if (!webhookResult.success && webhookResult.error) {
@@ -479,7 +479,41 @@ export class WebhookController {
   }
 
   /**
-   * 同步Webhook URL (Webhook模式)
+   * 同步Webhook URL (Webhook模式) - 智能URL处理版本
+   */
+  private static async syncWebhookUrlWithBotId(
+    botId: string,
+    baseWebhookUrl: string, 
+    webhookSecret?: string,
+    logs: string[] = []
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      logs.push(`🎯 [Webhook] 开始同步Webhook URL (智能处理): ${baseWebhookUrl}`);
+      
+      // 使用新的智能URL处理方法
+      const result = await WebhookSetupService.setBotWebhookWithUrl(
+        botId,
+        baseWebhookUrl,
+        webhookSecret
+      );
+      
+      if (result.success) {
+        logs.push(`✅ [Webhook] Webhook URL设置成功（已自动添加机器人用户名）`);
+        return { success: true };
+      } else {
+        const error = `Webhook URL设置失败: ${result.message}`;
+        logs.push(`❌ [Webhook] ${error}`);
+        return { success: false, error };
+      }
+    } catch (error: any) {
+      const errorMsg = `Webhook URL同步失败: ${error.message}`;
+      logs.push(`❌ [Webhook] ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+  }
+
+  /**
+   * 同步Webhook URL (Webhook模式) - 原版本保留兼容性
    */
   private static async syncWebhookUrl(
     botToken: string, 

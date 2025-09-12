@@ -31,14 +31,15 @@ export class WebhookManagementService {
   }
 
   /**
-   * 应用Webhook设置
+   * 应用Webhook设置（智能URL处理）
    */
   static async applyWebhookSettings(botId: string): Promise<{
     success: boolean;
     message: string;
   }> {
     try {
-      const result = await WebhookSetupService.applyBotWebhookSettings(botId);
+      // 首先尝试使用改进的方法（从数据库读取配置并智能处理URL）
+      const result = await WebhookSetupService.applyBotWebhookSettingsImproved(botId);
       return {
         success: result.success,
         message: result.message

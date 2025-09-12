@@ -35,12 +35,12 @@ export class CallbackHandler {
         return false;
       }
 
-      if (typeof this.safeSendMessage !== 'function') {
+      if (typeof this.bot.sendMessage !== 'function') {
         console.error('Bot sendMessage method is not available');
         return false;
       }
 
-      await this.safeSendMessage(chatId, text, options);
+      await this.bot.sendMessage(chatId, text, options);
       return true;
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -115,6 +115,18 @@ export class CallbackHandler {
       case 'buy_energy':
         // 这里需要调用键盘构建器的showEnergyPackages方法
         // 在主服务中会被重写
+        break;
+      case 'energy_flash':
+        // 能量闪租功能
+        await this.handleEnergyFlash(chatId, callbackQuery.from?.id);
+        break;
+      case 'transaction_package':
+        // 笔数套餐功能
+        await this.handleTransactionPackage(chatId, callbackQuery.from?.id);
+        break;
+      case 'trx_exchange':
+        // TRX闪兑功能
+        await this.handleTrxExchange(chatId, callbackQuery.from?.id);
         break;
       case 'my_orders':
         // 调用命令处理器的订单查看方法
@@ -425,6 +437,129 @@ export class CallbackHandler {
     } catch (error) {
       console.error('Failed to handle delegation status:', error);
       await this.safeSendMessage(chatId, '❌ 查询委托状态时发生错误，请重试。');
+    }
+  }
+
+  /**
+   * 处理能量闪租功能
+   */
+  private async handleEnergyFlash(chatId: number, telegramId?: number): Promise<void> {
+    try {
+      if (!telegramId) {
+        await this.safeSendMessage(chatId, '❌ 无法获取用户信息');
+        return;
+      }
+
+      const message = `⚡ 能量闪租服务\n\n` +
+        `🔸 快速获得TRON网络能量\n` +
+        `🔸 即时委托，无需等待\n` +
+        `🔸 多种套餐，价格优惠\n\n` +
+        `💡 请选择您需要的能量套餐：`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '32,000 Energy (2.5 TRX)', callback_data: 'package_energy_1' },
+            { text: '65,000 Energy (4.8 TRX)', callback_data: 'package_energy_2' }
+          ],
+          [
+            { text: '130,000 Energy (9.2 TRX)', callback_data: 'package_energy_3' },
+            { text: '260,000 Energy (18 TRX)', callback_data: 'package_energy_4' }
+          ],
+          [
+            { text: '🔙 返回主菜单', callback_data: 'refresh_menu' }
+          ]
+        ]
+      };
+
+      await this.safeSendMessage(chatId, message, {
+        reply_markup: keyboard
+      });
+    } catch (error) {
+      console.error('处理能量闪租失败:', error);
+      await this.safeSendMessage(chatId, '❌ 处理能量闪租请求时发生错误，请重试。');
+    }
+  }
+
+  /**
+   * 处理笔数套餐功能
+   */
+  private async handleTransactionPackage(chatId: number, telegramId?: number): Promise<void> {
+    try {
+      if (!telegramId) {
+        await this.safeSendMessage(chatId, '❌ 无法获取用户信息');
+        return;
+      }
+
+      const message = `🔥 笔数套餐服务\n\n` +
+        `🔸 按交易笔数计费\n` +
+        `🔸 适合频繁交易用户\n` +
+        `🔸 每笔交易保证足够能量\n\n` +
+        `💡 请选择您需要的交易笔数：`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '10笔交易 (5 TRX)', callback_data: 'package_tx_10' },
+            { text: '50笔交易 (20 TRX)', callback_data: 'package_tx_50' }
+          ],
+          [
+            { text: '100笔交易 (35 TRX)', callback_data: 'package_tx_100' },
+            { text: '200笔交易 (65 TRX)', callback_data: 'package_tx_200' }
+          ],
+          [
+            { text: '🔙 返回主菜单', callback_data: 'refresh_menu' }
+          ]
+        ]
+      };
+
+      await this.safeSendMessage(chatId, message, {
+        reply_markup: keyboard
+      });
+    } catch (error) {
+      console.error('处理笔数套餐失败:', error);
+      await this.safeSendMessage(chatId, '❌ 处理笔数套餐请求时发生错误，请重试。');
+    }
+  }
+
+  /**
+   * 处理TRX闪兑功能
+   */
+  private async handleTrxExchange(chatId: number, telegramId?: number): Promise<void> {
+    try {
+      if (!telegramId) {
+        await this.safeSendMessage(chatId, '❌ 无法获取用户信息');
+        return;
+      }
+
+      const message = `💱 TRX闪兑服务\n\n` +
+        `🔸 快速兑换TRX\n` +
+        `🔸 实时汇率，价格透明\n` +
+        `🔸 支持多种主流币种\n\n` +
+        `💡 请选择兑换方式：`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: 'USDT → TRX', callback_data: 'exchange_usdt_trx' },
+            { text: 'TRX → USDT', callback_data: 'exchange_trx_usdt' }
+          ],
+          [
+            { text: '查看当前汇率', callback_data: 'exchange_rates' },
+            { text: '兑换历史', callback_data: 'exchange_history' }
+          ],
+          [
+            { text: '🔙 返回主菜单', callback_data: 'refresh_menu' }
+          ]
+        ]
+      };
+
+      await this.safeSendMessage(chatId, message, {
+        reply_markup: keyboard
+      });
+    } catch (error) {
+      console.error('处理TRX闪兑失败:', error);
+      await this.safeSendMessage(chatId, '❌ 处理TRX闪兑请求时发生错误，请重试。');
     }
   }
 

@@ -3,6 +3,8 @@
  * 统一管理机器人更新和删除流程
  */
 import type { Request, Response } from 'express';
+import { configService } from '../../../../services/config/ConfigService.js';
+import { multiBotManager } from '../../../../services/telegram-bot.js';
 import type { UpdateBotData } from '../../types.js';
 import { ConfigUpdateService } from './services/ConfigUpdateService.js';
 import { DeleteService } from './services/DeleteService.js';
@@ -90,6 +92,46 @@ export class BotUpdateHandler {
         // 8. 数据库保存成功 - 不再自动同步到Telegram API
         console.log('💾 数据库更新成功，不会自动同步到Telegram API');
         console.log('ℹ️ 如需同步到Telegram，请使用手动同步功能');
+
+        // 8.1 动态管理机器人实例（如果活跃状态发生变化）
+        if (updateData.is_active !== undefined) {
+          try {
+            console.log('🔄 检测到活跃状态变更，开始动态管理机器人实例...');
+            
+            // 等待MultiBotManager初始化完成
+            await multiBotManager.waitForInitialization();
+            
+            if (updatedBot.is_active) {
+              // 激活机器人：添加到运行实例
+              console.log('➕ 激活机器人，添加到运行实例...');
+              
+              const botConfig = await configService.getTelegramBotById(id);
+              if (botConfig) {
+                const addResult = await multiBotManager.addBot(botConfig);
+                if (addResult) {
+                  console.log('✅ 机器人已动态添加到运行实例:', updatedBot.bot_name, `(@${updatedBot.bot_username})`);
+                } else {
+                  console.warn('⚠️ 机器人添加到运行实例失败，可能已存在');
+                }
+              } else {
+                console.warn('⚠️ 无法获取机器人配置，跳过动态添加');
+              }
+            } else {
+              // 停用机器人：从运行实例移除
+              console.log('➖ 停用机器人，从运行实例移除...');
+              
+              const removeResult = await multiBotManager.removeBot(id);
+              if (removeResult) {
+                console.log('✅ 机器人已动态从运行实例移除:', updatedBot.bot_name, `(@${updatedBot.bot_username})`);
+              } else {
+                console.warn('⚠️ 机器人从运行实例移除失败，可能不存在');
+              }
+            }
+          } catch (error) {
+            console.error('动态管理机器人实例失败:', error);
+            // 不影响更新流程，只是记录错误
+          }
+        }
         
         // 记录需要同步的变更类型（用于提醒用户）
         const syncableChanges = [];
