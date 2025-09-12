@@ -197,20 +197,26 @@ export class PriceConfigMessageHandler {
     
     // 下单地址（支持点击复制）
     if (config.payment_address) {
-      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址自动复制）';
-      message += `${addressLabel}\n`;
+      const addressLabel = displayTexts.address_label;
+      // 只有当 address_label 不是空字符串时才显示标签
+      if (addressLabel && addressLabel.trim() !== '') {
+        message += `${addressLabel}\n`;
+      } else if (addressLabel === undefined || addressLabel === null) {
+        // 如果没有配置 address_label，使用默认标签
+        message += '💰 下单地址：（点击地址自动复制）\n';
+      }
       // 使用 Telegram 的 monospace 格式让地址可以长按复制
       message += `\`${config.payment_address}\`\n`;
     }
     
-    // 详细信息后换行
-    if (lineBreaks.after_details > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_details);
-    }
+    // 详细信息后换行（智能换行：如果地址标签为空，则使用after_details，否则使用before_warning）
+    const shouldShowAddressLabel = displayTexts.address_label && displayTexts.address_label.trim() !== '';
+    const totalLineBreaks = Math.max(lineBreaks.after_details || 0, lineBreaks.before_warning || 0);
     
-    // 警告信息前换行
-    if (config.double_energy_for_no_usdt && lineBreaks.before_warning > 0) {
-      message += this.generateLineBreaks(lineBreaks.before_warning);
+    if (config.double_energy_for_no_usdt && totalLineBreaks > 0) {
+      message += this.generateLineBreaks(totalLineBreaks);
+    } else if (!config.double_energy_for_no_usdt && lineBreaks.after_details > 0) {
+      message += this.generateLineBreaks(lineBreaks.after_details);
     }
     
     // 双倍能量警告
