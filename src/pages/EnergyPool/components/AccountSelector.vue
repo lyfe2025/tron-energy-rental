@@ -1,9 +1,20 @@
 <template>
   <div class="account-selector">
     <!-- 页面标题 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">选择账户</h1>
-      <p class="mt-2 text-gray-600">请选择要进行质押操作的账户</p>
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">选择账户</h1>
+        <p class="mt-2 text-gray-600">请选择要进行质押操作的账户</p>
+      </div>
+      <button
+        v-if="!loading.accounts && accounts.length > 0"
+        @click="fetchAllAccountsRealTimeData"
+        :disabled="Object.values(loadingMap).some(loading => loading)"
+        class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <div v-if="Object.values(loadingMap).some(loading => loading)" class="w-4 h-4 animate-spin border border-white border-t-transparent rounded-full"></div>
+        <span>{{ Object.values(loadingMap).some(loading => loading) ? '刷新中...' : '刷新实时数据' }}</span>
+      </button>
     </div>
 
     <!-- 网络信息 -->
@@ -62,9 +73,22 @@
               <p class="text-sm text-gray-500">{{ formatAddress(account.tron_address) }}</p>
             </div>
           </div>
-          <span :class="['px-2 py-1 text-xs font-medium rounded-full', getStatusClass(account.status)]">
-            {{ getStatusText(account.status) }}
-          </span>
+          <div class="flex items-center space-x-2">
+            <button
+              @click.stop="fetchAccountRealTimeData(account)"
+              :disabled="loadingMap[account.id]"
+              class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-50 rounded transition-colors"
+              title="刷新此账户实时数据"
+            >
+              <div v-if="loadingMap[account.id]" class="w-4 h-4 animate-spin border border-blue-500 border-t-transparent rounded-full"></div>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <span :class="['px-2 py-1 text-xs font-medium rounded-full', getStatusClass(account.status)]">
+              {{ getStatusText(account.status) }}
+            </span>
+          </div>
         </div>
 
         <div class="space-y-2">
@@ -76,11 +100,21 @@
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-gray-600">总能量:</span>
-            <span class="font-medium text-gray-900">{{ formatEnergy(account.total_energy) }}</span>
+            <div class="flex items-center space-x-2">
+              <span class="font-medium text-gray-900">
+                {{ realTimeDataMap[account.id]?.energy?.total ? formatEnergy(realTimeDataMap[account.id].energy.total) : formatEnergy(account.total_energy) }}
+              </span>
+              <div v-if="loadingMap[account.id]" class="w-3 h-3 animate-spin border border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-gray-600">可用能量:</span>
-            <span class="font-medium text-gray-900">{{ formatEnergy(account.available_energy) }}</span>
+            <div class="flex items-center space-x-2">
+              <span class="font-medium text-gray-900">
+                {{ realTimeDataMap[account.id]?.energy?.available ? formatEnergy(realTimeDataMap[account.id].energy.available) : formatEnergy(account.available_energy) }}
+              </span>
+              <span v-if="realTimeDataMap[account.id]" class="text-xs text-green-600 bg-green-50 px-1 py-0.5 rounded">实时</span>
+            </div>
           </div>
         </div>
 
@@ -118,12 +152,12 @@
 </template>
 
 <script setup lang="ts">
+import { useRealTimeAccountData, type RealTimeAccountData } from '@/composables/useRealTimeAccountData'
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import type { Network } from '@/stores/network'
 import { getNetworkIcon, getNetworkIconClass, getNetworkStatusClass, getNetworkStatusText, getNetworkTypeText } from '@/utils/network'
 import { AlertCircle, ExternalLink, Wallet } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEnergyPool } from '../composables/useEnergyPool'
 
@@ -152,6 +186,10 @@ const {
   getAccountTypeText
 } = useEnergyPool()
 
+// 实时数据管理
+const realTimeDataMap = reactive<Record<string, RealTimeAccountData>>({})
+const loadingMap = reactive<Record<string, boolean>>({})
+
 // 格式化 TRX 余额
 const formatTrx = (amount: number | undefined): string => {
   if (amount === undefined || amount === null) return '0'
@@ -164,6 +202,53 @@ const formatTrx = (amount: number | undefined): string => {
 // 添加错误状态
 const error = ref<string | null>(null)
 
+// 获取单个账户的实时数据
+const fetchAccountRealTimeData = async (account: EnergyPoolAccount) => {
+  if (!account.tron_address || !props.network?.id) return
+
+  console.log('🔍 [AccountSelector] 获取账户实时数据:', account.name)
+  
+  loadingMap[account.id] = true
+  
+  try {
+    const realTimeData = useRealTimeAccountData()
+    const data = await realTimeData.fetchRealTimeData(
+      account.tron_address,
+      props.network.id,
+      false // 不显示错误提示，避免过多提示
+    )
+    
+    if (data) {
+      realTimeDataMap[account.id] = data
+      console.log('✅ [AccountSelector] 账户实时数据获取成功:', account.name)
+    }
+  } catch (error) {
+    console.warn('❌ [AccountSelector] 账户实时数据获取失败:', account.name, error)
+  } finally {
+    loadingMap[account.id] = false
+  }
+}
+
+// 批量获取所有账户的实时数据
+const fetchAllAccountsRealTimeData = async () => {
+  if (accounts.value.length === 0) return
+  
+  console.log('🔍 [AccountSelector] 批量获取所有账户实时数据')
+  
+  // 并发获取所有账户的实时数据，但限制并发数量避免过多请求
+  const concurrentLimit = 3
+  const chunks = []
+  for (let i = 0; i < accounts.value.length; i += concurrentLimit) {
+    chunks.push(accounts.value.slice(i, i + concurrentLimit))
+  }
+  
+  for (const chunk of chunks) {
+    await Promise.all(chunk.map(account => fetchAccountRealTimeData(account)))
+    // 小延迟避免过多并发请求
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+}
+
 
 // 选择账户
 const selectAccount = async (account: EnergyPoolAccount) => {
@@ -171,52 +256,34 @@ const selectAccount = async (account: EnergyPoolAccount) => {
     return
   }
   
-  // 刷新选中账户的实时能量数据
-  if (props.network?.id) {
-    try {
-      await loadRealTimeEnergyData(props.network.id, account.id)
-    } catch (error) {
-      console.warn('刷新账户实时数据失败:', error)
-    }
-  }
-  
   emit('select', account)
-}
-
-// 刷新单个账户的实时能量数据
-const loadRealTimeEnergyData = async (networkId: string, accountId: string) => {
-  try {
-    const response = await energyPoolExtendedAPI.getAccountEnergyData(accountId, networkId)
-    if (response.data.success && response.data.data) {
-      const energyData = response.data.data
-      // 找到对应的账户并更新数据
-      const accountIndex = accounts.value.findIndex(acc => acc.id === accountId)
-      if (accountIndex !== -1) {
-        // 使用响应式更新方式更新账户数据
-        accounts.value[accountIndex] = {
-          ...accounts.value[accountIndex],
-          total_energy: energyData.energy.total,
-          available_energy: energyData.energy.available,
-          total_bandwidth: energyData.bandwidth.total,
-          available_bandwidth: energyData.bandwidth.available,
-          last_updated_at: energyData.lastUpdated
-        }
-        
-        console.log(`✅ [AccountSelector] 账户 ${accounts.value[accountIndex].name} 实时数据更新:`, {
-          total_energy: energyData.energy.total,
-          available_energy: energyData.energy.available
-        })
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load real-time energy data for account:', error)
-  }
 }
 
 // 前往账户管理
 const goToAccountManagement = () => {
   router.push(`/config/energy-pools/${props.network.id}`)
 }
+
+// 监听账户列表变化，自动获取实时数据
+watch(accounts, async (newAccounts) => {
+  if (newAccounts.length > 0 && props.network?.id) {
+    console.log('🔍 [AccountSelector] 账户列表已加载，开始获取实时数据')
+    await fetchAllAccountsRealTimeData()
+  }
+}, { immediate: false })
+
+// 监听网络变化，清空实时数据
+watch(() => props.network?.id, (newNetworkId, oldNetworkId) => {
+  if (newNetworkId !== oldNetworkId) {
+    // 清空旧的实时数据
+    Object.keys(realTimeDataMap).forEach(key => {
+      delete realTimeDataMap[key]
+    })
+    Object.keys(loadingMap).forEach(key => {
+      delete loadingMap[key]
+    })
+  }
+})
 
 // 生命周期
 onMounted(async () => {
