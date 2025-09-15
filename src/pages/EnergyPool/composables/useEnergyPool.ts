@@ -71,11 +71,11 @@ export function useEnergyPool() {
 
 
   // 加载统计信息
-  const loadStatistics = async () => {
+  const loadStatistics = async (networkId?: string) => {
     loading.statistics = true
     try {
-      console.log('📊 [useEnergyPool] 加载统计信息');
-      const response = await energyPoolExtendedAPI.getStatistics()
+      console.log('📊 [useEnergyPool] 加载统计信息:', { networkId });
+      const response = await energyPoolExtendedAPI.getStatistics(networkId)
       if (response.data.success && response.data.data) {
         Object.assign(statistics, response.data.data)
         console.log('✅ [useEnergyPool] 统计信息加载完成:', statistics);

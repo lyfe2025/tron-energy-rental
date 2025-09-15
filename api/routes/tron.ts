@@ -258,7 +258,8 @@ router.get('/energy-pools', async (req, res) => {
  */
 router.get('/energy-pools/stats', async (req, res) => {
   try {
-    const stats = await energyPoolService.getPoolStatistics();
+    const { network_id } = req.query;
+    const stats = await energyPoolService.getPoolStatistics(network_id as string);
     
     res.json({
       success: true,

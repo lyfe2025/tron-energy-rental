@@ -1,22 +1,26 @@
 <template>
   <div>
-    <!-- 今日消耗统计 -->
-    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+    <!-- 今日服务统计 -->
+    <div class="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold mb-2">今日能量消耗统计</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 class="text-lg font-semibold mb-2">今日服务统计</h2>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <p class="text-sm opacity-90">消耗能量</p>
+              <p class="text-sm opacity-90">代理能量</p>
               <p class="text-2xl font-bold">{{ formatEnergy(todayConsumption?.total_consumed_energy || 0) }}</p>
             </div>
             <div>
-              <p class="text-sm opacity-90">总成本</p>
-              <p class="text-2xl font-bold">{{ (todayConsumption?.total_cost || 0).toFixed(6) }} TRX</p>
+              <p class="text-sm opacity-90">服务收入</p>
+              <p class="text-2xl font-bold">{{ (todayConsumption?.total_revenue || 0).toFixed(6) }} TRX</p>
             </div>
             <div>
-              <p class="text-sm opacity-90">交易次数</p>
+              <p class="text-sm opacity-90">服务次数</p>
               <p class="text-2xl font-bold">{{ todayConsumption?.total_transactions || 0 }}</p>
+            </div>
+            <div>
+              <p class="text-sm opacity-90">平均单价</p>
+              <p class="text-2xl font-bold">{{ (todayConsumption?.average_price || 0).toFixed(6) }} TRX</p>
             </div>
           </div>
         </div>
@@ -113,8 +117,22 @@
             <DollarSign class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">平均成本</p>
-            <p class="text-2xl font-bold text-gray-900">{{ typeof statistics.averageCost === 'number' ? statistics.averageCost.toFixed(6) : '0.000000' }}</p>
+            <p class="text-sm font-medium text-gray-600">能量成本</p>
+            <p class="text-2xl font-bold text-gray-900">{{ (statistics.averageCostPerEnergy || 0).toFixed(6) }} TRX</p>
+            <p class="text-xs text-gray-500">100 sun = 0.0001 TRX</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-orange-100 rounded-lg">
+            <DollarSign class="h-6 w-6 text-orange-600" />
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">带宽成本</p>
+            <p class="text-2xl font-bold text-gray-900">{{ (statistics.averageCostPerBandwidth || 0).toFixed(6) }} TRX</p>
+            <p class="text-xs text-gray-500">1,000 sun = 0.001 TRX</p>
           </div>
         </div>
       </div>

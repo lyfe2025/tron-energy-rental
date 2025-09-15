@@ -12,8 +12,9 @@ export interface DailyConsumption {
 
 export interface TodayConsumptionSummary {
   total_consumed_energy: number;
-  total_cost: number;
+  total_revenue: number; // 改为收入
   total_transactions: number;
+  average_price: number; // 新增平均单价
   account_breakdown: DailyConsumption[];
 }
 
@@ -61,11 +62,17 @@ export class ConsumptionService {
       const result = await query(sql, [today]);
       const dailyData: DailyConsumption[] = result.rows;
       
-      // 计算总计
+      // 计算总计（服务商视角）
+      const totalConsumedEnergy = dailyData.reduce((sum, item) => sum + Number(item.total_consumed_energy), 0);
+      const totalRevenue = dailyData.reduce((sum, item) => sum + Number(item.total_cost), 0); // 这里实际是收入
+      const totalTransactions = dailyData.reduce((sum, item) => sum + Number(item.transaction_count), 0);
+      const averagePrice = totalConsumedEnergy > 0 ? totalRevenue / totalConsumedEnergy : 0;
+      
       const summary: TodayConsumptionSummary = {
-        total_consumed_energy: dailyData.reduce((sum, item) => sum + Number(item.total_consumed_energy), 0),
-        total_cost: dailyData.reduce((sum, item) => sum + Number(item.total_cost), 0),
-        total_transactions: dailyData.reduce((sum, item) => sum + Number(item.transaction_count), 0),
+        total_consumed_energy: totalConsumedEnergy,
+        total_revenue: totalRevenue, // 改为收入
+        total_transactions: totalTransactions,
+        average_price: averagePrice, // 新增平均单价
         account_breakdown: dailyData
       };
       
@@ -364,8 +371,8 @@ export class ConsumptionService {
    */
   async getConsumptionOverview(): Promise<{
     today: TodayConsumptionSummary;
-    thisWeek: { consumption: number; cost: number };
-    thisMonth: { consumption: number; cost: number };
+    thisWeek: { consumption: number; revenue: number }; // 改为收入
+    thisMonth: { consumption: number; revenue: number }; // 改为收入
     topAccounts: Array<{ name: string; consumption: number }>;
   }> {
     try {
@@ -389,11 +396,11 @@ export class ConsumptionService {
         today,
         thisWeek: { 
           consumption: weekReport.totalConsumption, 
-          cost: weekReport.totalCost 
+          revenue: weekReport.totalCost // 这里实际是收入
         },
         thisMonth: { 
           consumption: monthReport.totalConsumption, 
-          cost: monthReport.totalCost 
+          revenue: monthReport.totalCost // 这里实际是收入
         },
         topAccounts: topAccounts.map(acc => ({ 
           name: acc.accountName, 

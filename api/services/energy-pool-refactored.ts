@@ -46,8 +46,8 @@ export class EnergyPoolService_Legacy {
     return this.service.addPoolAccount(accountData);
   }
 
-  async getPoolStatistics() {
-    return this.service.getPoolStatistics();
+  async getPoolStatistics(networkId?: string) {
+    return this.service.getPoolStatistics(networkId);
   }
 
   // 分配方法

@@ -17,6 +17,8 @@ export interface EnergyPoolStatistics {
   availableBandwidth: number;
   utilizationRate: number;
   bandwidthUtilizationRate: number;
+  averageCostPerEnergy: number;
+  averageCostPerBandwidth: number;
 }
 
 export interface EnergyPoolAccount {
@@ -80,8 +82,10 @@ export const energyPoolExtendedAPI = {
   /**
    * 获取能量池统计信息
    */
-  getStatistics: () => 
-    apiClient.get<ApiResponse<EnergyPoolStatistics>>('/api/energy-pool/statistics'),
+  getStatistics: (networkId?: string) => {
+    const params = networkId ? { network_id: networkId } : {};
+    return apiClient.get<ApiResponse<EnergyPoolStatistics>>('/api/energy-pool/statistics', { params });
+  },
 
   /**
    * 获取可用的TRON网络列表

@@ -364,9 +364,9 @@ export class AccountManagementService {
   }
 
   /**
-   * 获取能量池统计信息
+   * 获取能量池统计信息（实时数据）
    */
-  async getPoolStatistics(): Promise<{
+  async getPoolStatistics(networkId?: string): Promise<{
     success: boolean;
     data?: {
       totalAccounts: number;
@@ -377,44 +377,160 @@ export class AccountManagementService {
       availableBandwidth: number;
       utilizationRate: number;
       bandwidthUtilizationRate: number;
+      averageCostPerEnergy: number;
+      averageCostPerBandwidth: number;
     };
     message?: string;
   }> {
     try {
-      const sql = `
-        SELECT 
-          COUNT(*) as total_accounts,
-          COUNT(CASE WHEN status = 'active' THEN 1 END) as active_accounts,
-          COALESCE(SUM(total_energy), 0) as total_energy,
-          COALESCE(SUM(available_energy), 0) as available_energy,
-          COALESCE(SUM(total_bandwidth), 0) as total_bandwidth,
-          COALESCE(SUM(available_bandwidth), 0) as available_bandwidth
+      console.log('📊 [PoolStatistics] 开始获取实时统计信息:', { networkId });
+      
+      // 1. 获取所有账户的基本信息
+      const accountsResult = await query(`
+        SELECT id, name, tron_address, status, cost_per_energy
         FROM energy_pools
-      `;
+        ORDER BY created_at DESC
+      `);
       
-      const result = await query(sql);
-      const stats = result.rows[0];
+      const accounts = accountsResult.rows;
+      const totalAccounts = accounts.length;
+      const activeAccounts = accounts.filter(acc => acc.status === 'active').length;
       
-      const utilizationRate = stats.total_energy > 0 
-        ? ((stats.total_energy - stats.available_energy) / stats.total_energy) * 100 
+      console.log('📊 [PoolStatistics] 数据库账户信息:', {
+        totalAccounts,
+        activeAccounts,
+        accounts: accounts.map(acc => ({ id: acc.id, name: acc.name, status: acc.status }))
+      });
+      
+      // 2. 并行获取每个账户的实时数据
+      const realTimeDataPromises = accounts.map(async (account) => {
+        try {
+          console.log(`📊 [PoolStatistics] 获取账户实时数据: ${account.name} (${account.id})`);
+          
+          // 直接调用validate-address API获取实时数据
+          const response = await fetch('http://localhost:3001/api/energy-pool/accounts/validate-address', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              address: account.tron_address,
+              private_key: '', // 空私钥，只获取账户信息
+              network_id: networkId
+            })
+          });
+          
+          if (!response.ok) {
+            console.warn(`⚠️ [PoolStatistics] 账户 ${account.name} 实时数据获取失败:`, response.status);
+            return null;
+          }
+          
+          const result = await response.json();
+          if (result.success && result.data) {
+            console.log(`✅ [PoolStatistics] 账户 ${account.name} 实时数据获取成功:`, {
+              energy: result.data.energy,
+              bandwidth: result.data.bandwidth
+            });
+            
+            return {
+              id: account.id,
+              name: account.name,
+              status: account.status,
+              energy: {
+                total: result.data.energy.total || 0,
+                available: result.data.energy.available || 0,
+                used: result.data.energy.used || 0
+              },
+              bandwidth: {
+                total: result.data.bandwidth.total || 0,
+                available: result.data.bandwidth.available || 0,
+                used: result.data.bandwidth.used || 0
+              },
+              costPerEnergy: account.cost_per_energy || 0.0001
+            };
+          }
+          return null;
+        } catch (error) {
+          console.warn(`⚠️ [PoolStatistics] 账户 ${account.name} 实时数据获取异常:`, error.message);
+          return null;
+        }
+      });
+      
+      // 3. 等待所有实时数据获取完成
+      const realTimeData = await Promise.all(realTimeDataPromises);
+      const validData = realTimeData.filter(data => data !== null);
+      
+      console.log('📊 [PoolStatistics] 实时数据获取结果:', {
+        totalAccounts,
+        validDataCount: validData.length,
+        failedCount: totalAccounts - validData.length
+      });
+      
+      // 4. 计算统计信息
+      let totalEnergy = 0;
+      let availableEnergy = 0;
+      let totalBandwidth = 0;
+      let availableBandwidth = 0;
+      let totalCostPerEnergy = 0;
+      
+      console.log('📊 [PoolStatistics] 开始计算统计信息，有效数据:', validData.length);
+      
+      validData.forEach((data, index) => {
+        console.log(`📊 [PoolStatistics] 账户 ${index + 1}: ${data.name}`, {
+          energy: data.energy,
+          bandwidth: data.bandwidth,
+          costPerEnergy: data.costPerEnergy
+        });
+        
+        totalEnergy += data.energy.total || 0;
+        availableEnergy += data.energy.available || 0;
+        totalBandwidth += data.bandwidth.total || 0;
+        availableBandwidth += data.bandwidth.available || 0;
+        totalCostPerEnergy += data.costPerEnergy || 0.0001;
+      });
+      
+      console.log('📊 [PoolStatistics] 累计统计:', {
+        totalEnergy,
+        availableEnergy,
+        totalBandwidth,
+        availableBandwidth,
+        totalCostPerEnergy
+      });
+      
+      const utilizationRate = totalEnergy > 0 
+        ? ((totalEnergy - availableEnergy) / totalEnergy) * 100 
         : 0;
         
-      const bandwidthUtilizationRate = stats.total_bandwidth > 0 
-        ? ((stats.total_bandwidth - stats.available_bandwidth) / stats.total_bandwidth) * 100 
+      const bandwidthUtilizationRate = totalBandwidth > 0 
+        ? ((totalBandwidth - availableBandwidth) / totalBandwidth) * 100 
         : 0;
+      
+      // 计算平均成本（基于TRON官方定价）
+      const ENERGY_COST_PER_UNIT = 100; // 100 sun per energy unit
+      const BANDWIDTH_COST_PER_UNIT = 1000; // 1000 sun per bandwidth unit
+      const SUN_TO_TRX = 1000000; // 1 TRX = 1,000,000 sun
+      
+      const averageCostPerEnergy = ENERGY_COST_PER_UNIT / SUN_TO_TRX; // 0.0001 TRX
+      const averageCostPerBandwidth = BANDWIDTH_COST_PER_UNIT / SUN_TO_TRX; // 0.001 TRX
+      
+      const statistics = {
+        totalAccounts,
+        activeAccounts,
+        totalEnergy,
+        availableEnergy,
+        totalBandwidth,
+        availableBandwidth,
+        utilizationRate: Math.round(utilizationRate * 100) / 100,
+        bandwidthUtilizationRate: Math.round(bandwidthUtilizationRate * 100) / 100,
+        averageCostPerEnergy,
+        averageCostPerBandwidth
+      };
+      
+      console.log('📊 [PoolStatistics] 实时统计信息计算完成:', statistics);
       
       return {
         success: true,
-        data: {
-          totalAccounts: parseInt(stats.total_accounts),
-          activeAccounts: parseInt(stats.active_accounts),
-          totalEnergy: parseInt(stats.total_energy),
-          availableEnergy: parseInt(stats.available_energy),
-          totalBandwidth: parseInt(stats.total_bandwidth),
-          availableBandwidth: parseInt(stats.available_bandwidth),
-          utilizationRate: Math.round(utilizationRate * 100) / 100,
-          bandwidthUtilizationRate: Math.round(bandwidthUtilizationRate * 100) / 100
-        }
+        data: statistics
       };
     } catch (error) {
       console.error('Failed to get pool statistics:', error);

@@ -129,7 +129,7 @@ export class EnergyPoolService {
   /**
    * 获取能量池统计信息
    */
-  async getPoolStatistics(): Promise<{
+  async getPoolStatistics(networkId?: string): Promise<{
     success: boolean;
     data?: {
       totalAccounts: number;
@@ -140,10 +140,12 @@ export class EnergyPoolService {
       availableBandwidth: number;
       utilizationRate: number;
       bandwidthUtilizationRate: number;
+      averageCostPerEnergy: number;
+      averageCostPerBandwidth: number;
     };
     message?: string;
   }> {
-    return this.accountManagement.getPoolStatistics();
+    return this.accountManagement.getPoolStatistics(networkId);
   }
 
   /**

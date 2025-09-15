@@ -327,7 +327,7 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 10, network_id } = req.query;
     
     // 获取能量池统计信息
-    const statistics = await energyPoolService.getPoolStatistics();
+    const statistics = await energyPoolService.getPoolStatistics(network_id as string);
     
     // 获取账户列表（支持分页和网络过滤）
     const accounts = await energyPoolService.getAllPoolAccounts();
@@ -375,7 +375,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/statistics', async (req, res) => {
   try {
-    const result = await energyPoolService.getPoolStatistics();
+    const { network_id } = req.query;
+    const result = await energyPoolService.getPoolStatistics(network_id as string);
     if (result.success) {
       res.json({
         success: true,

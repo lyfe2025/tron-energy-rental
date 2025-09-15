@@ -209,7 +209,7 @@ const refreshStatus = async () => {
   if (currentNetworkId.value) {
     await Promise.all([
       loadAccounts(currentNetworkId.value),
-      loadStatistics(),
+      loadStatistics(currentNetworkId.value),
       loadTodayConsumption()
     ])
   }
@@ -350,7 +350,7 @@ watch(currentNetworkId, async (newNetworkId) => {
   if (newNetworkId) {
     await Promise.all([
       loadAccounts(newNetworkId),
-      loadStatistics(),
+      loadStatistics(newNetworkId),
       loadTodayConsumption()
     ])
   } else {
