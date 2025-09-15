@@ -86,11 +86,17 @@
 
         <div class="mt-4 pt-4 border-t border-gray-100">
           <button
-            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            :class="[
+              'w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2',
+              account.status === 'active' 
+                ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            ]"
             :disabled="account.status !== 'active'"
           >
-            <span>选择此账户</span>
-            <ExternalLink class="w-4 h-4" />
+            <span>{{ account.status === 'active' ? '选择此账户' : '账户已停用' }}</span>
+            <ExternalLink v-if="account.status === 'active'" class="w-4 h-4" />
+            <AlertCircle v-else class="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -113,6 +119,7 @@
 
 <script setup lang="ts">
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
+import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import type { Network } from '@/stores/network'
 import { getNetworkIcon, getNetworkIconClass, getNetworkStatusClass, getNetworkStatusText, getNetworkTypeText } from '@/utils/network'
 import { AlertCircle, ExternalLink, Wallet } from 'lucide-vue-next'
@@ -159,11 +166,51 @@ const error = ref<string | null>(null)
 
 
 // 选择账户
-const selectAccount = (account: EnergyPoolAccount) => {
+const selectAccount = async (account: EnergyPoolAccount) => {
   if (account.status !== 'active') {
     return
   }
+  
+  // 刷新选中账户的实时能量数据
+  if (props.network?.id) {
+    try {
+      await loadRealTimeEnergyData(props.network.id, account.id)
+    } catch (error) {
+      console.warn('刷新账户实时数据失败:', error)
+    }
+  }
+  
   emit('select', account)
+}
+
+// 刷新单个账户的实时能量数据
+const loadRealTimeEnergyData = async (networkId: string, accountId: string) => {
+  try {
+    const response = await energyPoolExtendedAPI.getAccountEnergyData(accountId, networkId)
+    if (response.data.success && response.data.data) {
+      const energyData = response.data.data
+      // 找到对应的账户并更新数据
+      const accountIndex = accounts.value.findIndex(acc => acc.id === accountId)
+      if (accountIndex !== -1) {
+        // 使用响应式更新方式更新账户数据
+        accounts.value[accountIndex] = {
+          ...accounts.value[accountIndex],
+          total_energy: energyData.energy.total,
+          available_energy: energyData.energy.available,
+          total_bandwidth: energyData.bandwidth.total,
+          available_bandwidth: energyData.bandwidth.available,
+          last_updated_at: energyData.lastUpdated
+        }
+        
+        console.log(`✅ [AccountSelector] 账户 ${accounts.value[accountIndex].name} 实时数据更新:`, {
+          total_energy: energyData.energy.total,
+          available_energy: energyData.energy.available
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load real-time energy data for account:', error)
+  }
 }
 
 // 前往账户管理

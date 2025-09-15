@@ -42,6 +42,8 @@ export interface WithdrawExpireUnfreezeParams {
 export interface StakeOverview {
   // 新的9个统计字段
   totalStakedTrx: number;           // 总质押 TRX
+  totalStakedEnergyTrx: number;     // 能量总质押 TRX
+  totalStakedBandwidthTrx: number;  // 带宽总质押 TRX
   unlockingTrx: number;             // 解锁中 TRX
   withdrawableTrx: number;          // 待提取 TRX
   stakedEnergy: number;             // 质押获得能量
@@ -99,13 +101,25 @@ export interface AccountData {
 export interface ResourceData {
   energy: {
     used: number;
-    limit: number;
-    available: number;
+    limit: number; // 仅质押获得的能量
+    total: number; // 包含代理的总能量
+    available: number; // 实际可用于出租的能量
+    delegatedOut?: number; // 代理给别人的能量
+    delegatedIn?: number; // 从别人获得的能量代理
   };
   bandwidth: {
     used: number;
-    limit: number;
-    available: number;
+    limit: number; // 仅质押获得的带宽
+    total: number; // 包含代理的总带宽
+    available: number; // 实际可用于出租的带宽
+    delegatedOut?: number; // 代理给别人的带宽
+    delegatedIn?: number; // 从别人获得的带宽代理
+  };
+  delegation?: {
+    energyOut: number;
+    energyIn: number;
+    bandwidthOut: number;
+    bandwidthIn: number;
   };
 }
 

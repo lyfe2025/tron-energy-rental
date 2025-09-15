@@ -287,7 +287,35 @@ export const energyPoolExtendedAPI = {
     apiClient.post<ApiResponse<{
       releasedCount: number;
       totalEnergyReleased: number;
-    }>>('/api/energy-pool/cleanup-expired', { expirationHours })
+    }>>('/api/energy-pool/cleanup-expired', { expirationHours }),
+
+  /**
+   * 获取账户实时能量数据
+   */
+  getAccountEnergyData: (accountId: string, networkId: string) => 
+    apiClient.get<ApiResponse<{
+      accountId: string;
+      accountName: string;
+      tronAddress: string;
+      energy: {
+        total: number;
+        available: number;
+        used: number;
+      };
+      bandwidth: {
+        total: number;
+        available: number;
+        used: number;
+      };
+      networkInfo: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      lastUpdated: string;
+    }>>(`/api/energy-pool/accounts/${accountId}/energy-data`, {
+      params: { networkId }
+    })
 };
 
 export default energyPoolExtendedAPI;

@@ -3,11 +3,11 @@
   <div class="flex flex-wrap gap-4 mb-6">
     <button
       @click="$emit('refreshStatus')"
-      :disabled="loading.refresh"
-      class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+      :disabled="loading.refresh || isRefreshing"
+      class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200"
     >
-      <RefreshCw :class="['h-4 w-4 mr-2', { 'animate-spin': loading.refresh }]" />
-      刷新状态
+      <RefreshCw :class="['h-4 w-4 mr-2', { 'animate-spin': loading.refresh || isRefreshing }]" />
+      {{ (loading.refresh || isRefreshing) ? '刷新中...' : '刷新状态' }}
     </button>
     
     <button
@@ -60,6 +60,7 @@ import {
 interface Props {
   loading: any
   selectedAccounts: string[]
+  isRefreshing?: boolean
 }
 
 defineProps<Props>()

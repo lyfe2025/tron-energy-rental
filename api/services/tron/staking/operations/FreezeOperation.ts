@@ -1,13 +1,13 @@
 import { query } from '../../../../database/index';
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
-    FormattedStakeRecord,
-    FreezeBalanceV2Params,
-    FreezeOperationResult,
-    OperationParams,
-    ServiceResponse,
-    StakeOverview,
-    StakeTransactionParams
+  FormattedStakeRecord,
+  FreezeBalanceV2Params,
+  FreezeOperationResult,
+  OperationParams,
+  ServiceResponse,
+  StakeOverview,
+  StakeTransactionParams
 } from '../types/staking.types';
 
 /**
@@ -84,20 +84,44 @@ export class FreezeOperation {
    */
   async getStakeOverview(address: string): Promise<ServiceResponse<StakeOverview>> {
     try {
+      const { logger } = await import('../../../../utils/logger.js');
+      logger.info(`[FreezeOperation] 开始获取质押概览 - 地址: ${address}`);
+      logger.info(`[FreezeOperation] TronWeb实例: ${!!this.tronWeb}`);
+      logger.info(`[FreezeOperation] TronWeb网络: ${this.tronWeb?.fullNode?.host}`);
+      
       const account = await this.tronWeb.trx.getAccount(address);
+      logger.info(`[FreezeOperation] 获取账户信息成功: ${!!account}`);
+      
       const resources = await this.tronWeb.trx.getAccountResources(address);
+      logger.info(`[FreezeOperation] 获取资源信息成功: ${!!resources}`);
       
       // TRON单位转换常量：1 TRX = 1,000,000 sun
       const SUN_TO_TRX = 1000000;
       
       // 获取质押信息（frozenV2字段包含质押2.0数据）
       const frozenV2 = account.frozenV2 || [];
-      const totalStakedEnergy = frozenV2
-        .filter((f: any) => f.type === 'ENERGY')
-        .reduce((sum: number, f: any) => sum + (parseInt(f.amount) || 0), 0);
-      const totalStakedBandwidth = frozenV2
-        .filter((f: any) => f.type === 'BANDWIDTH')
-        .reduce((sum: number, f: any) => sum + (parseInt(f.amount) || 0), 0);
+      
+      // 分别计算能量和带宽的质押TRX
+      let totalStakedEnergyTrx = 0;
+      let totalStakedBandwidthTrx = 0;
+      
+      frozenV2.forEach((f: any) => {
+        const amount = parseInt(f.amount) || 0;
+        if (f.type === 'ENERGY') {
+          totalStakedEnergyTrx += amount;
+        } else if (f.type === 'BANDWIDTH') {
+          totalStakedBandwidthTrx += amount;
+        } else if (!f.type && amount > 0) {
+          // 如果没有type字段但有amount，通常是带宽质押（旧版本质押）
+          totalStakedBandwidthTrx += amount;
+        } else if (f.type === 'TRON_POWER' && amount > 0) {
+          // TRON_POWER质押通常对应带宽
+          totalStakedBandwidthTrx += amount;
+        }
+      });
+      
+      // 计算总质押TRX（能量+带宽）
+      const totalStakedTrx = (totalStakedEnergyTrx + totalStakedBandwidthTrx) / SUN_TO_TRX;
       
       // 获取委托信息（委托给其他账户的资源）
       const delegatedResources = parseInt(account.delegated_frozenV2_balance_for_energy) || 0;
@@ -109,32 +133,41 @@ export class FreezeOperation {
       
       // 获取待解质押信息（unfrozenV2字段包含解质押数据）
       const unfrozenV2 = account.unfrozenV2 || [];
-      const currentTime = Math.floor(Date.now() / 1000); // TRON使用秒级时间戳
+      const currentTime = Date.now(); // 使用毫秒时间戳进行比较
+      
       const pendingUnfreeze = unfrozenV2
-        .filter((u: any) => parseInt(u.unfreeze_expire_time) > currentTime)
+        .filter((u: any) => {
+          const expireTime = parseInt(u.unfreeze_expire_time);
+          return expireTime > currentTime;
+        })
         .reduce((sum: number, u: any) => sum + (parseInt(u.unfreeze_amount) || 0), 0);
       
       // 获取可提取金额（已过期的解质押金额）
       const withdrawableAmount = unfrozenV2
-        .filter((u: any) => parseInt(u.unfreeze_expire_time) <= currentTime)
+        .filter((u: any) => {
+          const expireTime = parseInt(u.unfreeze_expire_time);
+          return expireTime <= currentTime;
+        })
         .reduce((sum: number, u: any) => sum + (parseInt(u.unfreeze_amount) || 0), 0);
 
       // 计算质押获得的资源（自己质押获得的资源）
-      const actualEnergyFromStaking = Math.max(0, totalStakedEnergy);
-      const actualBandwidthFromStaking = Math.max(0, totalStakedBandwidth);
+      const actualEnergyFromStaking = Math.max(0, totalStakedEnergyTrx);
+      const actualBandwidthFromStaking = Math.max(0, totalStakedBandwidthTrx);
 
       // 调试日志
-      console.log(`[FreezeOperation] 获取质押概览 - 地址: ${address}`);
-      console.log(`[FreezeOperation] 原始数据 - 质押能量: ${totalStakedEnergy}, 质押带宽: ${totalStakedBandwidth}`);
-      console.log(`[FreezeOperation] 原始数据 - 委托给他人能量: ${delegatedResources}, 委托给他人带宽: ${delegatedBandwidth}`);
-      console.log(`[FreezeOperation] 原始数据 - 接收委托能量: ${receivedEnergyDelegation}, 接收委托带宽: ${receivedBandwidthDelegation}`);
-      console.log(`[FreezeOperation] 原始数据 - 待解质押: ${pendingUnfreeze}, 可提取: ${withdrawableAmount}`);
+      logger.info(`[FreezeOperation] 获取质押概览 - 地址: ${address}`);
+      logger.info(`[FreezeOperation] 原始数据 - 质押能量TRX: ${totalStakedEnergyTrx / SUN_TO_TRX}, 质押带宽TRX: ${totalStakedBandwidthTrx / SUN_TO_TRX}`);
+      logger.info(`[FreezeOperation] 原始数据 - 委托给他人能量: ${delegatedResources}, 委托给他人带宽: ${delegatedBandwidth}`);
+      logger.info(`[FreezeOperation] 原始数据 - 接收委托能量: ${receivedEnergyDelegation}, 接收委托带宽: ${receivedBandwidthDelegation}`);
+      logger.info(`[FreezeOperation] 原始数据 - 待解质押: ${pendingUnfreeze}, 可提取: ${withdrawableAmount}`);
 
       return {
         success: true,
         data: {
           // 新的9个统计字段
-          totalStakedTrx: (totalStakedEnergy + totalStakedBandwidth) / SUN_TO_TRX,
+          totalStakedTrx: totalStakedTrx,
+          totalStakedEnergyTrx: totalStakedEnergyTrx / SUN_TO_TRX,
+          totalStakedBandwidthTrx: totalStakedBandwidthTrx / SUN_TO_TRX,
           unlockingTrx: pendingUnfreeze / SUN_TO_TRX,
           withdrawableTrx: withdrawableAmount / SUN_TO_TRX,
           stakedEnergy: actualEnergyFromStaking,
@@ -145,7 +178,7 @@ export class FreezeOperation {
           delegatedToSelfBandwidth: receivedBandwidthDelegation,
           
           // 保留原有字段以保持向后兼容性
-          totalStaked: (totalStakedEnergy + totalStakedBandwidth) / SUN_TO_TRX,
+          totalStaked: totalStakedTrx,
           totalDelegated: (delegatedResources + delegatedBandwidth) / SUN_TO_TRX,
           totalUnfreezing: pendingUnfreeze / SUN_TO_TRX,
           availableToWithdraw: withdrawableAmount / SUN_TO_TRX,

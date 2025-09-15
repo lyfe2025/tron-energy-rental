@@ -111,45 +111,19 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-2 bg-red-100 rounded-lg">
-            <DollarSign class="h-6 w-6 text-red-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">能量成本</p>
-            <p class="text-2xl font-bold text-gray-900">{{ (statistics.averageCostPerEnergy || 0).toFixed(6) }} TRX</p>
-            <p class="text-xs text-gray-500">100 sun = 0.0001 TRX</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-2 bg-orange-100 rounded-lg">
-            <DollarSign class="h-6 w-6 text-orange-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">带宽成本</p>
-            <p class="text-2xl font-bold text-gray-900">{{ (statistics.averageCostPerBandwidth || 0).toFixed(6) }} TRX</p>
-            <p class="text-xs text-gray-500">1,000 sun = 0.001 TRX</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-    Battery,
-    CheckCircle,
-    Database,
-    DollarSign,
-    RefreshCw,
-    Signal,
-    Wifi,
-    Zap
+  Battery,
+  CheckCircle,
+  Database,
+  RefreshCw,
+  Signal,
+  Wifi,
+  Zap
 } from 'lucide-vue-next'
 
 interface Props {

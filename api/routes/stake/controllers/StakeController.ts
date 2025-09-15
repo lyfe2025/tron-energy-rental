@@ -48,20 +48,7 @@ export class StakeController {
       });
       
       if (result.success) {
-        // 更新能量池统计
-        if (poolId) {
-          const updateField = resource === 'ENERGY' ? 'staked_trx_energy' : 'staked_trx_bandwidth';
-          await query(
-            `UPDATE energy_pools 
-             SET ${updateField} = COALESCE(${updateField}, 0) + $1,
-                 last_stake_update = NOW()
-             WHERE id = $2`,
-            [frozenBalance, poolId]
-          );
-        }
-        
         res.json({ success: true, data: result });
-        return;
         return;
       } else {
         res.status(400).json({ success: false, error: result.error });
@@ -197,17 +184,7 @@ export class StakeController {
             error: result.error || null
           });
           
-          // 更新能量池统计
-          if (result.success && operation.poolId) {
-            const updateField = operation.resource === 'ENERGY' ? 'staked_trx_energy' : 'staked_trx_bandwidth';
-            await query(
-              `UPDATE energy_pools 
-               SET ${updateField} = COALESCE(${updateField}, 0) + $1,
-                   last_stake_update = NOW()
-               WHERE id = $2`,
-              [operation.frozenBalance, operation.poolId]
-            );
-          }
+          // 质押完成，无需更新数据库统计（使用实时数据）
         } catch (opError: any) {
           errors.push({
             index: i,

@@ -48,17 +48,42 @@ export interface TronData {
     error?: string
   }
   energy: {
-    total: number
-    available: number
+    total: number        // 包含代理的总能量
+    limit?: number       // 仅质押获得的能量（可选，兼容旧API）
+    available: number    // 实际可用于出租的能量
+    used?: number        // 已使用的能量（可选，兼容旧API）
+    delegatedOut?: number // 代理给别人的TRX数量
+    delegatedIn?: number  // 从别人获得的TRX数量
   }
   bandwidth: {
-    total: number
-    available: number
+    total: number        // 包含代理的总带宽
+    limit?: number       // 仅质押获得的带宽（可选，兼容旧API）
+    available: number    // 实际可用于出租的带宽
+    used?: number        // 已使用的带宽（可选，兼容旧API）
+    delegatedOut?: number // 代理给别人的TRX数量
+    delegatedIn?: number  // 从别人获得的TRX数量
+  }
+  // 代理详情
+  delegation?: {
+    energyOut: number
+    energyIn: number
+    bandwidthOut: number
+    bandwidthIn: number
   }
   estimatedCostPerEnergy: number
+  estimatedCostPerBandwidth?: number
+  contractInfo?: {
+    address: string
+    decimals: number
+    type: string
+    symbol: string
+    name: string
+  }
   networkInfo?: {
+    id: string
     name: string
     type: string
+    rpcUrl: string
   }
 }
 

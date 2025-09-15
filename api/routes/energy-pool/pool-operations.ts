@@ -153,6 +153,136 @@ router.post('/confirm-usage', async (req, res) => {
 });
 
 /**
+ * 获取账户实时能量数据
+ */
+router.get('/accounts/:accountId/energy-data', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { networkId } = req.query;
+    
+    console.log('🔍 [GetEnergyData] 接收到获取能量数据请求:', {
+      accountId,
+      networkId,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        message: '账户ID不能为空'
+      });
+    }
+
+    if (!networkId) {
+      return res.status(400).json({
+        success: false,
+        message: '请先选择TRON网络'
+      });
+    }
+    
+    // 获取账户信息
+    const accountResult = await query(
+      'SELECT id, name, tron_address FROM energy_pools WHERE id = $1',
+      [accountId]
+    );
+    
+    if (accountResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '账户不存在'
+      });
+    }
+    
+    const account = accountResult.rows[0];
+    
+    // 获取网络配置
+    const networkResult = await query(
+      'SELECT name, network_type, rpc_url, is_active FROM tron_networks WHERE id = $1',
+      [networkId]
+    );
+    
+    if (networkResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '指定的网络不存在'
+      });
+    }
+    
+    const network = networkResult.rows[0];
+    
+    if (!network.is_active) {
+      return res.status(400).json({
+        success: false,
+        message: `网络 ${network.name} 当前不可用`
+      });
+    }
+    
+    // 创建基于指定网络的TronService实例
+    let networkTronService;
+    try {
+      const { TronService } = await import('../../services/tron/TronService');
+      networkTronService = new TronService({
+        fullHost: network.rpc_url,
+        privateKey: undefined, // 不需要私钥，只获取公开信息
+        solidityNode: network.rpc_url,
+        eventServer: network.rpc_url
+      });
+    } catch (error) {
+      console.error('❌ [GetEnergyData] 创建TronService失败:', error);
+      return res.status(400).json({
+        success: false,
+        message: `初始化TRON服务失败: ${error.message}`
+      });
+    }
+    
+    // 获取账户资源信息
+    const resourceInfo = await networkTronService.getAccountResources(account.tron_address);
+    
+    if (!resourceInfo.success) {
+      return res.status(400).json({
+        success: false,
+        message: `获取账户资源信息失败: ${resourceInfo.error}`
+      });
+    }
+    
+    const result = {
+      accountId: account.id,
+      accountName: account.name,
+      tronAddress: account.tron_address,
+      energy: {
+        total: resourceInfo.data.energy.limit || 0,
+        available: resourceInfo.data.energy.available || 0,
+        used: resourceInfo.data.energy.used || 0
+      },
+      bandwidth: {
+        total: resourceInfo.data.bandwidth.limit || 0,
+        available: resourceInfo.data.bandwidth.available || 0,
+        used: resourceInfo.data.bandwidth.used || 0
+      },
+      networkInfo: {
+        id: networkId,
+        name: network.name,
+        type: network.network_type
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      data: result,
+      message: '能量数据获取成功'
+    });
+    
+  } catch (error) {
+    console.error('❌ [GetEnergyData] 获取能量数据失败:', error);
+    res.status(500).json({
+      success: false,
+      message: `获取能量数据失败: ${error.message}`
+    });
+  }
+});
+
+/**
  * 验证TRON地址并获取账户信息
  */
 router.post('/accounts/validate-address', async (req, res) => {
@@ -326,14 +456,27 @@ router.post('/accounts/validate-address', async (req, res) => {
       balance: accountInfo.data.balance || 0,
       usdtBalance: Number((usdtBalance.balance || 0).toFixed(6)), // 保证六位小数，与USDT合约精度一致
       energy: {
-        total: resourceInfo.data.energy.limit || 0,
+        total: resourceInfo.data.energy.total || resourceInfo.data.energy.limit || 0, // 包含代理的总能量
+        limit: resourceInfo.data.energy.limit || 0, // 仅质押获得的能量
         available: resourceInfo.data.energy.available,
-        used: resourceInfo.data.energy.used
+        used: resourceInfo.data.energy.used,
+        delegatedOut: resourceInfo.data.energy.delegatedOut || 0, // 代理给别人的
+        delegatedIn: resourceInfo.data.energy.delegatedIn || 0 // 从别人获得的
       },
       bandwidth: {
-        total: resourceInfo.data.bandwidth.limit || 0,
+        total: resourceInfo.data.bandwidth.total || resourceInfo.data.bandwidth.limit || 0, // 包含代理的总带宽
+        limit: resourceInfo.data.bandwidth.limit || 0, // 仅质押获得的带宽
         available: resourceInfo.data.bandwidth.available || 0,
-        used: resourceInfo.data.bandwidth.used || 0
+        used: resourceInfo.data.bandwidth.used || 0,
+        delegatedOut: resourceInfo.data.bandwidth.delegatedOut || 0, // 代理给别人的
+        delegatedIn: resourceInfo.data.bandwidth.delegatedIn || 0 // 从别人获得的
+      },
+      // 添加代理详情
+      delegation: resourceInfo.data.delegation || {
+        energyOut: resourceInfo.data.energy.delegatedOut || 0,
+        energyIn: resourceInfo.data.energy.delegatedIn || 0,
+        bandwidthOut: resourceInfo.data.bandwidth.delegatedOut || 0,
+        bandwidthIn: resourceInfo.data.bandwidth.delegatedIn || 0
       },
       frozenInfo: accountInfo.data.frozen || [],
       estimatedCostPerEnergy: Number(costPerEnergy.toFixed(6)), // 保证六位小数精度

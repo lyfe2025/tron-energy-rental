@@ -103,14 +103,37 @@
             </button>
           </div>
           
-          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ formatEnergy(realTimeData.energy.total) }}</div>
-              <div class="text-sm text-gray-600">总能量</div>
+          <div v-if="realTimeData" class="space-y-4">
+            <!-- 主要指标 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ formatEnergy(realTimeData.energy.total) }}</div>
+                <div class="text-sm text-gray-600">理论总能量</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">{{ formatEnergy(realTimeData.energy.available) }}</div>
+                <div class="text-sm text-gray-600">实际可用能量</div>
+              </div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">{{ formatEnergy(realTimeData.energy.available) }}</div>
-              <div class="text-sm text-gray-600">可用能量</div>
+            
+            <!-- 详细指标 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div class="text-center bg-green-50 p-2 rounded">
+                <div class="font-semibold text-green-600">{{ formatEnergy(realTimeData.energy.limit || 0) }}</div>
+                <div class="text-green-700">质押获得</div>
+              </div>
+              <div class="text-center bg-red-50 p-2 rounded">
+                <div class="font-semibold text-red-600">{{ formatEnergy(realTimeData.energy.used || 0) }}</div>
+                <div class="text-red-700">已使用</div>
+              </div>
+              <div class="text-center bg-yellow-50 p-2 rounded">
+                <div class="font-semibold text-yellow-600">{{ Math.floor(((realTimeData.energy.delegatedOut || 0) / 1000000) * 76.2).toLocaleString() }}</div>
+                <div class="text-yellow-700">代理出去</div>
+              </div>
+              <div class="text-center bg-purple-50 p-2 rounded">
+                <div class="font-semibold text-purple-600">{{ Math.floor(((realTimeData.energy.delegatedIn || 0) / 1000000) * 76.2).toLocaleString() }}</div>
+                <div class="text-purple-700">代理获得</div>
+              </div>
             </div>
           </div>
           
@@ -142,14 +165,41 @@
         <div class="bg-purple-50 rounded-lg p-4">
           <h3 class="text-lg font-medium text-gray-900 mb-4">带宽信息</h3>
           
-          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-purple-600">{{ formatEnergy(realTimeData.bandwidth.total) }}</div>
-              <div class="text-sm text-gray-600">总带宽</div>
+          <div v-if="realTimeData" class="space-y-4">
+            <!-- 主要指标 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ formatEnergy(realTimeData.bandwidth.total) }}</div>
+                <div class="text-sm text-gray-600">理论总带宽</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">{{ formatEnergy(realTimeData.bandwidth.available) }}</div>
+                <div class="text-sm text-gray-600">实际可用带宽</div>
+              </div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-indigo-600">{{ formatEnergy(realTimeData.bandwidth.available) }}</div>
-              <div class="text-sm text-gray-600">可用带宽</div>
+            
+            <!-- 详细指标 -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+              <div class="text-center bg-green-50 p-2 rounded">
+                <div class="font-semibold text-green-600">{{ formatEnergy(realTimeData.bandwidth.limit || 0) }}</div>
+                <div class="text-green-700">质押获得</div>
+              </div>
+              <div class="text-center bg-blue-50 p-2 rounded">
+                <div class="font-semibold text-blue-600">600</div>
+                <div class="text-blue-700">免费带宽</div>
+              </div>
+              <div class="text-center bg-red-50 p-2 rounded">
+                <div class="font-semibold text-red-600">{{ formatEnergy(realTimeData.bandwidth.used || 0) }}</div>
+                <div class="text-red-700">已使用</div>
+              </div>
+              <div class="text-center bg-yellow-50 p-2 rounded">
+                <div class="font-semibold text-yellow-600">{{ Math.floor(((realTimeData.bandwidth.delegatedOut || 0) / 1000000) * 1000).toLocaleString() }}</div>
+                <div class="text-yellow-700">代理出去</div>
+              </div>
+              <div class="text-center bg-purple-50 p-2 rounded">
+                <div class="font-semibold text-purple-600">{{ Math.floor(((realTimeData.bandwidth.delegatedIn || 0) / 1000000) * 1000).toLocaleString() }}</div>
+                <div class="text-purple-700">代理获得</div>
+              </div>
             </div>
           </div>
           
@@ -265,14 +315,28 @@ const emit = defineEmits<Emits>()
 // 复制状态管理
 const copyStatus = ref<'idle' | 'success' | 'error'>('idle')
 
-// 实时TRON数据状态
+// 实时TRON数据状态 - 使用完整的 TronData 类型
 const realTimeData = ref<{
   balance: number
   usdtBalance: number
-  energy: { total: number; available: number; used: number }
-  bandwidth: { total: number; available: number; used: number }
+  energy: { 
+    total: number
+    limit?: number
+    available: number
+    used?: number
+    delegatedOut?: number
+    delegatedIn?: number
+  }
+  bandwidth: { 
+    total: number
+    limit?: number
+    available: number
+    used?: number
+    delegatedOut?: number
+    delegatedIn?: number
+  }
   estimatedCostPerEnergy: number
-  estimatedCostPerBandwidth?: number
+  estimatedCostPerBandwidth: number
   usdtInfo?: { error?: string }
   contractInfo?: {
     address: string
@@ -281,6 +345,12 @@ const realTimeData = ref<{
     symbol: string
     name: string
   } | null
+  delegation?: {
+    energyOut: number
+    energyIn: number
+    bandwidthOut: number
+    bandwidthIn: number
+  }
 } | null>(null)
 const loadingRealTimeData = ref(false)
 
@@ -328,7 +398,7 @@ const fetchRealTimeData = async () => {
         energy: response.data.data.energy,
         bandwidth: response.data.data.bandwidth,
         estimatedCostPerEnergy: response.data.data.estimatedCostPerEnergy || 0.0001,
-        estimatedCostPerBandwidth: response.data.data.estimatedCostPerBandwidth || 0.001,
+        estimatedCostPerBandwidth: (response.data.data as any).estimatedCostPerBandwidth || 0.001,
         usdtInfo: response.data.data.usdtInfo,
         contractInfo: (response.data.data as any).contractInfo
       }
@@ -373,14 +443,15 @@ watch(() => props.isOpen, async (newValue) => {
   }
 }, { immediate: true })
 
-// 格式化能量数值
+// 格式化能量数值 - 直观显示，无小数点
 const formatEnergy = (energy: number): string => {
-  if (energy >= 1000000) {
-    return `${(energy / 1000000).toFixed(1)}M`
-  } else if (energy >= 1000) {
-    return `${(energy / 1000).toFixed(1)}K`
+  // 检查energy是否为有效数字
+  if (energy == null || isNaN(energy) || typeof energy !== 'number') {
+    return '0'
   }
-  return energy.toString()
+  
+  // 直接显示完整数字，不使用K/M后缀，不显示小数点
+  return Math.floor(energy).toLocaleString('zh-CN')
 }
 
 // 格式化日期

@@ -1,47 +1,42 @@
 export function useStakeFormatters() {
-  // 格式化TRX数量
+  // 格式化TRX数量 - 直观显示，无K/M后缀
   const formatTrx = (amount: number): string => {
     // 检查amount是否为有效数字
     if (amount == null || isNaN(amount) || typeof amount !== 'number') {
-      return '0.000000 TRX'
+      return '0 TRX'
     }
     
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(6)}M TRX`
-    } else if (amount >= 1000) {
-      return `${(amount / 1000).toFixed(6)}K TRX`
+    // 直接显示完整数字，不使用K/M后缀
+    // 对于整数不显示小数点，对于小数保留必要位数
+    if (amount === Math.floor(amount)) {
+      return `${amount.toLocaleString('zh-CN')} TRX`
+    } else if (amount >= 1) {
+      return `${amount.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} TRX`
+    } else {
+      return `${amount.toFixed(6)} TRX`
     }
-    return `${amount.toFixed(6)} TRX`
   }
 
-  // 格式化能量数量
+  // 格式化能量数量 - 直观显示，无小数点
   const formatEnergy = (energy: number): string => {
     // 检查energy是否为有效数字
     if (energy == null || isNaN(energy) || typeof energy !== 'number') {
       return '0'
     }
     
-    if (energy >= 1000000) {
-      return `${(energy / 1000000).toFixed(2)}M`
-    } else if (energy >= 1000) {
-      return `${(energy / 1000).toFixed(2)}K`
-    }
-    return energy.toString()
+    // 直接显示完整数字，不使用K/M后缀，不显示小数点
+    return Math.floor(energy).toLocaleString('zh-CN')
   }
 
-  // 格式化带宽数量
+  // 格式化带宽数量 - 直观显示，无小数点
   const formatBandwidth = (bandwidth: number): string => {
     // 检查bandwidth是否为有效数字
     if (bandwidth == null || isNaN(bandwidth) || typeof bandwidth !== 'number') {
       return '0'
     }
     
-    if (bandwidth >= 1000000) {
-      return `${(bandwidth / 1000000).toFixed(2)}M`
-    } else if (bandwidth >= 1000) {
-      return `${(bandwidth / 1000).toFixed(2)}K`
-    }
-    return bandwidth.toString()
+    // 直接显示完整数字，不使用K/M后缀，不显示小数点
+    return Math.floor(bandwidth).toLocaleString('zh-CN')
   }
 
   // 格式化地址

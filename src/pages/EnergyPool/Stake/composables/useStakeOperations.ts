@@ -54,6 +54,11 @@ export function useStakeOperations(stakeData: StakeDataState): StakeOperationsSt
     try {
       stakeData.isRefreshing.value = true
       
+      // 刷新实时能量数据
+      if (stakeData.energyPoolComposable.loadRealTimeEnergyData && stakeData.currentNetworkId.value) {
+        await stakeData.energyPoolComposable.loadRealTimeEnergyData(stakeData.currentNetworkId.value)
+      }
+      
       // 获取质押概览数据
       if (stakeData.stakeComposable.loadOverview) {
         await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)

@@ -2,10 +2,10 @@ import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { computed, ref } from 'vue'
 import type {
-    AccountFormData,
-    AccountUpdateData,
-    EnergyPoolAccount,
-    FilterState
+  AccountFormData,
+  AccountUpdateData,
+  EnergyPoolAccount,
+  FilterState
 } from '../types/energy-pool.types'
 
 export function useAccountManagement() {

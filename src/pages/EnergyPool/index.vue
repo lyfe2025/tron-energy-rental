@@ -29,6 +29,7 @@
     <EnergyPoolActions 
       :loading="accountLoading"
       :selected-accounts="selectedAccounts"
+      :is-refreshing="isPageRefreshing"
       @refresh-status="refreshStatus"
       @show-add-modal="showAddModal = true"
       @batch-enable="() => handleBatchEnable(selectedAccounts)"
@@ -204,15 +205,46 @@ const toggleAction = ref<ToggleAction>('enable')
 // 统计信息加载状态
 const statisticsLoading = ref(false)
 
-// 刷新状态
+// 页面刷新防抖状态
+const pageRefreshDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const isPageRefreshing = ref(false)
+
+// 刷新状态（带防抖）
 const refreshStatus = async () => {
-  if (currentNetworkId.value) {
-    await Promise.all([
-      loadAccounts(currentNetworkId.value),
-      loadStatistics(currentNetworkId.value),
-      loadTodayConsumption()
-    ])
+  // 防抖检查：如果已经在刷新中或防抖定时器存在，直接返回
+  if (isPageRefreshing.value || pageRefreshDebounceTimer.value) {
+    console.log('🚫 [EnergyPool页面] 防抖拦截：页面刷新正在进行中')
+    return
   }
+
+  if (!currentNetworkId.value) {
+    return
+  }
+
+  // 设置防抖状态
+  isPageRefreshing.value = true
+  statisticsLoading.value = true
+
+  // 设置防抖定时器（800ms内不允许重复刷新）
+  pageRefreshDebounceTimer.value = setTimeout(async () => {
+    try {
+      console.log('✅ [EnergyPool页面] 执行页面数据刷新', { networkId: currentNetworkId.value })
+      await Promise.all([
+        loadAccounts(currentNetworkId.value),
+        loadStatistics(currentNetworkId.value),
+        loadTodayConsumption()
+      ])
+    } catch (error) {
+      console.error('页面数据刷新失败:', error)
+    } finally {
+      statisticsLoading.value = false
+      // 延迟清理防抖状态
+      setTimeout(() => {
+        isPageRefreshing.value = false
+        pageRefreshDebounceTimer.value = null
+      }, 1200)
+    }
+  }, 300)
 }
 
 // 账户操作处理

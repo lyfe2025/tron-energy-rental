@@ -95,7 +95,6 @@ router.post('/', async (req, res) => {
       private_key_encrypted,
       total_energy: energyLimit,
       available_energy: availableEnergy,
-      reserved_energy: 0,
       total_bandwidth: resourceInfo.data.bandwidth.limit || 0,
       available_bandwidth: resourceInfo.data.bandwidth.available || 0,
       cost_per_energy: costPerEnergy,

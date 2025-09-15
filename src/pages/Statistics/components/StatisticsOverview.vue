@@ -98,14 +98,14 @@ interface Props {
 
 defineProps<Props>()
 
-// 格式化能量数值
+// 格式化能量数值 - 直观显示，无小数点
 const formatEnergy = (value: number) => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`
+  // 检查value是否为有效数字
+  if (value == null || isNaN(value) || typeof value !== 'number') {
+    return '0'
   }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`
-  }
-  return value.toString()
+  
+  // 直接显示完整数字，不使用K/M后缀，不显示小数点
+  return Math.floor(value).toLocaleString('zh-CN')
 }
 </script>

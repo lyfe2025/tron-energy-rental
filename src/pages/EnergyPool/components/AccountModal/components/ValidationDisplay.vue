@@ -46,24 +46,58 @@
       <!-- 能量信息 -->
       <div class="border-b pb-2">
         <div class="flex justify-between mb-1">
-          <span class="text-gray-600">总能量:</span>
-          <span class="font-medium">{{ tronData.energy.total.toLocaleString() }}</span>
+          <span class="text-gray-600">理论总能量:</span>
+          <span class="font-medium text-blue-600">{{ tronData.energy.total.toLocaleString() }}</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-600">质押获得:</span>
+          <span class="font-medium text-green-600">{{ (tronData.energy.limit || 0).toLocaleString() }}</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-600">实际可用:</span>
+          <span class="font-medium text-orange-600">{{ tronData.energy.available.toLocaleString() }}</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-gray-600">可用能量:</span>
-          <span class="font-medium">{{ tronData.energy.available.toLocaleString() }}</span>
+          <span class="text-gray-600">已使用:</span>
+          <span class="font-medium text-red-500">{{ (tronData.energy.used || 0).toLocaleString() }}</span>
+        </div>
+        <!-- 代理信息 -->
+        <div v-if="tronData.energy.delegatedOut && tronData.energy.delegatedOut > 0" class="flex justify-between text-xs mt-1 pl-2 border-l-2 border-yellow-300 bg-yellow-50 p-1 rounded">
+          <span class="text-yellow-700">代理给他人:</span>
+          <span class="font-medium text-yellow-800">{{ Math.floor((tronData.energy.delegatedOut / 1000000) * 76.2).toLocaleString() }} 能量</span>
+        </div>
+        <div v-if="tronData.energy.delegatedIn && tronData.energy.delegatedIn > 0" class="flex justify-between text-xs mt-1 pl-2 border-l-2 border-green-300 bg-green-50 p-1 rounded">
+          <span class="text-green-700">从他人获得:</span>
+          <span class="font-medium text-green-800">{{ Math.floor((tronData.energy.delegatedIn / 1000000) * 76.2).toLocaleString() }} 能量</span>
         </div>
       </div>
       
       <!-- 带宽信息 -->
       <div class="border-b pb-2">
         <div class="flex justify-between mb-1">
-          <span class="text-gray-600">总带宽:</span>
-          <span class="font-medium">{{ tronData.bandwidth.total.toLocaleString() }}</span>
+          <span class="text-gray-600">理论总带宽:</span>
+          <span class="font-medium text-purple-600">{{ tronData.bandwidth.total.toLocaleString() }}</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-600">质押获得:</span>
+          <span class="font-medium text-green-600">{{ (tronData.bandwidth.limit || 0).toLocaleString() }}</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-600">实际可用:</span>
+          <span class="font-medium text-orange-600">{{ tronData.bandwidth.available.toLocaleString() }}</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-gray-600">可用带宽:</span>
-          <span class="font-medium">{{ tronData.bandwidth.available.toLocaleString() }}</span>
+          <span class="text-gray-600">已使用:</span>
+          <span class="font-medium text-red-500">{{ (tronData.bandwidth.used || 0).toLocaleString() }}</span>
+        </div>
+        <!-- 代理信息 -->
+        <div v-if="tronData.bandwidth.delegatedOut && tronData.bandwidth.delegatedOut > 0" class="flex justify-between text-xs mt-1 pl-2 border-l-2 border-yellow-300 bg-yellow-50 p-1 rounded">
+          <span class="text-yellow-700">代理给他人:</span>
+          <span class="font-medium text-yellow-800">{{ Math.floor((tronData.bandwidth.delegatedOut / 1000000) * 1000).toLocaleString() }} 带宽</span>
+        </div>
+        <div v-if="tronData.bandwidth.delegatedIn && tronData.bandwidth.delegatedIn > 0" class="flex justify-between text-xs mt-1 pl-2 border-l-2 border-green-300 bg-green-50 p-1 rounded">
+          <span class="text-green-700">从他人获得:</span>
+          <span class="font-medium text-green-800">{{ Math.floor((tronData.bandwidth.delegatedIn / 1000000) * 1000).toLocaleString() }} 带宽</span>
         </div>
       </div>
       

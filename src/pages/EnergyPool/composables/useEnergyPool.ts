@@ -104,6 +104,11 @@ export function useEnergyPool() {
           }
         })
         console.log(`✅ [useEnergyPool] 加载了 ${accounts.value.length} 个账户${networkId ? `（网络ID: ${networkId}）` : ''}`);
+        
+        // 如果有网络ID，为每个账户获取实时能量数据
+        if (networkId) {
+          await loadRealTimeEnergyData(networkId)
+        }
       }
     } catch (error) {
       console.error('Failed to load accounts:', error)
@@ -113,25 +118,87 @@ export function useEnergyPool() {
     }
   }
 
-  // 刷新能量池状态
-  const refreshStatus = async () => {
-    loading.refresh = true
+  // 加载实时能量数据
+  const loadRealTimeEnergyData = async (networkId: string) => {
     try {
-      const response = await energyPoolExtendedAPI.refreshStatus()
-      if (response.data.success) {
-        toast.success('状态刷新成功')
-        // 重新加载数据
-        await Promise.all([
-          loadStatistics(),
-          loadAccounts()
-        ])
-      }
+      console.log('🔍 [useEnergyPool] 开始加载实时能量数据, 网络ID:', networkId);
+      
+      // 并行获取所有账户的实时能量数据
+      const energyDataPromises = accounts.value.map(async (account, index) => {
+        try {
+          const response = await energyPoolExtendedAPI.getAccountEnergyData(account.id, networkId)
+          if (response.data.success && response.data.data) {
+            const energyData = response.data.data
+            // 使用响应式更新方式更新账户的实时能量数据
+            accounts.value[index] = {
+              ...accounts.value[index],
+              total_energy: energyData.energy.total,
+              available_energy: energyData.energy.available,
+              total_bandwidth: energyData.bandwidth.total,
+              available_bandwidth: energyData.bandwidth.available,
+              last_updated_at: energyData.lastUpdated
+            }
+            
+            console.log(`✅ [useEnergyPool] 账户 ${account.name} 实时数据更新:`, {
+              total_energy: energyData.energy.total,
+              available_energy: energyData.energy.available
+            })
+          }
+        } catch (error) {
+          console.warn(`⚠️ [useEnergyPool] 获取账户 ${account.name} 实时数据失败:`, error)
+        }
+      })
+      
+      await Promise.all(energyDataPromises)
+      console.log('✅ [useEnergyPool] 实时能量数据加载完成')
     } catch (error) {
-      console.error('Failed to refresh status:', error)
-      toast.error('刷新状态失败')
-    } finally {
-      loading.refresh = false
+      console.error('Failed to load real-time energy data:', error)
+      toast.error('获取实时能量数据失败')
     }
+  }
+
+  // 防抖相关状态
+  const refreshDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+  const isRefreshing = ref(false)
+
+  // 刷新能量池状态（带防抖）
+  const refreshStatus = async () => {
+    // 防抖检查：如果已经在刷新中或防抖定时器存在，直接返回
+    if (isRefreshing.value || refreshDebounceTimer.value) {
+      console.log('🚫 [useEnergyPool] 防抖拦截：刷新状态正在进行中')
+      toast.info('刷新操作进行中，请稍候...')
+      return
+    }
+
+    // 设置防抖状态
+    isRefreshing.value = true
+    loading.refresh = true
+
+    // 设置防抖定时器（1000ms内不允许重复刷新）
+    refreshDebounceTimer.value = setTimeout(async () => {
+      try {
+        console.log('✅ [useEnergyPool] 执行状态刷新操作')
+        const response = await energyPoolExtendedAPI.refreshStatus()
+        if (response.data.success) {
+          toast.success('状态刷新成功')
+          // 重新加载数据
+          await Promise.all([
+            loadStatistics(),
+            loadAccounts()
+          ])
+        }
+      } catch (error) {
+        console.error('Failed to refresh status:', error)
+        toast.error('刷新状态失败')
+      } finally {
+        loading.refresh = false
+        // 延迟清理防抖状态，给用户足够的反馈时间
+        setTimeout(() => {
+          isRefreshing.value = false
+          refreshDebounceTimer.value = null
+        }, 1500)
+      }
+    }, 500)
   }
 
 
@@ -295,14 +362,15 @@ export function useEnergyPool() {
     }
   }
 
-  // 格式化能量数值
+  // 格式化能量数值 - 直观显示，无小数点
   const formatEnergy = (energy: number): string => {
-    if (energy >= 1000000) {
-      return `${(energy / 1000000).toFixed(1)}M`
-    } else if (energy >= 1000) {
-      return `${(energy / 1000).toFixed(1)}K`
+    // 检查energy是否为有效数字
+    if (energy == null || isNaN(energy) || typeof energy !== 'number') {
+      return '0'
     }
-    return energy.toString()
+    
+    // 直接显示完整数字，不使用K/M后缀，不显示小数点
+    return Math.floor(energy).toLocaleString('zh-CN')
   }
 
   // 格式化地址
@@ -424,6 +492,7 @@ export function useEnergyPool() {
     todayConsumption,
     loadStatistics,
     loadAccounts,
+    loadRealTimeEnergyData,
     loadNetworks,
     loadTodayConsumption,
     refreshStatus,

@@ -183,7 +183,18 @@ export class EnergyPoolService {
     thisMonth: { consumption: number; cost: number };
     topAccounts: Array<{ name: string; consumption: number }>;
   }> {
-    return this.consumption.getConsumptionOverview();
+    const result = await this.consumption.getConsumptionOverview();
+    return {
+      ...result,
+      thisWeek: {
+        consumption: result.thisWeek.consumption,
+        cost: result.thisWeek.revenue
+      },
+      thisMonth: {
+        consumption: result.thisMonth.consumption,
+        cost: result.thisMonth.revenue
+      }
+    };
   }
 
   /**
