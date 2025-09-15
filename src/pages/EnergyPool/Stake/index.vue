@@ -54,7 +54,7 @@
         @close="() => { /* 错误清除由组件内部处理 */ }"
       />
 
-      <!-- 质押概览 -->
+      <!-- 账户信息和当前网络 -->
       <StakeOverview
         :selected-account="stakeData.selectedAccount.value"
         :current-network="stakeData.currentNetwork.value"
@@ -63,12 +63,14 @@
         :format-energy="stakeData.stakeComposable.formatEnergy"
         :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
         :format-address="stakeData.stakeComposable.formatAddress"
+        :show-network-section="true"
+        :show-overview-section="false"
         @switch-account="stakeOperations.switchAccount"
         @toggle-network-switcher="stakeData.showNetworkSwitcher.value = true"
       />
 
-      <!-- 操作按钮 -->
-      <div class="mb-8">
+      <!-- 质押操作 -->
+      <div class="mb-6">
         <StakeOperations
           :overview="stakeData.stakeComposable.overview.value"
           @show-stake="stakeData.showStakeModal.value = true"
@@ -77,6 +79,21 @@
           @handle-withdraw="stakeOperations.handleWithdraw"
         />
       </div>
+
+      <!-- 质押概览统计 -->
+      <StakeOverview
+        :selected-account="stakeData.selectedAccount.value"
+        :current-network="stakeData.currentNetwork.value"
+        :overview="stakeData.stakeComposable.overview.value"
+        :format-trx="stakeData.stakeComposable.formatTrx"
+        :format-energy="stakeData.stakeComposable.formatEnergy"
+        :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
+        :format-address="stakeData.stakeComposable.formatAddress"
+        :show-network-section="false"
+        :show-overview-section="true"
+        @switch-account="stakeOperations.switchAccount"
+        @toggle-network-switcher="stakeData.showNetworkSwitcher.value = true"
+      />
 
       <!-- 历史记录 -->
       <StakeHistory

@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 当前选中账户信息 -->
-    <div v-if="selectedAccount" class="mb-6">
+    <div v-if="selectedAccount && showNetworkSection !== false" class="mb-6">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
@@ -72,7 +72,7 @@
     </div>
 
     <!-- 网络状态栏 -->
-    <div v-if="currentNetwork" class="mb-6">
+    <div v-if="currentNetwork && showNetworkSection !== false" class="mb-6">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-6">
@@ -120,7 +120,7 @@
     </div>
 
     <!-- 质押概览统计 - 2x2 网格布局 -->
-    <div v-if="overview || realTimeAccountData.realTimeData.value" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div v-if="(overview || realTimeAccountData.realTimeData.value) && showOverviewSection !== false" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
       
       <!-- 左上：账户余额概览 -->
       <div class="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
@@ -397,6 +397,8 @@ const props = defineProps<{
   formatEnergy: (value: any) => string
   formatBandwidth: (value: any) => string
   formatAddress: (address: string) => string
+  showNetworkSection?: boolean
+  showOverviewSection?: boolean
 }>()
 
 // Events
