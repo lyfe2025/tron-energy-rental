@@ -1,12 +1,19 @@
 /**
- * Telegram机器人命令处理器
- * 处理各种用户命令（/start, /menu, /help等）
+ * Telegram机器人命令处理器 - 主入口
+ * 整合所有分离的命令处理器，保持原有接口不变
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
 import { orderService } from '../../order.js';
 import { UserService } from '../../user.js';
-import { UserAuthService } from '../../user/modules/UserAuthService.js';
+import { HelpCommandHandler } from './handlers/HelpCommandHandler.js';
+import { MenuCommandHandler } from './handlers/MenuCommandHandler.js';
+import { OrderCommandHandler } from './handlers/OrderCommandHandler.js';
+import { StartCommandHandler } from './handlers/StartCommandHandler.js';
+import { StatsCommandHandler } from './handlers/StatsCommandHandler.js';
+import { CommandValidator } from './middleware/CommandValidator.js';
+import { UserContextManager } from './middleware/UserContextManager.js';
+import type { CommandHandlerConstructorParams, CommandHandlerDependencies } from './types/command.types.js';
+import { MessageFormatter } from './utils/MessageFormatter.js';
 
 export class CommandHandler {
   private bot: TelegramBot;
@@ -14,7 +21,14 @@ export class CommandHandler {
   private orderService: typeof orderService;
   private botId?: string;
 
-  constructor(params: { bot: TelegramBot; botId?: string } | TelegramBot) {
+  // 分离的处理器
+  private startHandler: StartCommandHandler;
+  private menuHandler: MenuCommandHandler;
+  private helpHandler: HelpCommandHandler;
+  private orderHandler: OrderCommandHandler;
+  private statsHandler: StatsCommandHandler;
+
+  constructor(params: CommandHandlerConstructorParams | TelegramBot) {
     // Handle both old style (direct bot) and new style (params object)
     if (params && typeof params === 'object' && 'bot' in params) {
       this.bot = params.bot;
@@ -22,12 +36,29 @@ export class CommandHandler {
     } else {
       this.bot = params as TelegramBot;
     }
+    
     this.userService = new UserService();
     this.orderService = orderService;
+
+    // 创建依赖对象
+    const dependencies: CommandHandlerDependencies = {
+      bot: this.bot,
+      userService: this.userService,
+      orderService: this.orderService,
+      botId: this.botId
+    };
+
+    // 初始化分离的处理器
+    this.startHandler = new StartCommandHandler(dependencies);
+    this.menuHandler = new MenuCommandHandler(dependencies);
+    this.helpHandler = new HelpCommandHandler(dependencies);
+    this.orderHandler = new OrderCommandHandler(dependencies);
+    this.statsHandler = new StatsCommandHandler(dependencies);
   }
 
   /**
-   * 替换消息中的用户占位符
+   * 替换消息中的用户占位符 - 保持向后兼容
+   * @deprecated 使用 PlaceholderReplacer.replacePlaceholders 替代
    */
   private replacePlaceholders(message: string, telegramUser: TelegramBot.User): string {
     return message
@@ -38,423 +69,50 @@ export class CommandHandler {
   }
 
   /**
-   * 获取当前机器人配置
-   */
-  private async getBotConfig(): Promise<any> {
-    try {
-      let result;
-      
-      if (this.botId) {
-        // 优先使用机器人ID获取特定机器人的配置
-        result = await query(
-          'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
-          [this.botId]
-        );
-      } else {
-        // 兼容模式：如果没有机器人ID，获取任意一个活跃机器人的配置
-        result = await query(
-          'SELECT welcome_message, help_message, keyboard_config FROM telegram_bots WHERE is_active = true AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1'
-        );
-      }
-      
-      if (result.rows.length > 0) {
-        return result.rows[0];
-      }
-      return null;
-    } catch (error) {
-      console.error('获取机器人配置失败:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 处理 /start 命令 - 机器人启动和用户注册
+   * 处理 /start 命令 - 委托给专门的处理器
    */
   async handleStartCommand(msg: TelegramBot.Message): Promise<void> {
-    const chatId = msg.chat.id;
-    const telegramUser = msg.from;
-    
-    if (!telegramUser) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息，请重试。');
-      return;
-    }
-
-    try {
-      // 🔍 详细调试Telegram用户对象内容
-      console.log(`🔍 详细检查Telegram用户对象:`, {
-        telegram_user_full_object: telegramUser,
-        extracted_fields: {
-          id: telegramUser.id,
-          username: telegramUser.username,
-          first_name: telegramUser.first_name,
-          last_name: telegramUser.last_name,
-          language_code: telegramUser.language_code,
-          is_premium: (telegramUser as any).is_premium
-        },
-        language_code_debug: {
-          raw_value: telegramUser.language_code,
-          type: typeof telegramUser.language_code,
-          is_undefined: telegramUser.language_code === undefined,
-          is_null: telegramUser.language_code === null,
-          is_empty_string: telegramUser.language_code === '',
-          truthy: !!telegramUser.language_code
-        }
-      });
-
-      // 注册或获取用户 - 完整版本，保存所有Telegram用户信息
-      const user = await UserAuthService.registerTelegramUser({
-        telegram_id: telegramUser.id,
-        username: telegramUser.username,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        language_code: telegramUser.language_code,
-        is_premium: (telegramUser as any).is_premium,  // 🆕 保存Premium用户标识
-        bot_id: this.botId  // 🔧 关键修复：关联机器人ID
-      });
-
-      // 记录用户通过机器人进入的信息 - 完整日志
-      console.log(`👤 用户通过机器人注册/登录:`, {
-        user_id: user.id,
-        telegram_id: telegramUser.id,
-        username: user.username,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        language_code: telegramUser.language_code,
-        is_premium: !!(telegramUser as any).is_premium,
-        bot_id: this.botId,
-        chat_id: chatId,
-        complete_telegram_info: {
-          has_username: !!telegramUser.username,
-          has_last_name: !!telegramUser.last_name,
-          has_language: !!telegramUser.language_code,
-          is_premium_user: !!(telegramUser as any).is_premium
-        }
-      });
-
-      // 验证注册数据完整性
-      if (user.id) {
-        const validation = await UserAuthService.validateTelegramUserRegistration(user.id);
-        if (!validation.isValid) {
-          console.warn(`⚠️ 用户注册数据不完整:`, {
-            user_id: user.id,
-            issues: validation.issues
-          });
-        } else {
-          console.log(`✅ 用户注册数据验证通过: ${user.id}`);
-        }
-      }
-
-      // 获取机器人配置
-      const botConfig = await this.getBotConfig();
-      
-      // 使用配置的欢迎消息，如果没有配置则使用默认消息
-      let welcomeMessage = `🎉 欢迎使用TRON能量租赁机器人！
-
-👋 你好，${telegramUser.first_name}！
-
-🔋 我们提供快速、安全的TRON能量租赁服务：
-• 💰 超低价格，性价比最高
-• ⚡ 秒级到账，即买即用
-• 🛡️ 安全可靠，无需私钥
-• 🎯 多种套餐，满足不同需求
-
-📱 使用 /menu 查看主菜单
-❓ 使用 /help 获取帮助`;
-
-      // 如果机器人配置了自定义欢迎消息，则使用自定义消息
-      if (botConfig?.welcome_message && botConfig.welcome_message.trim()) {
-        welcomeMessage = botConfig.welcome_message;
-      }
-
-      // 替换用户占位符
-      welcomeMessage = this.replacePlaceholders(welcomeMessage, telegramUser);
-
-      // 构建键盘（内嵌键盘或回复键盘）
-      let messageOptions: any = {};
-      
-      if (botConfig?.keyboard_config?.main_menu?.is_enabled) {
-        const keyboardConfig = botConfig.keyboard_config.main_menu;
-        
-        if (keyboardConfig.rows && keyboardConfig.rows.length > 0) {
-          const enabledRows = keyboardConfig.rows
-            .filter(row => row.is_enabled)
-            .map(row => 
-              row.buttons
-                .filter(button => button.is_enabled)
-                .map(button => button.text)
-            )
-            .filter(row => row.length > 0);
-          
-          if (enabledRows.length > 0) {
-            // 根据键盘类型构建不同的键盘
-            if (keyboardConfig.type === 'reply') {
-              messageOptions.reply_markup = {
-                keyboard: enabledRows,
-                resize_keyboard: true,
-                one_time_keyboard: false
-              };
-            } else {
-              // 内嵌键盘（保持原有逻辑）
-              const inlineKeyboard = keyboardConfig.rows
-                .filter(row => row.is_enabled)
-                .map(row => 
-                  row.buttons
-                    .filter(button => button.is_enabled)
-                    .map(button => ({
-                      text: button.text,
-                      callback_data: button.callback_data
-                    }))
-                )
-                .filter(row => row.length > 0);
-              
-              if (inlineKeyboard.length > 0) {
-                messageOptions.reply_markup = {
-                  inline_keyboard: inlineKeyboard
-                };
-              }
-            }
-          }
-        }
-      }
-
-      await this.bot.sendMessage(chatId, welcomeMessage, messageOptions);
-      
-      return;
-    } catch (error) {
-      console.error('❌ /start命令处理失败:', {
-        error: error instanceof Error ? error.message : error,
-        telegram_id: telegramUser.id,
-        chat_id: chatId,
-        bot_id: this.botId,
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      await this.bot.sendMessage(chatId, '❌ 注册失败，请重试。如问题持续存在，请联系客服。');
-    }
+    await this.startHandler.handleStartCommand(msg);
   }
 
   /**
-   * 处理 /menu 命令
+   * 处理 /menu 命令 - 委托给专门的处理器
    */
   async handleMenuCommand(msg: TelegramBot.Message): Promise<void> {
-    const chatId = msg.chat.id;
-    
-    try {
-      // 获取机器人配置
-      const botConfig = await this.getBotConfig();
-      
-      let menuMessage = '📱 TRON能量租赁主菜单\n\n请选择您需要的服务：';
-      let messageOptions: any = {};
-      
-      if (botConfig?.keyboard_config?.main_menu?.is_enabled) {
-        const keyboardConfig = botConfig.keyboard_config.main_menu;
-        
-        if (keyboardConfig.rows && keyboardConfig.rows.length > 0) {
-          const enabledRows = keyboardConfig.rows
-            .filter(row => row.is_enabled)
-            .map(row => 
-              row.buttons
-                .filter(button => button.is_enabled)
-                .map(button => button.text)
-            )
-            .filter(row => row.length > 0);
-          
-          if (enabledRows.length > 0) {
-            // 根据键盘类型构建不同的键盘
-            if (keyboardConfig.type === 'reply') {
-              messageOptions.reply_markup = {
-                keyboard: enabledRows,
-                resize_keyboard: true,
-                one_time_keyboard: false
-              };
-            } else {
-              // 内嵌键盘
-              const inlineKeyboard = keyboardConfig.rows
-                .filter(row => row.is_enabled)
-                .map(row => 
-                  row.buttons
-                    .filter(button => button.is_enabled)
-                    .map(button => ({
-                      text: button.text,
-                      callback_data: button.callback_data
-                    }))
-                )
-                .filter(row => row.length > 0);
-              
-              if (inlineKeyboard.length > 0) {
-                messageOptions.reply_markup = {
-                  inline_keyboard: inlineKeyboard
-                };
-              }
-            }
-          }
-        }
-      }
-      
-      await this.bot.sendMessage(chatId, menuMessage, messageOptions);
-    } catch (error) {
-      console.error('Error in handleMenuCommand:', error);
-      await this.bot.sendMessage(chatId, '❌ 加载菜单失败，请重试。');
-    }
+    await this.menuHandler.handleMenuCommand(msg);
   }
 
   /**
-   * 处理 /help 命令
+   * 处理 /help 命令 - 委托给专门的处理器
    */
   async handleHelpCommand(msg: TelegramBot.Message): Promise<void> {
-    const chatId = msg.chat.id;
-    const telegramUser = msg.from;
-    
-    if (!telegramUser) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息。');
-      return;
-    }
-    
-    try {
-      // 获取机器人配置
-      const botConfig = await this.getBotConfig();
-      
-      // 使用配置的帮助消息，如果没有配置则使用默认消息
-      let helpMessage = `📖 TRON能量租赁机器人使用指南
-
-🤖 基础命令：
-• /start - 启动机器人
-• /menu - 显示主菜单
-• /help - 显示帮助信息
-• /balance - 查询账户余额
-• /orders - 查看订单历史
-
-🔋 能量租赁流程：
-1️⃣ 选择能量套餐
-2️⃣ 输入接收地址
-3️⃣ 确认订单信息
-4️⃣ 完成支付
-5️⃣ 等待能量到账
-
-💡 注意事项：
-• 请确保TRON地址正确
-• 支付后请耐心等待确认
-• 能量有效期为24小时
-
-🆘 如需帮助，请联系客服`;
-
-      // 如果机器人配置了自定义帮助消息，则使用自定义消息
-      if (botConfig?.help_message && botConfig.help_message.trim()) {
-        helpMessage = botConfig.help_message;
-      }
-
-      // 替换用户占位符
-      helpMessage = this.replacePlaceholders(helpMessage, telegramUser);
-
-      await this.bot.sendMessage(chatId, helpMessage);
-    } catch (error) {
-      console.error('Error in handleHelpCommand:', error);
-      await this.bot.sendMessage(chatId, '❌ 获取帮助信息失败，请重试。');
-    }
+    await this.helpHandler.handleHelpCommand(msg);
   }
 
   /**
-   * 处理 /balance 命令
+   * 处理 /balance 命令 - 委托给专门的处理器
    */
   async handleBalanceCommand(msg: TelegramBot.Message): Promise<void> {
-    const chatId = msg.chat.id;
-    const telegramId = msg.from?.id;
-    
-    if (!telegramId) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息');
-      return;
-    }
-
-    try {
-      const user = await UserService.getUserByTelegramId(telegramId);
-      if (!user) {
-        await this.bot.sendMessage(chatId, '❌ 用户不存在，请先使用 /start 注册');
-        return;
-      }
-
-      const balanceMessage = `💰 账户余额信息
-
-💵 USDT余额: ${user.usdt_balance || 0} USDT
-🔴 TRX余额: ${user.trx_balance || 0} TRX
-📊 总订单数: ${user.total_orders || 0}
-💸 总消费: ${user.total_spent || 0} USDT
-⚡ 总能量使用: ${user.total_energy_used || 0} Energy`;
-
-      await this.bot.sendMessage(chatId, balanceMessage);
-    } catch (error) {
-      console.error('Error in handleBalanceCommand:', error);
-      await this.bot.sendMessage(chatId, '❌ 获取余额信息失败，请重试。');
-    }
+    await this.statsHandler.handleBalanceCommand(msg);
   }
 
   /**
-   * 处理 /orders 命令
+   * 处理 /orders 命令 - 委托给专门的处理器
    */
   async handleOrdersCommand(msg: TelegramBot.Message): Promise<void> {
-    const chatId = msg.chat.id;
-    const telegramId = msg.from?.id;
-    
-    if (!telegramId) {
-      await this.bot.sendMessage(chatId, '❌ 无法获取用户信息');
-      return;
-    }
-
-    try {
-      const user = await UserService.getUserByTelegramId(telegramId);
-      if (!user) {
-        await this.bot.sendMessage(chatId, '❌ 用户不存在，请先使用 /start 注册');
-        return;
-      }
-
-      const orders = await this.orderService.getUserOrders(parseInt(user.id), 5); // 获取最近5个订单
-      
-      if (!orders || orders.length === 0) {
-        await this.bot.sendMessage(chatId, '📋 暂无订单记录');
-        return;
-      }
-
-      let ordersMessage = '📋 最近订单记录\n\n';
-      
-      orders.forEach((order, index) => {
-        const statusEmoji = this.getOrderStatusEmoji(order.status);
-        
-        ordersMessage += `${index + 1}️⃣ 订单 #${order.id}\n` +
-          `⚡ 能量: ${order.energy_amount} Energy\n` +
-          `💰 金额: ${order.price_trx} TRX\n` +
-          `${statusEmoji} 状态: ${order.status}\n` +
-          `📅 时间: ${new Date(order.created_at).toLocaleString('zh-CN')}\n\n`;
-      });
-
-      await this.bot.sendMessage(chatId, ordersMessage, { parse_mode: 'Markdown' });
-    } catch (error) {
-      console.error('Error in handleOrdersCommand:', error);
-      await this.bot.sendMessage(chatId, '❌ 获取订单信息失败，请重试。');
-    }
+    await this.orderHandler.handleOrdersCommand(msg);
   }
 
   /**
-   * 获取订单状态对应的表情符号
+   * 获取订单状态对应的表情符号 - 保持向后兼容
+   * @deprecated 使用 MessageFormatter.getOrderStatusEmoji 替代
    */
   private getOrderStatusEmoji(status: string): string {
-    switch (status) {
-      case 'pending':
-        return '⏳';
-      case 'paid':
-        return '💳';
-      case 'processing':
-        return '🔄';
-      case 'completed':
-        return '✅';
-      case 'failed':
-        return '❌';
-      case 'cancelled':
-        return '🚫';
-      default:
-        return '❓';
-    }
+    return MessageFormatter.getOrderStatusEmoji(status);
   }
 
   /**
-   * 处理回复键盘消息
+   * 处理回复键盘消息 - 分发到各个专门的处理器
    */
   async handleReplyKeyboardMessage(message: TelegramBot.Message): Promise<boolean> {
     if (!message.text) {
@@ -463,27 +121,32 @@ export class CommandHandler {
 
     const text = message.text.trim();
     const chatId = message.chat.id;
+    const telegramId = message.from?.id;
 
     try {
+      // 更新用户上下文
+      if (message.from) {
+        UserContextManager.createOrUpdateContext(message, this.botId);
+      }
+
       // 价格配置相关的按钮不在这里处理，让它们传递给 PriceConfigMessageHandler
-      const priceConfigButtons = ['⚡ 能量闪租', '🔥 笔数套餐', '🔄 TRX闪兑'];
-      if (priceConfigButtons.includes(text)) {
+      if (CommandValidator.isPriceConfigButton(text)) {
         return false; // 让 PriceConfigMessageHandler 处理这些按钮
       }
 
       // 根据按钮文本处理对应功能（非价格配置按钮）
       switch (text) {
         case '📋 我的订单':
-          await this.handleOrdersCommand(message);
+          await this.orderHandler.handleMyOrdersButton(message);
           return true;
         case '💰 账户余额':
-          await this.handleBalanceCommand(message);
+          await this.statsHandler.handleBalanceButton(message);
           return true;
         case '❓ 帮助支持':
-          await this.handleHelpCommand(message);
+          await this.helpHandler.handleHelpSupportButton(message);
           return true;
         case '🔄 刷新菜单':
-          await this.handleMenuCommand(message);
+          await this.menuHandler.handleRefreshMenuButton(message);
           return true;
         default:
           return false; // 不是已知的回复键盘按钮
@@ -495,7 +158,7 @@ export class CommandHandler {
   }
 
   /**
-   * 统一的命令处理方法
+   * 统一的命令处理方法 - 保持原有接口
    */
   async handleCommand(message: TelegramBot.Message): Promise<boolean> {
     if (!message.text) {
@@ -504,8 +167,12 @@ export class CommandHandler {
 
     // 优先处理斜杠命令
     if (message.text.startsWith('/')) {
-      const command = message.text.split(' ')[0].toLowerCase();
+      const command = CommandValidator.extractCommand(message);
       
+      if (!command) {
+        return false;
+      }
+
       try {
         switch (command) {
           case '/start':
@@ -537,57 +204,104 @@ export class CommandHandler {
   }
 
   /**
-   * 注册所有命令处理器
+   * 处理回调查询中的命令相关回调
+   */
+  async handleCallbackCommands(chatId: number, data: string, telegramId?: number): Promise<boolean> {
+    try {
+      switch (data) {
+        case 'my_orders':
+          await this.orderHandler.handleMyOrdersCallback(chatId, telegramId);
+          return true;
+        case 'check_balance':
+          await this.statsHandler.handleBalanceCallback(chatId, telegramId);
+          return true;
+        case 'help_support':
+          await this.helpHandler.handleHelpSupportCallback(chatId);
+          return true;
+        case 'refresh_menu':
+          await this.menuHandler.handleRefreshMenuCallback(chatId);
+          return true;
+        case 'user_stats':
+          await this.statsHandler.handleUserStats(chatId, telegramId);
+          return true;
+        default:
+          // 检查是否是订单详情查询
+          if (data.startsWith('order_detail_')) {
+            const orderId = data.replace('order_detail_', '');
+            await this.orderHandler.handleOrderDetail(chatId, orderId, telegramId);
+            return true;
+          }
+          return false;
+      }
+    } catch (error) {
+      console.error(`处理回调命令 ${data} 失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 注册所有命令处理器 - 保持原有接口
    */
   registerCommands(): void {
-    // /start 命令
-    this.bot.onText(/\/start/, async (msg) => {
-      try {
-        await this.handleStartCommand(msg);
-      } catch (error) {
-        console.error('Error handling /start command:', error);
-        await this.bot.sendMessage(msg.chat.id, '❌ 处理命令时发生错误，请重试。');
-      }
-    });
+    // 注册各个处理器的命令
+    this.startHandler.registerStartCommand();
+    this.menuHandler.registerMenuCommand();
+    this.helpHandler.registerHelpCommand();
+    this.orderHandler.registerOrdersCommand();
+    this.statsHandler.registerBalanceCommand();
 
-    // /menu 命令
-    this.bot.onText(/\/menu/, async (msg) => {
-      try {
-        await this.handleMenuCommand(msg);
-      } catch (error) {
-        console.error('Error handling /menu command:', error);
-        await this.bot.sendMessage(msg.chat.id, '❌ 处理命令时发生错误，请重试。');
-      }
-    });
+    // 设置定期清理过期的用户上下文
+    setInterval(() => {
+      UserContextManager.cleanupExpiredContexts(24); // 24小时过期
+    }, 60 * 60 * 1000); // 每小时检查一次
+  }
 
-    // /help 命令
-    this.bot.onText(/\/help/, async (msg) => {
-      try {
-        await this.handleHelpCommand(msg);
-      } catch (error) {
-        console.error('Error handling /help command:', error);
-        await this.bot.sendMessage(msg.chat.id, '❌ 处理命令时发生错误，请重试。');
-      }
-    });
+  /**
+   * 获取活跃用户统计
+   */
+  getActiveUserStats(): { count: number; contexts: any[] } {
+    return {
+      count: UserContextManager.getActiveUserCount(),
+      contexts: UserContextManager.getAllContexts()
+    };
+  }
 
-    // /balance 命令
-    this.bot.onText(/\/balance/, async (msg) => {
-      try {
-        await this.handleBalanceCommand(msg);
-      } catch (error) {
-        console.error('Error handling /balance command:', error);
-        await this.bot.sendMessage(msg.chat.id, '❌ 处理命令时发生错误，请重试。');
-      }
-    });
+  /**
+   * 获取用户上下文
+   */
+  getUserContext(telegramId: number): any {
+    return UserContextManager.getUserContext(telegramId);
+  }
 
-    // /orders 命令
-    this.bot.onText(/\/orders/, async (msg) => {
-      try {
-        await this.handleOrdersCommand(msg);
-      } catch (error) {
-        console.error('Error handling /orders command:', error);
-        await this.bot.sendMessage(msg.chat.id, '❌ 处理命令时发生错误，请重试。');
-      }
-    });
+  /**
+   * 更新用户活动时间
+   */
+  updateUserActivity(telegramId: number): void {
+    UserContextManager.updateLastActivity(telegramId);
+  }
+
+  /**
+   * 获取当前处理器实例（用于测试和调试）
+   */
+  getHandlers() {
+    return {
+      start: this.startHandler,
+      menu: this.menuHandler,
+      help: this.helpHandler,
+      order: this.orderHandler,
+      stats: this.statsHandler
+    };
+  }
+
+  /**
+   * 以下方法保持向后兼容，但已委托给专门的处理器
+   */
+
+  /**
+   * @deprecated 使用 getBotConfig() 从各个处理器获取配置
+   */
+  private async getBotConfig(): Promise<any> {
+    console.warn('getBotConfig() is deprecated. Use specific handler\'s getBotConfig() method instead.');
+    return null;
   }
 }

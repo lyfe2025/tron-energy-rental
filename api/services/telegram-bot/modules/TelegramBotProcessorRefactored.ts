@@ -4,11 +4,14 @@
  */
 import TelegramBot from 'node-telegram-bot-api';
 import { query } from '../../../config/database.js';
+import { orderService } from '../../order.js';
+import { UserService } from '../../user.js';
+import { MenuCallbackHandler } from '../callbacks/handlers/MenuCallbackHandler.js';
+import { PriceCallbackHandler } from '../callbacks/handlers/PriceCallbackHandler.js';
+import type { CallbackHandlerDependencies } from '../callbacks/types/callback.types.js';
 import { CommandHandler } from '../commands/CommandHandler.js';
 import { CallbackDispatcher } from '../core/CallbackDispatcher.js';
 import { DynamicButtonMapper } from '../core/DynamicButtonMapper.js';
-import { MenuCallbackHandler } from '../handlers/MenuCallbackHandler.js';
-import { PriceCallbackHandler } from '../handlers/PriceCallbackHandler.js';
 import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
 
 export class TelegramBotProcessorRefactored {
@@ -41,12 +44,19 @@ export class TelegramBotProcessorRefactored {
    * 注册回调处理器
    */
   private registerCallbackHandlers(): void {
+    // 创建依赖对象
+    const dependencies: CallbackHandlerDependencies = {
+      bot: this.bot,
+      userService: new UserService(),
+      orderService: orderService
+    };
+
     // 注册菜单处理器
-    const menuHandler = new MenuCallbackHandler(this.bot, this.botId, this.keyboardBuilder);
+    const menuHandler = new MenuCallbackHandler(dependencies);
     this.callbackDispatcher.registerHandler('menu', menuHandler);
     
     // 注册价格配置处理器
-    const priceHandler = new PriceCallbackHandler(this.bot, this.botId);
+    const priceHandler = new PriceCallbackHandler(dependencies);
     this.callbackDispatcher.registerHandler('price', priceHandler);
 
     // TODO: 注册其他处理器

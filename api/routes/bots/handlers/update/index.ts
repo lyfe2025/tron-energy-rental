@@ -109,7 +109,7 @@ export class BotUpdateHandler {
               if (botConfig) {
                 const addResult = await multiBotManager.addBot(botConfig);
                 if (addResult) {
-                  console.log('✅ 机器人已动态添加到运行实例:', updatedBot.bot_name, `(@${updatedBot.bot_username})`);
+                  console.log('✅ 机器人已动态添加到运行实例:', updatedBot.name, `(@${updatedBot.bot_username})`);
                 } else {
                   console.warn('⚠️ 机器人添加到运行实例失败，可能已存在');
                 }
@@ -122,7 +122,7 @@ export class BotUpdateHandler {
               
               const removeResult = await multiBotManager.removeBot(id);
               if (removeResult) {
-                console.log('✅ 机器人已动态从运行实例移除:', updatedBot.bot_name, `(@${updatedBot.bot_username})`);
+                console.log('✅ 机器人已动态从运行实例移除:', updatedBot.name, `(@${updatedBot.bot_username})`);
               } else {
                 console.warn('⚠️ 机器人从运行实例移除失败，可能不存在');
               }
