@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { Eye, EyeOff } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import type { PrivateKeyInputMode } from '../types/account-modal.types'
 import MnemonicInput from './MnemonicInput.vue'
 
@@ -102,10 +102,28 @@ interface Emits {
   mnemonicBlur: []
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const showPrivateKey = ref(false)
+
+// 监听 modelValue 的变化，强制更新输入框的值
+watch(() => props.modelValue, (newValue) => {
+  console.log('🔍 [PrivateKeyInput] modelValue 变化:', {
+    newValue: newValue,
+    hasValue: !!newValue,
+    valueLength: newValue ? newValue.length : 0
+  })
+  
+  // 强制更新输入框的值
+  nextTick(() => {
+    const privateKeyInput = document.getElementById('private_key') as HTMLInputElement
+    if (privateKeyInput && newValue) {
+      privateKeyInput.value = newValue
+      console.log('✅ [PrivateKeyInput] 输入框值已更新:', privateKeyInput.value)
+    }
+  })
+}, { immediate: true })
 
 const onInput = (event: Event) => {
   const target = event.target as HTMLInputElement

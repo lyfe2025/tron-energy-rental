@@ -31,8 +31,8 @@
       :selected-accounts="selectedAccounts"
       @refresh-status="refreshStatus"
       @show-add-modal="showAddModal = true"
-      @batch-enable="() => batchEnableAccounts(selectedAccounts)"
-      @batch-disable="() => batchDisableAccounts(selectedAccounts)"
+      @batch-enable="() => handleBatchEnable(selectedAccounts)"
+      @batch-disable="() => handleBatchDisable(selectedAccounts)"
       @show-batch-network-modal="showBatchNetworkModal = true"
     />
 
@@ -67,9 +67,10 @@
 
     <!-- 编辑账户模态框 -->
     <AccountModal
-      v-if="showEditModal"
       :visible="showEditModal"
       :account="selectedAccount"
+      :current-network-id="currentNetworkId"
+      :current-network="currentNetwork"
       @close="showEditModal = false"
       @success="handleAccountUpdated"
     />
@@ -79,6 +80,8 @@
       v-if="showDetailsModal"
       :isOpen="showDetailsModal"
       :account="selectedAccount"
+      :current-network-id="currentNetworkId"
+      :current-network="currentNetwork"
       @close="showDetailsModal = false"
       @edit="handleEditFromDetails"
     />
@@ -214,8 +217,22 @@ const refreshStatus = async () => {
 
 // 账户操作处理
 const handleEditAccount = (account: EnergyPoolAccount) => {
+  console.log('🔍 [EnergyPool] 编辑账户被点击:', {
+    accountId: account.id,
+    accountName: account.name,
+    accountStatus: account.status,
+    accountType: account.account_type,
+    hasPrivateKey: !!account.private_key_encrypted,
+    privateKeyValue: account.private_key_encrypted,
+    currentNetworkId: currentNetworkId.value,
+    accountData: account
+  })
   selectedAccount.value = account
   showEditModal.value = true
+  console.log('🔍 [EnergyPool] 编辑模态框状态:', {
+    showEditModal: showEditModal.value,
+    selectedAccount: selectedAccount.value
+  })
 }
 
 const handleViewDetails = (account: EnergyPoolAccount) => {
@@ -255,10 +272,12 @@ const confirmDeleteAccount = async (account: EnergyPoolAccount) => {
 const confirmToggleAccount = async (account: EnergyPoolAccount, action: ToggleAction) => {
   try {
     if (action === 'enable') {
-      await enableAccount(account.id)
+      await enableAccount(account.id, currentNetworkId.value)
     } else {
-      await disableAccount(account.id)
+      await disableAccount(account.id, currentNetworkId.value)
     }
+    // 操作成功后刷新所有状态（包括统计信息）
+    await refreshStatus()
     handleToggleModalClose()
   } catch (error) {
     console.error('Failed to toggle account:', error)
@@ -303,6 +322,28 @@ const handleBatchNetworkUpdated = async () => {
   }
 }
 
+// 批量启用处理
+const handleBatchEnable = async (accountIds: string[]) => {
+  try {
+    await batchEnableAccounts(accountIds, currentNetworkId.value)
+    // 批量操作完成后刷新所有状态（包括统计信息）
+    await refreshStatus()
+  } catch (error) {
+    console.error('Failed to batch enable accounts:', error)
+  }
+}
+
+// 批量停用处理
+const handleBatchDisable = async (accountIds: string[]) => {
+  try {
+    await batchDisableAccounts(accountIds, currentNetworkId.value)
+    // 批量操作完成后刷新所有状态（包括统计信息）
+    await refreshStatus()
+  } catch (error) {
+    console.error('Failed to batch disable accounts:', error)
+  }
+}
+
 // 监听网络ID变化
 watch(currentNetworkId, async (newNetworkId) => {
   console.log('🔍 [EnergyPool] 网络变化:', newNetworkId)
@@ -315,6 +356,28 @@ watch(currentNetworkId, async (newNetworkId) => {
   } else {
     accounts.value = []
   }
+}, { immediate: true })
+
+// 监听 selectedAccount 变化
+watch(selectedAccount, (newAccount, oldAccount) => {
+  console.log('🔍 [EnergyPool] selectedAccount 变化:', {
+    hasNewAccount: !!newAccount,
+    newAccountId: newAccount?.id,
+    newAccountName: newAccount?.name,
+    hasOldAccount: !!oldAccount,
+    oldAccountId: oldAccount?.id,
+    showEditModal: showEditModal.value
+  })
+}, { immediate: true, deep: true })
+
+// 监听 currentNetworkId 变化
+watch(currentNetworkId, (newNetworkId, oldNetworkId) => {
+  console.log('🔍 [EnergyPool] currentNetworkId 变化:', {
+    newNetworkId: newNetworkId,
+    oldNetworkId: oldNetworkId,
+    hasNewNetworkId: !!newNetworkId,
+    currentNetwork: currentNetwork.value
+  })
 }, { immediate: true })
 
 // 页面初始化

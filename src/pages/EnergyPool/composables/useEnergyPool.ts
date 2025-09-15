@@ -28,7 +28,7 @@ interface EnergyPoolAccount {
     name: string
     type: string
     rpc_url: string
-    chain_id: string
+    chain_id?: string
   }
 }
 
@@ -224,7 +224,11 @@ export function useEnergyPool() {
       const response = await energyPoolExtendedAPI.enableAccount(id)
       if (response.data.success) {
         toast.success('账户已启用')
-        await loadAccounts() // 重新加载账户列表
+        // 重新加载账户列表和统计信息
+        await Promise.all([
+          loadAccounts(),
+          loadStatistics()
+        ])
         return true
       }
       throw new Error('启用账户失败')
@@ -241,7 +245,11 @@ export function useEnergyPool() {
       const response = await energyPoolExtendedAPI.disableAccount(id)
       if (response.data.success) {
         toast.success('账户已停用')
-        await loadAccounts() // 重新加载账户列表
+        // 重新加载账户列表和统计信息
+        await Promise.all([
+          loadAccounts(),
+          loadStatistics()
+        ])
         return true
       }
       throw new Error('停用账户失败')

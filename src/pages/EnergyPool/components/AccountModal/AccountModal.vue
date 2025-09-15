@@ -57,20 +57,30 @@
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { ElMessage } from 'element-plus'
 import { Loader2, X } from 'lucide-vue-next'
+import { watch } from 'vue'
 import { useEnergyPool } from '../../composables/useEnergyPool'
 import AccountForm from './components/AccountForm.vue'
 import { useAccountForm } from './composables/useAccountForm'
 import { useAccountValidation } from './composables/useAccountValidation'
 import { usePrivateKeyGeneration } from './composables/usePrivateKeyGeneration'
 import type {
-    AccountFormData,
-    AccountModalEmits,
-    AccountModalProps,
-    AccountSubmitData
+  AccountFormData,
+  AccountModalEmits,
+  AccountModalProps,
+  AccountSubmitData
 } from './types/account-modal.types'
 
 const props = defineProps<AccountModalProps>()
 const emit = defineEmits<AccountModalEmits>()
+
+console.log('🔍 [AccountModal] 组件初始化:', {
+  visible: props.visible,
+  hasAccount: !!props.account,
+  accountId: props.account?.id,
+  accountName: props.account?.name,
+  currentNetworkId: props.currentNetworkId,
+  currentNetwork: props.currentNetwork
+})
 
 const { addAccount, updateAccount } = useEnergyPool()
 
@@ -100,6 +110,28 @@ const {
   generatingPrivateKey,
   generatePrivateKeyFromMnemonic
 } = usePrivateKeyGeneration()
+
+// 监听 props.account 的变化
+watch(() => props.account, (newAccount, oldAccount) => {
+  console.log('🔍 [AccountModal] props.account 变化:', {
+    hasNewAccount: !!newAccount,
+    newAccountId: newAccount?.id,
+    newAccountName: newAccount?.name,
+    hasOldAccount: !!oldAccount,
+    oldAccountId: oldAccount?.id,
+    visible: props.visible
+  })
+}, { immediate: true, deep: true })
+
+// 监听 props.currentNetworkId 的变化
+watch(() => props.currentNetworkId, (newNetworkId, oldNetworkId) => {
+  console.log('🔍 [AccountModal] props.currentNetworkId 变化:', {
+    newNetworkId: newNetworkId,
+    oldNetworkId: oldNetworkId,
+    hasNewNetworkId: !!newNetworkId,
+    currentNetwork: props.currentNetwork
+  })
+}, { immediate: true })
 
 // 更新表单数据
 const updateForm = (updates: Partial<AccountFormData>) => {
@@ -141,6 +173,8 @@ const handleMnemonicBlur = () => {
 
 // 处理TRON数据刷新
 const handleRefreshTronData = async () => {
+  console.log('🔍 [AccountModal] 刷新TRON数据')
+  
   await validateAndFetchTronData(
     form,
     setTronData,

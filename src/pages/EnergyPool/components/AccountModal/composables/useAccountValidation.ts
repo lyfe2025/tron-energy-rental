@@ -1,4 +1,5 @@
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
+import { useRoute } from 'vue-router'
 import type {
     AccountFormData,
     AccountFormErrors,
@@ -7,6 +8,7 @@ import type {
 } from '../types/account-modal.types'
 
 export function useAccountValidation() {
+  const route = useRoute()
   
   // 验证表单
   const validateForm = (
@@ -99,6 +101,8 @@ export function useAccountValidation() {
     setTronDataError: (error: string) => void,
     setFetchingState: (fetching: boolean) => void
   ) => {
+    // 从URL直接获取网络ID
+    const networkId = route.params.networkId as string
     // 清除之前的错误信息
     setTronDataError('')
     
@@ -124,8 +128,21 @@ export function useAccountValidation() {
     
     console.log('🔍 [useAccountValidation] 开始验证TRON数据:', {
       address: form.address,
+      networkId: networkId,
+      routeParams: route.params,
+      routePath: route.path,
       timestamp: new Date().toISOString()
     })
+    
+    if (!networkId) {
+      console.error('❌ [useAccountValidation] 网络ID为空:', {
+        routeParams: route.params,
+        routePath: route.path,
+        routeName: route.name
+      })
+      setTronDataError('请先选择TRON网络')
+      return
+    }
     
     setFetchingState(true)
     setTronDataError('')
@@ -133,7 +150,8 @@ export function useAccountValidation() {
     try {
       const response = await energyPoolExtendedAPI.validateTronAddress({
         address: form.address.trim(),
-        private_key: form.private_key.trim()
+        private_key: form.private_key.trim(),
+        network_id: networkId
       })
       
       if (response.data.success) {

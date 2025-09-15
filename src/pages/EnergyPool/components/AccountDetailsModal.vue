@@ -176,16 +176,37 @@
         <div class="bg-green-50 rounded-lg p-4">
           <h3 class="text-lg font-medium text-gray-900 mb-4">成本信息</h3>
           
-          <div v-if="realTimeData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">预估单位成本</label>
-              <p class="text-lg font-semibold text-green-600">{{ realTimeData.estimatedCostPerEnergy.toFixed(6) }} TRX</p>
+          <div v-if="realTimeData" class="space-y-4">
+            <!-- 单位成本 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white rounded-lg p-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">能量单位成本</label>
+                <p class="text-lg font-semibold text-blue-600">{{ realTimeData.estimatedCostPerEnergy.toFixed(6) }} TRX</p>
+                <p class="text-xs text-gray-500">100 sun = 0.0001 TRX</p>
+              </div>
+              <div class="bg-white rounded-lg p-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">带宽单位成本</label>
+                <p class="text-lg font-semibold text-purple-600">{{ (realTimeData as any).estimatedCostPerBandwidth?.toFixed(6) || '0.001000' }} TRX</p>
+                <p class="text-xs text-gray-500">1,000 sun = 0.001 TRX</p>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">预估总价值</label>
-              <p class="text-lg font-semibold text-green-600">
-                {{ (realTimeData.energy.total * realTimeData.estimatedCostPerEnergy).toFixed(6) }} TRX
-              </p>
+            
+            <!-- 总价值 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white rounded-lg p-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">能量总价值</label>
+                <p class="text-lg font-semibold text-green-600">
+                  {{ (realTimeData.energy.total * realTimeData.estimatedCostPerEnergy).toFixed(6) }} TRX
+                </p>
+                <p class="text-xs text-gray-500">{{ realTimeData.energy.total.toLocaleString() }} 能量单位</p>
+              </div>
+              <div class="bg-white rounded-lg p-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">带宽总价值</label>
+                <p class="text-lg font-semibold text-indigo-600">
+                  {{ (realTimeData.bandwidth.total * ((realTimeData as any).estimatedCostPerBandwidth || 0.001)).toFixed(6) }} TRX
+                </p>
+                <p class="text-xs text-gray-500">{{ realTimeData.bandwidth.total.toLocaleString() }} 带宽单位</p>
+              </div>
             </div>
           </div>
           
@@ -229,6 +250,8 @@ import type { EnergyPoolAccount } from '../composables/useEnergyPool'
 interface Props {
   isOpen: boolean
   account: EnergyPoolAccount | null
+  currentNetworkId?: string
+  currentNetwork?: any
 }
 
 interface Emits {
@@ -249,6 +272,7 @@ const realTimeData = ref<{
   energy: { total: number; available: number; used: number }
   bandwidth: { total: number; available: number; used: number }
   estimatedCostPerEnergy: number
+  estimatedCostPerBandwidth?: number
   usdtInfo?: { error?: string }
   contractInfo?: {
     address: string
@@ -278,11 +302,19 @@ const bandwidthUsagePercentage = computed(() => {
 const fetchRealTimeData = async () => {
   if (!props.account) return
 
+  console.log('🔍 [AccountDetailsModal] 开始获取实时数据:', {
+    accountId: props.account.id,
+    address: props.account.tron_address,
+    currentNetworkId: props.currentNetworkId,
+    currentNetwork: props.currentNetwork
+  })
+
   loadingRealTimeData.value = true
   try {
     const response = await energyPoolExtendedAPI.validateTronAddress({
       address: props.account.tron_address,
-      private_key: '' // 空私钥，只获取账户信息
+      private_key: '', // 空私钥，只获取账户信息
+      network_id: props.currentNetworkId // 添加网络ID
     })
 
     if (response.data.success && response.data.data) {
@@ -295,7 +327,8 @@ const fetchRealTimeData = async () => {
         usdtBalance: response.data.data.usdtBalance || 0,
         energy: response.data.data.energy,
         bandwidth: response.data.data.bandwidth,
-        estimatedCostPerEnergy: response.data.data.estimatedCostPerEnergy || 0.001,
+        estimatedCostPerEnergy: response.data.data.estimatedCostPerEnergy || 0.0001,
+        estimatedCostPerBandwidth: response.data.data.estimatedCostPerBandwidth || 0.001,
         usdtInfo: response.data.data.usdtInfo,
         contractInfo: (response.data.data as any).contractInfo
       }

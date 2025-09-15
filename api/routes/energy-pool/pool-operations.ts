@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query } from '../../database';
 import { energyPoolService } from '../../services/energy-pool';
 import { tronService } from '../../services/tron/TronService';
-import { getUSDTBalanceFromDatabase, getNetworkUSDTContract } from './overview-statistics';
+import { getNetworkUSDTContract, getUSDTBalanceFromDatabase } from './overview-statistics';
 
 const router: Router = Router();
 
@@ -310,22 +310,23 @@ router.post('/accounts/validate-address', async (req, res) => {
       name: contractInfo.name || 'USDT'
     } : null);
     
-    // 计算单位成本（简化版本，基于默认值）
-    const totalFrozen = accountInfo.data.frozen?.reduce((sum, f) => sum + (f.frozen_balance || 0), 0) || 0;
-    const energyLimit = resourceInfo.data.energy.limit || 0;
-    let costPerEnergy = 0.001; // 默认成本
+    // 计算单位成本（基于TRON官方定价）
+    // 1 TRX = 1,000,000 sun
+    // 能量单价 = 100 sun = 0.0001 TRX
+    // 带宽单价 = 1,000 sun = 0.001 TRX
+    const ENERGY_COST_PER_UNIT = 100; // 100 sun per energy unit
+    const BANDWIDTH_COST_PER_UNIT = 1000; // 1000 sun per bandwidth unit
+    const SUN_TO_TRX = 1000000; // 1 TRX = 1,000,000 sun
     
-    if (totalFrozen > 0 && energyLimit > 0) {
-      // 基于冻结TRX计算成本（简化计算）
-      costPerEnergy = (totalFrozen / 1000000) / energyLimit; // TRX转换为SUN并计算
-    }
+    const costPerEnergy = ENERGY_COST_PER_UNIT / SUN_TO_TRX; // 0.0001 TRX per energy
+    const costPerBandwidth = BANDWIDTH_COST_PER_UNIT / SUN_TO_TRX; // 0.001 TRX per bandwidth
     
     const result = {
       address: address,
       balance: accountInfo.data.balance || 0,
       usdtBalance: Number((usdtBalance.balance || 0).toFixed(6)), // 保证六位小数，与USDT合约精度一致
       energy: {
-        total: energyLimit,
+        total: resourceInfo.data.energy.limit || 0,
         available: resourceInfo.data.energy.available,
         used: resourceInfo.data.energy.used
       },
@@ -336,6 +337,7 @@ router.post('/accounts/validate-address', async (req, res) => {
       },
       frozenInfo: accountInfo.data.frozen || [],
       estimatedCostPerEnergy: Number(costPerEnergy.toFixed(6)), // 保证六位小数精度
+      estimatedCostPerBandwidth: Number(costPerBandwidth.toFixed(6)), // 带宽单位成本
       contractInfo: contractInfo.address ? {
         address: contractInfo.address,
         decimals: contractInfo.decimals,

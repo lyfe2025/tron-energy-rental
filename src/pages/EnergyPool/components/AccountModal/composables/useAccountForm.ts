@@ -9,6 +9,16 @@ import type {
 } from '../types/account-modal.types'
 
 export function useAccountForm(props: AccountModalProps) {
+  // 添加调试日志
+  console.log('🔍 [useAccountForm] 初始化:', {
+    hasPropsAccount: !!props.account,
+    propsAccountId: props.account?.id,
+    propsAccountName: props.account?.name,
+    currentNetworkId: props.currentNetworkId,
+    currentNetwork: props.currentNetwork,
+    propsKeys: Object.keys(props)
+  })
+  
   // 表单数据
   const form = reactive<AccountFormData>({
     name: '',
@@ -92,11 +102,14 @@ export function useAccountForm(props: AccountModalProps) {
     console.log('🔍 [useAccountForm] 账户数据变化:', {
       hasAccount: !!account,
       accountId: account?.id,
-      networkConfig: account?.network_config,
-      networkId: account?.network_config?.id,
-      networkName: account?.network_config?.name,
+      accountName: account?.name,
+      accountStatus: account?.status,
+      accountType: account?.account_type,
+      hasPrivateKey: !!account?.private_key_encrypted,
+      privateKeyValue: account?.private_key_encrypted,
+      isEdit: isEdit.value,
       oldAccount: !!oldAccount,
-      oldNetworkId: oldAccount?.network_config?.id
+      propsAccount: props.account
     })
     
     if (account) {
@@ -113,6 +126,16 @@ export function useAccountForm(props: AccountModalProps) {
             })
             
             // 使用完整的账户信息填充表单
+            console.log('🔍 [useAccountForm] 开始填充表单数据:', {
+              fullAccountName: fullAccount.name,
+              fullAccountAddress: fullAccount.tron_address,
+              fullAccountPrivateKey: fullAccount.private_key_encrypted,
+              fullAccountStatus: fullAccount.status,
+              fullAccountType: fullAccount.account_type,
+              fullAccountPriority: fullAccount.priority,
+              fullAccountDescription: fullAccount.description
+            })
+            
             form.name = fullAccount.name || ''
             form.address = fullAccount.tron_address
             form.private_key = fullAccount.private_key_encrypted
@@ -122,6 +145,16 @@ export function useAccountForm(props: AccountModalProps) {
             form.description = fullAccount.description || ''
             form.daily_limit = fullAccount.daily_limit
             form.monthly_limit = fullAccount.monthly_limit
+            
+            console.log('✅ [useAccountForm] 表单数据填充完成:', {
+              formName: form.name,
+              formAddress: form.address,
+              formPrivateKey: form.private_key,
+              formStatus: form.status,
+              formAccountType: form.account_type,
+              formPriority: form.priority,
+              formDescription: form.description
+            })
           } else {
             throw new Error('获取账户详情失败')
           }
@@ -152,7 +185,6 @@ export function useAccountForm(props: AccountModalProps) {
       }
       
       console.log('✅ [useAccountForm] 表单数据已设置:', {
-        networkName: account.network_config?.name,
         accountName: form.name,
         hasRealPrivateKey: form.private_key !== '***'
       })
@@ -160,7 +192,7 @@ export function useAccountForm(props: AccountModalProps) {
       console.log('🔄 [useAccountForm] 重置表单数据')
       resetForm()
     }
-  }, { immediate: true })
+  }, { immediate: true, deep: true })
 
   return {
     // 表单数据

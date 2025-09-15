@@ -167,6 +167,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick, watch } from 'vue'
 import type {
   AccountFormData,
   AccountFormErrors,
@@ -195,8 +196,54 @@ interface Emits {
   refreshTronData: []
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// 添加调试日志
+console.log('🔍 [AccountForm] 组件初始化:', {
+  formName: props.form.name,
+  formAddress: props.form.address,
+  formPrivateKey: props.form.private_key,
+  formStatus: props.form.status,
+  formAccountType: props.form.account_type,
+  formPriority: props.form.priority,
+  formDescription: props.form.description,
+  hasErrors: Object.keys(props.errors).some(key => props.errors[key as keyof AccountFormErrors])
+})
+
+// 监听 props.form 的变化，强制更新输入框的值
+watch(() => props.form, (newForm) => {
+  console.log('🔍 [AccountForm] props.form 变化:', {
+    formName: newForm.name,
+    formAddress: newForm.address,
+    formPrivateKey: newForm.private_key,
+    formStatus: newForm.status,
+    formAccountType: newForm.account_type,
+    formPriority: newForm.priority,
+    formDescription: newForm.description
+  })
+  
+  // 强制更新输入框的值
+  nextTick(() => {
+    const nameInput = document.getElementById('name') as HTMLInputElement
+    const addressInput = document.getElementById('address') as HTMLInputElement
+    const priorityInput = document.getElementById('priority') as HTMLInputElement
+    const descriptionTextarea = document.getElementById('description') as HTMLTextAreaElement
+    
+    if (nameInput && newForm.name) {
+      nameInput.value = newForm.name
+    }
+    if (addressInput && newForm.address) {
+      addressInput.value = newForm.address
+    }
+    if (priorityInput && newForm.priority) {
+      priorityInput.value = newForm.priority.toString()
+    }
+    if (descriptionTextarea && newForm.description) {
+      descriptionTextarea.value = newForm.description
+    }
+  })
+}, { immediate: true, deep: true })
 
 const onInput = (field: keyof AccountFormData, event: Event) => {
   const target = event.target as HTMLInputElement | HTMLTextAreaElement

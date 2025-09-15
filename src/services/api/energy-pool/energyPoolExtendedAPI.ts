@@ -124,6 +124,7 @@ export const energyPoolExtendedAPI = {
   validateTronAddress: (data: {
     address: string
     private_key?: string
+    network_id?: string
   }) => 
     apiClient.post<ApiResponse<{
       address: string
@@ -199,13 +200,13 @@ export const energyPoolExtendedAPI = {
    * 启用账户
    */
   enableAccount: (id: string) => 
-    apiClient.post<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/enable`),
+    apiClient.put<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/enable`),
 
   /**
    * 停用账户
    */
   disableAccount: (id: string) => 
-    apiClient.post<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/disable`),
+    apiClient.put<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}/disable`),
 
   /**
    * 删除账户

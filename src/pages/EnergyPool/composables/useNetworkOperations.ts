@@ -18,10 +18,26 @@ export function useNetworkOperations() {
   })
 
   // 计算属性
-  const currentNetworkId = computed(() => route.params.networkId as string)
+  const currentNetworkId = computed(() => {
+    const networkId = route.params.networkId as string
+    console.log('🔍 [useNetworkOperations] 获取路由参数:', {
+      routeParams: route.params,
+      networkId: networkId,
+      routePath: route.path,
+      routeName: route.name
+    })
+    return networkId
+  })
 
   const currentNetwork = computed(() => {
-    return networkStore.networks.find(network => network.id === currentNetworkId.value)
+    const network = networkStore.networks.find(network => network.id === currentNetworkId.value)
+    console.log('🔍 [useNetworkOperations] 查找网络:', {
+      currentNetworkId: currentNetworkId.value,
+      availableNetworks: networkStore.networks.length,
+      foundNetwork: !!network,
+      network: network
+    })
+    return network
   })
 
   const availableNetworks = computed(() => 

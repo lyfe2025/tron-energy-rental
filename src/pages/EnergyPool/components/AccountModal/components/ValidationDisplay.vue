@@ -68,10 +68,18 @@
       </div>
       
       <!-- 成本信息 -->
-      <div>
+      <div class="space-y-2">
         <div class="flex justify-between">
-          <span class="text-gray-600">预估单位成本:</span>
-          <span class="font-medium">{{ tronData.estimatedCostPerEnergy.toFixed(6) }} TRX</span>
+          <span class="text-gray-600">能量单位成本:</span>
+          <span class="font-medium text-blue-600">{{ tronData.estimatedCostPerEnergy.toFixed(6) }} TRX</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">带宽单位成本:</span>
+          <span class="font-medium text-purple-600">{{ ((tronData as any).estimatedCostPerBandwidth || 0.001).toFixed(6) }} TRX</span>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+          <div>能量: 100 sun = 0.0001 TRX</div>
+          <div>带宽: 1,000 sun = 0.001 TRX</div>
         </div>
       </div>
     </div>

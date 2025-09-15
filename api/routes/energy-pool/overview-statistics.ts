@@ -150,7 +150,25 @@ async function getUSDTBalanceFromDatabase(address: string, networkId: string): P
     });
     
     // 使用TronGrid API获取余额
-    return await getUSDTBalanceFromTronGrid(address, network.rpc_url, usdtContract.address);
+    const gridResult = await getUSDTBalanceFromTronGrid(address, network.rpc_url, usdtContract.address);
+    
+    if (gridResult.success && gridResult.balance > 0) {
+      console.log('✅ [USDT Balance New] TronGrid API成功获取USDT余额:', gridResult.balance);
+      return gridResult;
+    }
+    
+    // 如果TronGrid API失败或返回0余额，尝试使用TronWeb
+    console.log('🔄 [USDT Balance New] TronGrid API未获取到余额，尝试TronWeb方法');
+    const tronWebResult = await getUSDTBalance(address, network.rpc_url, usdtContract.address);
+    
+    if (tronWebResult.success) {
+      console.log('✅ [USDT Balance New] TronWeb成功获取USDT余额:', tronWebResult.balance);
+      return tronWebResult;
+    }
+    
+    // 如果两种方法都失败，返回TronGrid的结果（可能是0余额）
+    console.log('⚠️ [USDT Balance New] 所有方法都失败，返回TronGrid结果');
+    return gridResult;
     
   } catch (error) {
     console.error('❌ [USDT Balance New] 获取USDT余额失败:', error);
@@ -165,7 +183,7 @@ async function getUSDTBalanceFromDatabase(address: string, networkId: string): P
 /**
  * 获取USDT余额的函数
  */
-async function getUSDTBalance(address: string, rpcUrl: string): Promise<{ success: boolean; balance: number; error?: string }> {
+async function getUSDTBalance(address: string, rpcUrl: string, contractAddress?: string): Promise<{ success: boolean; balance: number; error?: string }> {
   try {
     console.log('🔍 [USDT Balance] 开始获取USDT余额:', { address, rpcUrl });
     
@@ -209,11 +227,14 @@ async function getUSDTBalance(address: string, rpcUrl: string): Promise<{ succes
       };
     }
     
-    // 根据网络类型选择USDT合约地址
+    // 优先使用传入的合约地址，否则根据网络类型选择USDT合约地址
     let usdtContractAddress;
-    if (rpcUrl.includes('shasta')) {
-      // Shasta测试网USDT合约 (使用常见的测试USDT合约)
-      usdtContractAddress = 'TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL';
+    if (contractAddress) {
+      usdtContractAddress = contractAddress;
+      console.log('🌐 [USDT Balance] 使用传入的USDT合约地址:', usdtContractAddress);
+    } else if (rpcUrl.includes('shasta')) {
+      // Shasta测试网USDT合约 (官方USDT合约地址)
+      usdtContractAddress = 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8';
       console.log('🌐 [USDT Balance] 使用Shasta测试网USDT合约');
     } else if (rpcUrl.includes('nile')) {
       // Nile测试网USDT合约 (实际使用的USDT合约地址)
@@ -437,11 +458,8 @@ router.get('/networks', async (req, res) => {
 });
 
 // 导出辅助函数供其他模块使用
-export { 
-  getUSDTBalanceFromTronGrid, 
-  getNetworkUSDTContract, 
-  getUSDTBalanceFromDatabase, 
-  getUSDTBalance 
+export {
+  getNetworkUSDTContract, getUSDTBalance, getUSDTBalanceFromDatabase, getUSDTBalanceFromTronGrid
 };
 
 export default router;

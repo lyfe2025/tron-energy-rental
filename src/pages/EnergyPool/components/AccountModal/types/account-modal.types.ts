@@ -4,6 +4,8 @@ import type { EnergyPoolAccount } from '../../../composables/useEnergyPool'
 export interface AccountModalProps {
   visible: boolean
   account?: EnergyPoolAccount | null
+  currentNetworkId?: string
+  currentNetwork?: any
 }
 
 // 组件事件接口

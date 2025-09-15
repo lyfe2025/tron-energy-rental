@@ -141,13 +141,13 @@ export function useAccountManagement() {
   }
 
   // 启用账户
-  const enableAccount = async (id: string) => {
+  const enableAccount = async (id: string, networkId?: string) => {
     loading.value.operations = true
     try {
       const response = await energyPoolExtendedAPI.enableAccount(id)
       if (response.data.success) {
         toast.success('账户已启用')
-        await loadAccounts()
+        await loadAccounts(networkId)
         return true
       }
       throw new Error('启用账户失败')
@@ -161,13 +161,13 @@ export function useAccountManagement() {
   }
 
   // 停用账户
-  const disableAccount = async (id: string) => {
+  const disableAccount = async (id: string, networkId?: string) => {
     loading.value.operations = true
     try {
       const response = await energyPoolExtendedAPI.disableAccount(id)
       if (response.data.success) {
         toast.success('账户已停用')
-        await loadAccounts()
+        await loadAccounts(networkId)
         return true
       }
       throw new Error('停用账户失败')
@@ -181,11 +181,11 @@ export function useAccountManagement() {
   }
 
   // 批量启用账户
-  const batchEnableAccounts = async (accountIds: string[]) => {
+  const batchEnableAccounts = async (accountIds: string[], networkId?: string) => {
     loading.value.batch = true
     try {
       for (const accountId of accountIds) {
-        await enableAccount(accountId)
+        await enableAccount(accountId, networkId)
       }
       selectedAccounts.value = []
       toast.success(`成功启用 ${accountIds.length} 个账户`)
@@ -198,11 +198,11 @@ export function useAccountManagement() {
   }
 
   // 批量停用账户
-  const batchDisableAccounts = async (accountIds: string[]) => {
+  const batchDisableAccounts = async (accountIds: string[], networkId?: string) => {
     loading.value.batch = true
     try {
       for (const accountId of accountIds) {
-        await disableAccount(accountId)
+        await disableAccount(accountId, networkId)
       }
       selectedAccounts.value = []
       toast.success(`成功停用 ${accountIds.length} 个账户`)
