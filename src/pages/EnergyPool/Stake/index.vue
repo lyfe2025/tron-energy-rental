@@ -54,7 +54,7 @@
         @close="() => { /* 错误清除由组件内部处理 */ }"
       />
 
-      <!-- 账户信息和当前网络 -->
+      <!-- 当前网络 -->
       <StakeOverview
         :selected-account="stakeData.selectedAccount.value"
         :current-network="stakeData.currentNetwork.value"
@@ -63,7 +63,24 @@
         :format-energy="stakeData.stakeComposable.formatEnergy"
         :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
         :format-address="stakeData.stakeComposable.formatAddress"
+        :show-account-section="false"
         :show-network-section="true"
+        :show-overview-section="false"
+        @switch-account="stakeOperations.switchAccount"
+        @toggle-network-switcher="stakeData.showNetworkSwitcher.value = true"
+      />
+
+      <!-- 账户信息 -->
+      <StakeOverview
+        :selected-account="stakeData.selectedAccount.value"
+        :current-network="stakeData.currentNetwork.value"
+        :overview="stakeData.stakeComposable.overview.value"
+        :format-trx="stakeData.stakeComposable.formatTrx"
+        :format-energy="stakeData.stakeComposable.formatEnergy"
+        :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
+        :format-address="stakeData.stakeComposable.formatAddress"
+        :show-account-section="true"
+        :show-network-section="false"
         :show-overview-section="false"
         @switch-account="stakeOperations.switchAccount"
         @toggle-network-switcher="stakeData.showNetworkSwitcher.value = true"

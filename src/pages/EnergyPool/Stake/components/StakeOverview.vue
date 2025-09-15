@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 当前选中账户信息 -->
-    <div v-if="selectedAccount && showNetworkSection !== false" class="mb-6">
+    <div v-if="selectedAccount && showAccountSection !== false" class="mb-6">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
@@ -397,6 +397,7 @@ const props = defineProps<{
   formatEnergy: (value: any) => string
   formatBandwidth: (value: any) => string
   formatAddress: (address: string) => string
+  showAccountSection?: boolean
   showNetworkSection?: boolean
   showOverviewSection?: boolean
 }>()
