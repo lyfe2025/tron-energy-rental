@@ -101,12 +101,12 @@
                 <div class="relative">
                   <input
                     v-model="form.amount"
-                    type="number"
-                    step="0.000001"
-                    min="0.000001"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
                     required
                     class="w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
                     placeholder="请输入委托数量"
+                    @input="(event) => validateNumberInput(event, (value) => form.amount = value)"
                   />
                   <div class="absolute inset-y-0 right-0 flex items-center pr-4">
                     <span class="text-gray-500 font-medium text-sm">{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}</span>
@@ -255,6 +255,7 @@
 </template>
 
 <script setup lang="ts">
+import { useNumberInput } from '@/composables/useNumberInput'
 import { ref } from 'vue'
 import type { DelegateFormData, DelegateOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
@@ -271,6 +272,9 @@ const {
   state,
   isFormValid
 } = useStakeModal(props)
+
+// 数字输入验证
+const { validateNumberInput } = useNumberInput()
 
 // 表单数据
 const form = ref<DelegateFormData>({

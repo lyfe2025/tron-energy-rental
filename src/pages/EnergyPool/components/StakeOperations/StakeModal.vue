@@ -104,12 +104,12 @@
             <div class="relative">
               <input
                 v-model="form.amount"
-                type="number"
-                step="0.000001"
-                :min="state.networkParams?.minStakeAmountTrx || 1"
+                type="text"
+                pattern="[0-9]*\.?[0-9]*"
                 required
                 class="w-full px-4 py-3 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
                 placeholder="请输入质押数量"
+                @input="(event) => validateNumberInput(event, (value) => form.amount = value)"
               />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4">
                 <span class="text-gray-500 font-medium">TRX</span>
@@ -225,6 +225,7 @@
 </template>
 
 <script setup lang="ts">
+import { useNumberInput } from '@/composables/useNumberInput'
 import { ref } from 'vue'
 import type { StakeFormData, StakeOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
@@ -244,6 +245,9 @@ const {
   calculateEstimatedResource,
   executeStakeOperation
 } = useStakeModal(props)
+
+// 数字输入验证
+const { validateNumberInput } = useNumberInput()
 
 // 表单数据
 const form = ref<StakeFormData>({
