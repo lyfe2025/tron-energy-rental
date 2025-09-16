@@ -193,11 +193,11 @@ export class StakingService {
   // 以下方法保持向后兼容性，内部调用新的分离操作
 
   /**
-   * 记录质押相关交易到数据库
-   * @deprecated 此方法已移至各操作类内部，保留用于向后兼容
+   * @deprecated 已移除数据库存储逻辑，所有质押数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
    */
   async recordStakeTransaction(params: StakeTransactionParams): Promise<{ success: boolean; error?: string }> {
-    console.warn('[StakingService] recordStakeTransaction 方法已废弃，交易记录已自动在操作内部完成');
+    console.log('[StakingService] 🔍 recordStakeTransaction 已废弃 - 所有数据从TRON网络实时获取');
     return { success: true };
   }
 

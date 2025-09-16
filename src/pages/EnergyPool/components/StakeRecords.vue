@@ -248,7 +248,7 @@ const loadRecords = async () => {
   if (!props.poolId) return
   
   await loadStakeRecords({
-    poolId: props.poolId,
+    poolAccountId: props.poolId,  // props.poolId 实际上对应 poolAccountId
     networkId: props.networkId,
     page: pagination.page,
     limit: pagination.limit,

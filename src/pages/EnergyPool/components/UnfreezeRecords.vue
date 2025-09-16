@@ -246,8 +246,9 @@ import { useStake } from '../composables/useStake';
 
 // Props
 const props = defineProps<{
-  poolId: string
-  networkId: string
+  poolId: string      // 实际上是网络ID
+  networkId: string   // 网络ID
+  accountId: string   // 能量池账户ID
 }>()
 
 // 组合式函数
@@ -296,8 +297,8 @@ const loadRecords = async () => {
   })
   
   await loadUnfreezeRecords({
-    poolId: props.poolId,
-    networkId: props.networkId,
+    poolAccountId: props.accountId,  // 使用 accountId 作为能量池账户ID
+    networkId: props.networkId,      // 使用 networkId 作为网络ID
     page: pagination.page,
     limit: pagination.limit,
     resourceType: filters.resourceType || undefined as 'ENERGY' | 'BANDWIDTH' | undefined,

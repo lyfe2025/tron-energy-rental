@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useStake } from '../composables/useStake'
 
 interface Props {
@@ -205,8 +205,8 @@ const handleSubmit = async () => {
 
   try {
     const result = await unfreezeTrx({
-      poolId: props.poolId,
-      accountId: props.accountId,
+      networkId: props.poolId,        // props.poolId 实际上是 networkId
+      poolAccountId: props.accountId, // props.accountId 实际上是 poolAccountId
       accountAddress: props.accountAddress,
       amount: parseFloat(form.value.amount),
       resourceType: form.value.resourceType

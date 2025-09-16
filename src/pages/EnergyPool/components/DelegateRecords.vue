@@ -247,8 +247,9 @@ import { useStake } from '../composables/useStake';
 
 // Props
 const props = defineProps<{
-  poolId: string
-  networkId: string
+  poolId: string      // 实际上是网络ID
+  networkId: string   // 网络ID
+  accountId: string   // 能量池账户ID
 }>()
 
 // 组合式函数
@@ -295,8 +296,8 @@ const loadRecords = async () => {
   if (!props.poolId) return
   
   await loadDelegateRecords({
-    poolId: props.poolId,
-    networkId: props.networkId,
+    poolAccountId: props.accountId,  // 使用 accountId 作为能量池账户ID
+    networkId: props.networkId,      // 使用 networkId 作为网络ID
     page: pagination.page,
     limit: pagination.limit,
     operationType: (filters.operationType || undefined) as 'delegate' | 'undelegate' | undefined,
@@ -365,7 +366,8 @@ const confirmUndelegate = async () => {
   try {
     undelegating.value = true
     await performUndelegate({
-      poolId: props.poolId,
+      networkId: props.poolId,        // props.poolId 实际上是 networkId
+      poolAccountId: props.accountId, // 使用 props.accountId 作为 poolAccountId
       resourceType: selectedRecord.value.resourceType,
       amount: selectedRecord.value.amount,
       toAddress: selectedRecord.value.toAddress

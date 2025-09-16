@@ -355,7 +355,39 @@ const handleReject = () => {
 
 const handleConfirm = async () => {
   loading.value = true
+  
+  // 🔍 详细调试信息
+  console.log('🔍 [TransactionConfirmModal] 用户点击签名按钮');
+  console.log('🔍 [TransactionConfirmModal] props.transactionData:', JSON.stringify(props.transactionData, null, 2));
+  console.log('🔍 [TransactionConfirmModal] 交易数据详情:', {
+    amount: props.transactionData?.amount,
+    amountType: typeof props.transactionData?.amount,
+    resourceType: props.transactionData?.resourceType,
+    accountAddress: props.transactionData?.accountAddress,
+    accountAddressLength: props.transactionData?.accountAddress?.length,
+    poolId: props.transactionData?.poolId,
+    accountId: props.transactionData?.accountId,
+    完整数据: props.transactionData
+  });
+  
+  // 验证关键数据
+  if (!props.transactionData?.accountAddress) {
+    console.error('🔍 [TransactionConfirmModal] ❌ accountAddress 缺失！');
+  } else if (!props.transactionData.accountAddress.startsWith('T') || props.transactionData.accountAddress.length !== 34) {
+    console.error('🔍 [TransactionConfirmModal] ❌ 无效的TRON地址格式:', props.transactionData.accountAddress);
+  } else {
+    console.log('🔍 [TransactionConfirmModal] ✅ TRON地址格式正确');
+  }
+  
+  if (!props.transactionData?.amount || props.transactionData.amount <= 0) {
+    console.error('🔍 [TransactionConfirmModal] ❌ 质押金额无效:', props.transactionData?.amount);
+  } else {
+    console.log('🔍 [TransactionConfirmModal] ✅ 质押金额有效:', props.transactionData.amount, 'TRX');
+    console.log('🔍 [TransactionConfirmModal] 🔢 转换为SUN:', props.transactionData.amount * 1000000);
+  }
+  
   try {
+    console.log('🔍 [TransactionConfirmModal] 即将发送confirm事件...');
     emit('confirm', props.transactionData)
   } finally {
     loading.value = false

@@ -47,6 +47,7 @@
       :error="errors.private_key"
       :mnemonic-error="errors.mnemonic"
       :generating="generatingPrivateKey"
+      :private-key-generated="privateKeyGenerated || false"
       @generate="onGeneratePrivateKey"
       @blur="onPrivateKeyBlur"
       @mnemonic-blur="onMnemonicBlur"
@@ -169,10 +170,10 @@
 <script setup lang="ts">
 import { nextTick, watch } from 'vue'
 import type {
-  AccountFormData,
-  AccountFormErrors,
-  PrivateKeyInputMode,
-  TronData
+    AccountFormData,
+    AccountFormErrors,
+    PrivateKeyInputMode,
+    TronData
 } from '../types/account-modal.types'
 import PrivateKeyInput from './PrivateKeyInput.vue'
 import ValidationDisplay from './ValidationDisplay.vue'
@@ -182,6 +183,7 @@ interface Props {
   errors: AccountFormErrors
   privateKeyInputMode: PrivateKeyInputMode
   generatingPrivateKey: boolean
+  privateKeyGenerated?: boolean
   tronData: TronData | null
   tronDataError: string
   fetchingTronData: boolean

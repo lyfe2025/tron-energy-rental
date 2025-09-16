@@ -33,7 +33,7 @@ export interface StakeStatistics {
 // 质押记录接口
 export interface StakeRecord {
   id: string
-  poolId: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   txid: string
   operationType: 'freeze' | 'unfreeze'
   amount: number
@@ -47,7 +47,7 @@ export interface StakeRecord {
 // 委托记录接口
 export interface DelegateRecord {
   id: string
-  poolId: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   txid: string
   operationType: 'delegate' | 'undelegate'
   toAddress: string
@@ -62,7 +62,7 @@ export interface DelegateRecord {
 // 解质押记录接口
 export interface UnfreezeRecord {
   id: string
-  poolId: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   txid: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
@@ -124,8 +124,8 @@ export interface StakePagination {
 
 // 质押操作参数接口
 export interface FreezeParams {
-  poolId: string
-  accountId?: string
+  networkId: string           // 网络ID (tron_networks表)
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   accountAddress?: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
@@ -133,8 +133,8 @@ export interface FreezeParams {
 }
 
 export interface UnfreezeParams {
-  poolId: string
-  accountId?: string
+  networkId: string           // 网络ID (tron_networks表)
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   accountAddress?: string
   amount: number
   resourceType: 'ENERGY' | 'BANDWIDTH'
@@ -142,8 +142,8 @@ export interface UnfreezeParams {
 
 // 委托操作参数接口
 export interface DelegateParams {
-  poolId: string
-  accountId?: string
+  networkId: string           // 网络ID (tron_networks表)
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   accountAddress?: string
   toAddress: string
   amount: number
@@ -152,8 +152,8 @@ export interface DelegateParams {
 }
 
 export interface UndelegateParams {
-  poolId: string
-  accountId?: string
+  networkId: string           // 网络ID (tron_networks表)
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
   accountAddress?: string
   toAddress: string
   amount: number
@@ -162,8 +162,8 @@ export interface UndelegateParams {
 
 // 记录查询参数接口
 export interface StakeRecordQueryParams {
-  poolId: string
-  networkId?: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
+  networkId?: string          // 网络ID (tron_networks表)
   page?: number
   limit?: number
   operationType?: 'freeze' | 'unfreeze'
@@ -173,8 +173,8 @@ export interface StakeRecordQueryParams {
 }
 
 export interface DelegateRecordQueryParams {
-  poolId: string
-  networkId?: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
+  networkId?: string          // 网络ID (tron_networks表)
   page?: number
   limit?: number
   operationType?: 'delegate' | 'undelegate'
@@ -185,8 +185,8 @@ export interface DelegateRecordQueryParams {
 }
 
 export interface UnfreezeRecordQueryParams {
-  poolId: string
-  networkId?: string
+  poolAccountId: string       // 能量池账户ID (energy_pools表)
+  networkId?: string          // 网络ID (tron_networks表)
   page?: number
   limit?: number
   status?: 'pending' | 'available' | 'withdrawn'

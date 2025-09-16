@@ -1,14 +1,13 @@
-import { query } from '../../../../database/index';
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
-    FormattedUnfreezeRecord,
-    OperationParams,
-    ServiceResponse,
-    StakeTransactionParams,
-    TransactionResult,
-    UnfreezeBalanceV2Params,
-    UnfreezeOperationResult,
-    WithdrawExpireUnfreezeParams
+  FormattedUnfreezeRecord,
+  OperationParams,
+  ServiceResponse,
+  StakeTransactionParams,
+  TransactionResult,
+  UnfreezeBalanceV2Params,
+  UnfreezeOperationResult,
+  WithdrawExpireUnfreezeParams
 } from '../types/staking.types';
 
 /**
@@ -38,10 +37,21 @@ export class UnfreezeOperation {
     try {
       const { ownerAddress, unfreezeBalance, resource } = params;
 
-      const transaction = await this.tronWeb.transactionBuilder.unfreezeBalanceV2(
-        this.tronWeb.address.toHex(ownerAddress),
+      console.log('🔍 [UnfreezeOperation] 开始构建unfreezeBalanceV2交易:', {
+        ownerAddress,
         unfreezeBalance,
-        resource
+        resource,
+        '参数顺序': 'amount, resource, address (根据TronWeb源码)',
+        '地址格式': 'Base58 format (TronWeb会自动转换为hex)',
+        '金额格式': 'number format required'
+      });
+
+      // 🔧 根据TronWeb源码，正确的参数顺序是：amount, resource, address, options
+      // unfreezeBalanceV2(amount, resource, address, options)
+      const transaction = await this.tronWeb.transactionBuilder.unfreezeBalanceV2(
+        unfreezeBalance,  // amount (number) - 金额，单位为SUN
+        resource,         // resource (string) - ENERGY 或 BANDWIDTH  
+        ownerAddress      // address (string) - Base58地址，TronWeb会自动转换为hex
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
@@ -52,17 +62,7 @@ export class UnfreezeOperation {
         const networkUnlockPeriod = await this.tronGridProvider.getNetworkUnlockPeriod();
         const expireTime = new Date(Date.now() + (networkUnlockPeriod || 0));
 
-        // 记录解质押到数据库
-        await this.recordStakeTransaction({
-          transactionId: result.txid,
-          poolId: 1, // 默认能量池ID
-          address: ownerAddress,
-          amount: unfreezeBalance,
-          resourceType: resource as 'ENERGY' | 'BANDWIDTH',
-          operationType: 'unfreeze',
-          unfreezeTime,
-          expireTime
-        });
+        // 解质押成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -94,23 +94,21 @@ export class UnfreezeOperation {
     try {
       const { ownerAddress } = params;
 
+      console.log('🔍 [UnfreezeOperation] 开始构建withdrawExpireUnfreeze交易:', {
+        ownerAddress,
+        '地址格式': 'HEX format required (per TRON documentation)'
+      });
+
+      // 🔧 根据TRON官方文档，使用十六进制地址格式保持一致性
       const transaction = await this.tronWeb.transactionBuilder.withdrawExpireUnfreeze(
-        this.tronWeb.address.toHex(ownerAddress)
+        this.tronWeb.address.toHex(ownerAddress)   // owner_address (string) - 十六进制地址格式
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 记录提取操作到数据库
-        await this.recordStakeTransaction({
-          transactionId: result.txid,
-          poolId: 1, // 默认能量池ID
-          address: ownerAddress,
-          amount: 0, // 提取金额在交易详情中
-          resourceType: 'ENERGY', // 默认为ENERGY类型
-          operationType: 'withdraw'
-        });
+        // 提取操作成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -354,67 +352,11 @@ export class UnfreezeOperation {
   }
 
   /**
-   * 记录解质押相关交易到数据库
+   * @deprecated 已移除数据库存储逻辑，所有解质押数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
    */
   private async recordStakeTransaction(params: StakeTransactionParams): Promise<{ success: boolean; error?: string }> {
-    try {
-      if (params.operationType === 'unfreeze') {
-        // 记录到 stake_records 表
-        await query(
-          `INSERT INTO stake_records 
-           (transaction_id, pool_id, address, amount, resource_type, operation_type, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            params.transactionId,
-            params.poolId,
-            params.address,
-            params.amount,
-            params.resourceType,
-            params.operationType,
-            'confirmed'
-          ]
-        );
-        
-        if (params.unfreezeTime && params.expireTime) {
-          // 同时记录到 unfreeze_records 表
-          await query(
-            `INSERT INTO unfreeze_records 
-             (transaction_id, pool_id, address, amount, resource_type, unfreeze_time, expire_time, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [
-              params.transactionId,
-              params.poolId,
-              params.address,
-              params.amount,
-              params.resourceType,
-              params.unfreezeTime,
-              params.expireTime,
-              'confirmed'
-            ]
-          );
-        }
-      } else if (params.operationType === 'withdraw') {
-        // 记录提取操作
-        await query(
-          `INSERT INTO stake_records 
-           (transaction_id, pool_id, address, amount, resource_type, operation_type, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            params.transactionId,
-            params.poolId,
-            params.address,
-            params.amount,
-            params.resourceType,
-            params.operationType,
-            'confirmed'
-          ]
-        );
-      }
-      
-      return { success: true };
-    } catch (error: any) {
-      console.error('Record unfreeze transaction error:', error);
-      return { success: false, error: error.message };
-    }
+    console.log('[UnfreezeOperation] 🔍 recordStakeTransaction 已废弃 - 所有数据从TRON网络实时获取');
+    return { success: true };
   }
 }

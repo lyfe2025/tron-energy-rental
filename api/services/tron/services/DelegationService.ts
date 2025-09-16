@@ -22,14 +22,25 @@ export class DelegationService {
         lockPeriod
       } = params;
 
-      // 构建交易
-      const transaction = await this.tronWeb.transactionBuilder.delegateResource(
-        this.tronWeb.address.toHex(ownerAddress),
-        this.tronWeb.address.toHex(receiverAddress),
+      console.log('🔍 [DelegationService] 开始构建delegateResource交易:', {
+        ownerAddress,
+        receiverAddress,
         balance,
         resource,
         lock,
-        lockPeriod
+        lockPeriod,
+        '地址格式': 'HEX format required (per TRON documentation)',
+        '金额格式': 'int64 number format required'
+      });
+
+      // 构建交易 - 根据TRON官方文档，使用十六进制地址和数字金额
+      const transaction = await this.tronWeb.transactionBuilder.delegateResource(
+        this.tronWeb.address.toHex(ownerAddress),     // owner_address (string) - 十六进制地址格式
+        this.tronWeb.address.toHex(receiverAddress),  // receiver_address (string) - 十六进制地址格式
+        balance,                                      // balance (int64) - 金额，单位为SUN，数字格式
+        resource,                                     // resource (string) - ENERGY 或 BANDWIDTH
+        lock,                                        // lock (boolean) - 是否锁定
+        lockPeriod                                   // lock_period (int) - 锁定期，数字格式
       );
 
       // 签名交易
@@ -81,11 +92,21 @@ export class DelegationService {
         resource
       } = params;
 
-      const transaction = await this.tronWeb.transactionBuilder.undelegateResource(
-        this.tronWeb.address.toHex(ownerAddress),
-        this.tronWeb.address.toHex(receiverAddress),
+      console.log('🔍 [DelegationService] 开始构建undelegateResource交易:', {
+        ownerAddress,
+        receiverAddress,
         balance,
-        resource
+        resource,
+        '地址格式': 'HEX format required (per TRON documentation)',
+        '金额格式': 'int64 number format required'
+      });
+
+      // 根据TRON官方文档，使用十六进制地址和数字金额
+      const transaction = await this.tronWeb.transactionBuilder.undelegateResource(
+        this.tronWeb.address.toHex(ownerAddress),     // owner_address (string) - 十六进制地址格式
+        this.tronWeb.address.toHex(receiverAddress),  // receiver_address (string) - 十六进制地址格式
+        balance,                                      // balance (int64) - 金额，单位为SUN，数字格式
+        resource                                     // resource (string) - ENERGY 或 BANDWIDTH
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);

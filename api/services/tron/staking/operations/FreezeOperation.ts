@@ -1,4 +1,3 @@
-import { query } from '../../../../database/index';
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
   FormattedStakeRecord,
@@ -37,26 +36,71 @@ export class FreezeOperation {
     try {
       const { ownerAddress, frozenBalance, resource } = params;
 
-      const transaction = await this.tronWeb.transactionBuilder.freezeBalanceV2(
-        this.tronWeb.address.toHex(ownerAddress),
+      console.log('🔍 [FreezeOperation] freezeBalanceV2 详细调试信息:', {
+        输入参数: params,
+        ownerAddress类型: typeof ownerAddress,
+        ownerAddress长度: ownerAddress?.length,
+        ownerAddress值: ownerAddress,
+        frozenBalance类型: typeof frozenBalance,
+        frozenBalance值: frozenBalance,
+        resource值: resource,
+        tronWeb存在: !!this.tronWeb,
+        tronWeb地址方法存在: !!this.tronWeb?.address?.toHex
+      });
+
+      // 验证TronWeb实例
+      if (!this.tronWeb) {
+        throw new Error('TronWeb instance is not initialized');
+      }
+
+      // 验证TRON地址格式
+      if (!ownerAddress || typeof ownerAddress !== 'string') {
+        throw new Error(`Invalid ownerAddress: ${ownerAddress} (type: ${typeof ownerAddress})`);
+      }
+
+      if (!ownerAddress.startsWith('T') || ownerAddress.length !== 34) {
+        throw new Error(`Invalid TRON address format: ${ownerAddress} (length: ${ownerAddress.length})`);
+      }
+
+      // 🔧 使用TronWeb的内置地址验证方法
+      if (!this.tronWeb.isAddress(ownerAddress)) {
+        throw new Error(`Invalid TRON address: ${ownerAddress} - TronWeb validation failed`);
+      }
+
+      console.log('🔍 [FreezeOperation] ✅ 地址验证通过:', ownerAddress);
+
+      // 验证frozenBalance参数
+      if (!frozenBalance || frozenBalance <= 0) {
+        throw new Error(`Invalid frozen balance: ${frozenBalance} - must be positive number`);
+      }
+
+      // 验证resource参数
+      if (!resource || !['ENERGY', 'BANDWIDTH'].includes(resource)) {
+        throw new Error(`Invalid resource type: ${resource} - must be ENERGY or BANDWIDTH`);
+      }
+
+      console.log('🔍 [FreezeOperation] 开始构建freezeBalanceV2交易 (正确参数顺序):', {
+        ownerAddress,
+        resource,
         frozenBalance,
-        resource
+        '参数顺序': 'amount, resource, address (根据TronWeb源码)',
+        '地址格式': 'Base58 format (TronWeb会自动转换为hex)',
+        '金额格式': 'number format required'
+      });
+
+      // 🔧 根据TronWeb源码，正确的参数顺序是：amount, resource, address, options
+      // freezeBalanceV2(amount, resource, address, options)
+      const transaction = await this.tronWeb.transactionBuilder.freezeBalanceV2(
+        frozenBalance,  // amount (number) - 金额，单位为SUN
+        resource,       // resource (string) - ENERGY 或 BANDWIDTH  
+        ownerAddress    // address (string) - Base58地址，TronWeb会自动转换为hex
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 记录质押到数据库
-        await this.recordStakeTransaction({
-          transactionId: result.txid,
-          poolId: 1, // 默认能量池ID
-          address: ownerAddress,
-          amount: frozenBalance,
-          resourceType: resource as 'ENERGY' | 'BANDWIDTH',
-          operationType: 'freeze'
-        });
-
+        // 质押成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         return {
           success: true,
           txid: result.txid,
@@ -440,32 +484,11 @@ export class FreezeOperation {
   }
 
   /**
-   * 记录质押相关交易到数据库
+   * @deprecated 已移除数据库存储逻辑，所有质押数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
    */
   private async recordStakeTransaction(params: StakeTransactionParams): Promise<{ success: boolean; error?: string }> {
-    try {
-      if (params.operationType === 'freeze') {
-        // 记录到 stake_records 表
-        await query(
-          `INSERT INTO stake_records 
-           (transaction_id, pool_id, address, amount, resource_type, operation_type, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            params.transactionId,
-            params.poolId,
-            params.address,
-            params.amount,
-            params.resourceType,
-            params.operationType,
-            'confirmed'
-          ]
-        );
-      }
-      
-      return { success: true };
-    } catch (error: any) {
-      console.error('Record stake transaction error:', error);
-      return { success: false, error: error.message };
-    }
+    console.log('[FreezeOperation] 🔍 recordStakeTransaction 已废弃 - 所有数据从TRON网络实时获取');
+    return { success: true };
   }
 }

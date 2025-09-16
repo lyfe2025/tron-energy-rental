@@ -9,7 +9,8 @@ export interface StakeOperationRequest {
   frozenBalance?: number
   unfreezeBalance?: number
   resource: 'ENERGY' | 'BANDWIDTH'
-  poolId?: string
+  networkId?: string  // 网络ID (tron_networks表)
+  accountId?: string  // 能量池账户ID (energy_pools表)
 }
 
 // 委托操作请求参数
@@ -20,13 +21,15 @@ export interface DelegateOperationRequest {
   resource: 'ENERGY' | 'BANDWIDTH'
   lock?: boolean
   lockPeriod?: number
-  poolId?: string
+  networkId?: string  // 网络ID (tron_networks表)
+  accountId?: string  // 能量池账户ID (energy_pools表)
 }
 
 // 提取操作请求参数
 export interface WithdrawRequest {
   ownerAddress: string
-  poolId?: string
+  networkId?: string  // 网络ID (tron_networks表)
+  accountId?: string  // 能量池账户ID (energy_pools表)
 }
 
 // 查询参数接口

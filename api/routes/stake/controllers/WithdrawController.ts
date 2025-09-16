@@ -12,7 +12,7 @@ export class WithdrawController {
    */
   static withdraw: RouteHandler = async (req: Request, res: Response) => {
     try {
-      const { ownerAddress, poolId } = req.body as WithdrawRequest;
+      const { ownerAddress, networkId, accountId } = req.body as WithdrawRequest;
       
       // 验证参数
       if (!ownerAddress) {
@@ -33,7 +33,7 @@ export class WithdrawController {
           AND available_time <= NOW()
       `;
       
-      const withdrawableResult = await query(withdrawableQuery, [poolId || ownerAddress]);
+      const withdrawableResult = await query(withdrawableQuery, [accountId || ownerAddress]);
       
       if (parseInt(withdrawableResult.rows[0].count) === 0) {
         return res.status(400).json({ 
@@ -57,7 +57,7 @@ export class WithdrawController {
              WHERE ($1::text IS NULL OR pool_account_id = $1) 
                AND status = 'unfrozen'
                AND available_time <= NOW()`,
-            [poolId || ownerAddress]
+            [accountId || ownerAddress]
           );
           
           console.log(`已更新 ${updateResult.rowCount} 条解质押记录状态为已提取`);
@@ -67,14 +67,14 @@ export class WithdrawController {
         }
         
         // 更新能量池统计
-        if (poolId) {
+        if (accountId) {
           try {
             await query(
               `UPDATE energy_pools 
                SET withdrawn_amount = COALESCE(withdrawn_amount, 0) + $1,
                    last_stake_update = NOW()
                WHERE id = $2`,
-              [totalAmount, poolId]
+              [totalAmount, accountId]
             );
           } catch (poolUpdateError: any) {
             console.error('更新能量池提取统计失败:', poolUpdateError);

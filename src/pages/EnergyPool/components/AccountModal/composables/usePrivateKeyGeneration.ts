@@ -1,10 +1,30 @@
 import { ref } from 'vue'
 import type { AccountFormData, AccountFormErrors } from '../types/account-modal.types'
 
+// 确保浏览器环境中的必要 polyfills
+async function ensureBrowserPolyfills() {
+  // 确保 Buffer 在全局可用
+  if (!globalThis.Buffer) {
+    const { Buffer } = await import('buffer')
+    globalThis.Buffer = Buffer
+  }
+  
+  // 确保 process 在全局可用（浏览器环境需要）
+  if (!globalThis.process) {
+    globalThis.process = {
+      env: {},
+      version: '',
+      versions: {},
+      platform: 'browser',
+      nextTick: (fn: () => void) => setTimeout(fn, 0)
+    } as any
+  }
+}
+
 export function usePrivateKeyGeneration() {
   const generatingPrivateKey = ref(false)
 
-  // 从助记词生成私钥
+  // 从助记词生成私钥 - 使用标准BIP44路径
   const generatePrivateKeyFromMnemonic = async (
     form: AccountFormData,
     errors: AccountFormErrors,
@@ -26,11 +46,8 @@ export function usePrivateKeyGeneration() {
         return
       }
       
-      // 确保 Buffer 在全局可用
-      if (!globalThis.Buffer) {
-        const { Buffer } = await import('buffer')
-        globalThis.Buffer = Buffer
-      }
+      // 确保浏览器环境必要的 polyfills
+      await ensureBrowserPolyfills()
       
       // 动态导入库
       const bip39Module = await import('bip39')
@@ -45,18 +62,20 @@ export function usePrivateKeyGeneration() {
       // 生成种子
       const seed = await bip39.mnemonicToSeed(form.mnemonic.trim())
       
-      // 使用简化的方法生成私钥，避免 hdkey 的兼容性问题
-      // 使用种子的前32字节作为私钥 (这是一个简化版本，实际应用中应该使用完整的BIP44路径)
-      let privateKey: string
+      // 使用标准BIP44路径生成私钥：m/44'/195'/0'/0/0
+      // 195 是 TRON 的币种编号
+      const hdkeyModule = await import('hdkey')
+      const hdkey = hdkeyModule.default || hdkeyModule
       
-      if (seed.length >= 32) {
-        // 使用种子的前32字节
-        privateKey = seed.subarray(0, 32).toString('hex')
-      } else {
-        // 如果种子长度不够，使用整个种子并补充
-        const extendedSeed = Buffer.concat([seed, seed])
-        privateKey = extendedSeed.subarray(0, 32).toString('hex')
-      }
+      // 从种子创建主密钥
+      const root = hdkey.fromMasterSeed(seed)
+      
+      // 按照BIP44标准路径衍生私钥
+      const derivationPath = "m/44'/195'/0'/0/0"
+      const addrNode = root.derive(derivationPath)
+      
+      // 获取私钥
+      const privateKey = addrNode.privateKey.toString('hex')
       
       // 验证生成的私钥格式
       if (!/^[0-9a-fA-F]{64}$/.test(privateKey)) {
@@ -72,7 +91,7 @@ export function usePrivateKeyGeneration() {
         onPrivateKeyGenerated(privateKey)
       }
       
-      console.log('✅ 从助记词成功生成私钥')
+      console.log('✅ 从助记词成功生成私钥（使用标准BIP44路径：' + derivationPath + '）')
       
     } catch (error: any) {
       console.error('从助记词生成私钥失败:', error)
@@ -95,11 +114,8 @@ export function usePrivateKeyGeneration() {
         return { isValid: false, error: '助记词必须是12或24个单词' }
       }
       
-      // 确保 Buffer 在全局可用
-      if (!globalThis.Buffer) {
-        const { Buffer } = await import('buffer')
-        globalThis.Buffer = Buffer
-      }
+      // 确保浏览器环境必要的 polyfills
+      await ensureBrowserPolyfills()
       
       // 动态导入库
       const bip39Module = await import('bip39')

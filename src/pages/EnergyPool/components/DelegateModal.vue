@@ -324,8 +324,8 @@ const handleSubmit = async () => {
     
     if (form.value.operationType === 'delegate') {
       result = await delegateResource({
-        poolId: props.poolId,
-        accountId: props.accountId,
+        networkId: props.poolId,        // props.poolId 实际上是 networkId
+        poolAccountId: props.accountId, // props.accountId 实际上是 poolAccountId
         accountAddress: props.accountAddress,
         toAddress: form.value.targetAddress,
         amount: parseFloat(form.value.amount),
@@ -334,8 +334,8 @@ const handleSubmit = async () => {
       })
     } else {
       result = await undelegateResource({
-        poolId: props.poolId,
-        accountId: props.accountId,
+        networkId: props.poolId,        // props.poolId 实际上是 networkId
+        poolAccountId: props.accountId, // props.accountId 实际上是 poolAccountId
         accountAddress: props.accountAddress,
         toAddress: form.value.targetAddress,
         amount: parseFloat(form.value.amount),

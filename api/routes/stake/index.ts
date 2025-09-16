@@ -34,6 +34,13 @@ router.get('/account-info/:address', authenticateToken, OverviewController.getAc
 // 质押操作路由
 // ========================
 
+// 测试路由 - 检查路由是否工作
+router.post('/test', (req, res) => {
+  console.log('==================== 测试路由被调用 ====================');
+  console.log('请求体:', JSON.stringify(req.body, null, 2));
+  res.json({ success: true, message: '测试路由工作正常', data: req.body });
+});
+
 // 质押TRX
 router.post('/freeze', authenticateToken, StakeController.freeze);
 

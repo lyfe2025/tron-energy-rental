@@ -63,10 +63,10 @@ import { useAccountForm } from './AccountModal/composables/useAccountForm'
 import { useAccountValidation } from './AccountModal/composables/useAccountValidation'
 import { usePrivateKeyGeneration } from './AccountModal/composables/usePrivateKeyGeneration'
 import type {
-    AccountFormData,
-    AccountModalEmits,
-    AccountModalProps,
-    AccountSubmitData
+  AccountFormData,
+  AccountModalEmits,
+  AccountModalProps,
+  AccountSubmitData
 } from './AccountModal/types/account-modal.types'
 
 const props = defineProps<AccountModalProps>()
@@ -113,30 +113,26 @@ const handleGeneratePrivateKey = async () => {
     errors,
     (privateKey: string) => {
       // 私钥生成成功后的回调
-      if (form.address) {
-        console.log('🔍 [AccountModal] 助记词生成私钥后自动验证TRON数据')
-        handleRefreshTronData()
-      } else {
-        console.log('🔍 [AccountModal] 跳过自动验证：缺少地址', {
-          hasAddress: !!form.address
-        })
-      }
+      console.log('✅ [AccountModal] 私钥生成成功，长度:', privateKey.length)
+      console.log('💡 [AccountModal] 提示：私钥已生成，请手动点击"获取账户信息"按钮来验证账户数据')
+      
+      // 不自动验证TRON数据，让用户明确知道需要手动点击验证
     }
   )
 }
 
 // 处理私钥输入失焦
 const handlePrivateKeyBlur = () => {
-  if (privateKeyInputMode.value === 'direct' && form.address && form.private_key) {
-    handleRefreshTronData()
-  }
+  // 完全禁用自动获取账户信息，要求用户手动点击按钮
+  console.log('🔍 [AccountModal] 私钥输入失焦，但已禁用自动获取账户信息')
+  console.log('💡 [AccountModal] 请手动点击"获取账户信息"按钮来验证账户数据')
 }
 
 // 处理助记词失焦
 const handleMnemonicBlur = () => {
-  if (form.mnemonic) {
-    handleGeneratePrivateKey()
-  }
+  // 移除自动生成私钥的逻辑，要求用户明确点击"从助记词生成私钥"按钮
+  console.log('🔍 [AccountModal] 助记词失焦，但已禁用自动生成私钥')
+  console.log('💡 [AccountModal] 请手动点击"从助记词生成私钥"按钮来生成私钥')
 }
 
 // 处理TRON数据刷新
@@ -145,7 +141,8 @@ const handleRefreshTronData = async () => {
     form,
     setTronData,
     setTronDataError,
-    (fetching: boolean) => { fetchingTronData.value = fetching }
+    (fetching: boolean) => { fetchingTronData.value = fetching },
+    true  // 手动触发
   )
 }
 

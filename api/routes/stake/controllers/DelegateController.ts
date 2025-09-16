@@ -22,7 +22,8 @@ export class DelegateController {
         resource, 
         lock, 
         lockPeriod, 
-        poolId 
+        networkId,
+        accountId 
       } = req.body as DelegateOperationRequest;
       
       // 验证参数
@@ -65,7 +66,7 @@ export class DelegateController {
               tx_hash, pool_account_id, receiver_address, amount,
               resource_type, operation_type, lock_period, status, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-            [result.txid, poolId || null, receiverAddress, balance, resource.toUpperCase(), 'delegate', lockPeriod || 0]
+            [result.txid, accountId || null, receiverAddress, balance, resource.toUpperCase(), 'delegate', lockPeriod || 0]
           );
         } catch (dbError: any) {
           console.error('记录委托记录失败:', dbError);
@@ -73,7 +74,7 @@ export class DelegateController {
         }
         
         // 更新能量池统计
-        if (poolId) {
+        if (accountId) {
           try {
             const updateField = resource === 'ENERGY' ? 'delegated_energy' : 'delegated_bandwidth';
             await query(
@@ -81,7 +82,7 @@ export class DelegateController {
                SET ${updateField} = COALESCE(${updateField}, 0) + $1,
                    last_stake_update = NOW()
                WHERE id = $2`,
-              [balance, poolId]
+              [balance, accountId]
             );
           } catch (updateError: any) {
             console.error('更新能量池统计失败:', updateError);
@@ -115,7 +116,8 @@ export class DelegateController {
         receiverAddress, 
         balance, 
         resource, 
-        poolId 
+        networkId,
+        accountId 
       } = req.body as DelegateOperationRequest;
       
       // 验证参数
@@ -156,7 +158,7 @@ export class DelegateController {
               tx_hash, pool_account_id, receiver_address, amount,
               resource_type, operation_type, lock_period, status, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-            [result.txid, poolId || null, receiverAddress, balance, resource.toUpperCase(), 'undelegate', 0]
+            [result.txid, accountId || null, receiverAddress, balance, resource.toUpperCase(), 'undelegate', 0]
           );
         } catch (dbError: any) {
           console.error('记录取消委托记录失败:', dbError);
@@ -164,7 +166,7 @@ export class DelegateController {
         }
         
         // 更新能量池统计
-        if (poolId) {
+        if (accountId) {
           try {
             const updateField = resource === 'ENERGY' ? 'delegated_energy' : 'delegated_bandwidth';
             await query(
@@ -172,7 +174,7 @@ export class DelegateController {
                SET ${updateField} = GREATEST(COALESCE(${updateField}, 0) - $1, 0),
                    last_stake_update = NOW()
                WHERE id = $2`,
-              [balance, poolId]
+              [balance, accountId]
             );
           } catch (updateError: any) {
             console.error('更新能量池统计失败:', updateError);

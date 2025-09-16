@@ -26,12 +26,20 @@
 
       <!-- 委托记录 -->
       <div v-if="activeTab === 'delegate' && selectedAccount">
-        <DelegateRecords :pool-id="selectedAccount.id" :network-id="currentNetworkId" />
+        <DelegateRecords 
+          :pool-id="currentNetworkId" 
+          :network-id="currentNetworkId" 
+          :account-id="selectedAccount.id" 
+        />
       </div>
 
       <!-- 解质押记录 -->
       <div v-if="activeTab === 'unfreeze' && selectedAccount">
-        <UnfreezeRecords :pool-id="selectedAccount.id" :network-id="currentNetworkId" />
+        <UnfreezeRecords 
+          :pool-id="currentNetworkId" 
+          :network-id="currentNetworkId" 
+          :account-id="selectedAccount.id" 
+        />
       </div>
     </div>
   </div>

@@ -99,8 +99,15 @@ export function useAccountValidation() {
     form: AccountFormData,
     setTronData: (data: TronData | null) => void,
     setTronDataError: (error: string) => void,
-    setFetchingState: (fetching: boolean) => void
+    setFetchingState: (fetching: boolean) => void,
+    isManualTrigger: boolean = false  // 新增参数：是否为手动触发
   ) => {
+    // 检查是否为手动触发
+    if (!isManualTrigger) {
+      console.log('🚫 [useAccountValidation] 阻止自动触发的验证，只允许手动点击触发')
+      return
+    }
+    
     // 从URL直接获取网络ID
     const networkId = route.params.networkId as string
     // 清除之前的错误信息

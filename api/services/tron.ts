@@ -1,3 +1,4 @@
+import { query } from '../database/index.js';
 import { configService, type TronNetworkConfig } from './config/ConfigService.js';
 import { AccountService } from './tron/services/AccountService';
 import { DelegationService } from './tron/services/DelegationService';
@@ -327,12 +328,64 @@ export class TronService {
     return await this.stakingService.getDelegateTransactionHistory(address, limit, offset);
   }
 
+  /**
+   * 根据能量池账户ID获取私钥并临时设置给TronWeb实例
+   */
+  async setPoolAccountPrivateKey(poolAccountId: string): Promise<void> {
+    try {
+      console.log(`🔍 [TronService] 获取能量池账户私钥: ${poolAccountId}`);
+      
+      // 查询能量池的私钥
+      const result = await query(
+        'SELECT private_key_encrypted FROM energy_pools WHERE id = $1',
+        [poolAccountId]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error(`能量池账户不存在: ${poolAccountId}`);
+      }
+      
+      const privateKey = result.rows[0].private_key_encrypted;
+      
+      if (!privateKey || privateKey.length !== 64) {
+        throw new Error(`能量池账户私钥格式无效: ${poolAccountId}`);
+      }
+      
+      // 设置私钥到TronWeb实例
+      this.tronWeb.setPrivateKey(privateKey);
+      console.log(`✅ [TronService] 已设置能量池账户私钥: ${poolAccountId}`);
+      
+    } catch (error) {
+      console.error(`❌ [TronService] 设置能量池账户私钥失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 恢复默认私钥
+   */
+  async restoreDefaultPrivateKey(): Promise<void> {
+    try {
+      if (this.config.privateKey && this.config.privateKey.length === 64) {
+        this.tronWeb.setPrivateKey(this.config.privateKey);
+        console.log(`✅ [TronService] 已恢复默认私钥`);
+      }
+    } catch (error) {
+      console.error(`❌ [TronService] 恢复默认私钥失败:`, error);
+      throw error;
+    }
+  }
+
   // 获取解质押记录
   async getUnfreezeTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
     await this.waitForInitialization();
     return await this.stakingService.getUnfreezeTransactionHistory(address, limit, offset);
   }
 
+  /**
+   * @deprecated 已移除数据库存储逻辑，所有质押数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
+   */
   async recordStakeTransaction(params: {
     transactionId: string;
     poolId: number;
@@ -346,8 +399,8 @@ export class TronService {
     unfreezeTime?: Date;
     expireTime?: Date;
   }): Promise<{ success: boolean; error?: string }> {
-    await this.waitForInitialization();
-    return await this.stakingService.recordStakeTransaction(params);
+    console.log('[TronService] 🔍 recordStakeTransaction 已废弃 - 所有数据从TRON网络实时获取');
+    return { success: true };
   }
 
   // ===== 工具方法 =====

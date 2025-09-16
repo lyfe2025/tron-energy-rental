@@ -1,16 +1,16 @@
 import { stakeAPI } from '@/services/api'
 import { reactive, ref } from 'vue'
 import type {
-  AccountInfo,
-  AccountResources,
-  DelegateRecord,
-  DelegateRecordQueryParams,
-  StakePagination,
-  StakeRecord,
-  StakeRecordQueryParams,
-  StakeStatistics,
-  UnfreezeRecord,
-  UnfreezeRecordQueryParams
+    AccountInfo,
+    AccountResources,
+    DelegateRecord,
+    DelegateRecordQueryParams,
+    StakePagination,
+    StakeRecord,
+    StakeRecordQueryParams,
+    StakeStatistics,
+    UnfreezeRecord,
+    UnfreezeRecordQueryParams
 } from '../types/stake.types'
 
 export function useStakeData() {
@@ -128,7 +128,7 @@ export function useStakeData() {
         const records = response.data.data.map((record: any) => {
           const mappedRecord = {
             id: record.id,
-            poolId: record.pool_id || record.address,
+            poolAccountId: record.pool_id || record.address,  // 映射为 poolAccountId
             txid: record.transaction_id || record.txid,
             operationType: record.operation_type,
             amount: record.amount,
@@ -151,7 +151,7 @@ export function useStakeData() {
         throw new Error(response.data.message || '获取质押记录失败')
       }
     } catch (err: any) {
-      handleError(err, '获取质押记录', params.poolId)
+      handleError(err, '获取质押记录', params.poolAccountId)
     } finally {
       loading.value = false
     }
@@ -167,7 +167,7 @@ export function useStakeData() {
         // 转换API返回的字段名到前端期望的DelegateRecord格式
         const records = response.data.data.map((record: any) => ({
           id: record.id,
-          poolId: record.pool_id || record.pool_account_id,
+          poolAccountId: record.pool_id || record.pool_account_id,
           txid: record.transaction_id || record.txid,
           operationType: record.operation_type === 'unknown' ? 'delegate' : record.operation_type,
           toAddress: record.receiver_address || record.to_address || '',
@@ -184,7 +184,7 @@ export function useStakeData() {
         throw new Error(response.data.message || '获取委托记录失败')
       }
     } catch (err: any) {
-      handleError(err, '获取委托记录', params.poolId)
+      handleError(err, '获取委托记录', params.poolAccountId)
     } finally {
       loading.value = false
     }
@@ -206,7 +206,7 @@ export function useStakeData() {
         const records = response.data.data.map((record: any) => {
           const mappedRecord = {
             id: record.id,
-            poolId: record.pool_id,
+            poolAccountId: record.pool_id,
             txid: record.txid,
             amount: record.amount || 0,
             resourceType: record.resource_type,
@@ -244,7 +244,7 @@ export function useStakeData() {
       }
     } catch (err: any) {
       console.error('❌ [useStakeData] 解质押记录加载失败:', err)
-      handleError(err, '获取解质押记录', params.poolId)
+      handleError(err, '获取解质押记录', params.poolAccountId)
     } finally {
       loading.value = false
     }

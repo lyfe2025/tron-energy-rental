@@ -383,6 +383,18 @@ const handleSubmit = async () => {
     accountId: props.accountId
   }
 
+  // 调试信息
+  console.log('🔍 [StakeModal] 创建交易数据:', {
+    props: {
+      poolId: props.poolId,
+      accountId: props.accountId,
+      accountAddress: props.accountAddress,
+      accountName: props.accountName
+    },
+    transactionData: transactionData.value,
+    表单数据: form.value
+  })
+
   // 显示交易确认弹窗
   showTransactionConfirm.value = true
 }
