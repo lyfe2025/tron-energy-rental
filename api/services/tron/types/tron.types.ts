@@ -114,6 +114,8 @@ export interface ResourceData {
     available: number; // 实际可用于出租的带宽
     delegatedOut?: number; // 代理给别人的带宽
     delegatedIn?: number; // 从别人获得的带宽代理
+    freeUsed?: number; // 免费带宽已使用（调试信息）
+    stakedUsed?: number; // 质押带宽已使用（调试信息）
   };
   delegation?: {
     energyOut: number;

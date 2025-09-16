@@ -163,7 +163,24 @@
 
         <!-- 带宽信息 -->
         <div class="bg-purple-50 rounded-lg p-4">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">带宽信息</h3>
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-medium text-gray-900">带宽信息</h3>
+            <div class="text-right">
+              <div class="text-xs text-gray-500" v-if="realTimeAccountData.realTimeData.value">
+                🕐 {{ formatDate(new Date().toISOString()) }}
+              </div>
+              <button 
+                @click="toggleDataExplanation"
+                class="text-xs text-blue-600 hover:text-blue-800 cursor-pointer transition-colors flex items-center space-x-1" 
+                :title="showDataExplanation ? '收起数据说明' : '查看数据说明'">
+                <span>ℹ️</span>
+                <span>{{ showDataExplanation ? '收起说明' : '数据说明' }}</span>
+                <svg :class="{ 'rotate-180': showDataExplanation }" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
           
           <div v-if="realTimeAccountData.realTimeData.value" class="space-y-4">
             <!-- 主要指标 -->
@@ -191,6 +208,10 @@
               <div class="text-center bg-red-50 p-2 rounded">
                 <div class="font-semibold text-red-600">{{ realTimeAccountData.formatBandwidth(realTimeAccountData.realTimeData.value.bandwidth.used || 0) }}</div>
                 <div class="text-red-700">已使用</div>
+                <div v-if="realTimeAccountData.realTimeData.value.bandwidth.freeUsed !== undefined" class="text-xs text-red-500 mt-1">
+                  免费: {{ realTimeAccountData.formatBandwidth(realTimeAccountData.realTimeData.value.bandwidth.freeUsed || 0) }}
+                  质押: {{ realTimeAccountData.formatBandwidth(realTimeAccountData.realTimeData.value.bandwidth.stakedUsed || 0) }}
+                </div>
               </div>
               <div class="text-center bg-yellow-50 p-2 rounded">
                 <div class="font-semibold text-yellow-600">{{ Math.floor(((realTimeAccountData.realTimeData.value.bandwidth.delegatedOut || 0) / 1000000) * 1000).toLocaleString() }}</div>
@@ -220,6 +241,27 @@
               ></div>
             </div>
           </div>
+          
+          <!-- 数据差异说明（可收起/展开） -->
+          <Transition name="slide-fade" mode="out-in">
+            <div v-show="showDataExplanation" class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+              <div class="flex items-start space-x-2">
+                <span class="flex-shrink-0">💡</span>
+                <div>
+                  <div class="font-medium">数据来源说明</div>
+                  <div class="mt-1">
+                    带宽使用数据来自TRON网络实时API，获取时间: {{ realTimeAccountData.realTimeData.value ? formatDate(new Date().toISOString()) : '--' }}。
+                    如与区块浏览器数据有微小差异（通常±20个单位内），属正常现象，因为：
+                  </div>
+                  <ul class="mt-1 ml-4 space-y-0.5 text-xs">
+                    <li>• 数据获取时间点不同</li>
+                    <li>• API缓存和同步延迟</li>
+                    <li>• 网络状态实时变化</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
 
         <!-- 成本信息 -->
@@ -315,6 +357,9 @@ const emit = defineEmits<Emits>()
 // 复制状态管理
 const copyStatus = ref<'idle' | 'success' | 'error'>('idle')
 
+// 数据说明展开状态
+const showDataExplanation = ref(false)
+
 // 使用实时账户数据composable
 const realTimeAccountData = useRealTimeAccountData()
 
@@ -372,6 +417,11 @@ const copyToClipboard = async (text: string) => {
   }
 }
 
+// 切换数据说明显示状态
+const toggleDataExplanation = () => {
+  showDataExplanation.value = !showDataExplanation.value
+}
+
 // 监听模态框开启状态，自动获取实时数据
 watch(() => props.isOpen, async (newValue) => {
   if (newValue && props.account) {
@@ -427,3 +477,27 @@ const getStatusText = (status: string): string => {
   }
 }
 </script>
+
+<style scoped>
+/* 平滑过渡动画 */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-10px);
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  opacity: 1;
+  max-height: 200px;
+  transform: translateY(0);
+}
+</style>
