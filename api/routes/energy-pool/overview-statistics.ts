@@ -399,21 +399,13 @@ router.get('/statistics', async (req, res) => {
 
 /**
  * 获取今日消耗统计
+ * 注意：此接口已被移除，因为消耗统计功能已改为基于 TRON 实时数据
  */
 router.get('/today-consumption', async (req, res) => {
-  try {
-    const consumption = await energyPoolService.getTodayConsumption();
-    res.json({
-      success: true,
-      data: consumption
-    });
-  } catch (error) {
-    console.error('获取今日消耗统计失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : '获取今日消耗统计失败'
-    });
-  }
+  res.status(410).json({
+    success: false,
+    message: '此接口已被移除。消耗统计功能现在基于 TRON 实时数据，请使用相关的 TRON 数据接口。'
+  });
 });
 
 /**

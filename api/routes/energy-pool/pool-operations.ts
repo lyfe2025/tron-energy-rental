@@ -55,101 +55,35 @@ router.post('/optimize', async (req, res) => {
 
 /**
  * 预留能量资源
+ * 注意：此接口已被移除，因为预留机制已改为基于 TRON 实时数据
  */
 router.post('/reserve', async (req, res) => {
-  try {
-    const { accountId, energyAmount } = req.body;
-    
-    if (!accountId || !energyAmount || energyAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid accountId or energyAmount'
-      });
-    }
-    
-    // 生成交易ID
-    const transactionId = `reserve_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    await energyPoolService.reserveEnergy(accountId, energyAmount, transactionId);
-    
-    res.json({
-      success: true,
-      message: 'Energy reserved successfully',
-      transactionId
-    });
-  } catch (error) {
-    console.error('Reserve energy error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reserve energy'
-    });
-  }
+  res.status(410).json({
+    success: false,
+    message: '此接口已被移除。能量分配现在直接基于 TRON 实时数据，无需预留机制。'
+  });
 });
 
 /**
  * 释放预留的能量资源
+ * 注意：此接口已被移除，因为预留机制已改为基于 TRON 实时数据
  */
 router.post('/release', async (req, res) => {
-  try {
-    const { accountId, energyAmount } = req.body;
-    
-    if (!accountId || !energyAmount || energyAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid accountId or energyAmount'
-      });
-    }
-    
-    // 生成交易ID
-    const transactionId = `release_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    await energyPoolService.releaseReservedEnergy(accountId, energyAmount, transactionId);
-    
-    res.json({
-      success: true,
-      message: 'Reserved energy released successfully',
-      transactionId
-    });
-  } catch (error) {
-    console.error('Release energy error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to release reserved energy'
-    });
-  }
+  res.status(410).json({
+    success: false,
+    message: '此接口已被移除。能量分配现在直接基于 TRON 实时数据，无需预留机制。'
+  });
 });
 
 /**
  * 确认能量使用
+ * 注意：此接口已被移除，因为能量使用确认已改为基于 TRON 实时数据
  */
 router.post('/confirm-usage', async (req, res) => {
-  try {
-    const { accountId, energyAmount } = req.body;
-    
-    if (!accountId || !energyAmount || energyAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid accountId or energyAmount'
-      });
-    }
-    
-    // 生成交易ID
-    const transactionId = `confirm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    await energyPoolService.confirmEnergyUsage(accountId, energyAmount, transactionId);
-    
-    res.json({
-      success: true,
-      message: 'Energy usage confirmed successfully',
-      transactionId
-    });
-  } catch (error) {
-    console.error('Confirm energy usage error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to confirm energy usage'
-    });
-  }
+  res.status(410).json({
+    success: false,
+    message: '此接口已被移除。能量使用现在直接通过 TRON 交易记录确认，无需单独确认步骤。'
+  });
 });
 
 /**

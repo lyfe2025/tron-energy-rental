@@ -1,8 +1,6 @@
 // 主服务入口，整合所有能量池相关服务
 import { accountManagementService, type EnergyPoolAccount } from './AccountManagementService';
 import { allocationService, type OptimizationResult } from './AllocationService';
-import { consumptionService, type ConsumptionReport, type TodayConsumptionSummary } from './ConsumptionService';
-import { energyReservationService } from './EnergyReservationService';
 
 export class EnergyPoolService {
   // 账户管理服务
@@ -10,12 +8,6 @@ export class EnergyPoolService {
   
   // 能量分配服务
   public readonly allocation = allocationService;
-  
-  // 预留机制服务
-  public readonly reservation = energyReservationService;
-  
-  // 消耗统计服务
-  public readonly consumption = consumptionService;
 
   constructor() {
     // 主服务入口
@@ -69,27 +61,6 @@ export class EnergyPoolService {
     } = {}
   ): Promise<OptimizationResult> {
     return this.allocation.smartEnergyAllocation(requiredEnergy, options);
-  }
-
-  /**
-   * 预留能量资源
-   */
-  async reserveEnergy(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string): Promise<void> {
-    return this.reservation.reserveEnergy(poolAccountId, energyAmount, transactionId, userId);
-  }
-
-  /**
-   * 释放预留的能量资源
-   */
-  async releaseReservedEnergy(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string): Promise<void> {
-    return this.reservation.releaseReservedEnergy(poolAccountId, energyAmount, transactionId, userId);
-  }
-
-  /**
-   * 确认能量使用
-   */
-  async confirmEnergyUsage(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string): Promise<void> {
-    return this.reservation.confirmEnergyUsage(poolAccountId, energyAmount, transactionId, userId);
   }
 
   /**
@@ -149,95 +120,6 @@ export class EnergyPoolService {
   }
 
   /**
-   * 获取今日消耗统计
-   */
-  async getTodayConsumption(): Promise<TodayConsumptionSummary> {
-    return this.consumption.getTodayConsumption();
-  }
-
-  /**
-   * 获取消耗报告
-   */
-  async getConsumptionReport(startDate: Date, endDate: Date): Promise<ConsumptionReport> {
-    return this.consumption.getConsumptionReport(startDate, endDate);
-  }
-
-  /**
-   * 获取消耗趋势
-   */
-  async getConsumptionTrend(days: number = 30): Promise<Array<{
-    date: string;
-    consumption: number;
-    cost: number;
-    transactionCount: number;
-  }>> {
-    return this.consumption.getConsumptionTrend(days);
-  }
-
-  /**
-   * 获取消耗概览
-   */
-  async getConsumptionOverview(): Promise<{
-    today: TodayConsumptionSummary;
-    thisWeek: { consumption: number; cost: number };
-    thisMonth: { consumption: number; cost: number };
-    topAccounts: Array<{ name: string; consumption: number }>;
-  }> {
-    const result = await this.consumption.getConsumptionOverview();
-    return {
-      ...result,
-      thisWeek: {
-        consumption: result.thisWeek.consumption,
-        cost: result.thisWeek.revenue
-      },
-      thisMonth: {
-        consumption: result.thisMonth.consumption,
-        cost: result.thisMonth.revenue
-      }
-    };
-  }
-
-  /**
-   * 批量预留能量
-   */
-  async batchReserveEnergy(reservations: Array<{
-    poolAccountId: string;
-    energyAmount: number;
-    transactionId: string;
-    userId?: string;
-  }>): Promise<{
-    successCount: number;
-    failedCount: number;
-    errors: Array<{ reservation: any; error: string }>;
-    success: boolean;
-  }> {
-    return this.reservation.batchReserveEnergy(reservations);
-  }
-
-  /**
-   * 获取预留统计
-   */
-  async getReservationStatistics(timeRange: { start: Date; end: Date }): Promise<{
-    totalReservations: number;
-    totalEnergyReserved: number;
-    totalEnergyReleased: number;
-    totalEnergyConfirmed: number;
-    currentlyReserved: number;
-  }> {
-    return this.reservation.getReservationStatistics(timeRange);
-  }
-
-  /**
-   * 清理过期预留
-   */
-  async cleanupExpiredReservations(expirationHours: number = 24): Promise<{
-    releasedCount: number;
-    totalEnergyReleased: number;
-  }> {
-    return this.reservation.cleanupExpiredReservations(expirationHours);
-  }
-
-  /**
    * 预测能量需求
    */
   async predictAndAllocate(
@@ -252,51 +134,6 @@ export class EnergyPoolService {
   }
 
   /**
-   * 获取热门账户排行
-   */
-  async getTopConsumingAccounts(limit: number = 10, days: number = 30): Promise<Array<{
-    accountId: string;
-    accountName: string;
-    totalConsumption: number;
-    totalCost: number;
-    averageDaily: number;
-    transactionCount: number;
-  }>> {
-    return this.consumption.getTopConsumingAccounts(limit, days);
-  }
-
-  /**
-   * 生成日汇总（定时任务用）
-   */
-  async generateDailySummary(date?: Date): Promise<void> {
-    return this.consumption.generateDailySummary(date);
-  }
-
-  /**
-   * 清理旧日志
-   */
-  async cleanupOldLogs(retentionDays: number = 90): Promise<{
-    deletedCount: number;
-  }> {
-    return this.consumption.cleanupOldLogs(retentionDays);
-  }
-
-  /**
-   * 记录能量消耗
-   */
-  async logEnergyConsumption(data: {
-    pool_account_id: string;
-    transaction_type: 'reserve' | 'release' | 'confirm';
-    energy_amount: number;
-    cost_amount?: number;
-    transaction_id?: string;
-    user_id?: string;
-    notes?: string;
-  }): Promise<void> {
-    return this.consumption.logEnergyConsumption(data);
-  }
-
-  /**
    * 健康检查 - 检查所有服务是否正常
    */
   async healthCheck(): Promise<{
@@ -304,17 +141,13 @@ export class EnergyPoolService {
     services: {
       accountManagement: boolean;
       allocation: boolean;
-      reservation: boolean;
-      consumption: boolean;
     };
     details: string[];
   }> {
     const details: string[] = [];
     const services = {
       accountManagement: true,
-      allocation: true,
-      reservation: true,
-      consumption: true
+      allocation: true
     };
 
     try {
@@ -329,23 +162,8 @@ export class EnergyPoolService {
       details.push(`Account management error: ${error instanceof Error ? error.message : 'Unknown'}`);
     }
 
-    try {
-      // 检查今日消耗统计
-      await this.consumption.getTodayConsumption();
-    } catch (error) {
-      services.consumption = false;
-      details.push(`Consumption service error: ${error instanceof Error ? error.message : 'Unknown'}`);
-    }
-
-    try {
-      // 检查预留统计
-      const now = new Date();
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      await this.reservation.getReservationStatistics({ start: yesterday, end: now });
-    } catch (error) {
-      services.reservation = false;
-      details.push(`Reservation service error: ${error instanceof Error ? error.message : 'Unknown'}`);
-    }
+    // 暂时移除分配服务检查，因为它可能依赖一些已删除的功能
+    // TODO: 如果需要，可以添加分配服务的健康检查
 
     const healthyServices = Object.values(services).filter(Boolean).length;
     const totalServices = Object.values(services).length;
@@ -371,11 +189,6 @@ export type {
 export type {
     EnergyAllocation, OptimizationResult
 } from './AllocationService';
-
-export type {
-    ConsumptionReport, DailyConsumption,
-    TodayConsumptionSummary
-} from './ConsumptionService';
 
 // 创建默认实例
 export const energyPoolService = new EnergyPoolService();

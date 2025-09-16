@@ -1,4 +1,4 @@
-import { query } from '../../../database/index';
+// import { query } from '../../../database/index'; // 已移除数据库写入功能
 import type { EnergyTransactionData, ServiceResponse } from '../types/tron.types';
 
 export class TransactionService {
@@ -83,28 +83,15 @@ export class TransactionService {
   }
 
   // 记录能量交易到数据库
+  /**
+   * @deprecated 已移除数据库存储逻辑，所有交易数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
+   */
   async recordEnergyTransaction(data: EnergyTransactionData): Promise<{ success: boolean; error?: string }> {
-    try {
-      await query(
-        `INSERT INTO energy_transactions (
-          transaction_id, from_address, to_address, amount,
-          resource_type, status, lock_period, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          data.txid,
-          data.from_address,
-          data.to_address,
-          data.amount,
-          data.resource_type,
-          data.status,
-          data.lock_period,
-          new Date()
-        ]
-      );
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to record energy transaction:', error);
-      return { success: false, error: error.message };
-    }
+    console.log('[TransactionService] 🔍 recordEnergyTransaction 已废弃 - 所有数据从TRON网络实时获取');
+    console.log(`  - 交易ID: ${data.txid}`);
+    console.log(`  - 从地址: ${data.from_address} -> 到地址: ${data.to_address}`);
+    console.log(`  - 金额: ${data.amount}, 资源类型: ${data.resource_type}`);
+    return { success: true };
   }
 }

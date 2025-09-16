@@ -1,5 +1,5 @@
 /**
- * 能量池扩展API - 匹配拆分后的后端服务
+ * 能量池扩展API - 清理版本（移除废弃的消耗统计和预留接口）
  */
 import { apiClient } from '../core/apiClient';
 import type { ApiResponse } from '../core/types';
@@ -50,17 +50,7 @@ export interface EnergyPoolAccount {
   last_updated_at?: string;
 }
 
-export interface TodayConsumption {
-  total_consumed_energy: number;
-  total_cost: number;
-  total_transactions: number;
-  account_breakdown: Array<{
-    pool_account_id: string;
-    account_name: string;
-    total_consumed_energy: number;
-    total_cost: number;
-  }>;
-}
+// 移除了 TodayConsumption 接口，因为相关功能已废弃
 
 export interface EnergyAllocation {
   poolAccountId: string;
@@ -75,7 +65,17 @@ export interface OptimizationResult {
   message?: string;
 }
 
-// 扩展API方法
+// 基于 TRON 实时数据的新统计接口
+export interface TronRealtimeStats {
+  totalDelegatedEnergy: number;
+  activeDelegations: number;
+  totalOrders: number;
+  completedOrders: number;
+  totalRevenue: number;
+  lastUpdated: string;
+}
+
+// 清理后的API方法
 export const energyPoolExtendedAPI = {
   ...energyPoolAPI,
   
@@ -218,79 +218,104 @@ export const energyPoolExtendedAPI = {
   deleteAccount: (id: string) => 
     apiClient.delete<ApiResponse<{ message: string }>>(`/api/energy-pool/accounts/${id}`),
 
+  // =====================================================================
+  // 以下方法已移除，改为基于 TRON 实时数据和订单记录的统计
+  // =====================================================================
+  
   /**
-   * 获取今日消耗统计
+   * @deprecated 已移除 - 获取基于订单记录的实时统计
+   * 替代方案：使用 getOrderBasedStats() 和 getTronRealtimeStats()
    */
-  getTodayConsumption: () => 
-    apiClient.get<ApiResponse<TodayConsumption>>('/api/energy-pool/consumption/today'),
+  getTodayConsumption: () => {
+    console.warn('[API] getTodayConsumption 已废弃，请使用基于 TRON 实时数据的统计接口');
+    return Promise.reject(new Error('此接口已废弃，请使用基于 TRON 实时数据的统计'));
+  },
 
   /**
-   * 获取消耗趋势
+   * @deprecated 已移除 - 获取基于订单记录的趋势统计
    */
-  getConsumptionTrend: (days: number = 30) => 
+  getConsumptionTrend: (days: number = 30) => {
+    console.warn('[API] getConsumptionTrend 已废弃，请使用基于订单记录的趋势分析');
+    return Promise.reject(new Error('此接口已废弃，请使用基于订单记录的趋势分析'));
+  },
+
+  /**
+   * @deprecated 已移除 - 预留机制已取消，改为实时分配
+   */
+  reserveEnergy: (data: any) => {
+    console.warn('[API] reserveEnergy 已废弃，现在直接进行实时能量分配');
+    return Promise.reject(new Error('预留机制已移除，请使用实时能量分配'));
+  },
+
+  /**
+   * @deprecated 已移除 - 预留机制已取消
+   */
+  releaseEnergy: (data: any) => {
+    console.warn('[API] releaseEnergy 已废弃');
+    return Promise.reject(new Error('预留机制已移除'));
+  },
+
+  /**
+   * @deprecated 已移除 - 预留机制已取消
+   */
+  confirmEnergyUsage: (data: any) => {
+    console.warn('[API] confirmEnergyUsage 已废弃');
+    return Promise.reject(new Error('预留机制已移除'));
+  },
+
+  /**
+   * @deprecated 已移除 - 预留统计已取消
+   */
+  getReservationStats: (timeRange?: { start: string; end: string }) => {
+    console.warn('[API] getReservationStats 已废弃');
+    return Promise.reject(new Error('预留统计已移除'));
+  },
+
+  /**
+   * @deprecated 已移除 - 预留清理已取消
+   */
+  cleanupExpiredReservations: (expirationHours: number = 24) => {
+    console.warn('[API] cleanupExpiredReservations 已废弃');
+    return Promise.reject(new Error('预留清理已移除'));
+  },
+
+  // =====================================================================
+  // 新增：基于 TRON 实时数据和订单记录的统计接口
+  // =====================================================================
+
+  /**
+   * 获取基于订单记录的今日统计
+   */
+  getOrderBasedStats: () => 
+    apiClient.get<ApiResponse<{
+      totalOrders: number;
+      completedOrders: number;
+      totalEnergyDelegated: number;
+      totalRevenue: number;
+      averageOrderValue: number;
+      successRate: number;
+    }>>('/api/statistics/orders/today'),
+
+  /**
+   * 获取基于 TRON 实时数据的统计
+   */
+  getTronRealtimeStats: () => 
+    apiClient.get<ApiResponse<TronRealtimeStats>>('/api/statistics/tron/realtime'),
+
+  /**
+   * 获取基于订单记录的趋势分析
+   */
+  getOrderTrend: (days: number = 30) => 
     apiClient.get<ApiResponse<Array<{
       date: string;
-      consumption: number;
-      cost: number;
-      transactionCount: number;
-    }>>>('/api/energy-pool/consumption/trend', { params: { days } }),
+      orderCount: number;
+      energyDelegated: number;
+      revenue: number;
+      successRate: number;
+    }>>>('/api/statistics/orders/trend', { params: { days } }),
 
   /**
-   * 预留能量
-   */
-  reserveEnergy: (data: {
-    poolAccountId: string;
-    energyAmount: number;
-    transactionId: string;
-    userId?: string;
-  }) => 
-    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/reserve', data),
-
-  /**
-   * 释放预留能量
-   */
-  releaseEnergy: (data: {
-    poolAccountId: string;
-    energyAmount: number;
-    transactionId: string;
-    userId?: string;
-  }) => 
-    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/release', data),
-
-  /**
-   * 确认能量使用
-   */
-  confirmEnergyUsage: (data: {
-    poolAccountId: string;
-    energyAmount: number;
-    transactionId: string;
-    userId?: string;
-  }) => 
-    apiClient.post<ApiResponse<{ message: string }>>('/api/energy-pool/confirm', data),
-
-  /**
-   * 获取预留统计
-   */
-  getReservationStats: (timeRange?: { start: string; end: string }) => 
-    apiClient.get<ApiResponse<{
-      totalReservations: number;
-      totalEnergyReserved: number;
-      totalEnergyReleased: number;
-      totalEnergyConfirmed: number;
-      currentlyReserved: number;
-    }>>('/api/energy-pool/reservations/stats', { params: timeRange }),
-
-  /**
-   * 清理过期预留
-   */
-  cleanupExpiredReservations: (expirationHours: number = 24) => 
-    apiClient.post<ApiResponse<{
-      releasedCount: number;
-      totalEnergyReleased: number;
-    }>>('/api/energy-pool/cleanup-expired', { expirationHours }),
-
-  /**
-   * 获取账户实时能量数据
+   * 获取账户实时能量数据（从 TRON 网络获取）
    */
   getAccountEnergyData: (accountId: string, networkId: string) => 
     apiClient.get<ApiResponse<{

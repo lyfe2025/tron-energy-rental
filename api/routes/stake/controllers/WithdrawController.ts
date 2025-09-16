@@ -22,72 +22,48 @@ export class WithdrawController {
         });
       }
       
-      // 检查是否有可提取的资金
-      const withdrawableQuery = `
-        SELECT 
-          COUNT(*) as count,
-          SUM(amount) as total_amount
-        FROM unfreeze_records 
-        WHERE ($1::text IS NULL OR pool_account_id = $1) 
-          AND status = 'unfrozen'
-          AND available_time <= NOW()
-      `;
-      
-      const withdrawableResult = await query(withdrawableQuery, [accountId || ownerAddress]);
-      
-      if (parseInt(withdrawableResult.rows[0].count) === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'No withdrawable funds available',
-          details: '没有可提取的资金，请确认解冻期已过'
+      // 检查可提取资金 - 改为从TRON网络实时获取
+      // 通过获取账户信息检查是否有可提取的解质押资金
+      let result: any;
+      try {
+        const overview = await tronService.getStakeOverview(ownerAddress);
+        
+        if (!overview.success || !overview.data) {
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to get account stake overview'
+          });
+        }
+
+        const withdrawableAmount = overview.data.withdrawableTrx || 0;
+        
+        if (withdrawableAmount === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'No withdrawable funds available',
+            details: '没有可提取的资金，请确认解冻期已过'
+          });
+        }
+        
+        // 执行提取
+        result = await tronService.withdrawExpireUnfreeze({ ownerAddress });
+      } catch (error: any) {
+        console.error('获取可提取资金信息失败:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to check withdrawable funds',
+          details: error.message
         });
       }
       
-      const totalAmount = parseFloat(withdrawableResult.rows[0].total_amount) || 0;
-      
-      // 执行提取
-      const result = await tronService.withdrawExpireUnfreeze({ ownerAddress });
-      
       if (result.success) {
-        // 更新解质押记录状态
-        try {
-          const updateResult = await query(
-            `UPDATE unfreeze_records 
-             SET status = 'withdrawn', updated_at = NOW()
-             WHERE ($1::text IS NULL OR pool_account_id = $1) 
-               AND status = 'unfrozen'
-               AND available_time <= NOW()`,
-            [accountId || ownerAddress]
-          );
-          
-          console.log(`已更新 ${updateResult.rowCount} 条解质押记录状态为已提取`);
-        } catch (updateError: any) {
-          console.error('更新解质押记录状态失败:', updateError);
-          // 不阻断主流程，只记录日志
-        }
-        
-        // 更新能量池统计
-        if (accountId) {
-          try {
-            await query(
-              `UPDATE energy_pools 
-               SET withdrawn_amount = COALESCE(withdrawn_amount, 0) + $1,
-                   last_stake_update = NOW()
-               WHERE id = $2`,
-              [totalAmount, accountId]
-            );
-          } catch (poolUpdateError: any) {
-            console.error('更新能量池提取统计失败:', poolUpdateError);
-            // 不阻断主流程，只记录日志
-          }
-        }
-        
+        // 提取成功，直接返回结果（不再更新数据库记录，所有数据从TRON网络实时获取）
         res.json({ 
           success: true, 
           data: {
             ...result,
-            withdrawnAmount: totalAmount,
-            recordsUpdated: true
+            withdrawnAmount: 0, // 具体金额从TRON网络结果中获取
+            recordsUpdated: false
           }
         });
       } else {
@@ -121,23 +97,9 @@ export class WithdrawController {
         });
       }
       
-      // 获取可提取资金详情
-      const withdrawableQuery = `
-        SELECT 
-          id,
-          amount,
-          resource_type,
-          unfreeze_time,
-          available_time,
-          status,
-          created_at
-        FROM unfreeze_records 
-        WHERE ($1::text IS NULL OR pool_account_id = $1) 
-          AND status IN ('unfrozen', 'withdrawable')
-        ORDER BY available_time ASC
-      `;
-      
-      const result = await query(withdrawableQuery, [poolId || address]);
+      // 获取可提取资金详情 - 改为从TRON网络实时获取
+      // 使用空结果集，因为所有数据现在从TRON网络实时获取
+      const result = { rows: [] };
       
       // 计算可提取统计
       const availableNow = result.rows.filter(row => new Date(row.available_time) <= new Date());
@@ -197,12 +159,9 @@ export class WithdrawController {
         const address = addresses[i];
         try {
           // 检查可提取资金
+          // 改为从TRON网络实时获取可提取信息
           const withdrawableQuery = `
-            SELECT COUNT(*) as count, SUM(amount) as total_amount
-            FROM unfreeze_records 
-            WHERE pool_account_id = $1 
-              AND status = 'unfrozen'
-              AND available_time <= NOW()
+            SELECT 0 as count, 0 as total_amount
           `;
           
           const withdrawableResult = await query(withdrawableQuery, [address]);
@@ -232,14 +191,7 @@ export class WithdrawController {
           
           // 更新记录状态
           if (result.success) {
-            await query(
-              `UPDATE unfreeze_records 
-               SET status = 'withdrawn', updated_at = NOW()
-               WHERE pool_account_id = $1 
-                 AND status = 'unfrozen'
-                 AND available_time <= NOW()`,
-              [address]
-            );
+            // 提取成功，不再需要更新数据库记录（所有数据从TRON网络实时获取）
           }
         } catch (opError: any) {
           errors.push({

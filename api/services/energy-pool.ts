@@ -6,8 +6,8 @@ export { EnergyPoolService, energyPoolService };
 
 // 导出所有类型定义，保持向后兼容
     export type {
-        ConsumptionReport, DailyConsumption, EnergyAllocation, EnergyPoolAccount, OptimizationResult, TodayConsumptionSummary
-    } from './energy-pool/EnergyPoolService';
+    EnergyAllocation, EnergyPoolAccount, OptimizationResult
+  } from './energy-pool/EnergyPoolService';
 
 // 为了保持向后兼容，重新导出原有的类
 export class EnergyPoolService_Legacy {
@@ -59,26 +59,28 @@ export class EnergyPoolService_Legacy {
     return this.service.optimizeEnergyAllocation(requiredEnergy);
   }
 
-  // 预留方法
+  // 注意：预留和消耗统计方法已被移除
+  // 这些功能现在直接基于 TRON 实时数据，不再需要本地记录
+  
+  // 如果需要向后兼容，可以返回适当的错误信息
   async reserveEnergy(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string) {
-    return this.service.reserveEnergy(poolAccountId, energyAmount, transactionId, userId);
+    throw new Error('预留功能已移除，请使用实时能量分配');
   }
 
   async releaseReservedEnergy(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string) {
-    return this.service.releaseReservedEnergy(poolAccountId, energyAmount, transactionId, userId);
+    throw new Error('预留功能已移除，请使用实时能量分配');
   }
 
   async confirmEnergyUsage(poolAccountId: string, energyAmount: number, transactionId: string, userId?: string) {
-    return this.service.confirmEnergyUsage(poolAccountId, energyAmount, transactionId, userId);
+    throw new Error('确认功能已移除，能量使用现在通过 TRON 交易直接确认');
   }
 
-  // 消耗统计方法
   async getTodayConsumption() {
-    return this.service.getTodayConsumption();
+    throw new Error('消耗统计功能已移除，请使用 TRON 实时数据获取统计信息');
   }
 
   async logEnergyConsumption(data: any) {
-    return this.service.logEnergyConsumption(data);
+    throw new Error('能量消耗日志功能已移除，现在基于 TRON 实时数据');
   }
 }
 

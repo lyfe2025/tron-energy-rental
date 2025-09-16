@@ -114,34 +114,28 @@ export class OverviewController {
         }
       }
       
-      // 获取质押统计数据
+      // 质押统计已改为从TRON网络实时获取，这里提供默认统计结构
       const statsQuery = `
         SELECT 
-          COUNT(*) as total_stakes,
-          SUM(CASE WHEN operation_type = 'freeze' THEN amount ELSE 0 END) as total_staked,
-          SUM(CASE WHEN operation_type = 'unfreeze' THEN amount ELSE 0 END) as total_unstaked,
-          COUNT(CASE WHEN resource_type = 'ENERGY' THEN 1 END) as energy_stakes,
-          COUNT(CASE WHEN resource_type = 'BANDWIDTH' THEN 1 END) as bandwidth_stakes
-        FROM stake_records 
-        WHERE ($1::uuid IS NULL OR pool_account_id = $1::uuid)
-          AND status = 'confirmed'
+          0 as total_stakes,
+          0 as total_staked,
+          0 as total_unstaked,
+          0 as energy_stakes,
+          0 as bandwidth_stakes
       `;
       
+      // 委托统计已改为从TRON网络实时获取
       const delegateStatsQuery = `
         SELECT 
-          COUNT(*) as total_delegates,
-          SUM(amount) as total_delegated,
-          COUNT(CASE WHEN resource_type = 'ENERGY' THEN 1 END) as energy_delegates,
-          COUNT(CASE WHEN resource_type = 'BANDWIDTH' THEN 1 END) as bandwidth_delegates
-        FROM delegate_records 
-        WHERE ($1::uuid IS NULL OR pool_account_id = $1::uuid)
-          AND status = 'confirmed'
-          AND operation_type = 'delegate'
+          0 as total_delegates,
+          0 as total_delegated,
+          0 as energy_delegates,
+          0 as bandwidth_delegates
       `;
       
       const [stakeStats, delegateStats] = await Promise.all([
-        query(statsQuery, [targetPoolId]),
-        query(delegateStatsQuery, [targetPoolId])
+        query(statsQuery),
+        query(delegateStatsQuery)
       ]);
       
       const statistics: StakeStatistics = {

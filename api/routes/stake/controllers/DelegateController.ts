@@ -2,7 +2,6 @@
  * 委托操作控制器
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../database/index.js';
 import { tronService } from '../../../services/tron.js';
 import type {
     DelegateOperationRequest,
@@ -59,36 +58,7 @@ export class DelegateController {
       });
       
       if (result.success) {
-        // 记录委托记录
-        try {
-          await query(
-            `INSERT INTO delegate_records (
-              tx_hash, pool_account_id, receiver_address, amount,
-              resource_type, operation_type, lock_period, status, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-            [result.txid, accountId || null, receiverAddress, balance, resource.toUpperCase(), 'delegate', lockPeriod || 0]
-          );
-        } catch (dbError: any) {
-          console.error('记录委托记录失败:', dbError);
-          // 不阻断主流程，只记录日志
-        }
-        
-        // 更新能量池统计
-        if (accountId) {
-          try {
-            const updateField = resource === 'ENERGY' ? 'delegated_energy' : 'delegated_bandwidth';
-            await query(
-              `UPDATE energy_pools 
-               SET ${updateField} = COALESCE(${updateField}, 0) + $1,
-                   last_stake_update = NOW()
-               WHERE id = $2`,
-              [balance, accountId]
-            );
-          } catch (updateError: any) {
-            console.error('更新能量池统计失败:', updateError);
-            // 不阻断主流程，只记录日志
-          }
-        }
+        // 委托成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         
         res.json({ success: true, data: result });
         return;
@@ -151,36 +121,7 @@ export class DelegateController {
       });
       
       if (result.success) {
-        // 记录取消委托记录
-        try {
-          await query(
-            `INSERT INTO delegate_records (
-              tx_hash, pool_account_id, receiver_address, amount,
-              resource_type, operation_type, lock_period, status, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-            [result.txid, accountId || null, receiverAddress, balance, resource.toUpperCase(), 'undelegate', 0]
-          );
-        } catch (dbError: any) {
-          console.error('记录取消委托记录失败:', dbError);
-          // 不阻断主流程，只记录日志
-        }
-        
-        // 更新能量池统计
-        if (accountId) {
-          try {
-            const updateField = resource === 'ENERGY' ? 'delegated_energy' : 'delegated_bandwidth';
-            await query(
-              `UPDATE energy_pools 
-               SET ${updateField} = GREATEST(COALESCE(${updateField}, 0) - $1, 0),
-                   last_stake_update = NOW()
-               WHERE id = $2`,
-              [balance, accountId]
-            );
-          } catch (updateError: any) {
-            console.error('更新能量池统计失败:', updateError);
-            // 不阻断主流程，只记录日志
-          }
-        }
+        // 取消委托成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         
         res.json({ success: true, data: result });
         return;
@@ -234,30 +175,9 @@ export class DelegateController {
             error: result.error || null
           });
           
-          // 记录委托记录和更新统计
+          // 批量委托操作完成（不再存储到数据库，所有数据从TRON网络实时获取）
           if (result.success) {
-            try {
-              await query(
-                `INSERT INTO delegate_records (
-                  tx_hash, pool_account_id, receiver_address, amount,
-                  resource_type, operation_type, lock_period, status, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-                [result.txid, operation.poolId || null, operation.receiverAddress, operation.balance, operation.resource.toUpperCase(), 'delegate', operation.lockPeriod || 0]
-              );
-              
-              if (operation.poolId) {
-                const updateField = operation.resource === 'ENERGY' ? 'delegated_energy' : 'delegated_bandwidth';
-                await query(
-                  `UPDATE energy_pools 
-                   SET ${updateField} = COALESCE(${updateField}, 0) + $1,
-                       last_stake_update = NOW()
-                   WHERE id = $2`,
-                  [operation.balance, operation.poolId]
-                );
-              }
-            } catch (dbError: any) {
-              console.error(`批量委托记录数据库操作失败 (index: ${i}):`, dbError);
-            }
+            console.log(`✅ 批量委托操作成功 (index: ${i}) - 交易ID: ${result.txid}`);
           }
         } catch (opError: any) {
           errors.push({

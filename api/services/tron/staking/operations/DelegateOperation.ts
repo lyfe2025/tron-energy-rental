@@ -1,4 +1,4 @@
-import { query } from '../../../../database/index';
+// import { query } from '../../../../database/index'; // 已移除数据库写入功能
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
     DelegateOperationResult,
@@ -62,18 +62,7 @@ export class DelegateOperation {
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 记录委托到数据库
-        await this.recordDelegateTransaction({
-          transactionId: result.txid,
-          poolId: 1, // 默认能量池ID
-          address: ownerAddress,
-          amount: balance,
-          resourceType: resource,
-          operationType: 'delegate',
-          fromAddress: ownerAddress,
-          toAddress: receiverAddress,
-          lockPeriod: lockPeriod || 3
-        });
+        // 委托成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -126,17 +115,7 @@ export class DelegateOperation {
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 记录取消委托到数据库
-        await this.recordDelegateTransaction({
-          transactionId: result.txid,
-          poolId: 1, // 默认能量池ID
-          address: ownerAddress,
-          amount: balance,
-          resourceType: resource,
-          operationType: 'undelegate',
-          fromAddress: ownerAddress,
-          toAddress: receiverAddress
-        });
+        // 取消委托成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -392,33 +371,11 @@ export class DelegateOperation {
   }
 
   /**
-   * 记录委托相关交易到数据库
+   * @deprecated 已移除数据库存储逻辑，所有委托数据从TRON网络实时获取
+   * 保留此方法以避免类型错误，但不执行任何操作
    */
   private async recordDelegateTransaction(params: StakeTransactionParams): Promise<{ success: boolean; error?: string }> {
-    try {
-      if (params.operationType === 'delegate' || params.operationType === 'undelegate') {
-        // 记录到 delegate_records 表
-        await query(
-          `INSERT INTO delegate_records 
-           (transaction_id, pool_id, from_address, to_address, amount, resource_type, lock_period, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [
-            params.transactionId,
-            params.poolId,
-            params.fromAddress || params.address,
-            params.toAddress || params.address,
-            params.amount,
-            params.resourceType,
-            params.lockPeriod || 3,
-            'confirmed'
-          ]
-        );
-      }
-      
-      return { success: true };
-    } catch (error: any) {
-      console.error('Record delegate transaction error:', error);
-      return { success: false, error: error.message };
-    }
+    console.log('[DelegateOperation] 🔍 recordDelegateTransaction 已废弃 - 所有数据从TRON网络实时获取');
+    return { success: true };
   }
 }
