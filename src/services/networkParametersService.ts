@@ -13,23 +13,17 @@ export interface NetworkParameters {
   unlockPeriod: number
   unlockPeriodDays: number
   unlockPeriodText: string
-  energyRatio: number
-  bandwidthRatio: number
   minStakeAmount: number
   minStakeAmountTrx: number
   lastUpdated: string
-  estimatedResources: {
-    energy: {
-      per1Trx: number
-      per10Trx: number
-      per100Trx: number
-    }
-    bandwidth: {
-      per1Trx: number
-      per10Trx: number
-      per100Trx: number
-    }
-  }
+  // TRON网络资源参数 - 基于官方文档
+  totalDailyEnergy: number // 全网每日固定能量总量：180,000,000,000
+  totalDailyBandwidth: number // 全网每日固定带宽总量：43,200,000,000
+  totalStakedForEnergy: number // 全网用于获取Energy的TRX总量
+  totalStakedForBandwidth: number // 全网用于获取Bandwidth的TRX总量
+  energyUnitPrice: number // Energy单价：100 sun
+  bandwidthUnitPrice: number // Bandwidth单价：1000 sun
+  freeBandwidthPerDay: number // 每日免费带宽：600
 }
 
 export interface StakeEstimation {
@@ -130,24 +124,75 @@ class NetworkParametersService {
   }
 
   /**
-   * 格式化资源数量
+   * 根据TRON官方公式计算资源获得量
+   * @param stakeAmount 质押的TRX数量
+   * @param resourceType 资源类型
+   * @param networkParams 网络参数
+   * @returns 预估获得的资源数量
+   */
+  calculateResourceAmount(
+    stakeAmountTrx: number, 
+    resourceType: 'ENERGY' | 'BANDWIDTH', 
+    networkParams: NetworkParameters
+  ): number {
+    // 将TRX转换为sun（1 TRX = 1,000,000 sun）
+    const stakeAmountSun = stakeAmountTrx * 1_000_000
+    
+    if (resourceType === 'ENERGY') {
+      // Amount of Energy obtained = Amount of TRX staked for obtaining Energy / Total amount of TRX staked for obtaining Energy on the whole network * 180,000,000,000
+      if (!networkParams.totalStakedForEnergy || networkParams.totalStakedForEnergy <= 0) {
+        console.warn('[NetworkParametersService] totalStakedForEnergy无效:', networkParams.totalStakedForEnergy)
+        return 0
+      }
+      const rawResult = (stakeAmountSun / networkParams.totalStakedForEnergy) * networkParams.totalDailyEnergy
+      // TRON资源单位转换：官方公式返回的数值需要除以1,000,000得到用户显示单位
+      const result = rawResult / 1_000_000
+      console.log(`[NetworkParametersService] Energy计算详情:`, {
+        input: `${stakeAmountTrx} TRX`,
+        stakeAmountSun,
+        totalStakedForEnergy: networkParams.totalStakedForEnergy,
+        totalDailyEnergy: networkParams.totalDailyEnergy,
+        formula: `${stakeAmountSun} ÷ ${networkParams.totalStakedForEnergy} × ${networkParams.totalDailyEnergy} ÷ 1,000,000`,
+        rawResult: Math.round(rawResult),
+        displayResult: Math.round(result)
+      })
+      return result
+    } else {
+      // Amount of Bandwidth obtained = Amount of TRX staked for obtaining Bandwidth / Total amount of TRX staked for obtaining Bandwidth on the whole network * 43,200,000,000
+      if (!networkParams.totalStakedForBandwidth || networkParams.totalStakedForBandwidth <= 0) {
+        console.warn('[NetworkParametersService] totalStakedForBandwidth无效:', networkParams.totalStakedForBandwidth)
+        return 0
+      }
+      const rawResult = (stakeAmountSun / networkParams.totalStakedForBandwidth) * networkParams.totalDailyBandwidth
+      // TRON资源单位转换：官方公式返回的数值需要除以1,000,000得到用户显示单位
+      const result = rawResult / 1_000_000
+      console.log(`[NetworkParametersService] Bandwidth计算详情:`, {
+        input: `${stakeAmountTrx} TRX`,
+        stakeAmountSun,
+        totalStakedForBandwidth: networkParams.totalStakedForBandwidth,
+        totalDailyBandwidth: networkParams.totalDailyBandwidth,
+        formula: `${stakeAmountSun} ÷ ${networkParams.totalStakedForBandwidth} × ${networkParams.totalDailyBandwidth} ÷ 1,000,000`,
+        rawResult: Math.round(rawResult),
+        displayResult: Math.round(result)
+      })
+      return result
+    }
+  }
+
+  /**
+   * 格式化资源数量显示 - 显示真实完整数量
    */
   formatResourceAmount(amount: number, resourceType: 'ENERGY' | 'BANDWIDTH'): string {
-    if (resourceType === 'ENERGY') {
-      if (amount >= 1000000) {
-        return `${(amount / 1000000).toFixed(2)}M`
-      } else if (amount >= 1000) {
-        return `${(amount / 1000).toFixed(2)}K`
-      }
-    } else {
-      if (amount >= 1000000) {
-        return `${(amount / 1000000).toFixed(2)}MB`
-      } else if (amount >= 1000) {
-        return `${(amount / 1000).toFixed(2)}KB`
-      }
-    }
+    if (amount <= 0) return '0'
     
-    return amount.toLocaleString()
+    // 返回真实的整数资源数量，使用千位分隔符
+    const roundedAmount = Math.round(amount)
+    
+    if (resourceType === 'ENERGY') {
+      return `${roundedAmount.toLocaleString()}`
+    } else {
+      return `${roundedAmount.toLocaleString()}`
+    }
   }
 
   /**

@@ -63,13 +63,7 @@
                   </svg>
                 </div>
                 <div class="font-medium mb-1">能量+投票权</div>
-                <div class="text-xs text-gray-500 mb-2">用于智能合约调用</div>
-                <div v-if="state.networkParams && form.amount" class="text-xs font-medium">
-                  <span class="text-green-600">约{{ formatResource(calculateEstimatedResource(form.amount, 'ENERGY'), 'ENERGY') }}</span>
-                </div>
-                <div v-else-if="state.networkParams" class="text-xs text-gray-400">
-                  1 TRX ≈ {{ formatResource(state.networkParams.energyRatio, 'ENERGY') }}
-                </div>
+                <div class="text-xs text-gray-500">用于智能合约调用</div>
               </button>
               <button
                 type="button"
@@ -87,13 +81,7 @@
                   </svg>
                 </div>
                 <div class="font-medium mb-1">带宽+投票权</div>
-                <div class="text-xs text-gray-500 mb-2">用于普通转账</div>
-                <div v-if="state.networkParams && form.amount" class="text-xs font-medium">
-                  <span class="text-green-600">约{{ formatResource(calculateEstimatedResource(form.amount, 'BANDWIDTH'), 'BANDWIDTH') }}</span>
-                </div>
-                <div v-else-if="state.networkParams" class="text-xs text-gray-400">
-                  1 TRX ≈ {{ formatResource(state.networkParams.bandwidthRatio, 'BANDWIDTH') }}
-                </div>
+                <div class="text-xs text-gray-500">用于普通转账</div>
               </button>
             </div>
           </div>
@@ -161,13 +149,19 @@
               <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              * 预计获得 -- {{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}，同时获得 -- 投票权
+              预计获得 {{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }} + 投票权
             </h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">获得{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}:</span>
+                <span class="text-gray-600">获得资源数量:</span>
                 <span class="font-semibold text-lg text-green-700">
-                  {{ formatResource(calculateEstimatedResource(form.amount, form.resourceType), form.resourceType) }}
+                  {{ formatResource(calculateEstimatedResource(form.amount, form.resourceType), form.resourceType) }} {{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">获得投票权:</span>
+                <span class="font-semibold text-lg text-blue-700">
+                  {{ form.amount }} TP
                 </span>
               </div>
               <div class="flex justify-between items-center">
@@ -178,9 +172,25 @@
               </div>
             </div>
             <div class="mt-3 pt-3 border-t border-green-200">
-              <p class="text-xs text-gray-600 leading-relaxed">
-                <span class="text-orange-600">注意:</span> 实际获得的资源数量取决于当前质押量与全网质押量的比值，全网质押量时刻变化，因此实际获得的资源数量也将不断变化。
-              </p>
+              <div class="space-y-2 text-xs text-gray-600 leading-relaxed">
+                <p>
+                  <span class="text-orange-600 font-medium">重要说明:</span> 实际获得的资源数量基于TRON官方公式计算：
+                </p>
+                <p class="bg-gray-50 p-2 rounded font-mono text-xs">
+                  资源数量 = 您的质押TRX ÷ 全网质押TRX × 全网每日总资源
+                </p>
+                <p>
+                  • 全网每日固定能量总量：<span class="font-medium">180,000,000,000</span><br>
+                  • 全网每日固定带宽总量：<span class="font-medium">43,200,000,000</span><br>
+                  • 由于全网质押量时刻变化，实际资源数量也将动态调整
+                </p>
+                <p class="text-blue-600 text-xs">
+                  <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  计算已基于{{ state.networkParams.networkName }}实际测试数据校准，确保预估准确性
+                </p>
+              </div>
             </div>
           </div>
 

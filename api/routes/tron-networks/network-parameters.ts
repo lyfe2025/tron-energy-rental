@@ -4,9 +4,9 @@
  */
 
 import { Router } from 'express';
-import { networkParametersService } from '../../services/tron/services/NetworkParametersService';
+import { networkParametersService, NetworkParametersService } from '../../services/tron/services/NetworkParametersService';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * 获取指定网络的参数 (无需认证，供前端质押功能使用)
@@ -33,8 +33,8 @@ router.get('/:networkId/parameters', async (req, res) => {
     const network = networkResult.rows[0];
     console.log(`[NetworkParameters] 获取网络参数: ${network.name} (${network.network_type})`);
 
-    // 获取网络参数
-    const params = await networkParametersService.getNetworkParams(network.network_type);
+    // 获取网络参数 - 传递完整的网络信息以便准确识别
+    const params = await networkParametersService.getNetworkParams(network.network_type, network.rpc_url, network.name);
 
     res.json({
       success: true,
@@ -42,25 +42,23 @@ router.get('/:networkId/parameters', async (req, res) => {
         networkId,
         networkName: network.name,
         networkType: network.network_type,
-        ...params,
-        // 添加用户友好的信息
+        network: params.network,
+        unlockPeriod: params.unlockPeriod,
         unlockPeriodDays: Math.floor(params.unlockPeriod / 24),
         unlockPeriodText: params.unlockPeriod >= 24 
           ? `${Math.floor(params.unlockPeriod / 24)}天`
           : `${params.unlockPeriod}小时`,
+        minStakeAmount: params.minStakeAmount,
         minStakeAmountTrx: params.minStakeAmount / 1000000, // 转换为TRX
-        estimatedResources: {
-          energy: {
-            per1Trx: params.energyRatio,
-            per10Trx: params.energyRatio * 10,
-            per100Trx: params.energyRatio * 100
-          },
-          bandwidth: {
-            per1Trx: params.bandwidthRatio,
-            per10Trx: params.bandwidthRatio * 10,
-            per100Trx: params.bandwidthRatio * 100
-          }
-        }
+        lastUpdated: params.lastUpdated,
+        // TRON网络资源参数 - 基于官方文档
+        totalDailyEnergy: params.totalDailyEnergy,
+        totalDailyBandwidth: params.totalDailyBandwidth,
+        totalStakedForEnergy: params.totalStakedForEnergy,
+        totalStakedForBandwidth: params.totalStakedForBandwidth,
+        energyUnitPrice: params.energyUnitPrice,
+        bandwidthUnitPrice: params.bandwidthUnitPrice,
+        freeBandwidthPerDay: params.freeBandwidthPerDay
       }
     });
 
@@ -93,7 +91,7 @@ router.get('/parameters', async (req, res) => {
     // 并行获取所有网络参数
     const paramPromises = networks.map(async (network) => {
       try {
-        const params = await networkParametersService.getNetworkParams(network.network_type);
+        const params = await networkParametersService.getNetworkParams(network.network_type, network.rpc_url, network.name);
         return {
           networkId: network.id,
           networkName: network.name,
@@ -156,7 +154,7 @@ router.post('/:networkId/parameters/refresh', async (req, res) => {
     }
 
     const network = networkResult.rows[0];
-    const params = await networkParametersService.getNetworkParams(network.network_type);
+    const params = await networkParametersService.getNetworkParams(network.network_type, network.rpc_url, network.name);
 
     res.json({
       success: true,
@@ -216,11 +214,15 @@ router.post('/:networkId/parameters/estimate', async (req, res) => {
     }
 
     const network = networkResult.rows[0];
-    const params = await networkParametersService.getNetworkParams(network.network_type);
+    const params = await networkParametersService.getNetworkParams(network.network_type, network.rpc_url, network.name);
 
-    // 计算预估收益
-    const ratio = resourceType === 'ENERGY' ? params.energyRatio : params.bandwidthRatio;
-    const estimatedResource = amount * ratio;
+    // 使用TRON官方公式计算预估收益
+    const amountInSun = amount * 1000000; // 转换为sun
+    const estimatedResource = NetworkParametersService.calculateResourceAmount(
+      amountInSun,
+      resourceType,
+      params
+    );
 
     res.json({
       success: true,

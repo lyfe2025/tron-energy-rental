@@ -37,16 +37,41 @@ export function useStakeModal(props: BaseOperationProps) {
     }
   }
 
-  // 计算预估资源
+  // 计算预估资源（基于TRON官方公式）
   const calculateEstimatedResource = (amount: string, resourceType: ResourceType) => {
-    if (!state.value.networkParams || !amount) return 0
+    if (!state.value.networkParams || !amount) {
+      console.warn('[StakeModal] 计算预估资源失败 - 缺少参数:', { 
+        hasParams: !!state.value.networkParams, 
+        amount 
+      })
+      return 0
+    }
     
     const amountNum = parseFloat(amount)
-    const ratio = resourceType === 'ENERGY' 
-      ? state.value.networkParams.energyRatio 
-      : state.value.networkParams.bandwidthRatio
-      
-    return amountNum * ratio
+    if (amountNum <= 0) {
+      console.warn('[StakeModal] 计算预估资源失败 - 金额无效:', amountNum)
+      return 0
+    }
+    
+    console.log('[StakeModal] 计算预估资源:', {
+      amount: amountNum,
+      resourceType,
+      networkParams: {
+        totalStakedForEnergy: state.value.networkParams.totalStakedForEnergy,
+        totalStakedForBandwidth: state.value.networkParams.totalStakedForBandwidth,
+        totalDailyEnergy: state.value.networkParams.totalDailyEnergy,
+        totalDailyBandwidth: state.value.networkParams.totalDailyBandwidth
+      }
+    })
+    
+    const result = networkParametersService.calculateResourceAmount(
+      amountNum, 
+      resourceType, 
+      state.value.networkParams
+    )
+    
+    console.log('[StakeModal] 计算结果:', result)
+    return result
   }
 
   // 加载网络参数
@@ -60,6 +85,12 @@ export function useStakeModal(props: BaseOperationProps) {
       const params = await networkParametersService.getNetworkParameters(props.poolId)
       state.value.networkParams = params
       console.log('[StakeModal] 网络参数加载完成:', params)
+      console.log('[StakeModal] 关键参数检查:', {
+        totalStakedForEnergy: params.totalStakedForEnergy,
+        totalStakedForBandwidth: params.totalStakedForBandwidth,
+        totalDailyEnergy: params.totalDailyEnergy,
+        totalDailyBandwidth: params.totalDailyBandwidth
+      })
     } catch (err: any) {
       console.error('[StakeModal] 加载网络参数失败:', err)
       state.value.error = `无法加载网络参数: ${err.message}`
