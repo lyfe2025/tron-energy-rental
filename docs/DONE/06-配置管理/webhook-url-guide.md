@@ -121,7 +121,8 @@ node scripts/test-webhook-setup.js
 ### 自动迁移脚本
 
 ```bash
-node scripts/migrate-webhook-urls.js
+# 注意: 此脚本已移动到归档目录
+node scripts/archive/migrate-webhook-urls.js
 ```
 
 该脚本会：
