@@ -203,9 +203,12 @@ import { getNetworkTypeText } from '@/utils/network'
 import { RefreshCw } from 'lucide-vue-next'
 import { onMounted, watch } from 'vue'
 import AccountSelector from '../components/AccountSelector.vue'
-import DelegateModal from '../components/DelegateModal.vue'
-import StakeModal from '../components/StakeModal.vue'
-import UnstakeModal from '../components/UnstakeModal.vue'
+// 使用新的质押操作组件结构
+import {
+    DelegateModal,
+    StakeModal,
+    UnstakeModal
+} from '../components/StakeOperations'
 import ErrorDisplay from './components/ErrorDisplay.vue'
 import StakeHistory from './components/StakeHistory.vue'
 import StakeOperations from './components/StakeOperations.vue'

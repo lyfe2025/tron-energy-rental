@@ -117,13 +117,13 @@
 
 <script setup lang="ts">
 import {
-  Battery,
-  CheckCircle,
-  Database,
-  RefreshCw,
-  Signal,
-  Wifi,
-  Zap
+    Battery,
+    CheckCircle,
+    Database,
+    RefreshCw,
+    Signal,
+    Wifi,
+    Zap
 } from 'lucide-vue-next'
 
 interface Props {

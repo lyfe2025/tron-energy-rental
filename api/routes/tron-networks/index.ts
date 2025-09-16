@@ -35,7 +35,14 @@ import {
     toggleNetworkStatus
 } from './controllers/NetworkHealthController.js';
 
+// 导入网络参数路由
+import networkParametersRouter from './network-parameters.js';
+
 const router: Router = Router();
+
+// ==================== 网络参数路由 (无需认证) ====================
+// 将无需认证的网络参数路由放在前面，优先匹配
+router.use('/', networkParametersRouter);
 
 // ==================== 基础CRUD操作路由 ====================
 // 网络列表和详情
@@ -68,6 +75,8 @@ router.get('/:id/chain-parameters', authenticateToken, requireAdmin, getChainPar
 router.get('/:id/node-info', authenticateToken, requireAdmin, getNodeInfo);
 router.get('/:id/block-info', authenticateToken, requireAdmin, getBlockInfo);
 router.get('/:id/stats', authenticateToken, requireAdmin, getNetworkStats);
+
+// 网络参数路由已在前面注册
 
 // ==================== TODO: 待实现的功能路由 ====================
 // 注意：这些路由在原文件中被注释，保持与原文件一致
