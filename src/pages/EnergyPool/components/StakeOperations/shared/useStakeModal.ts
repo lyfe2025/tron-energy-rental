@@ -6,10 +6,10 @@ import networkParametersService from '@/services/networkParametersService'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useStake } from '../../../composables/useStake'
 import type {
-    BaseOperationProps,
-    ModalState,
-    OperationResult,
-    ResourceType
+  BaseOperationProps,
+  ModalState,
+  OperationResult,
+  ResourceType
 } from './types'
 
 export function useStakeModal(props: BaseOperationProps) {
@@ -158,6 +158,9 @@ export function useStakeModal(props: BaseOperationProps) {
     
     // 计算属性
     isFormValid,
+    
+    // 账户信息
+    accountName: props.accountName,
     
     // 方法
     formatResource,

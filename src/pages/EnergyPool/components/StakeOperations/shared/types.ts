@@ -9,6 +9,7 @@ export interface BaseOperationProps {
   poolId: string
   accountId?: string
   accountAddress?: string
+  accountName?: string
 }
 
 // 质押操作参数

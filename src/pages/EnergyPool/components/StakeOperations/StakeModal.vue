@@ -93,11 +93,11 @@
               <input
                 v-model="form.amount"
                 type="text"
-                pattern="[0-9]*\.?[0-9]*"
+                pattern="[0-9]*"
                 required
                 class="w-full px-4 py-3 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                placeholder="请输入质押数量"
-                @input="(event) => validateNumberInput(event, (value) => form.amount = value)"
+                placeholder="请输入质押数量（整数）"
+                @input="(event) => validateIntegerInput(event, (value) => form.amount = value)"
               />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4">
                 <span class="text-gray-500 font-medium">TRX</span>
@@ -107,16 +107,38 @@
               <p class="text-xs text-gray-500">
                 最小质押: {{ state.networkParams?.minStakeAmountTrx || 1 }} TRX
               </p>
-              <div v-if="state.networkParams && form.amount" class="text-xs">
+              <div v-if="state.networkParams" class="text-xs">
                 <span class="text-gray-500">可用:</span>
-                <span class="text-green-600 font-medium">1,900 TRX</span>
+                <span v-if="accountDataLoading" class="text-gray-400 animate-pulse">
+                  加载中...
+                </span>
+                <span v-else-if="realTimeData" class="text-green-600 font-medium">
+                  {{ availableTrxBalance.toLocaleString() }} TRX
+                </span>
+                <span v-else class="text-gray-400">
+                  -- TRX
+                </span>
                 <button 
                   type="button" 
-                  @click="form.amount = '1900'" 
-                  class="ml-1 text-blue-600 hover:text-blue-700 underline"
+                  @click="handleMaxAmount"
+                  :disabled="!realTimeData || availableTrxBalance <= 0"
+                  class="ml-1 text-blue-600 hover:text-blue-700 underline disabled:text-gray-400 disabled:no-underline"
                 >
                   MAX
                 </button>
+              </div>
+            </div>
+            
+            <!-- 余额不足提示 -->
+            <div v-if="form.amount && !isAmountValid && parseFloat(form.amount) > 0" class="mt-2">
+              <div v-if="parseFloat(form.amount) > availableTrxBalance" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                ⚠️ 余额不足：需要 {{ form.amount }} TRX，可用 {{ availableTrxBalance.toLocaleString() }} TRX
+              </div>
+              <div v-else-if="parseFloat(form.amount) < (state.networkParams?.minStakeAmountTrx || 1)" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                ⚠️ 质押金额不能小于最小质押金额 {{ state.networkParams?.minStakeAmountTrx || 1 }} TRX
+              </div>
+              <div v-else-if="parseFloat(form.amount) !== Math.floor(parseFloat(form.amount))" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                ⚠️ 质押金额必须为整数
               </div>
             </div>
           </div>
@@ -215,7 +237,7 @@
           <button
             type="button"
             @click="handleSubmit"
-            :disabled="state.loading || !isFormValid || !state.networkParams"
+            :disabled="state.loading || !enhancedIsFormValid || !state.networkParams || accountDataLoading"
             :class="buttonClasses.primary"
             class="flex-1"
           >
@@ -231,14 +253,37 @@
         </div>
       </div>
     </div>
+
+    <!-- 交易确认弹窗 -->
+    <TransactionConfirmModal
+      v-if="showTransactionConfirm && transactionData"
+      :transaction-data="transactionData"
+      :network-params="state.networkParams"
+      :estimated-resource="calculateEstimatedResource(form.amount, form.resourceType)"
+      :account-name="accountName || '未知账户'"
+      @confirm="handleTransactionConfirm"
+      @reject="handleTransactionReject"
+    />
+
+    <!-- 交易结果弹窗 -->
+    <TransactionResultModal
+      v-if="showTransactionResult"
+      :estimated-resource="calculateEstimatedResource(form.amount, form.resourceType)"
+      :resource-type="form.resourceType"
+      @confirm="handleTransactionResultConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useNumberInput } from '@/composables/useNumberInput'
-import { ref } from 'vue'
+import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { StakeFormData, StakeOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
+import type { TransactionData } from './TransactionConfirmModal.vue'
+import TransactionConfirmModal from './TransactionConfirmModal.vue'
+import TransactionResultModal from './TransactionResultModal.vue'
 
 interface Emits {
   close: []
@@ -253,11 +298,35 @@ const {
   isFormValid,
   formatResource,
   calculateEstimatedResource,
-  executeStakeOperation
+  executeStakeOperation,
+  accountName
 } = useStakeModal(props)
+
+// 实时账户数据
+const {
+  realTimeData,
+  loading: accountDataLoading,
+  fetchRealTimeData,
+  formatTrx
+} = useRealTimeAccountData()
 
 // 数字输入验证
 const { validateNumberInput } = useNumberInput()
+
+// 整数输入验证函数
+const validateIntegerInput = (event: Event, callback: (value: string) => void) => {
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  
+  // 只允许数字
+  const numericValue = value.replace(/[^0-9]/g, '')
+  
+  // 更新输入框值
+  target.value = numericValue
+  
+  // 调用回调函数
+  callback(numericValue)
+}
 
 // 表单数据
 const form = ref<StakeFormData>({
@@ -265,22 +334,117 @@ const form = ref<StakeFormData>({
   amount: ''
 })
 
-// 处理表单提交
-const handleSubmit = async () => {
-  if (!isFormValid.value || !state.value.networkParams) return
+// 计算可用TRX余额（转换为TRX单位，向下取整）
+const availableTrxBalance = computed(() => {
+  return realTimeData.value ? Math.floor(realTimeData.value.balance / 1000000) : 0
+})
 
+// 计算表单验证状态（包括余额检查）
+const isAmountValid = computed(() => {
+  if (!form.value.amount) return false
+  const amount = parseFloat(form.value.amount)
+  if (isNaN(amount) || amount <= 0) return false
+  
+  // 检查是否为整数
+  if (amount !== Math.floor(amount)) return false
+  
+  // 检查最小质押金额
+  const minStakeAmount = state.value.networkParams?.minStakeAmountTrx || 1
+  if (amount < minStakeAmount) return false
+  
+  // 检查是否超过可用余额
+  if (amount > availableTrxBalance.value) return false
+  
+  return true
+})
+
+// 重新计算表单验证状态
+const enhancedIsFormValid = computed(() => {
+  return isFormValid.value && isAmountValid.value
+})
+
+// 交易确认弹窗状态
+const showTransactionConfirm = ref(false)
+const transactionData = ref<TransactionData | null>(null)
+
+// 交易结果弹窗状态
+const showTransactionResult = ref(false)
+
+// 处理表单提交 - 显示交易确认弹窗
+const handleSubmit = async () => {
+  if (!enhancedIsFormValid.value || !state.value.networkParams) return
+
+  // 准备交易数据
+  transactionData.value = {
+    amount: parseFloat(form.value.amount),
+    resourceType: form.value.resourceType,
+    accountAddress: props.accountAddress,
+    poolId: props.poolId,
+    accountId: props.accountId
+  }
+
+  // 显示交易确认弹窗
+  showTransactionConfirm.value = true
+}
+
+// 处理最大金额按钮
+const handleMaxAmount = () => {
+  if (availableTrxBalance.value > 0) {
+    // 设置为最大可用余额（不保留手续费，因为TRON质押手续费很低）
+    form.value.amount = availableTrxBalance.value.toString()
+  }
+}
+
+// 获取账户数据
+const loadAccountData = async () => {
+  if (props.accountAddress) {
+    try {
+      await fetchRealTimeData(props.accountAddress, props.poolId, false)
+    } catch (err) {
+      console.error('获取账户数据失败:', err)
+    }
+  }
+}
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadAccountData()
+})
+
+// 监听账户地址变化
+watch(() => props.accountAddress, (newAddress) => {
+  if (newAddress) {
+    loadAccountData()
+  }
+}, { immediate: true })
+
+// 处理交易确认
+const handleTransactionConfirm = async (data: TransactionData) => {
   try {
     const result = await executeStakeOperation(
-      parseFloat(form.value.amount),
-      form.value.resourceType
+      data.amount,
+      data.resourceType
     )
 
     if (result.success) {
-      emit('success')
-      alert(result.message)
+      // 关闭交易确认弹窗，显示交易结果弹窗
+      showTransactionConfirm.value = false
+      showTransactionResult.value = true
     }
   } catch (err: any) {
     console.error('质押操作失败:', err)
   }
+}
+
+// 处理交易拒绝
+const handleTransactionReject = () => {
+  showTransactionConfirm.value = false
+  transactionData.value = null
+}
+
+// 处理交易结果确认
+const handleTransactionResultConfirm = () => {
+  showTransactionResult.value = false
+  emit('success')
 }
 </script>
