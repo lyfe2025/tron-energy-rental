@@ -33,19 +33,40 @@
                   </svg>
                 </button>
               </div>
-              <div class="flex items-center space-x-3 mt-2">
-                <div class="flex items-center space-x-1">
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span class="text-sm text-gray-700">总能量: 
-                    <span class="font-semibold text-orange-600">{{ formatEnergy(realTimeAccountData.realTimeData.value?.energy.total || selectedAccount.total_energy) }}</span>
-                  </span>
+              <!-- 能量和带宽信息 - 两行布局 -->
+              <div class="space-y-2 mt-2">
+                <!-- 第一行：能量信息 -->
+                <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-700">总能量: 
+                      <span class="font-semibold text-orange-600">{{ formatEnergy(realTimeAccountData.realTimeData.value?.energy.total || selectedAccount.total_energy) }}</span>
+                    </span>
+                  </div>
+                  <span class="text-gray-300">|</span>
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-700">可用能量: 
+                      <span class="font-semibold text-blue-600">{{ formatEnergy(realTimeAccountData.realTimeData.value?.energy.available || selectedAccount.available_energy) }}</span>
+                    </span>
+                  </div>
                 </div>
-                <span class="text-gray-300">|</span>
-                <div class="flex items-center space-x-1">
-                  <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span class="text-sm text-gray-700">可用能量: 
-                    <span class="font-semibold text-blue-600">{{ formatEnergy(realTimeAccountData.realTimeData.value?.energy.available || selectedAccount.available_energy) }}</span>
-                  </span>
+                
+                <!-- 第二行：带宽信息 -->
+                <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-700">总带宽: 
+                      <span class="font-semibold text-purple-600">{{ formatBandwidth(realTimeAccountData.realTimeData.value?.bandwidth.total || 0) }}</span>
+                    </span>
+                  </div>
+                  <span class="text-gray-300">|</span>
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-700">可用带宽: 
+                      <span class="font-semibold text-pink-600">{{ formatBandwidth(realTimeAccountData.realTimeData.value?.bandwidth.available || 0) }}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -329,6 +350,21 @@
         </div>
         
         <div class="grid grid-cols-1 gap-2">
+          <!-- 免费带宽 -->
+          <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <div class="p-1 bg-green-50 rounded-full">
+                  <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <p class="text-xs font-medium text-gray-600">每日免费</p>
+              </div>
+              <p class="text-sm font-bold text-green-600">{{ realTimeAccountData.formatBandwidth(calculateFreeBandwidth()) }}</p>
+            </div>
+          </div>
+
           <!-- 质押获得带宽 -->
           <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
             <div class="flex items-center justify-between">
@@ -444,6 +480,18 @@ const copyAddress = async () => {
     }
     document.body.removeChild(textArea)
   }
+}
+
+// 计算免费带宽可用量
+const calculateFreeBandwidth = (): number => {
+  const bandwidthData = realTimeAccountData.realTimeData.value?.bandwidth
+  if (!bandwidthData) return 0
+  
+  // TRON免费带宽通常是600，但使用API返回的数据更准确
+  // 免费带宽可用 = 600 - freeUsed
+  const freeLimit = 600 // TRON网络免费带宽额度
+  const freeUsed = bandwidthData.freeUsed || 0
+  return Math.max(0, freeLimit - freeUsed)
 }
 
 // 刷新实时数据

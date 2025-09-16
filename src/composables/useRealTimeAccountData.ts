@@ -24,8 +24,8 @@ export interface RealTimeAccountData {
     used?: number
     delegatedOut?: number
     delegatedIn?: number
-    freeUsed?: number // 免费带宽已使用（调试信息）
-    stakedUsed?: number // 质押带宽已使用（调试信息）
+    freeUsed?: number // 免费带宽已使用
+    stakedUsed?: number // 质押带宽已使用
   }
   estimatedCostPerEnergy: number
   estimatedCostPerBandwidth: number
