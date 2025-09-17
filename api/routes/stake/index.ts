@@ -70,7 +70,7 @@ router.post('/batch-delegate', authenticateToken, DelegateController.batchDelega
 // 提取已解冻的资金
 router.post('/withdraw', authenticateToken, WithdrawController.withdraw);
 
-// 获取可提取资金信息
+// 获取可提取TRX信息
 router.get('/withdrawable-info', authenticateToken, WithdrawController.getWithdrawableInfo);
 
 // 批量提取操作（扩展功能）

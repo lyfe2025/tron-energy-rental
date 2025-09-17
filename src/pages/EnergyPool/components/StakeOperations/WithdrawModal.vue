@@ -1,5 +1,5 @@
 <!--
-  提取资金模态框组件
+  提取TRX模态框组件
   优化版本：结构清晰，不会超出页面
 -->
 <template>
@@ -9,7 +9,7 @@
       <div :class="modalClasses.header">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">提取资金</h3>
+            <h3 class="text-lg font-semibold text-gray-900">提取TRX</h3>
             <p class="text-sm text-blue-600 mt-1" v-if="state.networkParams">
               {{ state.networkParams.networkName }} · 提取已解质押的TRX
             </p>
@@ -37,19 +37,19 @@
                 </svg>
               </div>
               <div>
-                <h4 class="text-sm font-medium text-green-900 mb-1">资金提取说明</h4>
-                <p class="text-xs text-green-700">只能提取已完成解质押等待期的TRX。提取后资金将直接转入您的账户余额。</p>
+                <h4 class="text-sm font-medium text-green-900 mb-1">TRX提取说明</h4>
+                <p class="text-xs text-green-700">只能提取已完成解质押等待期的TRX。提取后TRX将直接转入您的账户余额。</p>
               </div>
             </div>
           </div>
 
-          <!-- 可提取资金概览 -->
+          <!-- 可提取TRX概览 -->
           <div class="bg-gray-50 rounded-lg p-6">
             <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              可提取资金
+              可提取TRX
             </h4>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,7 +74,7 @@
                 </div>
               </div>
 
-              <!-- 等待中的资金 -->
+              <!-- 等待中的TRX -->
               <div class="bg-white rounded-lg p-4 border border-orange-200">
                 <div class="text-center">
                   <div class="text-2xl font-bold text-orange-600 mb-1">500.00</div>
@@ -196,7 +196,7 @@
               处理中...
             </span>
             <span v-else-if="hasWithdrawableAmount">提取全部 (1,250.00 TRX)</span>
-            <span v-else>暂无可提取资金</span>
+            <span v-else>暂无可提取TRX</span>
           </button>
         </div>
       </div>

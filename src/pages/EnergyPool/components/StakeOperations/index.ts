@@ -28,7 +28,7 @@ export const operationTitles = {
   [StakeOperation.STAKE]: '质押TRX',
   [StakeOperation.UNSTAKE]: '解质押TRX',
   [StakeOperation.DELEGATE]: '代理资源',
-  [StakeOperation.WITHDRAW]: '提取资金'
+  [StakeOperation.WITHDRAW]: '提取TRX'
 }
 
 // 操作描述映射

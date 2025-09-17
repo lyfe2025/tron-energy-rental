@@ -92,7 +92,7 @@
             <div class="text-sm text-yellow-800">
               <p class="font-medium mb-1">解质押说明:</p>
               <ul class="list-disc list-inside space-y-1">
-                <li>解质押后需要等待14天才能提取资金</li>
+                <li>解质押后需要等待14天才能提取TRX</li>
                 <li>解质押期间不会获得任何收益</li>
                 <li>解质押后对应的资源将立即失效</li>
               </ul>

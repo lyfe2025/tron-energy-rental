@@ -47,7 +47,7 @@
           <svg class="w-8 h-8 text-purple-600 mx-auto mb-2 group-hover:text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          <p class="text-sm font-medium text-purple-600 group-hover:text-purple-700">提取资金</p>
+          <p class="text-sm font-medium text-purple-600 group-hover:text-purple-700">提取TRX</p>
         </div>
       </button>
     </div>

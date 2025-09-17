@@ -66,9 +66,9 @@
     </div>
 
     <!-- 记录列表 -->
-    <div v-else-if="delegateRecords.length > 0" class="space-y-4">
+    <div v-else-if="filteredDelegateRecords.length > 0" class="space-y-4">
       <div
-        v-for="record in delegateRecords"
+        v-for="record in filteredDelegateRecords"
         :key="record.id"
         class="bg-gray-50 rounded-lg p-4 border border-gray-200"
       >
@@ -182,12 +182,14 @@
       <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">暂无代理记录</h3>
-      <p class="text-gray-600">当前没有找到任何代理记录</p>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">
+        {{ getEmptyStateTitle() }}
+      </h3>
+      <p class="text-gray-600">{{ getEmptyStateMessage() }}</p>
     </div>
 
     <!-- 分页 -->
-    <div v-if="delegateRecords.length > 0 && pagination.totalPages > 1" class="mt-6 flex justify-center">
+    <div v-if="filteredDelegateRecords.length > 0 && pagination.totalPages > 1" class="mt-6 flex justify-center">
       <nav class="flex items-center space-x-2">
         <button
           @click="changePage(pagination.page - 1)"
@@ -240,7 +242,7 @@
 
 <script setup lang="ts">
 import { useNetworkStore } from '@/stores/network';
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useEnergyPool } from '../composables/useEnergyPool';
 import type { DelegateRecord } from '../composables/useStake';
 import { useStake } from '../composables/useStake';
@@ -250,6 +252,7 @@ const props = defineProps<{
   poolId: string      // 实际上是网络ID
   networkId: string   // 网络ID
   accountId: string   // 能量池账户ID
+  delegateDirection?: 'out' | 'in'  // 代理方向：out=代理出去，in=代理获得
 }>()
 
 // 组合式函数
@@ -274,6 +277,37 @@ const {
   accounts: energyPools,
   loadAccounts: loadEnergyPools
 } = useEnergyPool()
+
+// 当前账户地址
+const currentAccountAddress = ref<string>('')
+
+// 获取当前账户地址
+const getCurrentAccountAddress = () => {
+  const account = energyPools.value.find(acc => acc.id === props.accountId)
+  return account?.tron_address || ''
+}
+
+// 过滤后的代理记录
+const filteredDelegateRecords = computed(() => {
+  if (!props.delegateDirection) {
+    return delegateRecords.value
+  }
+
+  const currentAddress = getCurrentAccountAddress()
+  if (!currentAddress) {
+    return []
+  }
+
+  return delegateRecords.value.filter(record => {
+    if (props.delegateDirection === 'out') {
+      // 代理出去：toAddress 不是当前地址
+      return record.toAddress.toLowerCase() !== currentAddress.toLowerCase()
+    } else {
+      // 代理获得：toAddress 是当前地址
+      return record.toAddress.toLowerCase() === currentAddress.toLowerCase()
+    }
+  })
+})
 
 // 网络存储
 const networkStore = useNetworkStore()
@@ -384,6 +418,26 @@ const confirmUndelegate = async () => {
   } finally {
     undelegating.value = false
   }
+}
+
+// 获取空状态标题
+const getEmptyStateTitle = () => {
+  if (props.delegateDirection === 'out') {
+    return '暂无代理出去记录'
+  } else if (props.delegateDirection === 'in') {
+    return '暂无代理获得记录'
+  }
+  return '暂无代理记录'
+}
+
+// 获取空状态消息
+const getEmptyStateMessage = () => {
+  if (props.delegateDirection === 'out') {
+    return '当前没有找到任何代理出去的记录'
+  } else if (props.delegateDirection === 'in') {
+    return '当前没有找到任何代理获得的记录'
+  }
+  return '当前没有找到任何代理记录'
 }
 
 // 监听poolId变化

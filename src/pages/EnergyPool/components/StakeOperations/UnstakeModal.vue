@@ -38,7 +38,7 @@
               </div>
               <div>
                 <h4 class="text-sm font-medium text-orange-900 mb-1">解质押说明</h4>
-                <p class="text-xs text-orange-700">解质押后需要等待{{ state.networkParams?.unlockPeriodText || '14天' }}才能提取资金。解质押期间无法获得资源收益。</p>
+                <p class="text-xs text-orange-700">解质押后需要等待{{ state.networkParams?.unlockPeriodText || '14天' }}才能提取TRX。解质押期间无法获得资源收益。</p>
               </div>
             </div>
           </div>

@@ -117,7 +117,7 @@ export const energyPoolAPI = {
     }>>(`/api/energy-pool/${id}/deposit`, data),
 
   /**
-   * 从能量池提取资金
+   * 从能量池提取TRX
    */
   withdrawFromPool: (id: string, data: {
     amount: number

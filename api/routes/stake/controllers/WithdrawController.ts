@@ -22,7 +22,7 @@ export class WithdrawController {
         });
       }
       
-      // 检查可提取资金 - 改为从TRON网络实时获取
+      // 检查可提取TRX - 改为从TRON网络实时获取
       // 通过获取账户信息检查是否有可提取的解质押资金
       let result: any;
       try {
@@ -48,7 +48,7 @@ export class WithdrawController {
         // 执行提取
         result = await tronService.withdrawExpireUnfreeze({ ownerAddress });
       } catch (error: any) {
-        console.error('获取可提取资金信息失败:', error);
+        console.error('获取可提取TRX信息失败:', error);
         return res.status(500).json({
           success: false,
           error: 'Failed to check withdrawable funds',
@@ -74,7 +74,7 @@ export class WithdrawController {
         });
       }
     } catch (error: any) {
-      console.error('提取资金失败:', error);
+      console.error('提取TRX失败:', error);
       res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',
@@ -84,7 +84,7 @@ export class WithdrawController {
   };
 
   /**
-   * 获取可提取资金信息
+   * 获取可提取TRX信息
    */
   static getWithdrawableInfo: RouteHandler = async (req: Request, res: Response) => {
     try {
@@ -97,7 +97,7 @@ export class WithdrawController {
         });
       }
       
-      // 获取可提取资金详情 - 改为从TRON网络实时获取
+      // 获取可提取TRX详情 - 改为从TRON网络实时获取
       // 使用空结果集，因为所有数据现在从TRON网络实时获取
       const result = { rows: [] };
       
@@ -129,7 +129,7 @@ export class WithdrawController {
         return;
       
     } catch (error: any) {
-      console.error('获取可提取资金信息失败:', error);
+      console.error('获取可提取TRX信息失败:', error);
       res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',
@@ -158,7 +158,7 @@ export class WithdrawController {
       for (let i = 0; i < addresses.length; i++) {
         const address = addresses[i];
         try {
-          // 检查可提取资金
+          // 检查可提取TRX
           // 改为从TRON网络实时获取可提取信息
           const withdrawableQuery = `
             SELECT 0 as count, 0 as total_amount

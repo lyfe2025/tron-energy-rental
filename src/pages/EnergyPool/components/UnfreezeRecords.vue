@@ -147,7 +147,7 @@
               @click="withdrawFunds(record)"
               class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
             >
-              提取资金
+              提取TRX
             </button>
           </div>
         </div>
@@ -213,7 +213,7 @@
     <!-- 提取确认对话框 -->
     <div v-if="showWithdrawDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">确认提取资金</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">确认提取TRX</h3>
         <p class="text-gray-600 mb-6">
           确定要提取 {{ formatTrx(selectedRecord?.amount || 0) }} 吗？
         </p>
@@ -421,7 +421,7 @@ const confirmWithdraw = async () => {
     showWithdrawDialog.value = false
     selectedRecord.value = null
   } catch (error) {
-    console.error('提取资金失败:', error)
+    console.error('提取TRX失败:', error)
   } finally {
     withdrawing.value = false
   }

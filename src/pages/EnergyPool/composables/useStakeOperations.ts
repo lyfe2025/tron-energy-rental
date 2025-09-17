@@ -55,11 +55,11 @@ export function useStakeOperations() {
       if (response.data.success) {
         return response.data.data
       } else {
-        throw new Error(response.data.message || '提取资金失败')
+        throw new Error(response.data.message || '提取TRX失败')
       }
     } catch (err: any) {
-      error.value = err.message || '提取资金失败'
-      console.error('提取资金失败:', err)
+      error.value = err.message || '提取TRX失败'
+      console.error('提取TRX失败:', err)
       throw err
     } finally {
       loading.value = false
