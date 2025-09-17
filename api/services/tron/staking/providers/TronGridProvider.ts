@@ -1,9 +1,9 @@
 import type {
-    ChainParametersResponse,
-    NetworkConfig,
-    ServiceResponse,
-    TronGridAccountResponse,
-    TronGridConfig
+  ChainParametersResponse,
+  NetworkConfig,
+  ServiceResponse,
+  TronGridAccountResponse,
+  TronGridConfig
 } from '../types/staking.types';
 import { NetworkProvider } from './NetworkProvider';
 

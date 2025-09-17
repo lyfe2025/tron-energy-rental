@@ -1,13 +1,13 @@
 // import { query } from '../../../../database/index'; // 已移除数据库写入功能
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
-    DelegateOperationResult,
-    DelegateResourceParams,
-    FormattedStakeRecord,
-    OperationParams,
-    ServiceResponse,
-    StakeTransactionParams,
-    UndelegateResourceParams
+  DelegateOperationResult,
+  DelegateResourceParams,
+  FormattedStakeRecord,
+  OperationParams,
+  ServiceResponse,
+  StakeTransactionParams,
+  UndelegateResourceParams
 } from '../types/staking.types';
 
 /**
@@ -21,6 +21,47 @@ export class DelegateOperation {
   constructor(params: OperationParams) {
     this.tronWeb = params.tronWeb;
     this.tronGridProvider = new TronGridProvider(params.networkConfig);
+  }
+
+  /**
+   * 智能地址格式转换
+   * 将各种格式的地址转换为Base58格式（T开头）
+   */
+  private convertToBase58Address(address: string): string {
+    if (!address) return '';
+    
+    try {
+      // 如果已经是Base58格式（T开头），直接返回
+      if (address.startsWith('T') && address.length === 34) {
+        return address;
+      }
+      
+      // 如果是十六进制格式（41开头），转换为Base58
+      if (address.startsWith('41') && address.length === 42) {
+        return this.tronWeb.address.fromHex(address);
+      }
+      
+      // 尝试作为十六进制地址转换
+      const base58Address = this.tronWeb.address.fromHex(address);
+      if (base58Address && base58Address.startsWith('T')) {
+        return base58Address;
+      }
+      
+      // 如果转换失败，记录警告并返回原始地址
+      console.warn('无法转换地址格式:', {
+        原始地址: address,
+        地址长度: address.length,
+        地址前缀: address.substring(0, 4)
+      });
+      return address;
+      
+    } catch (error) {
+      console.warn('地址转换失败:', {
+        地址: address,
+        错误: error
+      });
+      return address;
+    }
   }
 
   /**
@@ -150,14 +191,15 @@ export class DelegateOperation {
     try {
       console.log(`[DelegateOperation] 尝试获取地址 ${address} 的代理交易记录`);
       
-      let transactions: any[] = [];
+      let outgoingTransactions: any[] = [];
+      let incomingTransactions: any[] = [];
       
-      // 使用TronGrid API获取代理相关交易
-      const transactionsResponse = await this.tronGridProvider.getAccountTransactions(address, limit);
+      // 1. 获取发起方交易（当前账户代理给别人）
+      const outgoingResponse = await this.tronGridProvider.getAccountTransactions(address, limit);
       
-      if (transactionsResponse.success && transactionsResponse.data) {
-        const allTransactions = transactionsResponse.data;
-        console.log(`[DelegateOperation] 获取到所有交易: ${allTransactions.length} 条`);
+      if (outgoingResponse.success && outgoingResponse.data) {
+        const allTransactions = outgoingResponse.data;
+        console.log(`[DelegateOperation] 获取到发起方交易: ${allTransactions.length} 条`);
         
         // 客户端筛选代理相关交易
         const delegateContractTypes = [
@@ -170,19 +212,22 @@ export class DelegateOperation {
           delegateContractTypes
         );
         
-        console.log(`[DelegateOperation] 筛选出代理相关交易: ${filteredTransactions.length} 条`);
-        
-        // 按时间戳降序排序并限制数量
-        transactions = filteredTransactions
-          .sort((a, b) => (b.block_timestamp || 0) - (a.block_timestamp || 0))
-          .slice(0, limit);
-      } else {
-        console.warn('[DelegateOperation] TronGrid API获取代理交易失败');
+        console.log(`[DelegateOperation] 筛选出发起方代理交易: ${filteredTransactions.length} 条`);
+        outgoingTransactions = filteredTransactions;
       }
 
-      // 如果没有找到真实的代理记录，返回空数据
-      if (transactions.length === 0) {
-        console.log('[DelegateOperation] 未找到代理记录');
+      // 2. 尝试获取接收方交易（别人代理给当前账户）
+      // 注意：TronGrid API 主要返回发起方交易，接收方交易需要通过其他方式获取
+      console.log(`[DelegateOperation] 🔍 接收方代理记录需要通过发起方交易逆向获取...`);
+      // 暂时跳过接收方交易的直接获取，因为TronGrid API限制
+      console.log(`[DelegateOperation] ℹ️ 接收方代理记录将通过业务逻辑处理`);
+      incomingTransactions = []; // 暂时设为空数组
+
+      // 3. 合并所有交易记录
+      const allTransactions = [...outgoingTransactions, ...incomingTransactions];
+      
+      if (allTransactions.length === 0) {
+        console.log('[DelegateOperation] 未找到任何代理记录');
         return {
           success: true,
           data: [],
@@ -190,8 +235,13 @@ export class DelegateOperation {
         };
       }
 
+      // 按时间戳降序排序并限制数量
+      const sortedTransactions = allTransactions
+        .sort((a, b) => (b.block_timestamp || 0) - (a.block_timestamp || 0))
+        .slice(0, limit);
+
       // 转换为标准格式
-      const formattedRecords = this.formatDelegateTransactions(transactions, address);
+      const formattedRecords = this.formatDelegateTransactions(sortedTransactions, address);
 
       console.log(`[DelegateOperation] 成功格式化 ${formattedRecords.length} 条代理交易记录`);
 
@@ -229,13 +279,15 @@ export class DelegateOperation {
           operationType = 'delegate';
           resourceType = parameter?.resource || 'ENERGY';
           amount = parameter?.balance || 0;
-          toAddress = parameter?.receiver_address || '';
+          // 智能地址格式转换
+          toAddress = this.convertToBase58Address(parameter?.receiver_address || '');
           break;
         case 'UnDelegateResourceContract':
           operationType = 'undelegate';
           resourceType = parameter?.resource || 'ENERGY';
           amount = parameter?.balance || 0;
-          toAddress = parameter?.receiver_address || '';
+          // 智能地址格式转换
+          toAddress = this.convertToBase58Address(parameter?.receiver_address || '');
           break;
       }
 

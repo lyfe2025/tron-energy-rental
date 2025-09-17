@@ -10,8 +10,8 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">全部</option>
-          <option value="delegate">代理</option>
-          <option value="undelegate">取消代理</option>
+          <option value="delegate">{{ getDelegateOperationText() }}</option>
+          <option value="undelegate">{{ getUndelegateOperationText() }}</option>
         </select>
       </div>
 
@@ -105,7 +105,7 @@
             <div>
               <div class="flex items-center space-x-2">
                 <span class="font-medium text-gray-900">
-                  {{ getOperationTypeText(record.operationType) }}
+                  {{ getLocalOperationTypeText(record.operationType) }}
                 </span>
                 <span
                   :class="[
@@ -121,12 +121,29 @@
               </div>
               <div class="text-sm text-gray-600 mt-1">
                 金额: {{ formatTrx(record.amount) }}
-                <span class="ml-4">
-                  目标地址: {{ formatAddress(record.toAddress) }}
-                </span>
                 <span v-if="record.lockPeriod" class="ml-4">
                   锁定期: {{ record.lockPeriod }}天
                 </span>
+              </div>
+              <!-- 完整地址显示 -->
+              <div class="text-sm text-gray-600 mt-2">
+                <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                  <span class="font-medium text-gray-700 whitespace-nowrap">{{ getAddressLabel() }}:</span>
+                  <div class="flex items-center space-x-2 min-w-0 flex-1">
+                    <span class="font-mono text-gray-900 bg-gray-100 px-3 py-1.5 rounded border text-xs break-all select-all">
+                      {{ record.toAddress }}
+                    </span>
+                    <button
+                      @click="copyToClipboard(record.toAddress)"
+                      class="flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      :title="'复制' + getAddressLabel()"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -155,14 +172,6 @@
             <div>
               <span class="text-gray-600">交易ID:</span>
               <span class="ml-2 font-mono text-gray-900">{{ formatAddress(record.txid) }}</span>
-            </div>
-            <div>
-              <span class="text-gray-600">接收方地址:</span>
-              <span class="ml-2 font-mono text-gray-900">{{ formatAddress(record.toAddress) }}</span>
-            </div>
-            <div>
-              <span class="text-gray-600">接收方:</span>
-              <span class="ml-2 font-mono text-gray-900">{{ formatAddress(record.toAddress) }}</span>
             </div>
             <div>
               <span class="text-gray-600">创建时间:</span>
@@ -216,9 +225,9 @@
     <!-- 取消代理确认对话框 -->
     <div v-if="showUndelegateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">确认取消代理</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{{ getUndelegateDialogTitle() }}</h3>
         <p class="text-gray-600 mb-6">
-          确定要取消代理 {{ formatTrx(selectedRecord?.amount || 0) }} 给 {{ formatAddress(selectedRecord?.toAddress || '') }} 吗？
+          {{ getUndelegateDialogMessage() }}
         </p>
         <div class="flex justify-end space-x-3">
           <button
@@ -438,6 +447,160 @@ const getEmptyStateMessage = () => {
     return '当前没有找到任何代理获得的记录'
   }
   return '当前没有找到任何代理记录'
+}
+
+// 获取地址标签
+const getAddressLabel = () => {
+  if (props.delegateDirection === 'out') {
+    return '接收方地址'
+  } else if (props.delegateDirection === 'in') {
+    return '代理方地址'
+  }
+  return '目标地址'
+}
+
+// 获取代理操作文本
+const getDelegateOperationText = () => {
+  if (props.delegateDirection === 'out') {
+    return '代理出去'
+  } else if (props.delegateDirection === 'in') {
+    return '代理获得'
+  }
+  return '代理'
+}
+
+// 获取取消代理操作文本
+const getUndelegateOperationText = () => {
+  if (props.delegateDirection === 'out') {
+    return '取消代理出去'
+  } else if (props.delegateDirection === 'in') {
+    return '取消代理获得'
+  }
+  return '取消代理'
+}
+
+// 获取取消代理对话框标题
+const getUndelegateDialogTitle = () => {
+  if (props.delegateDirection === 'out') {
+    return '确认取消代理出去'
+  } else if (props.delegateDirection === 'in') {
+    return '确认取消代理获得'
+  }
+  return '确认取消代理'
+}
+
+// 获取取消代理对话框消息
+const getUndelegateDialogMessage = () => {
+  if (!selectedRecord.value) return ''
+  
+  const amount = formatTrx(selectedRecord.value.amount)
+  const address = formatAddress(selectedRecord.value.toAddress)
+  
+  if (props.delegateDirection === 'out') {
+    return `确定要取消代理给 ${address} 的 ${amount} 吗？`
+  } else if (props.delegateDirection === 'in') {
+    return `确定要取消来自 ${address} 的 ${amount} 代理吗？`
+  }
+  return `确定要取消代理 ${amount} 给 ${address} 吗？`
+}
+
+// 获取本地操作类型文本（根据代理方向）
+const getLocalOperationTypeText = (operationType: string) => {
+  if (operationType === 'delegate') {
+    if (props.delegateDirection === 'out') {
+      return '代理出去'
+    } else if (props.delegateDirection === 'in') {
+      return '代理获得'
+    }
+    return '代理'
+  } else if (operationType === 'undelegate') {
+    if (props.delegateDirection === 'out') {
+      return '取消代理出去'
+    } else if (props.delegateDirection === 'in') {
+      return '取消代理获得'
+    }
+    return '取消代理'
+  }
+  return operationType
+}
+
+// 复制到剪贴板
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    console.log('✅ 内容已复制到剪贴板:', text)
+    
+    // 根据内容类型显示不同提示
+    let message = '已复制'
+    if (text.startsWith('T') && text.length === 34) {
+      message = `${getAddressLabel()}已复制`
+    }
+    
+    showCopySuccessToast(message)
+  } catch (error) {
+    console.error('❌ 复制失败:', error)
+    // 降级方案：使用传统的复制方法
+    fallbackCopyToClipboard(text)
+  }
+}
+
+// 降级复制方案
+const fallbackCopyToClipboard = (text: string) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-999999px'
+  textArea.style.top = '-999999px'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  
+  try {
+    document.execCommand('copy')
+    
+    // 根据内容类型显示不同提示
+    let message = '已复制'
+    if (text.startsWith('T') && text.length === 34) {
+      message = `${getAddressLabel()}已复制`
+    }
+    
+    showCopySuccessToast(message)
+    console.log('✅ 内容已复制到剪贴板 (降级方案):', text)
+  } catch (error) {
+    console.error('❌ 降级复制也失败:', error)
+    alert(`复制失败，请手动复制：${text}`)
+  } finally {
+    document.body.removeChild(textArea)
+  }
+}
+
+// 显示复制成功提示
+const showCopySuccessToast = (message: string) => {
+  // 创建提示元素
+  const toast = document.createElement('div')
+  toast.textContent = message
+  toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300'
+  toast.style.transform = 'translateY(-100%)'
+  toast.style.opacity = '0'
+  
+  document.body.appendChild(toast)
+  
+  // 动画显示
+  setTimeout(() => {
+    toast.style.transform = 'translateY(0)'
+    toast.style.opacity = '1'
+  }, 10)
+  
+  // 3秒后移除
+  setTimeout(() => {
+    toast.style.transform = 'translateY(-100%)'
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast)
+      }
+    }, 300)
+  }, 3000)
 }
 
 // 监听poolId变化
