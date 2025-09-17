@@ -43,6 +43,15 @@ export interface RealTimeAccountData {
     bandwidthOut: number
     bandwidthIn: number
   }
+  // 新增质押状态数据
+  stakeStatus?: {
+    unlockingTrx: number
+    withdrawableTrx: number
+    stakedEnergy: number
+    stakedBandwidth: number
+    delegatedEnergy: number
+    delegatedBandwidth: number
+  }
 }
 
 export const useRealTimeAccountData = () => {
@@ -55,11 +64,13 @@ export const useRealTimeAccountData = () => {
    * @param address TRON地址
    * @param networkId 网络ID
    * @param showToast 是否显示错误提示，默认true
+   * @param includeStakeStatus 是否包含质押状态，默认true
    */
   const fetchRealTimeData = async (
     address: string, 
     networkId?: string, 
-    showToast: boolean = true
+    showToast: boolean = true,
+    includeStakeStatus: boolean = true
   ): Promise<RealTimeAccountData | null> => {
     if (!address) {
       if (showToast) {
@@ -70,36 +81,70 @@ export const useRealTimeAccountData = () => {
 
     console.log('🔍 [useRealTimeAccountData] 开始获取实时数据:', {
       address,
-      networkId
+      networkId,
+      includeStakeStatus
     })
 
     loading.value = true
     error.value = null
     
     try {
-      const response = await energyPoolExtendedAPI.validateTronAddress({
+      // 先获取基础数据
+      const baseResponse = await energyPoolExtendedAPI.validateTronAddress({
         address: address,
         private_key: '', // 空私钥，只获取账户信息
         network_id: networkId
       })
 
-      if (response.data.success && response.data.data) {
+      if (baseResponse.data.success && baseResponse.data.data) {
         const data: RealTimeAccountData = {
-          balance: response.data.data.balance,
-          usdtBalance: response.data.data.usdtBalance || 0,
-          energy: response.data.data.energy,
-          bandwidth: response.data.data.bandwidth,
-          estimatedCostPerEnergy: response.data.data.estimatedCostPerEnergy || 0.0001,
-          estimatedCostPerBandwidth: (response.data.data as any).estimatedCostPerBandwidth || 0.001,
-          usdtInfo: response.data.data.usdtInfo,
-          contractInfo: (response.data.data as any).contractInfo
+          balance: baseResponse.data.data.balance,
+          usdtBalance: baseResponse.data.data.usdtBalance || 0,
+          energy: baseResponse.data.data.energy,
+          bandwidth: baseResponse.data.data.bandwidth,
+          estimatedCostPerEnergy: baseResponse.data.data.estimatedCostPerEnergy || 0.0001,
+          estimatedCostPerBandwidth: (baseResponse.data.data as any).estimatedCostPerBandwidth || 0.001,
+          usdtInfo: baseResponse.data.data.usdtInfo,
+          contractInfo: (baseResponse.data.data as any).contractInfo
+        }
+
+        // 如果需要质押状态，单独获取
+        if (includeStakeStatus) {
+          try {
+            const stakeResponse = await energyPoolExtendedAPI.getAccountStakeStatus(address, networkId)
+            if (stakeResponse.data.success && stakeResponse.data.data) {
+              data.stakeStatus = stakeResponse.data.data.stakeStatus
+              console.log('✅ [useRealTimeAccountData] 质押状态获取成功:', data.stakeStatus)
+            } else {
+              // 提供默认质押状态数据
+              data.stakeStatus = {
+                unlockingTrx: 0,
+                withdrawableTrx: 0,
+                stakedEnergy: 0,
+                stakedBandwidth: 0,
+                delegatedEnergy: 0,
+                delegatedBandwidth: 0
+              }
+              console.log('⚠️ [useRealTimeAccountData] 质押状态获取失败，使用默认值')
+            }
+          } catch (stakeError) {
+            console.warn('🔍 [useRealTimeAccountData] 质押状态获取失败，使用默认值:', stakeError)
+            data.stakeStatus = {
+              unlockingTrx: 0,
+              withdrawableTrx: 0,
+              stakedEnergy: 0,
+              stakedBandwidth: 0,
+              delegatedEnergy: 0,
+              delegatedBandwidth: 0
+            }
+          }
         }
         
         realTimeData.value = data
         console.log('✅ [useRealTimeAccountData] 实时数据获取成功')
         return data
       } else {
-        const errorMsg = response.data.message || '获取实时数据失败'
+        const errorMsg = baseResponse.data.message || '获取实时数据失败'
         error.value = errorMsg
         if (showToast) {
           toast.error(errorMsg)
@@ -116,6 +161,59 @@ export const useRealTimeAccountData = () => {
       return null
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * 只获取质押状态数据
+   * @param address TRON地址
+   * @param networkId 网络ID
+   * @param showToast 是否显示错误提示，默认true
+   */
+  const fetchStakeStatus = async (
+    address: string,
+    networkId?: string,
+    showToast: boolean = true
+  ): Promise<RealTimeAccountData['stakeStatus'] | null> => {
+    if (!address) {
+      if (showToast) {
+        toast.error('地址不能为空')
+      }
+      return null
+    }
+
+    console.log('🔍 [useRealTimeAccountData] 开始获取质押状态:', {
+      address,
+      networkId
+    })
+
+    try {
+      const response = await energyPoolExtendedAPI.getAccountStakeStatus(address, networkId)
+
+      if (response.data.success && response.data.data) {
+        const stakeStatus = response.data.data.stakeStatus
+        
+        // 更新现有数据中的质押状态
+        if (realTimeData.value) {
+          realTimeData.value.stakeStatus = stakeStatus
+        }
+        
+        console.log('✅ [useRealTimeAccountData] 质押状态获取成功:', stakeStatus)
+        return stakeStatus
+      } else {
+        const errorMsg = response.data.message || '获取质押状态失败'
+        if (showToast) {
+          toast.error(errorMsg)
+        }
+        return null
+      }
+    } catch (err) {
+      const errorMsg = '获取质押状态失败，请检查网络连接'
+      console.error('❌ [useRealTimeAccountData] 获取质押状态失败:', err)
+      if (showToast) {
+        toast.error(errorMsg)
+      }
+      return null
     }
   }
 
@@ -173,6 +271,7 @@ export const useRealTimeAccountData = () => {
     
     // 方法
     fetchRealTimeData,
+    fetchStakeStatus,
     clearData,
     
     // 格式化函数

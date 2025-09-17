@@ -73,8 +73,8 @@ export class StakeValidators {
       return 'balance must be greater than 0';
     }
     
-    if (lockPeriod !== undefined && (lockPeriod < 0 || lockPeriod > 365)) {
-      return 'lockPeriod must be between 0 and 365 days';
+    if (lockPeriod !== undefined && (lockPeriod < 0.01 || lockPeriod > 365)) {
+      return 'lockPeriod must be between 0.01 and 365 days';
     }
     
     // 验证地址格式

@@ -22,6 +22,33 @@ export interface StakeStatistics {
   estimatedDailyRewards: number
 }
 
+export interface AccountResources {
+  energy: {
+    used: number
+    limit: number
+    total: number
+    available: number
+    delegatedOut: number
+    delegatedIn: number
+  }
+  bandwidth: {
+    used: number
+    limit: number
+    total: number
+    available: number
+    delegatedOut: number
+    delegatedIn: number
+    freeUsed: number
+    stakedUsed: number
+  }
+  delegation: {
+    energyOut: number
+    energyIn: number
+    bandwidthOut: number
+    bandwidthIn: number
+  }
+}
+
 export interface StakeOperationData {
   networkId: string           // 网络ID (tron_networks表)
   poolAccountId: string       // 能量池账户ID (energy_pools表)
@@ -83,6 +110,12 @@ export const stakeAPI = {
    */
   getStatistics: (poolAccountId: string, networkId?: string) => 
     apiClient.get<ApiResponse<StakeStatistics>>(`/api/energy-pool/stake/statistics?poolId=${poolAccountId}${networkId ? `&networkId=${networkId}` : ''}`),
+
+  /**
+   * 获取账户资源信息（能量和带宽）
+   */
+  getAccountResources: (address: string, networkId?: string) => 
+    apiClient.get<ApiResponse<AccountResources>>(`/api/energy-pool/stake/account-resources/${encodeURIComponent(address)}${networkId ? `?networkId=${networkId}` : ''}`),
 
   /**
    * 质押TRX

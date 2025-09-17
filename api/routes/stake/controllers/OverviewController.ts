@@ -188,7 +188,7 @@ export class OverviewController {
       // 如果指定了网络ID，切换到该网络
       if (networkId && typeof networkId === 'string') {
         try {
-          await tronService.switchToNetwork(parseInt(networkId));
+          await tronService.switchToNetwork(networkId);
         } catch (error: any) {
           console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
         }
@@ -235,7 +235,7 @@ export class OverviewController {
       // 如果指定了网络ID，切换到该网络
       if (networkId && typeof networkId === 'string') {
         try {
-          await tronService.switchToNetwork(parseInt(networkId));
+          await tronService.switchToNetwork(networkId);
         } catch (error: any) {
           console.warn(`切换到网络 ${networkId} 失败，使用默认网络:`, error.message);
         }

@@ -18,8 +18,7 @@
       </label>
       <div class="relative">
         <input
-          :value="displayWebhookUrl"
-          @input="updateField('webhook_url', ($event.target as HTMLInputElement).value)"
+          v-model="displayWebhookUrl"
           type="url"
           :required="workMode === 'webhook'"
           class="w-full px-3 py-2 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -129,7 +128,7 @@
           <div class="space-y-2">
             <div class="text-xs">
               <span class="text-gray-600">您的基础URL：</span>
-              <code class="px-1 py-0.5 bg-gray-100 text-gray-800 rounded text-xs">{{ displayWebhookUrl }}</code>
+              <code class="px-1 py-0.5 bg-gray-100 text-gray-800 rounded text-xs">{{ getBaseUrlFromInput(displayWebhookUrl) }}</code>
             </div>
             <div class="text-xs">
               <span class="text-gray-600">系统生成的最终URL：</span>
@@ -273,7 +272,7 @@
           <div class="space-y-1">
             <div class="text-gray-700">
               <span class="font-medium">基础URL（用户输入）:</span><br>
-              <code class="text-xs bg-blue-50 text-blue-800 px-1 py-0.5 rounded">{{ extractBaseUrl(modelValue.webhook_url) }}</code>
+              <code class="text-xs bg-blue-50 text-blue-800 px-1 py-0.5 rounded">{{ getBaseUrlFromInput(modelValue.webhook_url) }}</code>
             </div>
             <div class="text-gray-700">
               <span class="font-medium">最终URL（系统生成）:</span><br>
@@ -416,54 +415,83 @@ const showUrlExplanation = ref(false)
 const secretVisible = ref(true)
 const secretGenerated = ref(false)
 
-// 计算输入框显示的URL（编辑时显示基础URL，创建时显示原始值）
-const displayWebhookUrl = computed(() => {
-  if (!props.modelValue.webhook_url) return ''
-  
-  if (props.mode === 'edit' && props.botData?.id) {
-    // 编辑模式：显示基础URL（去掉机器人ID部分）
-    return extractBaseUrl(props.modelValue.webhook_url)
-  } else {
-    // 创建模式：显示原始输入值
+// 计算输入框显示的URL
+const displayWebhookUrl = computed({
+  get() {
+    if (!props.modelValue.webhook_url) return ''
+    
+    // 总是显示原始输入值，不自动提取基础URL
     return props.modelValue.webhook_url
+  },
+  set(value: string) {
+    // 直接更新值，不进行自动修改
+    updateField('webhook_url', value)
   }
 })
 
 // 计算最终的Webhook URL预览
 const finalWebhookUrl = computed(() => {
-  const baseUrl = displayWebhookUrl.value
-  if (!baseUrl) return ''
+  const inputUrl = displayWebhookUrl.value
+  if (!inputUrl) return ''
   
-  const cleanBaseUrl = baseUrl.replace(/\/+$/, '') // 移除末尾斜杠
+  // 智能提取基础URL：如果已经包含机器人用户名，则提取基础部分
+  const baseUrl = getBaseUrlFromInput(inputUrl)
   
   if (props.mode === 'edit' && props.botData?.username) {
     // 编辑模式：使用实际的机器人用户名
-    return `${cleanBaseUrl}/${props.botData.username}`
+    return `${baseUrl}/${props.botData.username}`
   } else if (props.mode === 'create' && props.botUsername) {
     // 创建模式：使用传入的用户名
-    return `${cleanBaseUrl}/${props.botUsername}`
+    return `${baseUrl}/${props.botUsername}`
   } else {
     // 默认显示示例
-    return `${cleanBaseUrl}/[机器人用户名]`
+    return `${baseUrl}/[机器人用户名]`
   }
 })
 
-// 从完整URL中提取基础URL（移除机器人用户名部分）
+// 智能提取基础URL，不破坏用户输入
+const getBaseUrlFromInput = (inputUrl: string) => {
+  if (!inputUrl) return ''
+  
+  // 移除末尾的斜杠
+  const cleanUrl = inputUrl.replace(/\/+$/, '')
+  
+  // 检查是否已经包含了机器人用户名
+  if (props.mode === 'edit' && props.botData?.username) {
+    // 如果URL以当前机器人用户名结尾，则移除它
+    if (cleanUrl.endsWith(`/${props.botData.username}`)) {
+      return cleanUrl.replace(`/${props.botData.username}`, '')
+    }
+  }
+  
+  // 检查是否包含了旧的机器人ID格式（UUID）
+  if (props.botData?.id && cleanUrl.endsWith(`/${props.botData.id}`)) {
+    return cleanUrl.replace(`/${props.botData.id}`, '')
+  }
+  
+  // 如果没有检测到机器人标识符，直接返回清理后的URL
+  return cleanUrl
+}
+
+// 从完整URL中提取基础URL（仅用于已保存的webhook URL）
 const extractBaseUrl = (fullUrl: string) => {
   if (!fullUrl) return ''
   
-  // 如果URL以机器人用户名结尾，则移除它
-  if (props.botData?.username && fullUrl.endsWith(`/${props.botData.username}`)) {
-    return fullUrl.replace(`/${props.botData.username}`, '')
+  // 移除末尾的斜杠
+  const cleanUrl = fullUrl.replace(/\/+$/, '')
+  
+  // 优先检查具体的机器人用户名
+  if (props.botData?.username && cleanUrl.endsWith(`/${props.botData.username}`)) {
+    return cleanUrl.replace(`/${props.botData.username}`, '')
   }
   
-  // 兼容旧的ID格式（如果没有username但有ID）
-  if (props.botData?.id && fullUrl.endsWith(`/${props.botData.id}`)) {
-    return fullUrl.replace(`/${props.botData.id}`, '')
+  // 兼容旧的ID格式（UUID）
+  if (props.botData?.id && cleanUrl.endsWith(`/${props.botData.id}`)) {
+    return cleanUrl.replace(`/${props.botData.id}`, '')
   }
   
-  // 移除所有可能的后缀（包括UUID格式）
-  return fullUrl.replace(/\/[a-f0-9\-]{36}$/, '').replace(/\/[a-zA-Z0-9_]+$/, '')
+  // 只移除UUID格式的后缀（36位的UUID），不移除其他路径
+  return cleanUrl.replace(/\/[a-f0-9\-]{36}$/, '')
 }
 
 // 更新字段值

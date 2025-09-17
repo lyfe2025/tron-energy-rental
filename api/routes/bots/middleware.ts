@@ -139,6 +139,10 @@ export function buildUpdateFields(
           updateFields.push(`work_mode = $${paramIndex}`);
           updateValues.push(value);
           break;
+        case 'webhook_url':
+          updateFields.push(`webhook_url = $${paramIndex}`);
+          updateValues.push(value);
+          break;
         case 'webhook_secret':
           updateFields.push(`webhook_secret = $${paramIndex}`);
           updateValues.push(value);

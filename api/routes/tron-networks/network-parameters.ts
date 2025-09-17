@@ -51,6 +51,8 @@ router.get('/:networkId/parameters', async (req, res) => {
           : `${params.unlockPeriod}小时`,
         minStakeAmount: params.minStakeAmount,
         minStakeAmountTrx: params.minStakeAmount / 1000000, // 转换为TRX
+        maxDelegateLockPeriod: params.maxDelegateLockPeriod,
+        maxDelegateLockPeriodDays: Math.floor((params.maxDelegateLockPeriod || 864000) * 3 / 86400), // 区块数转为天数
         lastUpdated: params.lastUpdated,
         // TRON网络资源参数 - 基于官方文档
         totalDailyEnergy: params.totalDailyEnergy,

@@ -340,6 +340,64 @@ export const energyPoolExtendedAPI = {
       lastUpdated: string;
     }>>(`/api/energy-pool/accounts/${accountId}/energy-data`, {
       params: { networkId }
+    }),
+
+  /**
+   * 获取账户实时质押状态（从官方 TRON API 获取）
+   */
+  getAccountStakeStatus: (address: string, networkId?: string) => 
+    apiClient.get<ApiResponse<{
+      address: string;
+      stakeStatus: {
+        unlockingTrx: number;
+        withdrawableTrx: number;
+        stakedEnergy: number;
+        stakedBandwidth: number;
+        delegatedEnergy: number;
+        delegatedBandwidth: number;
+      };
+      networkInfo: {
+        id: string;
+        name: string;
+        type: string;
+      } | null;
+      timestamp: string;
+    }>>(`/api/energy-pool/accounts/${address}/stake-status`, {
+      params: networkId ? { network_id: networkId } : undefined
+    }),
+
+  /**
+   * 批量获取多个账户的实时质押状态
+   */
+  batchGetAccountStakeStatus: (addresses: string[], networkId?: string) => 
+    apiClient.post<ApiResponse<{
+      results: Array<{
+        address: string;
+        success: boolean;
+        data: {
+          unlockingTrx: number;
+          withdrawableTrx: number;
+          stakedEnergy: number;
+          stakedBandwidth: number;
+          delegatedEnergy: number;
+          delegatedBandwidth: number;
+        };
+        error?: string;
+      }>;
+      networkInfo: {
+        id: string;
+        name: string;
+        type: string;
+      } | null;
+      summary: {
+        total: number;
+        success: number;
+        failed: number;
+      };
+      timestamp: string;
+    }>>('/api/energy-pool/accounts/batch-stake-status', {
+      addresses,
+      network_id: networkId
     })
 };
 

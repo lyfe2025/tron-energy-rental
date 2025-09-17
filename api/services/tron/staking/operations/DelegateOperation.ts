@@ -217,11 +217,17 @@ export class DelegateOperation {
       }
 
       // 2. 尝试获取接收方交易（别人代理给当前账户）
-      // 注意：TronGrid API 主要返回发起方交易，接收方交易需要通过其他方式获取
-      console.log(`[DelegateOperation] 🔍 接收方代理记录需要通过发起方交易逆向获取...`);
-      // 暂时跳过接收方交易的直接获取，因为TronGrid API限制
-      console.log(`[DelegateOperation] ℹ️ 接收方代理记录将通过业务逻辑处理`);
-      incomingTransactions = []; // 暂时设为空数组
+      console.log(`[DelegateOperation] 🔍 尝试通过搜索获取接收方代理记录...`);
+      try {
+        const incomingResponse = await this.getIncomingDelegateTransactions(address, limit);
+        if (incomingResponse.success && incomingResponse.data) {
+          incomingTransactions = incomingResponse.data;
+          console.log(`[DelegateOperation] 获取到接收方交易: ${incomingTransactions.length} 条`);
+        }
+      } catch (error) {
+        console.warn('[DelegateOperation] 获取接收方交易失败，将显示空记录:', error);
+        incomingTransactions = [];
+      }
 
       // 3. 合并所有交易记录
       const allTransactions = [...outgoingTransactions, ...incomingTransactions];
@@ -260,6 +266,62 @@ export class DelegateOperation {
   }
 
   /**
+   * 获取接收方代理交易（别人代理给当前账户的交易）
+   */
+  private async getIncomingDelegateTransactions(
+    address: string, 
+    limit: number = 20
+  ): Promise<ServiceResponse<any[]>> {
+    try {
+      console.log(`[DelegateOperation] 搜索代理给 ${address} 的交易`);
+
+      // 使用TronGrid的搜索API来查找代理给当前地址的交易
+      // 这里使用更广泛的搜索，然后过滤出相关交易
+      const searchResponse = await this.tronGridProvider.searchDelegateTransactionsByReceiver(address, limit);
+      
+      if (!searchResponse.success) {
+        console.warn('[DelegateOperation] 搜索接收方交易失败:', searchResponse.error);
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      const transactions = searchResponse.data || [];
+      console.log(`[DelegateOperation] 搜索到 ${transactions.length} 条可能的接收方交易`);
+
+      // 过滤出真正的代理交易
+      const delegateTransactions = transactions.filter((tx: any) => {
+        const contract = tx.raw_data?.contract?.[0];
+        const contractType = contract?.type;
+        const parameter = contract?.parameter?.value;
+        
+        // 检查是否是代理合约且接收方是当前地址
+        if (contractType === 'DelegateResourceContract' || contractType === 'UnDelegateResourceContract') {
+          const receiverAddress = this.convertToBase58Address(parameter?.receiver_address || '');
+          return receiverAddress.toLowerCase() === address.toLowerCase();
+        }
+        
+        return false;
+      });
+
+      console.log(`[DelegateOperation] 过滤后得到 ${delegateTransactions.length} 条接收方代理交易`);
+
+      return {
+        success: true,
+        data: delegateTransactions
+      };
+    } catch (error: any) {
+      console.error('[DelegateOperation] 获取接收方代理交易失败:', error);
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
+  }
+
+  /**
    * 格式化代理交易记录
    */
   private formatDelegateTransactions(transactions: any[], address: string): FormattedStakeRecord[] {
@@ -273,21 +335,26 @@ export class DelegateOperation {
       let resourceType = 'ENERGY';
       let amount = 0;
       let toAddress = '';
+      let fromAddress = '';
+
+      // 获取交易发起者地址
+      const ownerAddress = this.convertToBase58Address(parameter?.owner_address || '');
+      const receiverAddress = this.convertToBase58Address(parameter?.receiver_address || '');
 
       switch (contractType) {
         case 'DelegateResourceContract':
           operationType = 'delegate';
           resourceType = parameter?.resource || 'ENERGY';
           amount = parameter?.balance || 0;
-          // 智能地址格式转换
-          toAddress = this.convertToBase58Address(parameter?.receiver_address || '');
+          fromAddress = ownerAddress;
+          toAddress = receiverAddress;
           break;
         case 'UnDelegateResourceContract':
           operationType = 'undelegate';
           resourceType = parameter?.resource || 'ENERGY';
           amount = parameter?.balance || 0;
-          // 智能地址格式转换
-          toAddress = this.convertToBase58Address(parameter?.receiver_address || '');
+          fromAddress = ownerAddress;
+          toAddress = receiverAddress;
           break;
       }
 
@@ -303,6 +370,7 @@ export class DelegateOperation {
         created_at: new Date(tx.block_timestamp || tx.raw_data?.timestamp).toISOString(),
         block_number: tx.blockNumber,
         to_address: toAddress,
+        from_address: fromAddress,
         fee: tx.ret?.[0]?.fee || 0
       } as FormattedStakeRecord;
     });

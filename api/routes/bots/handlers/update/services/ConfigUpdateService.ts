@@ -8,10 +8,75 @@ import type { Bot, UpdateBotData } from '../../../types.js';
 
 export class ConfigUpdateService {
   /**
+   * 处理webhook URL的自动补全
+   */
+  static async processWebhookUrl(botId: string, webhookUrl: string): Promise<string> {
+    if (!webhookUrl) return webhookUrl;
+
+    // 获取机器人用户名
+    const botResult = await query('SELECT bot_username FROM telegram_bots WHERE id = $1', [botId]);
+    if (botResult.rows.length === 0) {
+      console.warn(`机器人 ${botId} 不存在，无法处理webhook URL`);
+      return webhookUrl;
+    }
+
+    const botUsername = botResult.rows[0].bot_username;
+    if (!botUsername) {
+      console.warn(`机器人 ${botId} 没有用户名，无法自动添加到webhook URL`);
+      return webhookUrl;
+    }
+
+    // 移除末尾斜杠
+    const cleanUrl = webhookUrl.replace(/\/+$/, '');
+    
+    // 检查是否已经包含机器人用户名
+    if (cleanUrl.endsWith(`/${botUsername}`)) {
+      return webhookUrl;
+    }
+
+    // 检查是否是标准的webhook路径（应该添加机器人用户名）
+    const isStandardWebhookPath = cleanUrl.endsWith('/api/telegram/webhook') || 
+                                  cleanUrl.match(/\/api\/telegram\/webhook$/);
+    
+    if (isStandardWebhookPath) {
+      // 这是标准的webhook路径，应该添加机器人用户名
+      const finalUrl = `${cleanUrl}/${botUsername}`;
+      console.log(`✅ 自动添加机器人用户名到webhook URL: ${finalUrl}`);
+      return finalUrl;
+    }
+
+    // 检查是否包含其他可能的机器人标识符（但排除webhook这样的标准路径）
+    const lastSegmentMatch = cleanUrl.match(/\/([a-zA-Z0-9_]+)$/);
+    if (lastSegmentMatch) {
+      const lastSegment = lastSegmentMatch[1];
+      // 如果最后一段是webhook或其他标准路径组件，则应该添加机器人用户名
+      if (lastSegment === 'webhook' || lastSegment === 'telegram' || lastSegment === 'api') {
+        const finalUrl = `${cleanUrl}/${botUsername}`;
+        console.log(`✅ 自动添加机器人用户名到webhook URL: ${finalUrl}`);
+        return finalUrl;
+      } else {
+        // 最后一段可能是其他机器人的用户名，保持原样
+        console.log(`⚠️ Webhook URL 可能包含其他机器人标识符，保持原样: ${webhookUrl}`);
+        return webhookUrl;
+      }
+    }
+
+    // 其他情况，直接添加机器人用户名
+    const finalUrl = `${cleanUrl}/${botUsername}`;
+    console.log(`✅ 自动添加机器人用户名到webhook URL: ${finalUrl}`);
+    return finalUrl;
+  }
+
+  /**
    * 更新机器人基本信息
    */
   static async updateBotBasicInfo(botId: string, updateData: UpdateBotData): Promise<Bot> {
     try {
+      // 预处理 webhook_url
+      if (updateData.webhook_url !== undefined) {
+        updateData.webhook_url = await ConfigUpdateService.processWebhookUrl(botId, updateData.webhook_url);
+      }
+
       // 构建更新字段
       const { updateFields: fields, updateValues: values } = buildUpdateFields(updateData);
       

@@ -9,6 +9,7 @@ export interface TronNetworkParams {
   network: 'mainnet' | 'shasta' | 'nile';
   unlockPeriod: number; // 解锁期（小时）
   minStakeAmount: number; // 最小质押金额
+  maxDelegateLockPeriod?: number; // 最大代理锁定期（区块数）
   lastUpdated: Date;
   // TRON网络资源参数 - 基于官方文档
   totalDailyEnergy: number; // 全网每日固定能量总量：180,000,000,000
@@ -137,7 +138,8 @@ export class NetworkParametersService {
   private parseChainParameters(chainParams: ChainParameters[], network: 'mainnet' | 'shasta' | 'nile') {
     const params = {
       unlockPeriod: this.getDefaultUnlockPeriod(network),
-      minStakeAmount: 1000000 // 默认1 TRX (单位: sun)
+      minStakeAmount: 1000000, // 默认1 TRX (单位: sun)
+      maxDelegateLockPeriod: 864000 // 默认30天 (864000区块 × 3秒/区块 ÷ 86400秒/天 = 30天)
     };
 
     for (const param of chainParams) {
@@ -149,6 +151,10 @@ export class NetworkParametersService {
         case 'getMinFrozenBalanceForStake':
           // 最小质押金额
           params.minStakeAmount = param.value;
+          break;
+        case 'getMaxDelegateLockPeriod':
+          // 最大代理锁定期 (单位: 区块数，每个区块约3秒)
+          params.maxDelegateLockPeriod = param.value;
           break;
       }
     }

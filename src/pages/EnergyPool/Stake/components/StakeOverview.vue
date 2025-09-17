@@ -141,7 +141,7 @@
     </div>
 
     <!-- 质押概览统计 - 2x2 网格布局 -->
-    <div v-if="(overview || realTimeAccountData.realTimeData.value) && showOverviewSection !== false" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div v-if="realTimeAccountData.realTimeData.value && showOverviewSection !== false" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
       
       <!-- 左上：账户余额概览 -->
       <div class="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
@@ -213,12 +213,12 @@
             </div>
             <div>
               <h3 class="text-base font-semibold text-gray-900">质押状态</h3>
-              <p class="text-xs text-gray-600">质押系统统计</p>
+              <p class="text-xs text-gray-600">链上实时数据</p>
             </div>
           </div>
           <div class="flex items-center space-x-1">
-            <div class="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-            <span class="text-xs font-medium text-amber-600">系统</span>
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span class="text-xs font-medium text-green-600">实时</span>
           </div>
         </div>
         
@@ -237,7 +237,7 @@
                   <p class="text-xs text-gray-500">正在解质押</p>
                 </div>
               </div>
-              <p class="text-sm font-bold text-yellow-600">{{ formatTrx(overview?.unlockingTrx || 0) }}</p>
+              <p class="text-sm font-bold text-yellow-600">{{ formatTrx(realTimeAccountData.realTimeData.value?.stakeStatus?.unlockingTrx || 0) }}</p>
             </div>
           </div>
 
@@ -255,7 +255,7 @@
                   <p class="text-xs text-gray-500">可立即提取</p>
                 </div>
               </div>
-              <p class="text-sm font-bold text-purple-600">{{ formatTrx(overview?.withdrawableTrx || 0) }}</p>
+              <p class="text-sm font-bold text-purple-600">{{ formatTrx(realTimeAccountData.realTimeData.value?.stakeStatus?.withdrawableTrx || 0) }}</p>
             </div>
           </div>
         </div>
@@ -458,7 +458,6 @@ type NetworkStoreNetwork = Network
 const props = defineProps<{
   selectedAccount?: EnergyPoolAccount | null
   currentNetwork?: NetworkStoreNetwork | null
-  overview?: any
   formatTrx: (value: any) => string
   formatEnergy: (value: any) => string
   formatBandwidth: (value: any) => string
@@ -527,8 +526,21 @@ const calculateFreeBandwidth = (): number => {
 // 刷新实时数据
 const refreshRealTimeData = async () => {
   if (props.selectedAccount?.tron_address) {
-    console.log('🔄 [StakeOverview] 刷新实时数据')
+    console.log('🔄 [StakeOverview] 刷新实时数据（包含质押状态）')
     await realTimeAccountData.fetchRealTimeData(
+      props.selectedAccount.tron_address,
+      props.currentNetwork?.id,
+      true, // showToast
+      true  // includeStakeStatus
+    )
+  }
+}
+
+// 单独刷新质押状态
+const refreshStakeStatus = async () => {
+  if (props.selectedAccount?.tron_address) {
+    console.log('🔄 [StakeOverview] 刷新质押状态')
+    await realTimeAccountData.fetchStakeStatus(
       props.selectedAccount.tron_address,
       props.currentNetwork?.id
     )

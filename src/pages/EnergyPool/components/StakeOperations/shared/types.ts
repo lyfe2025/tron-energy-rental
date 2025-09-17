@@ -52,6 +52,7 @@ export interface DelegateFormData {
   resourceType: ResourceType
   amount: string
   receiverAddress: string
+  enableLockPeriod: boolean  // 是否启用代理期限
   lockPeriod?: number
 }
 

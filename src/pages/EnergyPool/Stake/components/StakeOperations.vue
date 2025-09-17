@@ -27,7 +27,7 @@
       </button>
 
       <button
-        @click="$emit('showDelegate')"
+        @click="handleDelegateClick"
         class="p-4 border-2 border-dashed border-green-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group"
       >
         <div class="text-center">
@@ -61,10 +61,20 @@ defineProps<{
 }>()
 
 // Events
-defineEmits<{
+const emit = defineEmits<{
   showStake: []
   showUnstake: []
   showDelegate: []
   handleWithdraw: []
 }>()
+
+// 代理按钮点击处理
+const handleDelegateClick = () => {
+  console.log('🎯 [StakeOperations] 代理资源按钮被点击')
+  console.log('🎯 [StakeOperations] 即将发出 showDelegate 事件')
+  
+  emit('showDelegate')
+  
+  console.log('🎯 [StakeOperations] showDelegate 事件已发出')
+}
 </script>

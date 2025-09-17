@@ -3,9 +3,10 @@
  */
 import type { Request, Response } from 'express';
 import { tronService } from '../../../services/tron.js';
+import { networkParametersService } from '../../../services/tron/services/NetworkParametersService.js';
 import type {
-    DelegateOperationRequest,
-    RouteHandler
+  DelegateOperationRequest,
+  RouteHandler
 } from '../types/stake.types.js';
 
 export class DelegateController {
@@ -45,6 +46,82 @@ export class DelegateController {
           success: false, 
           error: 'balance must be greater than 0' 
         });
+      }
+
+      // 验证代理期限（基于TRON官方API限制）
+      if (lockPeriod !== undefined && lockPeriod !== null) {
+        if (lockPeriod < 0.01) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'lockPeriod must be at least 0.01 days' 
+          });
+        }
+
+        // 如果提供了网络ID，获取官方API的最大限制
+        if (networkId) {
+          try {
+            console.log(`[DelegateController] 验证代理期限，网络ID: ${networkId}, 期限: ${lockPeriod}天`);
+            
+            // 查询网络信息
+            const { pool } = req.app.locals;
+            const networkResult = await pool.query(
+              'SELECT * FROM tron_networks WHERE id = $1 AND is_active = true',
+              [networkId]
+            );
+
+            if (networkResult.rows.length > 0) {
+              const network = networkResult.rows[0];
+              console.log(`[DelegateController] 找到网络: ${network.name} (${network.network_type})`);
+              
+              // 获取网络参数（包含官方API限制）
+              const networkParams = await networkParametersService.getNetworkParams(
+                network.network_type, 
+                network.rpc_url, 
+                network.name
+              );
+
+              if (networkParams.maxDelegateLockPeriod) {
+                // 将区块数转换为天数进行比较
+                const maxDays = Math.floor(networkParams.maxDelegateLockPeriod * 3 / 86400);
+                
+                console.log(`[DelegateController] 官方API限制: ${maxDays}天 (${networkParams.maxDelegateLockPeriod}区块)`);
+                
+                if (lockPeriod > maxDays) {
+                  return res.status(400).json({ 
+                    success: false, 
+                    error: `lockPeriod cannot exceed ${maxDays} days (TRON official limit for ${network.name})` 
+                  });
+                }
+              }
+            } else {
+              console.warn(`[DelegateController] 网络ID ${networkId} 未找到或未激活`);
+              // 网络未找到，使用保守限制
+              if (lockPeriod > 30) {
+                return res.status(400).json({ 
+                  success: false, 
+                  error: 'lockPeriod cannot exceed 30 days (network not found, using default limit)' 
+                });
+              }
+            }
+          } catch (error: any) {
+            console.warn(`[DelegateController] 无法获取网络参数进行验证: ${error.message}`);
+            // 如果无法获取网络参数，使用保守的默认限制
+            if (lockPeriod > 30) {
+              return res.status(400).json({ 
+                success: false, 
+                error: 'lockPeriod cannot exceed 30 days (fallback limit)' 
+              });
+            }
+          }
+        } else {
+          // 没有提供网络ID时，使用保守的默认限制
+          if (lockPeriod > 30) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'lockPeriod cannot exceed 30 days (default limit)' 
+            });
+          }
+        }
       }
       
       // 执行代理

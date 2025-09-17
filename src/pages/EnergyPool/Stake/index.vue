@@ -58,7 +58,6 @@
       <StakeOverview
         :selected-account="stakeData.selectedAccount.value"
         :current-network="stakeData.currentNetwork.value"
-        :overview="stakeData.stakeComposable.overview.value"
         :format-trx="stakeData.stakeComposable.formatTrx"
         :format-energy="stakeData.stakeComposable.formatEnergy"
         :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
@@ -74,7 +73,6 @@
       <StakeOverview
         :selected-account="stakeData.selectedAccount.value"
         :current-network="stakeData.currentNetwork.value"
-        :overview="stakeData.stakeComposable.overview.value"
         :format-trx="stakeData.stakeComposable.formatTrx"
         :format-energy="stakeData.stakeComposable.formatEnergy"
         :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
@@ -89,10 +87,9 @@
       <!-- 质押操作 -->
       <div class="mb-6">
         <StakeOperations
-          :overview="stakeData.stakeComposable.overview.value"
           @show-stake="stakeData.showStakeModal.value = true"
           @show-unstake="stakeData.showUnstakeModal.value = true"
-          @show-delegate="stakeData.showDelegateModal.value = true"
+          @show-delegate="handleShowDelegate"
           @handle-withdraw="stakeOperations.handleWithdraw"
         />
       </div>
@@ -101,7 +98,6 @@
       <StakeOverview
         :selected-account="stakeData.selectedAccount.value"
         :current-network="stakeData.currentNetwork.value"
-        :overview="stakeData.stakeComposable.overview.value"
         :format-trx="stakeData.stakeComposable.formatTrx"
         :format-energy="stakeData.stakeComposable.formatEnergy"
         :format-bandwidth="stakeData.stakeComposable.formatBandwidth"
@@ -220,6 +216,24 @@ import { useStakeOperations } from './composables/useStakeOperations'
 // 使用分离的composables
 const stakeData = useStakeData()
 const stakeOperations = useStakeOperations(stakeData)
+
+// 代理模态框处理
+const handleShowDelegate = () => {
+  console.log('🎯 [Index] 接收到 showDelegate 事件')
+  console.log('🎯 [Index] 当前状态检查:')
+  console.log('  - currentNetworkId:', stakeData.currentNetworkId.value)
+  console.log('  - selectedAccount:', stakeData.selectedAccount.value)
+  console.log('  - showDelegateModal (before):', stakeData.showDelegateModal.value)
+  
+  stakeData.showDelegateModal.value = true
+  
+  console.log('  - showDelegateModal (after):', stakeData.showDelegateModal.value)
+  console.log('🎯 [Index] DelegateModal 显示条件:')
+  console.log('  - showDelegateModal:', stakeData.showDelegateModal.value)
+  console.log('  - currentNetworkId:', !!stakeData.currentNetworkId.value)
+  console.log('  - selectedAccount:', !!stakeData.selectedAccount.value)
+  console.log('  - 最终显示条件:', stakeData.showDelegateModal.value && stakeData.currentNetworkId.value && stakeData.selectedAccount.value)
+}
 
 // 监听路由变化
 watch(
