@@ -3,7 +3,7 @@
     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">委托资源</h3>
+          <h3 class="text-lg font-semibold text-gray-900">代理资源</h3>
           <button
             @click="$emit('close')"
             class="text-gray-400 hover:text-gray-600"
@@ -31,8 +31,8 @@
                   : 'border-gray-300 hover:border-gray-400'
               ]"
             >
-              <div class="font-medium">委托资源</div>
-              <div class="text-xs text-gray-500">将资源委托给其他地址</div>
+              <div class="font-medium">代理资源</div>
+              <div class="text-xs text-gray-500">将资源代理给其他地址</div>
             </button>
             <button
               type="button"
@@ -44,8 +44,8 @@
                   : 'border-gray-300 hover:border-gray-400'
               ]"
             >
-              <div class="font-medium">取消委托</div>
-              <div class="text-xs text-gray-500">收回已委托的资源</div>
+              <div class="font-medium">取消代理</div>
+              <div class="text-xs text-gray-500">收回已代理的资源</div>
             </button>
           </div>
         </div>
@@ -93,13 +93,13 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="请输入TRON地址 (T开头)"
           />
-          <p class="text-xs text-gray-500 mt-1">资源将委托给此地址使用</p>
+          <p class="text-xs text-gray-500 mt-1">资源将代理给此地址使用</p>
         </div>
 
-        <!-- 委托金额/资源量 -->
+        <!-- 代理金额/资源量 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            {{ form.operationType === 'delegate' ? '委托金额 (TRX)' : '取消委托资源量' }}
+            {{ form.operationType === 'delegate' ? '代理金额 (TRX)' : '取消代理资源量' }}
           </label>
           <input
             v-model="form.amount"
@@ -108,14 +108,14 @@
             min="1"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            :placeholder="form.operationType === 'delegate' ? '请输入委托金额' : '请输入取消委托的资源量'"
+            :placeholder="form.operationType === 'delegate' ? '请输入代理金额' : '请输入取消代理的资源量'"
           />
           <p class="text-xs text-gray-500 mt-1">
-            {{ form.operationType === 'delegate' ? '最小委托金额: 1 TRX' : '输入要取消委托的资源数量' }}
+            {{ form.operationType === 'delegate' ? '最小代理金额: 1 TRX' : '输入要取消代理的资源数量' }}
           </p>
         </div>
 
-        <!-- 锁定期选择 (仅委托时显示) -->
+        <!-- 锁定期选择 (仅代理时显示) -->
         <div v-if="form.operationType === 'delegate'">
           <label class="block text-sm font-medium text-gray-700 mb-2">锁定期</label>
           <select
@@ -139,7 +139,7 @@
               <span class="font-medium">{{ formatResource(resourceInfo.available) }}</span>
             </div>
             <div class="flex justify-between">
-              <span>已委托{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}:</span>
+              <span>已代理{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}:</span>
               <span class="font-medium">{{ formatResource(resourceInfo.delegated) }}</span>
             </div>
             <div class="flex justify-between">
@@ -154,7 +154,7 @@
           <h4 class="text-sm font-medium text-blue-900 mb-2">预估信息</h4>
           <div class="space-y-1 text-sm text-blue-700">
             <div class="flex justify-between">
-              <span>委托金额:</span>
+              <span>代理金额:</span>
               <span class="font-medium">{{ formatTrx(parseFloat(form.amount)) }}</span>
             </div>
             <div class="flex justify-between">
@@ -168,20 +168,20 @@
           </div>
         </div>
 
-        <!-- 委托说明 -->
+        <!-- 代理说明 -->
         <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div class="flex items-start">
             <svg class="w-5 h-5 text-yellow-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
             <div class="text-sm text-yellow-800">
-              <p class="font-medium mb-1">{{ form.operationType === 'delegate' ? '委托说明' : '取消委托说明' }}:</p>
+              <p class="font-medium mb-1">{{ form.operationType === 'delegate' ? '代理说明' : '取消代理说明' }}:</p>
               <ul class="list-disc list-inside space-y-1">
-                <li v-if="form.operationType === 'delegate'">委托后资源将转移给目标地址使用</li>
-                <li v-if="form.operationType === 'delegate'">委托期间您无法使用这些资源</li>
-                <li v-if="form.operationType === 'delegate'">锁定期结束后可以取消委托</li>
-                <li v-if="form.operationType === 'undelegate'">取消委托后资源将立即返回</li>
-                <li v-if="form.operationType === 'undelegate'">只能取消已过锁定期的委托</li>
+                <li v-if="form.operationType === 'delegate'">代理后资源将转移给目标地址使用</li>
+                <li v-if="form.operationType === 'delegate'">代理期间您无法使用这些资源</li>
+                <li v-if="form.operationType === 'delegate'">锁定期结束后可以取消代理</li>
+                <li v-if="form.operationType === 'undelegate'">取消代理后资源将立即返回</li>
+                <li v-if="form.operationType === 'undelegate'">只能取消已过锁定期的代理</li>
               </ul>
             </div>
           </div>
@@ -212,7 +212,7 @@
             ]"
           >
             <span v-if="loading">处理中...</span>
-            <span v-else>{{ form.operationType === 'delegate' ? '确认委托' : '确认取消委托' }}</span>
+            <span v-else>{{ form.operationType === 'delegate' ? '确认代理' : '确认取消代理' }}</span>
           </button>
         </div>
         </div>
@@ -346,11 +346,11 @@ const handleSubmit = async () => {
     if (result) {
       emit('success')
       // 显示成功消息
-      const operation = form.value.operationType === 'delegate' ? '委托' : '取消委托'
+      const operation = form.value.operationType === 'delegate' ? '代理' : '取消代理'
       alert(`${operation}成功！交易ID: ${result.txid}`)
     }
   } catch (err: any) {
-    error.value = err.message || `${form.value.operationType === 'delegate' ? '委托' : '取消委托'}失败，请重试`
+    error.value = err.message || `${form.value.operationType === 'delegate' ? '代理' : '取消代理'}失败，请重试`
   } finally {
     loading.value = false
   }

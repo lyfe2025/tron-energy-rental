@@ -265,12 +265,14 @@
       @reject="handleTransactionReject"
     />
 
-    <!-- 交易结果弹窗 -->
-    <TransactionResultModal
-      v-if="showTransactionResult"
-      :estimated-resource="calculateEstimatedResource(form.amount, form.resourceType)"
-      :resource-type="form.resourceType"
-      @confirm="handleTransactionResultConfirm"
+    <!-- 质押成功弹窗 -->
+    <StakeSuccessModal
+      v-if="showSuccessModal && successData"
+      :data="successData"
+      @close="handleSuccessModalClose"
+      @view-transaction="handleViewTransaction"
+      @vote-reward="handleVoteReward"
+      @delegate-resource="handleDelegateResource"
     />
   </div>
 </template>
@@ -281,9 +283,9 @@ import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { StakeFormData, StakeOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
+import StakeSuccessModal, { type StakeSuccessData } from './StakeSuccessModal.vue'
 import type { TransactionData } from './TransactionConfirmModal.vue'
 import TransactionConfirmModal from './TransactionConfirmModal.vue'
-import TransactionResultModal from './TransactionResultModal.vue'
 
 interface Emits {
   close: []
@@ -367,8 +369,9 @@ const enhancedIsFormValid = computed(() => {
 const showTransactionConfirm = ref(false)
 const transactionData = ref<TransactionData | null>(null)
 
-// 交易结果弹窗状态
-const showTransactionResult = ref(false)
+// 成功弹窗状态
+const showSuccessModal = ref(false)
+const successData = ref<StakeSuccessData | null>(null)
 
 // 处理表单提交 - 显示交易确认弹窗
 const handleSubmit = async () => {
@@ -439,9 +442,17 @@ const handleTransactionConfirm = async (data: TransactionData) => {
     )
 
     if (result.success) {
-      // 关闭交易确认弹窗，显示交易结果弹窗
+      // 准备成功弹窗数据
+      successData.value = {
+        amount: data.amount,
+        resourceType: data.resourceType,
+        estimatedResource: calculateEstimatedResource(form.value.amount, data.resourceType),
+        transactionHash: result.txid
+      }
+      
+      // 关闭交易确认弹窗，显示成功弹窗
       showTransactionConfirm.value = false
-      showTransactionResult.value = true
+      showSuccessModal.value = true
     }
   } catch (err: any) {
     console.error('质押操作失败:', err)
@@ -454,9 +465,62 @@ const handleTransactionReject = () => {
   transactionData.value = null
 }
 
-// 处理交易结果确认
-const handleTransactionResultConfirm = () => {
-  showTransactionResult.value = false
+// 处理成功弹窗事件
+const handleSuccessModalClose = () => {
+  showSuccessModal.value = false
+  successData.value = null
   emit('success')
+}
+
+const handleViewTransaction = (hash: string) => {
+  if (hash) {
+    // 优先使用数据库配置的区块浏览器URL
+    const blockExplorerUrl = state.value.networkParams?.blockExplorerUrl
+    
+    let baseUrl: string
+    if (blockExplorerUrl) {
+      // 使用数据库配置的URL
+      baseUrl = blockExplorerUrl.replace(/\/$/, '') // 移除末尾的斜杠
+      console.log(`[StakeModal] 使用数据库配置的区块浏览器: ${baseUrl}`)
+    } else {
+      // 兜底：根据网络类型选择默认的区块浏览器
+      const networkType = state.value.networkParams?.network || 'mainnet'
+      switch (networkType.toLowerCase()) {
+        case 'shasta':
+          baseUrl = 'https://shasta.tronscan.org'
+          break
+        case 'nile':
+          baseUrl = 'https://nile.tronscan.org'
+          break
+        case 'mainnet':
+        default:
+          baseUrl = 'https://tronscan.org'
+          break
+      }
+      console.warn(`[StakeModal] 未找到区块浏览器配置，使用默认: ${baseUrl}`)
+    }
+    
+    const url = `${baseUrl}/#/transaction/${hash}`
+    console.log(`[StakeModal] 打开交易浏览器: ${url}`)
+    window.open(url, '_blank')
+  } else {
+    console.warn('[StakeModal] 交易哈希为空，无法查看交易')
+  }
+}
+
+const handleVoteReward = () => {
+  // 跳转到投票页面或打开投票模态框
+  showSuccessModal.value = false
+  successData.value = null
+  // TODO: 实现投票功能导航
+  console.log('跳转到投票页面')
+}
+
+const handleDelegateResource = () => {
+  // 打开资源代理模态框
+  showSuccessModal.value = false
+  successData.value = null
+  // TODO: 实现资源代理功能
+  console.log('打开资源代理功能')
 }
 </script>

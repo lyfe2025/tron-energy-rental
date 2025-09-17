@@ -12,7 +12,7 @@ export type {
 
 /**
  * 质押管理主 Composable
- * 整合了数据管理、质押操作、委托操作和格式化工具
+ * 整合了数据管理、质押操作、代理操作和格式化工具
  */
 export function useStake() {
   // 获取各个子模块
@@ -96,7 +96,7 @@ export function useStake() {
     unfreezeTrx,
     withdrawUnfrozen,
     
-    // 委托操作方法
+    // 代理操作方法
     delegateResource,
     undelegateResource,
     

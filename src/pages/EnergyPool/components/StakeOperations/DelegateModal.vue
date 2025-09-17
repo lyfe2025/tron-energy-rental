@@ -1,5 +1,5 @@
 <!--
-  委托资源模态框组件
+  代理资源模态框组件
   优化版本：结构清晰，不会超出页面
 -->
 <template>
@@ -9,9 +9,9 @@
       <div :class="modalClasses.header">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">委托资源</h3>
+            <h3 class="text-lg font-semibold text-gray-900">代理资源</h3>
             <p class="text-sm text-blue-600 mt-1" v-if="state.networkParams">
-              {{ state.networkParams.networkName }} · 将您的资源委托给他人使用
+              {{ state.networkParams.networkName }} · 将您的资源代理给他人使用
             </p>
           </div>
           <button
@@ -28,7 +28,7 @@
       <!-- 内容 -->
       <div :class="modalClasses.content">
         <form @submit.prevent="handleSubmit" class="space-y-6">
-          <!-- 委托说明 -->
+          <!-- 代理说明 -->
           <div class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0">
@@ -37,18 +37,18 @@
                 </svg>
               </div>
               <div>
-                <h4 class="text-sm font-medium text-green-900 mb-1">资源委托说明</h4>
-                <p class="text-xs text-green-700">将您已质押的资源委托给他人使用。委托期间，您仍然保有TRX的所有权，但受托人可以使用相应的{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}资源。</p>
+                <h4 class="text-sm font-medium text-green-900 mb-1">资源代理说明</h4>
+                <p class="text-xs text-green-700">将您已质押的资源代理给他人使用。代理期间，您仍然保有TRX的所有权，但受托人可以使用相应的{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}资源。</p>
               </div>
             </div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- 左侧：委托配置 -->
+            <!-- 左侧：代理配置 -->
             <div class="space-y-6">
               <!-- 资源类型选择 -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">委托资源类型</label>
+                <label class="block text-sm font-medium text-gray-700 mb-3">代理资源类型</label>
                 <div class="space-y-3">
                   <button
                     type="button"
@@ -65,9 +65,9 @@
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                       </svg>
                       <div>
-                        <div class="font-medium">委托能量</div>
+                        <div class="font-medium">代理能量</div>
                         <div class="text-xs text-gray-500">用于智能合约调用</div>
-                        <div class="text-xs text-green-600 mt-1">可委托: 50,000</div>
+                        <div class="text-xs text-green-600 mt-1">可代理: 50,000</div>
                       </div>
                     </div>
                   </button>
@@ -86,18 +86,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                       </svg>
                       <div>
-                        <div class="font-medium">委托带宽</div>
+                        <div class="font-medium">代理带宽</div>
                         <div class="text-xs text-gray-500">用于普通转账</div>
-                        <div class="text-xs text-green-600 mt-1">可委托: 5,000</div>
+                        <div class="text-xs text-green-600 mt-1">可代理: 5,000</div>
                       </div>
                     </div>
                   </button>
                 </div>
               </div>
 
-              <!-- 委托数量 -->
+              <!-- 代理数量 -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">委托数量</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">代理数量</label>
                 <div class="relative">
                   <input
                     v-model="form.amount"
@@ -105,7 +105,7 @@
                     pattern="[0-9]*\.?[0-9]*"
                     required
                     class="w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
-                    placeholder="请输入委托数量"
+                    placeholder="请输入代理数量"
                     @input="(event) => validateNumberInput(event, (value) => form.amount = value)"
                   />
                   <div class="absolute inset-y-0 right-0 flex items-center pr-4">
@@ -114,7 +114,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-2">
                   <p class="text-xs text-gray-500">
-                    可委托: {{ form.resourceType === 'ENERGY' ? '50,000' : '5,000' }} {{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}
+                    可代理: {{ form.resourceType === 'ENERGY' ? '50,000' : '5,000' }} {{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}
                   </p>
                   <div class="text-xs">
                     <button 
@@ -122,15 +122,15 @@
                       @click="form.amount = form.resourceType === 'ENERGY' ? '50000' : '5000'" 
                       class="text-green-600 hover:text-green-700 underline"
                     >
-                      全部委托
+                      全部代理
                     </button>
                   </div>
                 </div>
               </div>
 
-              <!-- 委托期限 -->
+              <!-- 代理期限 -->
               <div v-if="form.lockPeriod !== undefined">
-                <label class="block text-sm font-medium text-gray-700 mb-2">委托期限</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">代理期限</label>
                 <select
                   v-model="form.lockPeriod"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -140,7 +140,7 @@
                   <option value="14">14天</option>
                   <option value="30">30天</option>
                 </select>
-                <p class="text-xs text-gray-500 mt-1">委托期间资源将被锁定，无法取回</p>
+                <p class="text-xs text-gray-500 mt-1">代理期间资源将被锁定，无法取回</p>
               </div>
             </div>
 
@@ -169,7 +169,7 @@
                     </button>
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">请确认接收方地址正确，委托后无法撤销</p>
+                <p class="text-xs text-gray-500 mt-1">请确认接收方地址正确，代理后无法撤销</p>
               </div>
 
               <!-- 地址验证状态 -->
@@ -184,17 +184,17 @@
                 </div>
               </div>
 
-              <!-- 委托预览 -->
+              <!-- 代理预览 -->
               <div v-if="form.amount && form.receiverAddress && parseFloat(form.amount) > 0" class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
                 <h4 class="text-sm font-medium text-gray-900 mb-3 flex items-center">
                   <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  委托预览
+                  代理预览
                 </h4>
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">委托{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}:</span>
+                    <span class="text-gray-600">代理{{ form.resourceType === 'ENERGY' ? '能量' : '带宽' }}:</span>
                     <span class="font-semibold text-green-700">
                       {{ parseFloat(form.amount).toLocaleString() }}
                     </span>
@@ -206,7 +206,7 @@
                     </span>
                   </div>
                   <div v-if="form.lockPeriod" class="flex justify-between">
-                    <span class="text-gray-600">委托期限:</span>
+                    <span class="text-gray-600">代理期限:</span>
                     <span class="font-medium text-blue-700">{{ form.lockPeriod }}天</span>
                   </div>
                 </div>
@@ -246,7 +246,7 @@
               </svg>
               处理中...
             </span>
-            <span v-else>确认委托</span>
+            <span v-else>确认代理</span>
           </button>
         </div>
       </div>
@@ -289,16 +289,16 @@ const handleSubmit = async () => {
   if (!isFormValid.value || !state.value.networkParams || !form.value.receiverAddress || !form.value.amount) return
 
   try {
-    // TODO: 实现委托逻辑
+    // TODO: 实现代理逻辑
     state.value.loading = true
     
     // 模拟API调用
     await new Promise(resolve => setTimeout(resolve, 2000))
     
     emit('success')
-    alert(`委托成功！委托${form.value.resourceType === 'ENERGY' ? '能量' : '带宽'}: ${parseFloat(form.value.amount).toLocaleString()}`)
+    alert(`代理成功！代理${form.value.resourceType === 'ENERGY' ? '能量' : '带宽'}: ${parseFloat(form.value.amount).toLocaleString()}`)
   } catch (err: any) {
-    state.value.error = err.message || '委托失败，请重试'
+    state.value.error = err.message || '代理失败，请重试'
   } finally {
     state.value.loading = false
   }

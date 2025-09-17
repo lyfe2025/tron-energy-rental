@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">质押管理</h1>
-        <p class="text-gray-600 mt-1">管理TRON网络上的TRX质押和资源委托</p>
+        <p class="text-gray-600 mt-1">管理TRON网络上的TRX质押和资源代理</p>
       </div>
       <button
         v-if="stakeData.selectedAccount.value && stakeData.selectedNetwork.value"
@@ -187,7 +187,7 @@
       @success="stakeOperations.onOperationSuccess"
     />
 
-    <!-- 委托模态框 -->
+    <!-- 代理模态框 -->
     <DelegateModal
       v-if="stakeData.showDelegateModal.value && stakeData.currentNetworkId.value && stakeData.selectedAccount.value"
       :pool-id="stakeData.currentNetworkId.value"

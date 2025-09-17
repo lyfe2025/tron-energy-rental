@@ -82,7 +82,7 @@ ${maintenanceForm.affected_features.map(f => `• ${getFeatureName(f)}`).join('\
     const featureMap: Record<string, string> = {
       order_creation: '下单功能',
       payment_processing: '支付处理',
-      energy_delegation: '能量委托',
+      energy_delegation: '能量代理',
       agent_functions: '代理功能',
       customer_service: '客服支持'
     }

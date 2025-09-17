@@ -171,7 +171,7 @@ export const stakeAPI = {
   },
 
   /**
-   * 委托资源
+   * 代理资源
    */
   delegateResource: (data: DelegateOperationData) => {
     // 转换参数格式以匹配后端期望
@@ -188,7 +188,7 @@ export const stakeAPI = {
   },
 
   /**
-   * 取消委托资源
+   * 取消代理资源
    */
   undelegateResource: (data: Omit<DelegateOperationData, 'lockPeriod'>) => {
     // 转换参数格式以匹配后端期望
@@ -232,7 +232,7 @@ export const stakeAPI = {
   },
 
   /**
-   * 获取委托记录
+   * 获取代理记录
    */
   getDelegateRecords: (params: {
     poolAccountId: string       // 能量池账户ID (energy_pools表)

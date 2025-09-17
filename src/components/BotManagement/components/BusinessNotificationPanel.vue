@@ -7,7 +7,7 @@
             <span class="text-2xl">💼</span>
             业务通知配置
           </h3>
-          <p class="text-gray-600 text-sm mt-1">配置订单、支付、能量委托等核心业务流程的通知</p>
+          <p class="text-gray-600 text-sm mt-1">配置订单、支付、能量代理等核心业务流程的通知</p>
         </div>
         <el-switch 
           v-model="config.enabled"
@@ -135,7 +135,7 @@
               <el-form-item label="后续操作提示">
                 <el-checkbox-group v-model="paymentSuccessActions">
                   <el-checkbox label="show_processing_time">显示处理时间</el-checkbox>
-                  <el-checkbox label="show_delegation_status">显示委托状态</el-checkbox>
+                  <el-checkbox label="show_delegation_status">显示代理状态</el-checkbox>
                   <el-checkbox label="offer_more_packages">推荐其他套餐</el-checkbox>
                 </el-checkbox-group>
               </el-form-item>
@@ -185,16 +185,16 @@
         </div>
       </el-collapse-item>
 
-      <!-- 能量委托通知 -->
-      <el-collapse-item title="⚡ 能量委托通知" name="energy">
+      <!-- 能量代理通知 -->
+      <el-collapse-item title="⚡ 能量代理通知" name="energy">
         <div class="notification-group">
           
-          <!-- 能量委托成功通知 -->
+          <!-- 能量代理成功通知 -->
           <div class="notification-item">
             <div class="item-header">
               <div class="item-info">
-                <span class="item-title">能量委托成功通知</span>
-                <p class="item-description">能量委托完成后发送确认通知</p>
+                <span class="item-title">能量代理成功通知</span>
+                <p class="item-description">能量代理完成后发送确认通知</p>
               </div>
               <el-switch 
                 v-model="config.energy_delegation_complete.enabled"
@@ -229,12 +229,12 @@
 
           <el-divider />
 
-          <!-- 能量委托失败通知 -->
+          <!-- 能量代理失败通知 -->
           <div class="notification-item">
             <div class="item-header">
               <div class="item-info">
-                <span class="item-title">能量委托失败通知</span>
-                <p class="item-description">委托过程失败时发送错误通知</p>
+                <span class="item-title">能量代理失败通知</span>
+                <p class="item-description">代理过程失败时发送错误通知</p>
               </div>
               <el-switch 
                 v-model="config.energy_delegation_failed.enabled"

@@ -135,7 +135,7 @@ export class OrderCallbackHandler {
         `金额: ${order.price_trx} TRX\n` +
         `支付地址: \`${paymentAddress}\`\n\n` +
         `⚠️ 请在30分钟内完成支付\n` +
-        `支付完成后系统将自动确认并开始能量委托。`;
+        `支付完成后系统将自动确认并开始能量代理。`;
 
       const keyboard = ResponseFormatter.createInlineKeyboard([
         [
@@ -190,9 +190,9 @@ export class OrderCallbackHandler {
         return;
       }
 
-      await ResponseFormatter.safeSendMessage(this.bot, chatId, '✅ 订单确认成功！正在处理能量委托...');
+      await ResponseFormatter.safeSendMessage(this.bot, chatId, '✅ 订单确认成功！正在处理能量代理...');
       
-      // 执行能量委托
+      // 执行能量代理
       const delegationResult = await energyDelegationService.executeDelegation({
         orderId: order.id,
         recipientAddress: order.recipient_address,
@@ -201,18 +201,18 @@ export class OrderCallbackHandler {
       });
       
       if (delegationResult.success) {
-        const successMessage = `🎉 *能量委托成功！*
+        const successMessage = `🎉 *能量代理成功！*
 
 ⚡ 能量数量: ${ResponseFormatter.formatNumber(order.energy_amount)} Energy
 📍 接收地址: \`${order.recipient_address}\`
-⏰ 委托时长: ${order.duration_hours}小时
+⏰ 代理时长: ${order.duration_hours}小时
 🔗 交易ID: \`${delegationResult.txId}\`
-📋 委托ID: \`${delegationResult.delegationId}\`
+📋 代理ID: \`${delegationResult.delegationId}\`
 
-✨ 能量已成功委托到您的地址，请查看钱包确认。`;
+✨ 能量已成功代理到您的地址，请查看钱包确认。`;
         
         const keyboard = ResponseFormatter.createInlineKeyboard([
-          [{ text: '📊 查看委托状态', callback_data: `delegation_status_${delegationResult.delegationId}` }],
+          [{ text: '📊 查看代理状态', callback_data: `delegation_status_${delegationResult.delegationId}` }],
           [{ text: '🔙 返回主菜单', callback_data: 'refresh_menu' }]
         ]);
         
@@ -222,7 +222,7 @@ export class OrderCallbackHandler {
         });
       } else {
         await ResponseFormatter.safeSendMessage(this.bot, chatId, 
-          '❌ 能量委托失败，请联系客服处理。\n\n' +
+          '❌ 能量代理失败，请联系客服处理。\n\n' +
           `错误信息: ${delegationResult.error || '未知错误'}`
         );
       }

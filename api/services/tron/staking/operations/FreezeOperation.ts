@@ -90,13 +90,15 @@ export class FreezeOperation {
 
       // 🔧 根据TronWeb源码，正确的参数顺序是：amount, resource, address, options
       // freezeBalanceV2(amount, resource, address, options)
+      // 1.构建交易
       const transaction = await this.tronWeb.transactionBuilder.freezeBalanceV2(
         frozenBalance,  // amount (number) - 金额，单位为SUN
         resource,       // resource (string) - ENERGY 或 BANDWIDTH  
         ownerAddress    // address (string) - Base58地址，TronWeb会自动转换为hex
       );
-
+      // 2. 签名交易
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
+      // 3. 广播交易
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {

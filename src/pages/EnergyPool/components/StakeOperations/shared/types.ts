@@ -18,7 +18,7 @@ export interface StakeOperationProps extends BaseOperationProps {}
 // 解质押操作参数
 export interface UnstakeOperationProps extends BaseOperationProps {}
 
-// 委托操作参数
+// 代理操作参数
 export interface DelegateOperationProps extends BaseOperationProps {}
 
 // 提取操作参数
@@ -47,7 +47,7 @@ export interface UnstakeFormData {
   amount: string
 }
 
-// 委托表单数据
+// 代理表单数据
 export interface DelegateFormData {
   resourceType: ResourceType
   amount: string

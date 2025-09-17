@@ -326,6 +326,21 @@
               <p class="text-sm font-bold text-teal-600">{{ realTimeAccountData.formatEnergy(Math.floor(((realTimeAccountData.realTimeData.value?.energy.delegatedIn || 0) / 1000000) * 76.2)) }}</p>
             </div>
           </div>
+
+          <!-- 已使用能量 -->
+          <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <div class="p-1 bg-red-50 rounded-full">
+                  <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p class="text-xs font-medium text-gray-600">已使用</p>
+              </div>
+              <p class="text-sm font-bold text-red-600">{{ realTimeAccountData.formatEnergy(realTimeAccountData.realTimeData.value?.energy.used || 0) }}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -407,6 +422,21 @@
                 <p class="text-xs font-medium text-gray-600">代理获得</p>
               </div>
               <p class="text-sm font-bold text-cyan-600">{{ realTimeAccountData.formatBandwidth(Math.floor(((realTimeAccountData.realTimeData.value?.bandwidth.delegatedIn || 0) / 1000000) * 1000)) }}</p>
+            </div>
+          </div>
+
+          <!-- 已使用带宽 -->
+          <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <div class="p-1 bg-red-50 rounded-full">
+                  <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p class="text-xs font-medium text-gray-600">已使用</p>
+              </div>
+              <p class="text-sm font-bold text-red-600">{{ realTimeAccountData.formatBandwidth(realTimeAccountData.realTimeData.value?.bandwidth.used || 0) }}</p>
             </div>
           </div>
         </div>

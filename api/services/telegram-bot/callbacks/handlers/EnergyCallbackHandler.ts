@@ -29,7 +29,7 @@ export class EnergyCallbackHandler {
 
       const message = `⚡ 能量闪租服务\n\n` +
         `🔸 快速获得TRON网络能量\n` +
-        `🔸 即时委托，无需等待\n` +
+        `🔸 即时代理，无需等待\n` +
         `🔸 多种套餐，价格优惠\n\n` +
         `💡 请选择您需要的能量套餐：`;
 
@@ -135,18 +135,18 @@ export class EnergyCallbackHandler {
   }
 
   /**
-   * 处理委托状态查询
+   * 处理代理状态查询
    */
   async handleDelegationStatus(chatId: number, delegationId: string): Promise<void> {
     if (!CallbackValidator.validateDelegationId(delegationId)) {
-      await ResponseFormatter.safeSendMessage(this.bot, chatId, '❌ 委托ID格式无效');
+      await ResponseFormatter.safeSendMessage(this.bot, chatId, '❌ 代理ID格式无效');
       return;
     }
 
     try {
-      // 这里应该查询委托状态
-      const statusMessage = `📊 委托状态查询\n\n` +
-        `📋 委托ID: ${delegationId}\n` +
+      // 这里应该查询代理状态
+      const statusMessage = `📊 代理状态查询\n\n` +
+        `📋 代理ID: ${delegationId}\n` +
         `✅ 状态: 活跃中\n` +
         `⏰ 剩余时间: 计算中...\n` +
         `⚡ 可用能量: 计算中...\n\n` +
@@ -166,7 +166,7 @@ export class EnergyCallbackHandler {
       });
     } catch (error) {
       console.error('Failed to handle delegation status:', error);
-      await ResponseFormatter.safeSendMessage(this.bot, chatId, '❌ 查询委托状态时发生错误，请重试。');
+      await ResponseFormatter.safeSendMessage(this.bot, chatId, '❌ 查询代理状态时发生错误，请重试。');
     }
   }
 }

@@ -10,6 +10,7 @@ export interface NetworkParameters {
   networkName: string
   networkType: string
   network: 'mainnet' | 'shasta' | 'nile'
+  blockExplorerUrl?: string // 区块浏览器URL（来自数据库配置）
   unlockPeriod: number
   unlockPeriodDays: number
   unlockPeriodText: string

@@ -157,7 +157,7 @@ export function useStakeData() {
     }
   }
 
-  // 获取委托记录
+  // 获取代理记录
   const loadDelegateRecords = async (params: DelegateRecordQueryParams) => {
     try {
       loading.value = true
@@ -181,10 +181,10 @@ export function useStakeData() {
         delegateRecords.value = records
         Object.assign(pagination, response.data.pagination)
       } else {
-        throw new Error(response.data.message || '获取委托记录失败')
+        throw new Error(response.data.message || '获取代理记录失败')
       }
     } catch (err: any) {
-      handleError(err, '获取委托记录', params.poolAccountId)
+      handleError(err, '获取代理记录', params.poolAccountId)
     } finally {
       loading.value = false
     }

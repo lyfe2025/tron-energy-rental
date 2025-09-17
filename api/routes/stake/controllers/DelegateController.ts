@@ -1,5 +1,5 @@
 /**
- * 委托操作控制器
+ * 代理操作控制器
  */
 import type { Request, Response } from 'express';
 import { tronService } from '../../../services/tron.js';
@@ -10,7 +10,7 @@ import type {
 
 export class DelegateController {
   /**
-   * 委托资源
+   * 代理资源
    */
   static delegate: RouteHandler = async (req: Request, res: Response) => {
     try {
@@ -47,7 +47,7 @@ export class DelegateController {
         });
       }
       
-      // 执行委托
+      // 执行代理
       const result = await tronService.delegateResource({
         ownerAddress,
         receiverAddress,
@@ -58,7 +58,7 @@ export class DelegateController {
       });
       
       if (result.success) {
-        // 委托成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
+        // 代理成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         
         res.json({ success: true, data: result });
         return;
@@ -67,7 +67,7 @@ export class DelegateController {
         return;
       }
     } catch (error: any) {
-      console.error('委托资源失败:', error);
+      console.error('代理资源失败:', error);
       res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',
@@ -77,7 +77,7 @@ export class DelegateController {
   };
 
   /**
-   * 取消委托资源
+   * 取消代理资源
    */
   static undelegate: RouteHandler = async (req: Request, res: Response) => {
     try {
@@ -112,7 +112,7 @@ export class DelegateController {
         });
       }
       
-      // 执行取消委托
+      // 执行取消代理
       const result = await tronService.undelegateResource({
         ownerAddress,
         receiverAddress,
@@ -121,7 +121,7 @@ export class DelegateController {
       });
       
       if (result.success) {
-        // 取消委托成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
+        // 取消代理成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         
         res.json({ success: true, data: result });
         return;
@@ -130,7 +130,7 @@ export class DelegateController {
         return;
       }
     } catch (error: any) {
-      console.error('取消委托资源失败:', error);
+      console.error('取消代理资源失败:', error);
       res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',
@@ -140,7 +140,7 @@ export class DelegateController {
   };
 
   /**
-   * 批量委托操作（扩展功能）
+   * 批量代理操作（扩展功能）
    */
   static batchDelegate: RouteHandler = async (req: Request, res: Response) => {
     try {
@@ -175,9 +175,9 @@ export class DelegateController {
             error: result.error || null
           });
           
-          // 批量委托操作完成（不再存储到数据库，所有数据从TRON网络实时获取）
+          // 批量代理操作完成（不再存储到数据库，所有数据从TRON网络实时获取）
           if (result.success) {
-            console.log(`✅ 批量委托操作成功 (index: ${i}) - 交易ID: ${result.txid}`);
+            console.log(`✅ 批量代理操作成功 (index: ${i}) - 交易ID: ${result.txid}`);
           }
         } catch (opError: any) {
           errors.push({
@@ -199,7 +199,7 @@ export class DelegateController {
       });
       
     } catch (error: any) {
-      console.error('批量委托失败:', error);
+      console.error('批量代理失败:', error);
       res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',

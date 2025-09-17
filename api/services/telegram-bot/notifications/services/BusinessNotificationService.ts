@@ -1,6 +1,6 @@
 /**
  * 业务通知服务
- * 处理订单、支付、能量委托等业务相关通知
+ * 处理订单、支付、能量代理等业务相关通知
  */
 
 import TelegramBot from 'node-telegram-bot-api';
@@ -165,7 +165,7 @@ export class BusinessNotificationService {
   }
 
   /**
-   * 发送能量委托完成通知
+   * 发送能量代理完成通知
    */
   async sendEnergyDelegationCompleteNotification(
     userId: string,
@@ -215,7 +215,7 @@ export class BusinessNotificationService {
 
       return { success: true, templateId: template.id };
     } catch (error) {
-      console.error('发送能量委托完成通知失败:', error);
+      console.error('发送能量代理完成通知失败:', error);
       return { success: false, reason: error.message, error };
     }
   }

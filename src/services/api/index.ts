@@ -56,7 +56,7 @@ export type {
     CreateEnergyPoolData, EnergyPool, UpdateEnergyPoolData
 } from './energy-pool/energyPoolAPI';
 export { energyPoolExtendedAPI as energyPoolAPI } from './energy-pool/energyPoolExtendedAPI';
-export type { EnergyAllocation, EnergyPoolAccount, EnergyPoolStatistics, OptimizationResult, TodayConsumption } from './energy-pool/energyPoolExtendedAPI';
+export type { EnergyAllocation, EnergyPoolAccount, EnergyPoolStatistics, OptimizationResult } from './energy-pool/energyPoolExtendedAPI';
 
 // 质押管理API
 export { stakeAPI } from './stake/stakeAPI';

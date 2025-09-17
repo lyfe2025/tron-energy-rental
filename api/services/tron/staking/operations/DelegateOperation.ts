@@ -11,8 +11,8 @@ import type {
 } from '../types/staking.types';
 
 /**
- * 委托操作类
- * 负责处理所有委托相关的操作
+ * 代理操作类
+ * 负责处理所有代理相关的操作
  */
 export class DelegateOperation {
   private tronWeb: any;
@@ -31,7 +31,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 委托资源给其他地址
+   * 代理资源给其他地址
    */
   async delegateResource(params: DelegateResourceParams): Promise<DelegateOperationResult> {
     try {
@@ -62,7 +62,7 @@ export class DelegateOperation {
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 委托成功（不再存储到数据库，所有数据从TRON网络实时获取）
+        // 代理成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -88,7 +88,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 取消委托资源
+   * 取消代理资源
    */
   async undelegateResource(params: UndelegateResourceParams): Promise<DelegateOperationResult> {
     try {
@@ -115,7 +115,7 @@ export class DelegateOperation {
       const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
       
       if (result.result) {
-        // 取消委托成功（不再存储到数据库，所有数据从TRON网络实时获取）
+        // 取消代理成功（不再存储到数据库，所有数据从TRON网络实时获取）
 
         return {
           success: true,
@@ -140,7 +140,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 获取委托交易记录
+   * 获取代理交易记录
    */
   async getDelegateTransactionHistory(
     address: string, 
@@ -148,18 +148,18 @@ export class DelegateOperation {
     offset: number = 0
   ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
     try {
-      console.log(`[DelegateOperation] 尝试获取地址 ${address} 的委托交易记录`);
+      console.log(`[DelegateOperation] 尝试获取地址 ${address} 的代理交易记录`);
       
       let transactions: any[] = [];
       
-      // 使用TronGrid API获取委托相关交易
+      // 使用TronGrid API获取代理相关交易
       const transactionsResponse = await this.tronGridProvider.getAccountTransactions(address, limit);
       
       if (transactionsResponse.success && transactionsResponse.data) {
         const allTransactions = transactionsResponse.data;
         console.log(`[DelegateOperation] 获取到所有交易: ${allTransactions.length} 条`);
         
-        // 客户端筛选委托相关交易
+        // 客户端筛选代理相关交易
         const delegateContractTypes = [
           'DelegateResourceContract',
           'UnDelegateResourceContract'
@@ -170,37 +170,37 @@ export class DelegateOperation {
           delegateContractTypes
         );
         
-        console.log(`[DelegateOperation] 筛选出委托相关交易: ${filteredTransactions.length} 条`);
+        console.log(`[DelegateOperation] 筛选出代理相关交易: ${filteredTransactions.length} 条`);
         
         // 按时间戳降序排序并限制数量
         transactions = filteredTransactions
           .sort((a, b) => (b.block_timestamp || 0) - (a.block_timestamp || 0))
           .slice(0, limit);
       } else {
-        console.warn('[DelegateOperation] TronGrid API获取委托交易失败');
+        console.warn('[DelegateOperation] TronGrid API获取代理交易失败');
       }
 
-      // 如果没有找到真实的委托记录，返回空数据
+      // 如果没有找到真实的代理记录，返回空数据
       if (transactions.length === 0) {
-        console.log('[DelegateOperation] 未找到委托记录');
+        console.log('[DelegateOperation] 未找到代理记录');
         return {
           success: true,
           data: [],
-          error: '该地址暂无委托记录'
+          error: '该地址暂无代理记录'
         };
       }
 
       // 转换为标准格式
       const formattedRecords = this.formatDelegateTransactions(transactions, address);
 
-      console.log(`[DelegateOperation] 成功格式化 ${formattedRecords.length} 条委托交易记录`);
+      console.log(`[DelegateOperation] 成功格式化 ${formattedRecords.length} 条代理交易记录`);
 
       return {
         success: true,
         data: formattedRecords
       };
     } catch (error: any) {
-      console.error('获取委托交易记录失败:', error);
+      console.error('获取代理交易记录失败:', error);
       return {
         success: false,
         error: error.message,
@@ -210,7 +210,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 格式化委托交易记录
+   * 格式化代理交易记录
    */
   private formatDelegateTransactions(transactions: any[], address: string): FormattedStakeRecord[] {
     return transactions.map((tx: any) => {
@@ -257,7 +257,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 获取账户的委托资源概览
+   * 获取账户的代理资源概览
    */
   async getDelegationOverview(address: string): Promise<ServiceResponse<any>> {
     try {
@@ -266,34 +266,34 @@ export class DelegateOperation {
       // TRON单位转换常量：1 TRX = 1,000,000 sun
       const SUN_TO_TRX = 1000000;
       
-      // 获取委托给其他账户的资源
+      // 获取代理给其他账户的资源
       const delegatedEnergy = parseInt(account.delegated_frozenV2_balance_for_energy) || 0;
       const delegatedBandwidth = parseInt(account.delegated_frozenV2_balance_for_bandwidth) || 0;
       
-      // 获取从其他账户接收到的委托资源
+      // 获取从其他账户接收到的代理资源
       const receivedEnergy = parseInt(account.acquired_delegated_frozenV2_balance_for_energy) || 0;
       const receivedBandwidth = parseInt(account.acquired_delegated_frozenV2_balance_for_bandwidth) || 0;
 
-      console.log(`[DelegateOperation] 获取委托概览 - 地址: ${address}`);
-      console.log(`[DelegateOperation] 委托给他人 - 能量: ${delegatedEnergy}, 带宽: ${delegatedBandwidth}`);
-      console.log(`[DelegateOperation] 接收委托 - 能量: ${receivedEnergy}, 带宽: ${receivedBandwidth}`);
+      console.log(`[DelegateOperation] 获取代理概览 - 地址: ${address}`);
+      console.log(`[DelegateOperation] 代理给他人 - 能量: ${delegatedEnergy}, 带宽: ${delegatedBandwidth}`);
+      console.log(`[DelegateOperation] 接收代理 - 能量: ${receivedEnergy}, 带宽: ${receivedBandwidth}`);
 
       return {
         success: true,
         data: {
-          // 委托给他人
+          // 代理给他人
           delegatedToOthers: {
             energy: delegatedEnergy,
             bandwidth: delegatedBandwidth,
             totalTrx: (delegatedEnergy + delegatedBandwidth) / SUN_TO_TRX
           },
-          // 接收到的委托
+          // 接收到的代理
           receivedFromOthers: {
             energy: receivedEnergy,
             bandwidth: receivedBandwidth,
             totalTrx: (receivedEnergy + receivedBandwidth) / SUN_TO_TRX
           },
-          // 净委托（接收 - 委托出去）
+          // 净代理（接收 - 代理出去）
           netDelegation: {
             energy: receivedEnergy - delegatedEnergy,
             bandwidth: receivedBandwidth - delegatedBandwidth,
@@ -311,7 +311,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 检查可委托的资源
+   * 检查可代理的资源
    */
   async getAvailableForDelegation(address: string): Promise<ServiceResponse<any>> {
     try {
@@ -329,17 +329,17 @@ export class DelegateOperation {
         .filter((f: any) => f.type === 'BANDWIDTH')
         .reduce((sum: number, f: any) => sum + (parseInt(f.amount) || 0), 0);
       
-      // 获取已委托的资源
+      // 获取已代理的资源
       const delegatedEnergy = parseInt(account.delegated_frozenV2_balance_for_energy) || 0;
       const delegatedBandwidth = parseInt(account.delegated_frozenV2_balance_for_bandwidth) || 0;
       
-      // 计算可委托的资源（质押的 - 已委托的）
+      // 计算可代理的资源（质押的 - 已代理的）
       const availableEnergy = Math.max(0, stakedEnergy - delegatedEnergy);
       const availableBandwidth = Math.max(0, stakedBandwidth - delegatedBandwidth);
 
-      console.log(`[DelegateOperation] 可委托资源 - 地址: ${address}`);
-      console.log(`[DelegateOperation] 质押能量: ${stakedEnergy}, 已委托: ${delegatedEnergy}, 可委托: ${availableEnergy}`);
-      console.log(`[DelegateOperation] 质押带宽: ${stakedBandwidth}, 已委托: ${delegatedBandwidth}, 可委托: ${availableBandwidth}`);
+      console.log(`[DelegateOperation] 可代理资源 - 地址: ${address}`);
+      console.log(`[DelegateOperation] 质押能量: ${stakedEnergy}, 已代理: ${delegatedEnergy}, 可代理: ${availableEnergy}`);
+      console.log(`[DelegateOperation] 质押带宽: ${stakedBandwidth}, 已代理: ${delegatedBandwidth}, 可代理: ${availableBandwidth}`);
 
       return {
         success: true,
@@ -371,7 +371,7 @@ export class DelegateOperation {
   }
 
   /**
-   * @deprecated 已移除数据库存储逻辑，所有委托数据从TRON网络实时获取
+   * @deprecated 已移除数据库存储逻辑，所有代理数据从TRON网络实时获取
    * 保留此方法以避免类型错误，但不执行任何操作
    */
   private async recordDelegateTransaction(params: StakeTransactionParams): Promise<{ success: boolean; error?: string }> {

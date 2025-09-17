@@ -245,12 +245,12 @@ ${statusEmoji} **状态**: ${statusText}
 ⚡ **能量数量**: ${MessageFormatter.formatNumber(order.energy_amount)} Energy
 💰 **支付金额**: ${order.price_trx} TRX
 📍 **接收地址**: \`${order.recipient_address}\`
-⏰ **委托时长**: ${order.duration_hours}小时
+⏰ **代理时长**: ${order.duration_hours}小时
 📅 **创建时间**: ${MessageFormatter.formatDate(order.created_at)}
 ${order.updated_at ? `🔄 **更新时间**: ${MessageFormatter.formatDate(order.updated_at)}` : ''}
 
 ${order.transaction_hash ? `🔗 **交易哈希**: \`${order.transaction_hash}\`` : ''}
-${order.delegation_id ? `📋 **委托ID**: \`${order.delegation_id}\`` : ''}`;
+${order.delegation_id ? `📋 **代理ID**: \`${order.delegation_id}\`` : ''}`;
 
     const keyboard = {
       inline_keyboard: [

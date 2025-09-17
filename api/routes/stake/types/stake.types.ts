@@ -13,7 +13,7 @@ export interface StakeOperationRequest {
   accountId?: string  // 能量池账户ID (energy_pools表)
 }
 
-// 委托操作请求参数
+// 代理操作请求参数
 export interface DelegateOperationRequest {
   ownerAddress: string
   receiverAddress: string

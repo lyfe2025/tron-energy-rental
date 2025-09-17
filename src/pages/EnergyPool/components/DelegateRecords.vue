@@ -10,8 +10,8 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">全部</option>
-          <option value="delegate">委托</option>
-          <option value="undelegate">取消委托</option>
+          <option value="delegate">代理</option>
+          <option value="undelegate">取消代理</option>
         </select>
       </div>
 
@@ -144,7 +144,7 @@
               @click="undelegateResource(record)"
               class="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200"
             >
-              取消委托
+              取消代理
             </button>
           </div>
         </div>
@@ -182,8 +182,8 @@
       <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">暂无委托记录</h3>
-      <p class="text-gray-600">当前没有找到任何委托记录</p>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">暂无代理记录</h3>
+      <p class="text-gray-600">当前没有找到任何代理记录</p>
     </div>
 
     <!-- 分页 -->
@@ -211,12 +211,12 @@
       </nav>
     </div>
 
-    <!-- 取消委托确认对话框 -->
+    <!-- 取消代理确认对话框 -->
     <div v-if="showUndelegateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">确认取消委托</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">确认取消代理</h3>
         <p class="text-gray-600 mb-6">
-          确定要取消委托 {{ formatTrx(selectedRecord?.amount || 0) }} 给 {{ formatAddress(selectedRecord?.toAddress || '') }} 吗？
+          确定要取消代理 {{ formatTrx(selectedRecord?.amount || 0) }} 给 {{ formatAddress(selectedRecord?.toAddress || '') }} 吗？
         </p>
         <div class="flex justify-end space-x-3">
           <button
@@ -380,7 +380,7 @@ const confirmUndelegate = async () => {
     showUndelegateDialog.value = false
     selectedRecord.value = null
   } catch (error) {
-    console.error('取消委托失败:', error)
+    console.error('取消代理失败:', error)
   } finally {
     undelegating.value = false
   }

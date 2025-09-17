@@ -102,8 +102,8 @@ export function useAdminPermissions() {
       'business:energy:stake': '能量质押',
       'business:energy:stake:freeze': '质押操作',
       'business:energy:stake:unfreeze': '解质押操作',
-      'business:energy:stake:delegate': '委托资源',
-      'business:energy:stake:undelegate': '取消委托',
+      'business:energy:stake:delegate': '代理资源',
+      'business:energy:stake:undelegate': '取消代理',
       'business:energy:stake:withdraw': '提取解质押',
       
       // 价格配置

@@ -26,7 +26,7 @@
                 <el-option-group label="业务通知">
                   <el-option label="订单创建" value="order_created" />
                   <el-option label="支付成功" value="payment_success" />
-                  <el-option label="能量委托完成" value="energy_delegation_complete" />
+                  <el-option label="能量代理完成" value="energy_delegation_complete" />
                 </el-option-group>
                 <el-option-group label="代理通知">
                   <el-option label="代理审核通过" value="application_approved" />

@@ -215,7 +215,7 @@ const getTypeName = (type: string) => {
   const names: Record<string, string> = {
     order_created: '订单创建',
     payment_success: '支付成功',
-    energy_delegation_complete: '能量委托',
+    energy_delegation_complete: '能量代理',
     application_approved: '代理审核',
     commission_earned: '佣金到账',
     maintenance_notice: '系统维护',

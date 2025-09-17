@@ -24,7 +24,7 @@
         <StakeRecords :pool-id="selectedAccount.id" :network-id="currentNetworkId" />
       </div>
 
-      <!-- 委托记录 -->
+      <!-- 代理记录 -->
       <div v-if="activeTab === 'delegate' && selectedAccount">
         <DelegateRecords 
           :pool-id="currentNetworkId" 

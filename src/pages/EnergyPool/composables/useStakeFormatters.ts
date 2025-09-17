@@ -103,9 +103,9 @@ export function useStakeFormatters() {
       case 'unfreeze':
         return '解质押'
       case 'delegate':
-        return '委托'
+        return '代理'
       case 'undelegate':
-        return '取消委托'
+        return '取消代理'
       default:
         return type
     }

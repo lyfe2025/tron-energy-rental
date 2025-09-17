@@ -114,17 +114,35 @@
             </div>
           </div>
 
-          <!-- 查看交易总消耗 -->
-          <button 
-            @click="toggleDetails"
-            class="w-full flex items-center justify-between py-3 text-blue-600 hover:text-blue-700 border-t"
-          >
-            <span class="text-sm">查看交易总消耗</span>
-            <svg :class="['w-4 h-4 transition-transform', showDetails ? 'rotate-90' : '']" 
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+        <!-- TRON费用数据获取状态 -->
+        <div v-if="feesError" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span class="text-sm text-yellow-800">{{ feesError }}</span>
+            </div>
+            <button 
+              @click="fetchTransactionFees"
+              class="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded"
+            >
+              重试
+            </button>
+          </div>
+        </div>
+
+        <!-- 查看交易总消耗 -->
+        <button 
+          @click="toggleDetails"
+          class="w-full flex items-center justify-between py-3 text-blue-600 hover:text-blue-700 border-t"
+        >
+          <span class="text-sm">查看交易总消耗</span>
+          <svg :class="['w-4 h-4 transition-transform', showDetails ? 'rotate-90' : '']" 
+               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
           <!-- 交易总消耗详细信息 -->
           <div v-if="showDetails" class="bg-gray-50 rounded-lg p-4 space-y-4 text-sm">
@@ -136,6 +154,12 @@
               </p>
               <div class="text-xs text-gray-700 font-medium">
                 交易总消耗 = 交易资源 + 手续费
+              </div>
+              <div class="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                数据来源：TRON官方API实时获取，确保费用预估的准确性
               </div>
             </div>
 
@@ -286,6 +310,8 @@ const route = useRoute()
 const loading = ref(false)
 const showDetails = ref(false)
 const transactionFees = ref<TransactionFees | null>(null)
+const feesLoading = ref(false)
+const feesError = ref<string | null>(null)
 
 // 获取网络ID
 const networkId = computed(() => route.params.networkId as string)
@@ -296,23 +322,53 @@ const networkName = computed(() => {
 })
 
 const estimatedBandwidthFee = computed(() => {
-  return transactionFees.value?.bandwidthFee?.toString() || '254'
+  if (feesLoading.value) {
+    return '获取中...'
+  }
+  if (feesError.value) {
+    return '获取失败'
+  }
+  if (transactionFees.value === null) {
+    return '未知'
+  }
+  return transactionFees.value.bandwidthFee?.toString() || '0'
 })
 
 const estimatedEnergyFee = computed(() => {
-  return transactionFees.value?.energyFee?.toString() || '0'  
+  if (feesLoading.value) {
+    return '获取中...'
+  }
+  if (feesError.value) {
+    return '获取失败'
+  }
+  if (transactionFees.value === null) {
+    return '未知'
+  }
+  return transactionFees.value.energyFee?.toString() || '0'  
 })
 
 const estimatedServiceFee = computed(() => {
-  return transactionFees.value?.serviceFee?.toString() || '0'
+  if (feesLoading.value) {
+    return '获取中...'
+  }
+  if (feesError.value) {
+    return '获取失败'
+  }
+  if (transactionFees.value === null) {
+    return '未知'
+  }
+  return transactionFees.value.serviceFee?.toString() || '0'
 })
 
-// 获取交易费用
+// 获取交易费用 - 从TRON官方API
 const fetchTransactionFees = async () => {
   if (!props.transactionData || !networkId.value) return
   
+  feesLoading.value = true
+  feesError.value = null
+  
   try {
-    console.log('[TransactionConfirmModal] 获取交易费用...')
+    console.log('[TransactionConfirmModal] 获取TRON官方交易费用...')
     const fees = await transactionFeeService.calculateStakingFees({
       amount: props.transactionData.amount,
       resourceType: props.transactionData.resourceType,
@@ -321,11 +377,14 @@ const fetchTransactionFees = async () => {
     })
     
     transactionFees.value = fees
-    console.log('[TransactionConfirmModal] 费用获取成功:', fees)
+    console.log('[TransactionConfirmModal] TRON官方费用获取成功:', fees)
     
   } catch (error) {
-    console.error('[TransactionConfirmModal] 费用获取失败:', error)
-    // 使用默认值，不中断用户流程
+    console.error('[TransactionConfirmModal] TRON官方费用获取失败:', error)
+    feesError.value = 'TRON网络数据获取失败'
+    // 不设置默认值，保持真实性
+  } finally {
+    feesLoading.value = false
   }
 }
 

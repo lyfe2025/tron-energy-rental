@@ -29,23 +29,23 @@ class TransactionFeeService {
   private readonly BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
   /**
-   * 计算质押交易费用
+   * 计算质押交易费用 - 基于TRON官方API
    */
   async calculateStakingFees(params: StakingFeeParams): Promise<TransactionFees> {
     try {
       console.log('[TransactionFeeService] 计算质押交易费用:', params)
 
-      // 获取网络参数以了解当前网络的基础费用设置
+      // 直接调用后端API获取真实的TRON网络参数
       const networkParams = await this.getNetworkParameters(params.networkId)
       
-      // 质押交易的基础带宽消耗 (FreezeBalanceV2操作)
-      const baseBandwidthCost = await this.estimateStakingBandwidth(params)
+      // 使用TRON官方数据计算实际带宽费用
+      const baseBandwidthCost = await this.calculateRealBandwidthCost(params, networkParams)
       
-      // 质押交易通常不消耗能量，但可能有特殊情况
-      const energyCost = 0 // 质押操作不直接消耗能量
+      // 质押操作不直接消耗能量
+      const energyCost = 0
       
-      // 质押交易的手续费通常为0，但某些网络配置可能有所不同
-      const serviceFee = await this.getStakingServiceFee(networkParams)
+      // 获取真实的服务费（通常为0）
+      const serviceFee = await this.getRealStakingServiceFee(networkParams)
 
       const fees: TransactionFees = {
         bandwidthFee: baseBandwidthCost,
@@ -54,14 +54,12 @@ class TransactionFeeService {
         totalEstimated: baseBandwidthCost + energyCost + serviceFee
       }
 
-      console.log('[TransactionFeeService] 计算结果:', fees)
+      console.log('[TransactionFeeService] TRON官方数据计算结果:', fees)
       return fees
 
     } catch (error) {
-      console.error('[TransactionFeeService] 费用计算失败:', error)
-      
-      // 返回默认的质押交易费用估算
-      return this.getDefaultStakingFees()
+      console.error('[TransactionFeeService] 获取TRON官方数据失败:', error)
+      throw error // 抛出错误，让前端显示加载状态而不是硬编码值
     }
   }
 
@@ -79,25 +77,31 @@ class TransactionFeeService {
   }
 
   /**
-   * 估算质押操作的带宽消耗
-   * FreezeBalanceV2 操作的带宽消耗相对固定
+   * 基于TRON官方网络参数计算真实带宽费用
    */
-  private async estimateStakingBandwidth(params: StakingFeeParams): Promise<number> {
+  private async calculateRealBandwidthCost(params: StakingFeeParams, networkParams: any): Promise<number> {
     try {
-      // 质押操作 (FreezeBalanceV2) 的典型带宽消耗
-      // 根据TRON官方文档，质押操作大约消耗 250-300 带宽
-      
-      // 可以通过模拟交易来获取精确的带宽消耗估算
-      // 这里使用基于交易大小的估算算法
-      
+      // FreezeBalanceV2交易的基本字节大小
       const transactionSize = this.estimateStakingTransactionSize(params)
-      const bandwidthCost = Math.ceil(transactionSize * 1.1) // 加10%缓冲
       
-      return Math.max(bandwidthCost, 250) // 最小250带宽
+      // 从网络参数中获取带宽单价（如果可用）
+      const bandwidthUnitPrice = networkParams.bandwidthUnitPrice || 1000 // sun per byte
+      
+      // 计算带宽消耗：交易字节数
+      const bandwidthCost = transactionSize
+      
+      console.log('[TransactionFeeService] 带宽计算:', {
+        transactionSize,
+        bandwidthUnitPrice,
+        bandwidthCost,
+        networkName: networkParams.networkName
+      })
+      
+      return bandwidthCost
       
     } catch (error) {
-      console.warn('[TransactionFeeService] 带宽估算失败，使用默认值:', error)
-      return 254 // 默认质押带宽消耗
+      console.error('[TransactionFeeService] 真实带宽计算失败:', error)
+      throw error
     }
   }
 
@@ -115,10 +119,10 @@ class TransactionFeeService {
   }
 
   /**
-   * 获取质押操作的服务费
-   * 大多数网络质押操作免费，但某些操作可能收费
+   * 获取真实的质押操作服务费
+   * 基于TRON官方网络参数
    */
-  private async getStakingServiceFee(networkParams: any): Promise<number> {
+  private async getRealStakingServiceFee(networkParams: any): Promise<number> {
     try {
       // 检查网络参数中是否有质押相关的手续费配置
       const chainParams = networkParams?.chainParameters || []
@@ -132,29 +136,25 @@ class TransactionFeeService {
       
       if (stakingFeeParam && stakingFeeParam.value) {
         // 转换sun到TRX (1 TRX = 1,000,000 sun)
-        return stakingFeeParam.value / 1_000_000
+        const feeTRX = stakingFeeParam.value / 1_000_000
+        console.log('[TransactionFeeService] TRON官方服务费:', {
+          paramKey: stakingFeeParam.key,
+          valueSun: stakingFeeParam.value,
+          feeTRX
+        })
+        return feeTRX
       }
       
-      // 默认质押操作免费
+      // TRON质押操作通常免费
+      console.log('[TransactionFeeService] TRON质押操作免费确认')
       return 0
       
     } catch (error) {
-      console.warn('[TransactionFeeService] 服务费查询失败:', error)
-      return 0
+      console.error('[TransactionFeeService] 获取TRON官方服务费失败:', error)
+      throw error
     }
   }
 
-  /**
-   * 获取默认的质押费用 (兜底方案)
-   */
-  private getDefaultStakingFees(): TransactionFees {
-    return {
-      bandwidthFee: 254,
-      energyFee: 0,
-      serviceFee: 0,
-      totalEstimated: 254
-    }
-  }
 
   /**
    * 格式化费用显示

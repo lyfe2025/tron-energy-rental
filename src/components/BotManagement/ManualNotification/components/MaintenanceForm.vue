@@ -64,7 +64,7 @@
           <el-checkbox-group :value="form.affected_features" @change="updateForm('affected_features', $event)">
             <el-checkbox label="order_creation">下单功能</el-checkbox>
             <el-checkbox label="payment_processing">支付处理</el-checkbox>
-            <el-checkbox label="energy_delegation">能量委托</el-checkbox>
+            <el-checkbox label="energy_delegation">能量代理</el-checkbox>
             <el-checkbox label="agent_functions">代理功能</el-checkbox>
             <el-checkbox label="customer_service">客服支持</el-checkbox>
           </el-checkbox-group>

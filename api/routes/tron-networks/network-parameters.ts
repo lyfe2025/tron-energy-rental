@@ -43,6 +43,7 @@ router.get('/:networkId/parameters', async (req, res) => {
         networkName: network.name,
         networkType: network.network_type,
         network: params.network,
+        blockExplorerUrl: network.block_explorer_url,  // 添加区块浏览器URL配置
         unlockPeriod: params.unlockPeriod,
         unlockPeriodDays: Math.floor(params.unlockPeriod / 24),
         unlockPeriodText: params.unlockPeriod >= 24 

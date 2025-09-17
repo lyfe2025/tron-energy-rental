@@ -6,6 +6,8 @@
 // 导出组件
 export { default as DelegateModal } from './DelegateModal.vue'
 export { default as StakeModal } from './StakeModal.vue'
+export { default as StakeSuccessModal } from './StakeSuccessModal.vue'
+export { default as TransactionConfirmModal } from './TransactionConfirmModal.vue'
 export { default as UnstakeModal } from './UnstakeModal.vue'
 export { default as WithdrawModal } from './WithdrawModal.vue'
 
@@ -25,7 +27,7 @@ export enum StakeOperation {
 export const operationTitles = {
   [StakeOperation.STAKE]: '质押TRX',
   [StakeOperation.UNSTAKE]: '解质押TRX',
-  [StakeOperation.DELEGATE]: '委托资源',
+  [StakeOperation.DELEGATE]: '代理资源',
   [StakeOperation.WITHDRAW]: '提取资金'
 }
 
@@ -33,7 +35,7 @@ export const operationTitles = {
 export const operationDescriptions = {
   [StakeOperation.STAKE]: '质押TRX获取能量、带宽和投票权',
   [StakeOperation.UNSTAKE]: '解质押TRX，释放已质押的资源',
-  [StakeOperation.DELEGATE]: '将您的资源委托给其他用户使用',
+  [StakeOperation.DELEGATE]: '将您的资源代理给其他用户使用',
   [StakeOperation.WITHDRAW]: '提取已完成解质押等待期的TRX'
 }
 

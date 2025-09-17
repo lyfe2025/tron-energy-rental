@@ -44,7 +44,7 @@ export interface StakeRecord {
   createdAt: string
 }
 
-// 委托记录接口
+// 代理记录接口
 export interface DelegateRecord {
   id: string
   poolAccountId: string       // 能量池账户ID (energy_pools表)
@@ -140,7 +140,7 @@ export interface UnfreezeParams {
   resourceType: 'ENERGY' | 'BANDWIDTH'
 }
 
-// 委托操作参数接口
+// 代理操作参数接口
 export interface DelegateParams {
   networkId: string           // 网络ID (tron_networks表)
   poolAccountId: string       // 能量池账户ID (energy_pools表)
