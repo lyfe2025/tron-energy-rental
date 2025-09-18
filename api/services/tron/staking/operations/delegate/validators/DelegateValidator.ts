@@ -1,6 +1,6 @@
-import type { 
-  DelegateResourceParams, 
-  UndelegateResourceParams 
+import type {
+    DelegateResourceParams,
+    UndelegateResourceParams
 } from '../../../types/staking.types';
 
 /**
@@ -107,10 +107,10 @@ export class DelegateValidator {
         throw new Error(`Invalid lockPeriod: ${lockPeriod} - must be non-negative number`);
       }
 
-      // TRON锁定期限制（通常最大为3天）
-      const MAX_LOCK_PERIOD = 3;
+      // TRON锁定期限制（通常最大为72小时，即3天）
+      const MAX_LOCK_PERIOD = 72;
       if (lockPeriod > MAX_LOCK_PERIOD) {
-        throw new Error(`Lock period too long: ${lockPeriod} - maximum is ${MAX_LOCK_PERIOD} days`);
+        throw new Error(`Lock period too long: ${lockPeriod} - maximum is ${MAX_LOCK_PERIOD} hours`);
       }
     }
   }

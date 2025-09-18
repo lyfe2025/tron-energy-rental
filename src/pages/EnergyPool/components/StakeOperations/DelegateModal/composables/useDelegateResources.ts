@@ -26,17 +26,17 @@ export function useDelegateResources(props: any, state: any) {
   // 根据TRON官方API获取代理期限范围
   const lockPeriodRange = computed(() => {
     if (!state.value.networkParams) {
-      return { min: 0.01, max: 30, recommended: '0.01-14', description: '正在获取网络参数...' }
+      return { min: 0.000833, max: 720, recommended: '0.000833-336', description: '正在获取网络参数...' }
     }
     
-    // 使用TRON官方API的maxDelegateLockPeriod参数
-    const maxDays = state.value.networkParams.maxDelegateLockPeriodDays || 30 // 默认30天
+    // 使用TRON官方API的maxDelegateLockPeriod参数，直接使用小时数
+    const maxHours = state.value.networkParams.maxDelegateLockPeriodHours || 720 // 默认720小时（30天）
     
     return {
-      min: 0.01, // 最小0.01天（约14.4分钟）
-      max: maxDays,
-      recommended: `0.01-${Math.min(14, maxDays)}`,
-      description: `基于TRON官方API的代理期限限制（最长${maxDays}天，最小0.01天）`
+      min: 0.000833, // 最小0.000833小时（3秒，1个区块）
+      max: maxHours,
+      recommended: `0.0167-${Math.min(336, maxHours)}`, // 推荐从1分钟开始，336小时=14天
+      description: `基于TRON官方API的代理期限限制（最长${maxHours}小时，最小0.000833小时即3秒）`
     }
   })
 

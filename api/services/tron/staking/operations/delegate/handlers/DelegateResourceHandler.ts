@@ -1,5 +1,5 @@
-import type { 
-  DelegateOperationResult, 
+import type {
+  DelegateOperationResult,
   DelegateResourceParams,
   UndelegateResourceParams
 } from '../../../types/staking.types';
@@ -45,6 +45,17 @@ export class DelegateResourceHandler {
         receiverAddress: `${receiverAddress} -> ${receiverBase58}`
       });
       
+      // 🔧 单位转换：将小时转换为区块数 (TRON API要求)
+      // 用户输入：小时数 → API期望：区块数 (每区块约3秒)
+      // 转换公式：hours * 3600 / 3 = hours * 1200
+      const lockPeriodInBlocks = lockPeriod ? Math.round(lockPeriod * 1200) : 3600; // 默认1小时 = 1200区块
+      
+      console.log('🔧 [DelegateResourceHandler] 单位转换:', {
+        输入的小时数: lockPeriod,
+        转换后的区块数: lockPeriodInBlocks,
+        转换说明: '小时数 × 1200 = 区块数 (每区块3秒)'
+      });
+      
       const transaction = await this.tronWeb.transactionBuilder.delegateResource(
         balance,                                      // balance (int64) - 金额，单位为SUN，数字格式
         receiverBase58,                               // receiver_address (string) - Base58地址格式
@@ -52,7 +63,7 @@ export class DelegateResourceHandler {
         ownerBase58,                                  // owner_address (string) - Base58地址格式
         lock,                                        // lock (boolean) - 是否锁定
         { 
-          lockPeriod: lockPeriod || 3,               // lock_period (int) - 锁定期
+          lockPeriod: lockPeriodInBlocks,            // lock_period (int) - 锁定期，单位为区块数
           visible: true                              // visible - 指定使用Base58地址格式
         }
       );

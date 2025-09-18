@@ -39,26 +39,26 @@
           type="number"
           :min="lockPeriodRange.min"
           :max="lockPeriodRange.max"
-          step="0.01"
+          step="0.000001"
           required
           class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           placeholder="请输入代理期限"
         />
         <div class="absolute inset-y-0 right-0 flex items-center pr-4">
-          <span class="text-gray-500 font-medium text-sm">天</span>
+          <span class="text-gray-500 font-medium text-sm">小时</span>
         </div>
       </div>
       <div class="mt-2 space-y-1">
         <div class="flex items-center justify-between text-xs">
           <span class="text-gray-500">
-            允许范围: {{ lockPeriodRange.min }}-{{ lockPeriodRange.max }}天
+            允许范围: {{ lockPeriodRange.min }}-{{ lockPeriodRange.max }}小时
           </span>
           <span class="text-green-600">
-            推荐: {{ lockPeriodRange.recommended }}天
+            推荐: {{ lockPeriodRange.recommended }}小时
           </span>
         </div>
         <p class="text-xs text-blue-600">{{ lockPeriodRange.description }}</p>
-        <p class="text-xs text-gray-500">💡 提示: 0.01天 ≈ 14.4分钟，支持小数输入（如：0.5天 = 12小时）</p>
+        <p class="text-xs text-gray-500">💡 提示: 最小0.000833小时（3秒），支持小数输入（如：12小时，0.5小时 = 30分钟，0.0167小时 = 1分钟）</p>
         <p class="text-xs text-orange-600">代理期间资源将被锁定，无法取回</p>
         
         <!-- 验证错误提示 -->

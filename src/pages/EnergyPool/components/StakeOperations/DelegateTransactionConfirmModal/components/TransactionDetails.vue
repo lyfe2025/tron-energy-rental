@@ -33,7 +33,7 @@
     <div class="flex items-center justify-between py-2">
       <span class="text-gray-600 text-sm">代理期限</span>
       <span class="font-medium text-gray-900">
-        {{ enableLockPeriod ? `${lockPeriod}天` : '永久代理' }}
+        {{ enableLockPeriod ? `${lockPeriod}小时` : '永久代理' }}
       </span>
     </div>
 

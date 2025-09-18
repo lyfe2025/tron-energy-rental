@@ -215,7 +215,7 @@ const calculateReturnTime = () => {
   }
   
   const now = new Date()
-  const returnDate = new Date(now.getTime() + props.lockPeriod * 24 * 60 * 60 * 1000)
+  const returnDate = new Date(now.getTime() + props.lockPeriod * 60 * 60 * 1000)
   return returnDate.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

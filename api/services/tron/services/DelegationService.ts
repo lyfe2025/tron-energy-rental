@@ -90,6 +90,16 @@ export class DelegationService {
       let transaction;
       
       if (lock && lockPeriodNum > 0) {
+        // 🔧 单位转换：将小时转换为区块数 (TRON API要求)
+        // 用户输入：小时数 → API期望：区块数 (每区块约3秒)
+        const lockPeriodInBlocks = Math.round(lockPeriodNum * 1200);
+        
+        console.log('🔧 [DelegationService] 单位转换:', {
+          输入的小时数: lockPeriodNum,
+          转换后的区块数: lockPeriodInBlocks,
+          转换公式: 'hours × 1200 = blocks'
+        });
+        
         // 限期代理 - 传递锁定期选项和visible参数
         transaction = await this.tronWeb.transactionBuilder.delegateResource(
           balanceStr,                                   // amount (string) - 金额，单位为SUN
@@ -98,7 +108,7 @@ export class DelegationService {
           ownerBase58,                                  // address (string) - 委托方地址，Base58格式
           lock,                                        // lock (boolean) - 是否锁定
           { 
-            lockPeriod: lockPeriodNum,                 // lock_period (int) - 锁定期
+            lockPeriod: lockPeriodInBlocks,            // lock_period (int) - 锁定期，单位为区块数
             visible: true                              // visible - 指定使用Base58地址格式
           }
         );

@@ -165,7 +165,7 @@ Authorization: Bearer {your_jwt_token}
   amount: number,               // 委托金额(TRX)
   resource_type: "ENERGY" | "BANDWIDTH",     // 资源类型
   operation_type: "delegate" | "undelegate", // 操作类型
-  lock_period: number,          // 锁定期(天)
+  lock_period: number,          // 锁定期(小时)
   is_locked: boolean,           // 是否锁定
   status: string,               // 状态
   created_at: string,           // 创建时间

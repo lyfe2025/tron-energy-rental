@@ -17,7 +17,8 @@ export interface NetworkParameters {
   minStakeAmount: number
   minStakeAmountTrx: number
   maxDelegateLockPeriod?: number // 最大代理锁定期（区块数）
-  maxDelegateLockPeriodDays?: number // 最大代理锁定期（天数）
+  maxDelegateLockPeriodHours?: number // 最大代理锁定期（小时数）
+  maxDelegateLockPeriodDays?: number // 最大代理锁定期（天数，兼容性保留）
   lastUpdated: string
   // TRON网络资源参数 - 基于官方文档
   totalDailyEnergy: number // 全网每日固定能量总量：180,000,000,000

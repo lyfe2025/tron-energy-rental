@@ -77,12 +77,12 @@ export function useDelegateValidation() {
     }
 
     if (period < range.min) {
-      lockPeriodError.value = `代理期限不能少于 ${range.min} 天`
+      lockPeriodError.value = `代理期限不能少于 ${range.min} 小时（3秒）`
       return false
     }
 
     if (period > range.max) {
-      lockPeriodError.value = `代理期限不能超过 ${range.max} 天`
+      lockPeriodError.value = `代理期限不能超过 ${range.max} 小时`
       return false
     }
 

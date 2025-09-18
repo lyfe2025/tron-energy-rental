@@ -24,7 +24,7 @@
       </div>
               <div v-if="enableLockPeriod && lockPeriod" class="flex justify-between items-center">
                 <span class="text-gray-600">代理期限:</span>
-                <span class="font-medium text-blue-700">{{ lockPeriod }}天</span>
+                <span class="font-medium text-blue-700">{{ lockPeriod }}小时</span>
               </div>
               <div v-if="!enableLockPeriod" class="flex justify-between items-center">
                 <span class="text-gray-600">代理期限:</span>
