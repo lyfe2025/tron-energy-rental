@@ -140,10 +140,10 @@
                   <span class="font-medium text-gray-700 whitespace-nowrap">{{ getAddressLabel(record) }}:</span>
                   <div class="flex items-center space-x-2 min-w-0 flex-1">
                     <span class="font-mono text-gray-900 bg-gray-100 px-3 py-1.5 rounded border text-xs break-all select-all">
-                      {{ record.toAddress }}
+                      {{ getDisplayAddress(record) }}
                     </span>
                     <button
-                      @click="copyToClipboard(record.toAddress, getAddressLabel(record))"
+                      @click="copyToClipboard(getDisplayAddress(record), getAddressLabel(record))"
                       class="flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                       :title="'复制' + getAddressLabel(record)"
                     >
@@ -299,6 +299,21 @@ const getRecordDirection = (record: DelegateRecord) => {
   const currentAddress = getCurrentAccountAddress()
   if (!currentAddress) return 'unknown'
   
+  // 使用新的字段来判断方向
+  if ((record as any).from_address && (record as any).to_address) {
+    // 新的逻辑：使用 from_address 和 to_address 字段
+    const fromAddress = (record as any).from_address.toLowerCase()
+    const toAddress = (record as any).to_address.toLowerCase()
+    const current = currentAddress.toLowerCase()
+    
+    if (toAddress === current) {
+      return 'in'  // 代理获得：当前地址是接收方
+    } else if (fromAddress === current) {
+      return 'out' // 代理出去：当前地址是发起方
+    }
+  }
+  
+  // 回退到旧逻辑（向后兼容）
   if (record.toAddress.toLowerCase() === currentAddress.toLowerCase()) {
     return 'in'  // 代理获得
   } else {
@@ -326,6 +341,25 @@ const getAddressLabel = (record: DelegateRecord) => {
   return direction === 'in' ? '代理方地址' : '接收方地址'
 }
 
+// 获取要显示的地址
+const getDisplayAddress = (record: DelegateRecord) => {
+  const direction = getRecordDirection(record)
+  
+  // 使用新的字段优先
+  if ((record as any).from_address && (record as any).to_address) {
+    if (direction === 'in') {
+      // 代理获得：显示发起方地址
+      return (record as any).from_address
+    } else {
+      // 代理出去：显示接收方地址
+      return (record as any).to_address
+    }
+  }
+  
+  // 回退到旧逻辑（向后兼容）
+  return record.toAddress
+}
+
 // 获取本地操作类型文本（根据记录的方向）
 const getLocalOperationTypeText = (record: DelegateRecord) => {
   const direction = getRecordDirection(record)
@@ -343,7 +377,7 @@ const getUndelegateDialogMessage = () => {
   if (!selectedRecord.value) return ''
   
   const amount = formatTrx(selectedRecord.value.amount)
-  const address = formatAddress(selectedRecord.value.toAddress)
+  const address = formatAddress(getDisplayAddress(selectedRecord.value))
   const direction = getRecordDirection(selectedRecord.value)
   
   if (direction === 'in') {

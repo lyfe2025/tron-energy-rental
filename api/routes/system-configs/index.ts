@@ -9,33 +9,33 @@ import { Router } from 'express';
 import { authenticateToken } from '../../middleware/auth.js';
 import { auditConfigChanges, checkConfigPermission, validateConfig } from '../../middleware/configManagement.js';
 import {
-    batchUpdateConfigs,
-    createConfig,
-    deleteConfig,
-    getAllSettingsConfigs,
-    getConfigByKey,
-    getConfigCategories,
-    getConfigHistory,
-    getConfigs,
-    getConfigStats,
-    resetConfig,
-    updateConfig,
-    validateConfigValue
+  batchUpdateConfigs,
+  createConfig,
+  deleteConfig,
+  getAllSettingsConfigs,
+  getConfigByKey,
+  getConfigCategories,
+  getConfigHistory,
+  getConfigs,
+  getConfigStats,
+  resetConfig,
+  updateConfig,
+  validateConfigValue
 } from './controllers/systemConfigsController.js';
 import {
-    logConfigOperation,
-    rateLimit,
-    requireAdmin,
-    setCacheHeaders,
-    validateBatchUpdateRequest,
-    validateConfigAccess,
-    validateConfigEditable,
-    validateConfigExists,
-    validateConfigKeyQuery,
-    validateCreateRequest,
-    validatePaginationParams,
-    validateSearchParams,
-    validateUpdateRequest
+  logConfigOperation,
+  rateLimit,
+  requireAdmin,
+  setCacheHeaders,
+  validateBatchUpdateRequest,
+  validateConfigAccess,
+  validateConfigEditable,
+  validateConfigExists,
+  validateConfigKeyQuery,
+  validateCreateRequest,
+  validatePaginationParams,
+  validateSearchParams,
+  validateUpdateRequest
 } from './middleware/systemConfigsMiddleware.js';
 
 const router: Router = Router();
@@ -44,6 +44,11 @@ const router: Router = Router();
  * 系统配置路由定义
  * 所有路由都需要身份验证，管理操作需要管理员权限
  */
+
+
+// 简化的资源消耗配置路由
+import simpleResourceConsumptionRoutes from './simpleResourceConsumption.js';
+router.use('/configs', simpleResourceConsumptionRoutes);
 
 // 获取系统配置列表
 router.get('/', 

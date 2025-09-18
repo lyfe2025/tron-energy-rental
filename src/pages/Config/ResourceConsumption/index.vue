@@ -44,19 +44,23 @@
         <span class="ml-2 text-gray-600">正在加载配置...</span>
       </div>
       
-      <!-- 能量消耗配置 -->
-      <EnergyConsumptionConfig 
-        v-else-if="activeTab === 'energy'"
-        :config="energyConfig"
-        @update="updateEnergyConfig"
-      />
+             <!-- 能量消耗配置 -->
+             <div v-else-if="activeTab === 'energy'" class="space-y-6">
+               <EnergyConsumptionConfig 
+                 :config="energyConfig"
+                 @update="updateEnergyConfig"
+                 @save="saveEnergyConfig"
+               />
+             </div>
       
       <!-- 带宽消耗配置 -->
-      <BandwidthConsumptionConfig 
-        v-else-if="activeTab === 'bandwidth'"
-        :config="bandwidthConfig"
-        @update="updateBandwidthConfig"
-      />
+      <div v-else-if="activeTab === 'bandwidth'" class="space-y-6">
+        <BandwidthConsumptionConfig 
+          :config="bandwidthConfig"
+          @update="updateBandwidthConfig"
+          @save="saveBandwidthConfig"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -64,9 +68,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import {
-    RefreshCw,
-    Wifi,
-    Zap
+  RefreshCw,
+  Wifi,
+  Zap
 } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -74,10 +78,13 @@ import { onMounted, reactive, ref } from 'vue'
 import BandwidthConsumptionConfig from './components/BandwidthConsumption/index.vue'
 import EnergyConsumptionConfig from './components/EnergyConsumption/index.vue'
 
+// 服务导入
+import { SimpleResourceConsumptionApi } from './services/simpleApi.js'
+
 // 类型导入
 import type {
-    BandwidthConfig,
-    EnergyConfig
+  BandwidthConfig,
+  EnergyConfig
 } from './types/resource-consumption.types.js'
 
 // 响应式数据
@@ -103,8 +110,6 @@ const energyConfig = reactive<EnergyConfig>({
   usdt_standard_energy: 15000,
   usdt_buffer_percentage: 20,
   usdt_max_energy: 30000,
-  energy_price_trx_ratio: 0.00021,
-  auto_optimize: true,
   preset_values: [
     { name: '保守', value: 32000 },
     { name: '标准', value: 15000 },
@@ -115,7 +120,6 @@ const energyConfig = reactive<EnergyConfig>({
 // 带宽配置数据
 const bandwidthConfig = reactive<BandwidthConfig>({
   trx_transfer_bandwidth: 268,
-  trc10_transfer_bandwidth: 345,
   trc20_transfer_bandwidth: 345,
   account_create_bandwidth: 1000,
   buffer_percentage: 15,
@@ -131,12 +135,20 @@ const bandwidthConfig = reactive<BandwidthConfig>({
 const refreshData = async () => {
   loading.value = true
   try {
-    // TODO: 调用API刷新数据
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 并行获取能量和带宽配置
+    const [newEnergyConfig, newBandwidthConfig] = await Promise.all([
+      SimpleResourceConsumptionApi.getEnergyConfig(),
+      SimpleResourceConsumptionApi.getBandwidthConfig()
+    ])
+    
+    // 更新本地状态
+    Object.assign(energyConfig, newEnergyConfig)
+    Object.assign(bandwidthConfig, newBandwidthConfig)
+    
     ElMessage.success('数据刷新成功')
   } catch (error) {
-    ElMessage.error('数据刷新失败')
-    console.error('Refresh data error:', error)
+    console.error('刷新数据失败:', error)
+    ElMessage.error('刷新数据失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -144,23 +156,41 @@ const refreshData = async () => {
 
 const updateEnergyConfig = async (newConfig: Partial<EnergyConfig>) => {
   try {
+    // 更新本地状态（实时预览）
     Object.assign(energyConfig, newConfig)
-    // TODO: 调用API保存配置
-    ElMessage.success('能量配置更新成功')
   } catch (error) {
-    ElMessage.error('能量配置更新失败')
-    console.error('Update energy config error:', error)
+    console.error('更新能量配置失败:', error)
+    ElMessage.error('更新能量配置失败，请稍后重试')
+  }
+}
+
+const saveEnergyConfig = async () => {
+  try {
+    await SimpleResourceConsumptionApi.saveEnergyConfig(energyConfig)
+    ElMessage.success('能量配置保存成功')
+  } catch (error) {
+    console.error('保存能量配置失败:', error)
+    ElMessage.error('保存能量配置失败，请稍后重试')
   }
 }
 
 const updateBandwidthConfig = async (newConfig: Partial<BandwidthConfig>) => {
   try {
+    // 更新本地状态（实时预览）
     Object.assign(bandwidthConfig, newConfig)
-    // TODO: 调用API保存配置
-    ElMessage.success('带宽配置更新成功')
   } catch (error) {
-    ElMessage.error('带宽配置更新失败')
-    console.error('Update bandwidth config error:', error)
+    console.error('更新带宽配置失败:', error)
+    ElMessage.error('更新带宽配置失败，请稍后重试')
+  }
+}
+
+const saveBandwidthConfig = async () => {
+  try {
+    await SimpleResourceConsumptionApi.saveBandwidthConfig(bandwidthConfig)
+    ElMessage.success('带宽配置保存成功')
+  } catch (error) {
+    console.error('保存带宽配置失败:', error)
+    ElMessage.error('保存带宽配置失败，请稍后重试')
   }
 }
 

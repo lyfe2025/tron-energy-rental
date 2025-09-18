@@ -4,10 +4,10 @@ import { useEnergyPool } from '../../../composables/useEnergyPool'
 import type { DelegateRecord } from '../../../composables/useStake'
 import { useStake } from '../../../composables/useStake'
 import type {
-    DelegateDirection,
-    DelegateFilters,
-    DelegateRecordsBaseProps,
-    DelegateRecordsTextConfig
+  DelegateDirection,
+  DelegateFilters,
+  DelegateRecordsBaseProps,
+  DelegateRecordsTextConfig
 } from '../types/delegate-records.types'
 
 /**
@@ -84,10 +84,11 @@ export function useDelegateRecordsCommon(
         return record.toAddress.toLowerCase() !== currentAddress.toLowerCase()
       }
     } else {
-      // 代理获得：当前地址是接收方（toAddress或to_address）
+      // 代理获得：当前地址是接收方（to_address）
       if ((record as any).to_address) {
         return (record as any).to_address.toLowerCase() === currentAddress.toLowerCase()
       } else {
+        // 回退逻辑：toAddress 是当前地址（旧版本数据）
         return record.toAddress.toLowerCase() === currentAddress.toLowerCase()
       }
     }
