@@ -30,14 +30,6 @@ export interface CalculatorResult {
 }
 
 /**
- * 预设值
- */
-export interface PresetValue {
-  name: string
-  value: number
-}
-
-/**
  * 新预设值状态
  */
 export interface NewPresetState {
