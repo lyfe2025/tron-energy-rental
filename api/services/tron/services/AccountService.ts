@@ -33,6 +33,7 @@ export class AccountService {
 
   // 获取账户资源信息
   async getAccountResources(address: string): Promise<ServiceResponse<ResourceData>> {
+    console.log('🚨 [AccountService] getAccountResources 被调用了！地址:', address);
     try {
       const startTime = Date.now();
       
@@ -97,8 +98,9 @@ export class AccountService {
         address,
         'delegated_frozenV2_balance_for_bandwidth': accountInfo.delegated_frozenV2_balance_for_bandwidth,
         'delegated_frozenV2_balance_for_bandwidth_type': typeof accountInfo.delegated_frozenV2_balance_for_bandwidth,
-        'account_resource': accountInfo.account_resource,
-        'delegatedBandwidthOut_parsed': parseInt(accountInfo.delegated_frozenV2_balance_for_bandwidth) || 0
+        'delegatedBandwidthOut_parsed': parseInt(accountInfo.delegated_frozenV2_balance_for_bandwidth) || 0,
+        'TotalNetWeight': resources.TotalNetWeight,
+        'TotalNetLimit': resources.TotalNetLimit
       });
 
       // TRON API的EnergyLimit是净可用能量 = 质押获得 + 代理获得 - 代理出去
@@ -125,6 +127,8 @@ export class AccountService {
         Math.floor((delegatedBandwidthIn / totalNetWeight) * totalNetLimit) : 0;
       const delegatedBandwidthOutValue = totalNetWeight > 0 ? 
         Math.floor((delegatedBandwidthOut / totalNetWeight) * totalNetLimit) : 0;
+        
+      console.log('🚨 [AccountService] 强制测试 - 如果看到这个日志，说明AccountService正在运行');
 
       console.log('🔍 [AccountService] 质押信息获取:', {
         address,
@@ -157,8 +161,9 @@ export class AccountService {
       // 理论总带宽 = 质押获得 + 他人代理给自己 + 免费 600
       const theoreticalTotalBandwidth = stakingOnlyBandwidth + delegatedBandwidthInValue + freeNetLimit;
       
-      // 实际可用带宽 = 理论总带宽 - 已使用 - 代理出去的
-      const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth - delegatedBandwidthOutValue);
+      // ✅ 修正：实际可用带宽 = 理论总带宽 - 已使用
+      // 注意：代理出去的资源不影响当前账户的可用带宽（因为质押的TRX还是属于这个账户）
+      const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth);
       
       // 数据差异监控和警告
       console.log('📊 [AccountService] 带宽计算结果:', {
@@ -201,13 +206,13 @@ export class AccountService {
             directStaked: directBandwidthStaked, // 直接质押TRX数量（SUN单位）
             delegateStaked: delegatedBandwidthOut // 代理质押TRX数量（SUN单位）
           },
-          // 添加原始代理数据用于调试
-          delegation: {
-            energyOut: delegatedEnergyOut,
-            energyIn: delegatedEnergyIn,
-            bandwidthOut: delegatedBandwidthOut,
-            bandwidthIn: delegatedBandwidthIn
-          }
+            // ✅ 修正：使用TRON网络动态计算后的代理数据（前端直接使用）
+            delegation: {
+              energyOut: delegatedEnergyOutValue, // 使用计算后的能量值
+              energyIn: delegatedEnergyInValue,   // 使用计算后的能量值
+              bandwidthOut: delegatedBandwidthOutValue, // ✅ 使用计算后的带宽值（应为196）
+              bandwidthIn: delegatedBandwidthInValue    // ✅ 使用计算后的带宽值
+            }
         }
       };
     } catch (error) {

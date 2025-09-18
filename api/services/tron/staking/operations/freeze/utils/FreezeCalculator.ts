@@ -146,6 +146,22 @@ export class FreezeCalculator {
     // 计算质押获得的资源（自己质押获得的资源）
     const actualEnergyFromStaking = Math.max(0, totalStakedEnergyTrx);
     const actualBandwidthFromStaking = Math.max(0, totalStakedBandwidthTrx);
+    
+    // ✅ 修正：使用TRON网络动态计算公式计算实际代理带宽
+    // 公式：带宽 = (质押SUN / 全网总权重) × 全网总带宽
+    const totalNetWeight = resources.TotalNetWeight || 1; // 避免除零错误
+    const totalNetLimit = resources.TotalNetLimit || 0;
+    
+    const delegatedBandwidthValue = totalNetWeight > 0 ? 
+      Math.floor((delegatedBandwidth / totalNetWeight) * totalNetLimit) : 0;
+    const receivedBandwidthDelegationValue = totalNetWeight > 0 ? 
+      Math.floor((receivedBandwidthDelegation / totalNetWeight) * totalNetLimit) : 0;
+      
+    console.log('🔧 [FreezeCalculator] 代理带宽计算:', {
+      '原始delegatedBandwidth_SUN': delegatedBandwidth,
+      '计算后delegatedBandwidthValue': delegatedBandwidthValue,
+      '计算公式': `(${delegatedBandwidth} / ${totalNetWeight}) * ${totalNetLimit} = ${delegatedBandwidthValue}`
+    });
 
     return {
       // 新的9个统计字段
@@ -158,8 +174,8 @@ export class FreezeCalculator {
       delegatedToOthersEnergy: delegatedResources,
       delegatedToSelfEnergy: receivedEnergyDelegation,
       stakedBandwidth: actualBandwidthFromStaking,
-      delegatedToOthersBandwidth: delegatedBandwidth,
-      delegatedToSelfBandwidth: receivedBandwidthDelegation,
+      delegatedToOthersBandwidth: delegatedBandwidthValue, // ✅ 使用计算后的带宽值
+      delegatedToSelfBandwidth: receivedBandwidthDelegationValue, // ✅ 使用计算后的带宽值
       
       // 保留原有字段以保持向后兼容性
       totalStaked: totalStakedTrx,

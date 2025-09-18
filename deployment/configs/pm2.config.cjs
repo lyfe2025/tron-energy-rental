@@ -11,7 +11,7 @@ module.exports = {
       name: 'tron-energy-api',
       script: 'api/server.ts',
       interpreter: 'tsx',
-      cwd: '/var/www/tron-energy-rental',
+      cwd: '/www/wwwroot/tron-energy-rental',
       
       // 实例配置
       instances: 'max', // 根据CPU核心数自动调整
@@ -99,7 +99,7 @@ module.exports = {
       name: 'tron-energy-bot',
       script: 'api/services/telegram-bot.ts',
       interpreter: 'tsx',
-      cwd: '/var/www/tron-energy-rental',
+      cwd: '/www/wwwroot/tron-energy-rental',
       
       // 单实例运行
       instances: 1,
@@ -144,7 +144,7 @@ module.exports = {
       name: 'tron-energy-scheduler',
       script: 'api/services/scheduler.ts',
       interpreter: 'tsx',
-      cwd: '/var/www/tron-energy-rental',
+      cwd: '/www/wwwroot/tron-energy-rental',
       
       // 单实例运行
       instances: 1,
@@ -227,10 +227,10 @@ module.exports = {
  * PM2使用说明:
  * 
  * 启动应用:
- * pm2 start ecosystem.config.js
+ * pm2 start ecosystem.config.cjs
  * 
  * 启动特定环境:
- * pm2 start ecosystem.config.js --env production
+ * pm2 start ecosystem.config.cjs --env production
  * 
  * 重启应用:
  * pm2 restart all

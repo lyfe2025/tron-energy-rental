@@ -49,7 +49,14 @@ export class TronService {
   }
 
   async getAccountResources(address: string): Promise<ServiceResponse<ResourceData>> {
-    return await this.accountService.getAccountResources(address);
+    console.log('🔍 [TronService] 调用 getAccountResources:', { address });
+    const result = await this.accountService.getAccountResources(address);
+    console.log('🔍 [TronService] getAccountResources 返回:', { 
+      success: result.success,
+      delegatedOut: result.data?.bandwidth?.delegatedOut,
+      delegationBandwidthOut: result.data?.delegation?.bandwidthOut 
+    });
+    return result;
   }
 
   async getAccountInfo(address: string): Promise<ServiceResponse<AccountData>> {

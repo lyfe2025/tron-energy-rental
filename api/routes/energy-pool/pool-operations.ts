@@ -402,15 +402,15 @@ router.post('/accounts/validate-address', async (req, res) => {
         limit: resourceInfo.data.bandwidth.limit || 0, // 仅质押获得的带宽
         available: resourceInfo.data.bandwidth.available || 0,
         used: resourceInfo.data.bandwidth.used || 0,
-        delegatedOut: resourceInfo.data.bandwidth.delegatedOut || 0, // 代理给别人的
-        delegatedIn: resourceInfo.data.bandwidth.delegatedIn || 0 // 从别人获得的
+        delegatedOut: resourceInfo.data.delegation?.bandwidthOut || resourceInfo.data.bandwidth.delegatedOut || 0, // ✅ 优先使用计算后的值
+        delegatedIn: resourceInfo.data.delegation?.bandwidthIn || resourceInfo.data.bandwidth.delegatedIn || 0 // ✅ 优先使用计算后的值
       },
       // 添加代理详情
       delegation: resourceInfo.data.delegation || {
         energyOut: resourceInfo.data.energy.delegatedOut || 0,
         energyIn: resourceInfo.data.energy.delegatedIn || 0,
-        bandwidthOut: resourceInfo.data.bandwidth.delegatedOut || 0,
-        bandwidthIn: resourceInfo.data.bandwidth.delegatedIn || 0
+        bandwidthOut: resourceInfo.data.delegation?.bandwidthOut || resourceInfo.data.bandwidth.delegatedOut || 0, // ✅ 优先使用计算后的值
+        bandwidthIn: resourceInfo.data.delegation?.bandwidthIn || resourceInfo.data.bandwidth.delegatedIn || 0 // ✅ 优先使用计算后的值
       },
       frozenInfo: accountInfo.data.frozen || [],
       estimatedCostPerEnergy: Number(costPerEnergy.toFixed(6)), // 保证六位小数精度
