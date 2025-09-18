@@ -28,23 +28,6 @@
       </div>
     </div>
 
-    <!-- 期限说明 -->
-    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-      <div class="flex items-start space-x-2">
-        <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <div class="text-sm">
-          <p class="text-blue-700 font-medium mb-1">代理期限选项说明</p>
-          <p class="text-blue-600" v-if="!enableLockPeriod">
-            关闭：不设置代理期限，资源将永久代理给接收方，直到手动撤销
-          </p>
-          <p class="text-blue-600" v-else>
-            开启：设置代理期限，到期后资源将自动归还，无需手动操作
-          </p>
-        </div>
-      </div>
-    </div>
 
     <!-- 代理期限输入（仅在启用时显示） -->
     <div v-if="enableLockPeriod && lockPeriod !== undefined">

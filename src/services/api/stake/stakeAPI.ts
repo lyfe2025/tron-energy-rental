@@ -207,16 +207,82 @@ export const stakeAPI = {
    * 代理资源
    */
   delegateResource: (data: DelegateOperationData) => {
+    // 验证必需参数
+    if (!data.accountAddress) {
+      throw new Error('代理方账户地址不能为空')
+    }
+    
+    if (!data.toAddress) {
+      throw new Error('接收方地址不能为空')
+    }
+    
+    // 验证TRON地址格式
+    if (!data.accountAddress.startsWith('T') || data.accountAddress.length !== 34) {
+      throw new Error(`无效的代理方TRON地址格式: ${data.accountAddress}`)
+    }
+    
+    if (!data.toAddress.startsWith('T') || data.toAddress.length !== 34) {
+      throw new Error(`无效的接收方TRON地址格式: ${data.toAddress}`)
+    }
+    
+    // 验证金额
+    if (!data.amount || data.amount <= 0) {
+      throw new Error('代理数量必须大于0')
+    }
+    
+    // 🔧 正确转换：ENERGY/BANDWIDTH数量 → TRX数量 → SUN单位
+    let balanceInSun: number;
+    
+    if (data.resourceType === 'ENERGY') {
+      // ENERGY转换：根据系统固定比例 76.2 ENERGY per TRX
+      const energyPerTrx = 76.2;
+      const requiredTrx = data.amount / energyPerTrx; // ENERGY → TRX
+      balanceInSun = Math.floor(requiredTrx * 1000000); // TRX → SUN
+    } else {
+      // BANDWIDTH转换：根据系统固定比例 1000 BANDWIDTH per TRX  
+      const bandwidthPerTrx = 1000;
+      const requiredTrx = data.amount / bandwidthPerTrx; // BANDWIDTH → TRX
+      balanceInSun = Math.floor(requiredTrx * 1000000); // TRX → SUN
+    }
+    
+    console.log('🔍 [stakeAPI] 资源代理转换详情:', {
+      '用户输入': data.amount,
+      '资源类型': data.resourceType,
+      '换算比例': data.resourceType === 'ENERGY' ? '76.2 ENERGY/TRX' : '1000 BANDWIDTH/TRX',
+      '需要质押TRX': data.resourceType === 'ENERGY' ? (data.amount / 76.2) : (data.amount / 1000),
+      '转换为SUN': balanceInSun,
+      '说明': '用户输入资源数量 → 计算所需TRX → 转换为SUN传递给TRON API'
+    });
+    
     // 转换参数格式以匹配后端期望
-    const requestData = {
+    const requestData: any = {
       ownerAddress: data.accountAddress,
       receiverAddress: data.toAddress,
-      balance: data.amount,
+      balance: balanceInSun,               // 🔧 修正：使用正确转换的SUN数量
       resource: data.resourceType,
-      lock: data.lockPeriod || 0,
+      lock: data.lockPeriod ? true : false,
       networkId: data.networkId,           // 网络ID (tron_networks表)
       accountId: data.poolAccountId        // 能量池账户ID (energy_pools表)
     }
+    
+    // 只有在启用锁定期时才传递 lockPeriod 参数
+    if (data.lockPeriod && data.lockPeriod > 0) {
+      requestData.lockPeriod = data.lockPeriod
+    }
+    // 如果是永久代理，不传递 lockPeriod 参数，让后端使用默认值
+    
+    // 调试信息
+    console.log('🔍 [StakeAPI] 代理资源请求参数:', {
+      原始数据: data,
+      转换后数据: requestData,
+      代理方地址: data.accountAddress,
+      接收方地址: data.toAddress,
+      TRX金额: data.amount,
+      SUN金额: balanceInSun,
+      是否锁定: requestData.lock,
+      锁定期限: requestData.lockPeriod
+    })
+    
     return apiClient.post<ApiResponse<StakeOperationResult>>('/api/energy-pool/stake/delegate', requestData)
   },
 
@@ -224,15 +290,52 @@ export const stakeAPI = {
    * 取消代理资源
    */
   undelegateResource: (data: Omit<DelegateOperationData, 'lockPeriod'>) => {
+    // 验证必需参数
+    if (!data.accountAddress) {
+      throw new Error('代理方账户地址不能为空')
+    }
+    
+    if (!data.toAddress) {
+      throw new Error('接收方地址不能为空')
+    }
+    
+    // 验证TRON地址格式
+    if (!data.accountAddress.startsWith('T') || data.accountAddress.length !== 34) {
+      throw new Error(`无效的代理方TRON地址格式: ${data.accountAddress}`)
+    }
+    
+    if (!data.toAddress.startsWith('T') || data.toAddress.length !== 34) {
+      throw new Error(`无效的接收方TRON地址格式: ${data.toAddress}`)
+    }
+    
+    // 验证金额
+    if (!data.amount || data.amount <= 0) {
+      throw new Error('取消代理数量必须大于0')
+    }
+    
+    // 根据TRON官方文档，取消代理资源的balance需要以SUN为单位
+    const balanceInSun = Math.floor(data.amount * 1000000)
+    
     // 转换参数格式以匹配后端期望
     const requestData = {
       ownerAddress: data.accountAddress,
       receiverAddress: data.toAddress,
-      balance: data.amount,
+      balance: balanceInSun,              // 转换为SUN单位
       resource: data.resourceType,
       networkId: data.networkId,           // 网络ID (tron_networks表)
       accountId: data.poolAccountId        // 能量池账户ID (energy_pools表)
     }
+    
+    // 调试信息
+    console.log('🔍 [StakeAPI] 取消代理资源请求参数:', {
+      原始数据: data,
+      转换后数据: requestData,
+      代理方地址: data.accountAddress,
+      接收方地址: data.toAddress,
+      TRX金额: data.amount,
+      SUN金额: balanceInSun
+    })
+    
     return apiClient.post<ApiResponse<StakeOperationResult>>('/api/energy-pool/stake/undelegate', requestData)
   },
 

@@ -89,7 +89,7 @@ export function useDelegateValidation() {
     return true
   }
 
-  // 验证代理数量
+  // 验证代理数量（增强版）
   const validateAmount = (amount: string, resourceType: 'ENERGY' | 'BANDWIDTH', availableAmount: number) => {
     amountError.value = ''
     
@@ -101,26 +101,42 @@ export function useDelegateValidation() {
     const numAmount = parseFloat(amount)
     
     if (isNaN(numAmount)) {
-      amountError.value = '请输入有效的数字'
+      amountError.value = '❌ 请输入有效的数字'
       return false
     }
 
     if (numAmount <= 0) {
-      amountError.value = '代理数量必须大于0'
+      amountError.value = '❌ 代理数量必须大于0'
       return false
     }
 
-    if (numAmount > availableAmount) {
-      const resourceName = resourceType === 'ENERGY' ? '能量' : '带宽'
-      amountError.value = `代理数量不能超过可代理的${resourceName}数量 (${availableAmount.toLocaleString()})`
+    if (numAmount < 1) {
+      amountError.value = '❌ 代理数量至少为1 TRX (TRON网络最小限制)'
       return false
     }
 
     // 检查小数位数（最多2位小数）
     if (Number(numAmount.toFixed(2)) !== numAmount) {
-      amountError.value = '代理数量最多支持2位小数'
+      amountError.value = '❌ 代理数量最多支持2位小数'
       return false
     }
+
+    const resourceName = resourceType === 'ENERGY' ? 'ENERGY' : 'BANDWIDTH'
+    
+    // 检查可用余额
+    if (availableAmount <= 0) {
+      amountError.value = `❌ 当前账户没有可代理的${resourceName}，请先质押TRX获得${resourceName}资源`
+      return false
+    }
+
+    if (numAmount > availableAmount) {
+      amountError.value = `❌ 代理数量(${numAmount.toLocaleString()} 个 ${resourceName})超过可用资源(${availableAmount.toLocaleString()} 个 ${resourceName})，请减少代理数量或先质押更多TRX`
+      return false
+    }
+
+    // 成功验证，显示友好提示
+    const remaining = availableAmount - numAmount
+    amountError.value = `✅ 可以代理 ${numAmount.toLocaleString()} 个 ${resourceName} (剩余: ${remaining.toLocaleString()} 个 ${resourceName})`
 
     return true
   }

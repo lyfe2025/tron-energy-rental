@@ -89,14 +89,25 @@ export class DelegateOperation {
         '金额格式': 'int64 number format required'
       });
 
-      // 🔧 根据TRON官方文档的一致性原则，使用十六进制地址和数字金额
+      // 🔧 统一使用Base58地址格式 (T开头格式，如TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g)
+      const ownerBase58 = this.convertToBase58Address(ownerAddress);
+      const receiverBase58 = this.convertToBase58Address(receiverAddress);
+      
+      console.log('🔍 [DelegateOperation] 使用Base58地址:', {
+        ownerAddress: `${ownerAddress} -> ${ownerBase58}`,
+        receiverAddress: `${receiverAddress} -> ${receiverBase58}`
+      });
+      
       const transaction = await this.tronWeb.transactionBuilder.delegateResource(
-        this.tronWeb.address.toHex(ownerAddress),     // owner_address (string) - 十六进制地址格式
-        this.tronWeb.address.toHex(receiverAddress),  // receiver_address (string) - 十六进制地址格式
         balance,                                      // balance (int64) - 金额，单位为SUN，数字格式
+        receiverBase58,                               // receiver_address (string) - Base58地址格式
         resource,                                     // resource (string) - ENERGY 或 BANDWIDTH
+        ownerBase58,                                  // owner_address (string) - Base58地址格式
         lock,                                        // lock (boolean) - 是否锁定
-        lockPeriod || 3                              // lock_period (int) - 锁定期，数字格式
+        { 
+          lockPeriod: lockPeriod || 3,               // lock_period (int) - 锁定期
+          visible: true                              // visible - 指定使用Base58地址格式
+        }
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
@@ -144,12 +155,21 @@ export class DelegateOperation {
         '金额格式': 'int64 number format required'
       });
 
-      // 🔧 根据TRON官方文档的一致性原则，使用十六进制地址和数字金额
+      // 🔧 统一使用Base58地址格式 (T开头格式，如TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g)
+      const ownerBase58 = this.convertToBase58Address(ownerAddress);
+      const receiverBase58 = this.convertToBase58Address(receiverAddress);
+      
+      console.log('🔍 [DelegateOperation] 取消代理使用Base58地址:', {
+        ownerAddress: `${ownerAddress} -> ${ownerBase58}`,
+        receiverAddress: `${receiverAddress} -> ${receiverBase58}`
+      });
+      
       const transaction = await this.tronWeb.transactionBuilder.undelegateResource(
-        this.tronWeb.address.toHex(ownerAddress),     // owner_address (string) - 十六进制地址格式
-        this.tronWeb.address.toHex(receiverAddress),  // receiver_address (string) - 十六进制地址格式
         balance,                                      // balance (int64) - 金额，单位为SUN，数字格式
-        resource                                     // resource (string) - ENERGY 或 BANDWIDTH
+        receiverBase58,                               // receiver_address (string) - Base58地址格式
+        resource,                                     // resource (string) - ENERGY 或 BANDWIDTH
+        ownerBase58,                                  // owner_address (string) - Base58地址格式
+        { visible: true }                            // options - 指定使用Base58地址格式
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);

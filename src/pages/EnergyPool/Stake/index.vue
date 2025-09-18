@@ -179,6 +179,7 @@
       :pool-id="stakeData.currentNetworkId.value"
       :account-id="stakeData.selectedAccount.value.id"
       :account-address="stakeData.selectedAccount.value.tron_address"
+      :account-name="stakeData.selectedAccount.value.name"
       @close="stakeData.showUnstakeModal.value = false"
       @success="stakeOperations.onOperationSuccess"
     />
@@ -189,6 +190,7 @@
       :pool-id="stakeData.currentNetworkId.value"
       :account-id="stakeData.selectedAccount.value.id"
       :account-address="stakeData.selectedAccount.value.tron_address"
+      :account-name="stakeData.selectedAccount.value.name"
       @close="stakeData.showDelegateModal.value = false"
       @success="stakeOperations.onOperationSuccess"
     />

@@ -30,6 +30,39 @@ export class FreezeOperation {
   }
 
   /**
+   * 智能地址格式转换 - 统一转换为Base58格式（T开头）
+   */
+  private convertToBase58Address(address: string): string {
+    if (!address) return '';
+    
+    try {
+      // 如果已经是Base58格式（T开头），直接返回
+      if (address.startsWith('T') && address.length === 34) {
+        return address;
+      }
+      
+      // 如果是十六进制格式（41开头），转换为Base58
+      if (address.startsWith('41') && address.length === 42) {
+        return this.tronWeb.address.fromHex(address);
+      }
+      
+      // 尝试作为十六进制地址转换
+      const base58Address = this.tronWeb.address.fromHex(address);
+      if (base58Address && base58Address.startsWith('T')) {
+        return base58Address;
+      }
+      
+      // 如果转换失败，记录警告并返回原始地址
+      console.warn('[FreezeOperation] 地址转换失败:', address);
+      return address;
+      
+    } catch (error) {
+      console.warn('[FreezeOperation] 地址转换异常:', error);
+      return address;
+    }
+  }
+
+  /**
    * 质押TRX (Stake 2.0)
    */
   async freezeBalanceV2(params: FreezeBalanceV2Params): Promise<FreezeOperationResult> {
@@ -88,13 +121,20 @@ export class FreezeOperation {
         '金额格式': 'number format required'
       });
 
-      // 🔧 根据TronWeb源码，正确的参数顺序是：amount, resource, address, options
+      // 🔧 统一使用Base58地址格式并设置visible参数
+      const ownerBase58 = this.convertToBase58Address(ownerAddress);
+      
+      console.log('🔍 [FreezeOperation] 使用Base58地址:', {
+        ownerAddress: `${ownerAddress} -> ${ownerBase58}`
+      });
+      
       // freezeBalanceV2(amount, resource, address, options)
       // 1.构建交易
       const transaction = await this.tronWeb.transactionBuilder.freezeBalanceV2(
         frozenBalance,  // amount (number) - 金额，单位为SUN
         resource,       // resource (string) - ENERGY 或 BANDWIDTH  
-        ownerAddress    // address (string) - Base58地址，TronWeb会自动转换为hex
+        ownerBase58,    // address (string) - Base58地址格式
+        { visible: true } // options - 指定使用Base58地址格式
       );
       // 2. 签名交易
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
@@ -453,13 +493,20 @@ export class FreezeOperation {
         case 'FreezeBalanceV2Contract':
         case 'FreezeBalanceContract':
           operationType = 'freeze';
-          resourceType = parameter?.resource || 'ENERGY';
+          // 🔧 修复资源类型解析逻辑：
+          // - 如果明确指定了 resource，使用指定的值
+          // - 如果 resource 为空/未指定，默认为 BANDWIDTH（符合TRON规则）
+          if (parameter?.resource) {
+            resourceType = parameter.resource;
+          } else {
+            resourceType = 'BANDWIDTH'; // TRON默认：未指定resource时为带宽质押
+          }
           // 尝试多个可能的金额字段
           amount = parameter?.frozen_balance || 
                    parameter?.frozen_duration || 
                    parameter?.balance || 
                    parameter?.amount || 0;
-          console.log(`[FreezeOperation] 质押操作: ${amount} ${resourceType}`);
+          console.log(`[FreezeOperation] 质押操作: ${amount} ${resourceType} (原始resource: ${parameter?.resource || '未指定'})`);
           break;
           
         default:

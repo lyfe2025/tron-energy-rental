@@ -4,10 +4,10 @@ import { useEnergyPool } from '../../../composables/useEnergyPool'
 import type { DelegateRecord } from '../../../composables/useStake'
 import { useStake } from '../../../composables/useStake'
 import type {
-  DelegateDirection,
-  DelegateFilters,
-  DelegateRecordsBaseProps,
-  DelegateRecordsTextConfig
+    DelegateDirection,
+    DelegateFilters,
+    DelegateRecordsBaseProps,
+    DelegateRecordsTextConfig
 } from '../types/delegate-records.types'
 
 /**

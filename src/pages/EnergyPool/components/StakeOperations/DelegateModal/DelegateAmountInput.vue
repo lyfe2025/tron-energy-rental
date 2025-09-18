@@ -38,8 +38,11 @@
       </div>
     </div>
 
-    <!-- 验证错误提示 -->
-    <div v-if="validationError" class="mt-2 text-xs text-red-600">
+    <!-- 验证提示 - 支持成功(绿色)和错误(红色)消息 -->
+    <div v-if="validationError" class="mt-2 text-xs" :class="{
+      'text-green-600': validationError.startsWith('✅'),
+      'text-red-600': !validationError.startsWith('✅')
+    }">
       {{ validationError }}
     </div>
   </div>

@@ -34,7 +34,7 @@
         <!-- 获得资源信息 -->
         <div class="mb-8">
           <p class="text-gray-700 text-base">
-            获得 <span class="font-semibold">{{ formatNumber(estimatedEnergy) }}</span> 能量，
+            获得 <span class="font-semibold">{{ formatNumber(estimatedResource) }}</span> {{ resourceTypeName }}，
             同时获得 <span class="font-semibold">{{ formatNumber(votingPower) }}</span> 投票权
           </p>
         </div>
@@ -103,13 +103,17 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 // 计算属性
-const estimatedEnergy = computed(() => {
+const estimatedResource = computed(() => {
   return props.data.estimatedResource
 })
 
 const votingPower = computed(() => {
   // 投票权等于质押的TRX数量
   return props.data.amount
+})
+
+const resourceTypeName = computed(() => {
+  return props.data.resourceType === 'ENERGY' ? '能量' : '带宽'
 })
 
 // 方法

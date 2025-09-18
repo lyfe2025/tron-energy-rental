@@ -1,13 +1,13 @@
 import { TronGridProvider } from '../providers/TronGridProvider';
 import type {
-  FormattedUnfreezeRecord,
-  OperationParams,
-  ServiceResponse,
-  StakeTransactionParams,
-  TransactionResult,
-  UnfreezeBalanceV2Params,
-  UnfreezeOperationResult,
-  WithdrawExpireUnfreezeParams
+    FormattedUnfreezeRecord,
+    OperationParams,
+    ServiceResponse,
+    StakeTransactionParams,
+    TransactionResult,
+    UnfreezeBalanceV2Params,
+    UnfreezeOperationResult,
+    WithdrawExpireUnfreezeParams
 } from '../types/staking.types';
 
 /**
@@ -31,6 +31,39 @@ export class UnfreezeOperation {
   }
 
   /**
+   * 智能地址格式转换 - 统一转换为Base58格式（T开头）
+   */
+  private convertToBase58Address(address: string): string {
+    if (!address) return '';
+    
+    try {
+      // 如果已经是Base58格式（T开头），直接返回
+      if (address.startsWith('T') && address.length === 34) {
+        return address;
+      }
+      
+      // 如果是十六进制格式（41开头），转换为Base58
+      if (address.startsWith('41') && address.length === 42) {
+        return this.tronWeb.address.fromHex(address);
+      }
+      
+      // 尝试作为十六进制地址转换
+      const base58Address = this.tronWeb.address.fromHex(address);
+      if (base58Address && base58Address.startsWith('T')) {
+        return base58Address;
+      }
+      
+      // 如果转换失败，记录警告并返回原始地址
+      console.warn('[UnfreezeOperation] 地址转换失败:', address);
+      return address;
+      
+    } catch (error) {
+      console.warn('[UnfreezeOperation] 地址转换异常:', error);
+      return address;
+    }
+  }
+
+  /**
    * 解质押TRX (Stake 2.0)
    */
   async unfreezeBalanceV2(params: UnfreezeBalanceV2Params): Promise<UnfreezeOperationResult> {
@@ -46,12 +79,19 @@ export class UnfreezeOperation {
         '金额格式': 'number format required'
       });
 
-      // 🔧 根据TronWeb源码，正确的参数顺序是：amount, resource, address, options
+      // 🔧 统一使用Base58地址格式并设置visible参数
+      const ownerBase58 = this.convertToBase58Address(ownerAddress);
+      
+      console.log('🔍 [UnfreezeOperation] 使用Base58地址:', {
+        ownerAddress: `${ownerAddress} -> ${ownerBase58}`
+      });
+      
       // unfreezeBalanceV2(amount, resource, address, options)
       const transaction = await this.tronWeb.transactionBuilder.unfreezeBalanceV2(
         unfreezeBalance,  // amount (number) - 金额，单位为SUN
         resource,         // resource (string) - ENERGY 或 BANDWIDTH  
-        ownerAddress      // address (string) - Base58地址，TronWeb会自动转换为hex
+        ownerBase58,      // address (string) - Base58地址格式
+        { visible: true } // options - 指定使用Base58地址格式
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);
@@ -100,8 +140,16 @@ export class UnfreezeOperation {
       });
 
       // 🔧 根据TRON官方文档，使用十六进制地址格式保持一致性
+      // 🔧 统一使用Base58地址格式并设置visible参数
+      const ownerBase58 = this.convertToBase58Address(ownerAddress);
+      
+      console.log('🔍 [UnfreezeOperation] 提取过期解质押使用Base58地址:', {
+        ownerAddress: `${ownerAddress} -> ${ownerBase58}`
+      });
+      
       const transaction = await this.tronWeb.transactionBuilder.withdrawExpireUnfreeze(
-        this.tronWeb.address.toHex(ownerAddress)   // owner_address (string) - 十六进制地址格式
+        ownerBase58,                         // owner_address (string) - Base58地址格式
+        { visible: true }                    // options - 指定使用Base58地址格式
       );
 
       const signedTransaction = await this.tronWeb.trx.sign(transaction);

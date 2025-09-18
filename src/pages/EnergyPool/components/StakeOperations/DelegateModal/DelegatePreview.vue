@@ -18,8 +18,8 @@
       </div>
       <div class="flex justify-between items-center">
         <span class="text-gray-600">接收方:</span>
-        <span class="font-medium text-gray-900 text-xs">
-          {{ receiverAddress.slice(0, 8) }}...{{ receiverAddress.slice(-8) }}
+        <span class="font-medium text-gray-900 text-xs font-mono break-all">
+          {{ receiverAddress }}
         </span>
       </div>
               <div v-if="enableLockPeriod && lockPeriod" class="flex justify-between items-center">
@@ -35,13 +35,15 @@
       <div class="space-y-1 text-xs text-gray-600 leading-relaxed">
         <p>
           <span class="text-orange-600 font-medium">重要提醒:</span> 
-          代理期间资源将被锁定，无法提前收回，请谨慎确认代理数量和期限。
+          <span v-if="enableLockPeriod">代理期间资源将被锁定，无法提前收回，请谨慎确认代理数量和期限。</span>
+          <span v-else>永久代理模式，可随时撤回代理的资源，请谨慎确认代理数量。</span>
         </p>
         <p class="text-blue-600">
           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          确保接收方地址准确无误，代理后无法撤销变更
+          <span v-if="enableLockPeriod">确保接收方地址准确无误，代理后无法撤销变更</span>
+          <span v-else>确保接收方地址准确无误，代理生效后可随时撤回</span>
         </p>
       </div>
     </div>

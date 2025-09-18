@@ -1,9 +1,9 @@
 import type {
-    ChainParametersResponse,
-    NetworkConfig,
-    ServiceResponse,
-    TronGridAccountResponse,
-    TronGridConfig
+  ChainParametersResponse,
+  NetworkConfig,
+  ServiceResponse,
+  TronGridAccountResponse,
+  TronGridConfig
 } from '../types/staking.types';
 import { NetworkProvider } from './NetworkProvider';
 
@@ -304,12 +304,25 @@ export class TronGridProvider {
         return hexAddress;
       }
       
-      // 如果是hex格式，暂时直接进行字符串比较
-      // 在实际环境中，TRON网络通常已经提供了正确格式的地址
+      // 如果是hex格式，使用DelegateOperation的转换逻辑
       if (hexAddress.startsWith('41') && hexAddress.length === 42) {
-        // 对于搜索比较，我们可以直接使用hex地址
-        // 因为在实际的代理记录中，地址格式通常是一致的
-        console.log(`[TronGridProvider] 发现hex格式地址: ${hexAddress}`);
+        console.log(`[TronGridProvider] 转换hex地址为Base58: ${hexAddress}`);
+        // 创建临时TronWeb实例进行地址转换
+        // 注意：这里需要使用与DelegateOperation相同的转换逻辑
+        try {
+          // 使用标准的TRON地址转换方法
+          const TronWeb = require('tronweb');
+          const base58Address = TronWeb.address.fromHex(hexAddress);
+          if (base58Address && base58Address.startsWith('T')) {
+            console.log(`[TronGridProvider] 转换成功: ${hexAddress} -> ${base58Address}`);
+            return base58Address;
+          }
+        } catch (conversionError) {
+          console.warn(`[TronGridProvider] 使用TronWeb转换失败:`, conversionError);
+        }
+        
+        // 如果TronWeb转换失败，尝试手动转换（备用方案）
+        console.warn(`[TronGridProvider] 地址转换失败，保持原格式: ${hexAddress}`);
         return hexAddress;
       }
       
