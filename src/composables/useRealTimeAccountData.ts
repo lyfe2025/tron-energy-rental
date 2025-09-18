@@ -246,13 +246,46 @@ export const useRealTimeAccountData = () => {
   }
 
   /**
-   * 格式化TRX数值
+   * 智能格式化TRX数值（sun转TRX）
    */
   const formatTrx = (trx: number): string => {
     if (trx == null || isNaN(trx) || typeof trx !== 'number') {
       return '0'
     }
-    return (trx / 1000000).toFixed(6)
+    
+    const trxValue = trx / 1000000
+    return formatTrxValue(trxValue)
+  }
+
+  /**
+   * 智能格式化质押状态TRX数值（已经是TRX单位）
+   */
+  const formatStakeTrx = (trx: number): string => {
+    if (trx == null || isNaN(trx) || typeof trx !== 'number') {
+      return '0'
+    }
+    
+    return formatTrxValue(trx)
+  }
+
+  /**
+   * 统一的TRX数值格式化逻辑
+   */
+  const formatTrxValue = (trxValue: number): string => {
+    if (trxValue === 0) return '0'
+    
+    // 对于大数值，显示2位小数
+    if (trxValue >= 1000) {
+      return trxValue.toLocaleString('zh-CN', { maximumFractionDigits: 2, minimumFractionDigits: 0 })
+    }
+    // 对于中等数值，显示必要的小数位，最多6位
+    else if (trxValue >= 1) {
+      return trxValue.toLocaleString('zh-CN', { maximumFractionDigits: 6, minimumFractionDigits: 0 })
+    }
+    // 对于小数值，保留6位小数但去掉末尾的0
+    else {
+      return parseFloat(trxValue.toFixed(6)).toString()
+    }
   }
 
   /**
@@ -278,6 +311,7 @@ export const useRealTimeAccountData = () => {
     formatEnergy,
     formatBandwidth,
     formatTrx,
+    formatStakeTrx,
     formatAddress
   }
 }

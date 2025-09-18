@@ -79,6 +79,7 @@
         </div>
         <ChevronRight :size="20" class="module-arrow" />
       </div>
+
     </div>
 
     <!-- 快速统计 -->
@@ -130,17 +131,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { 
-  Building2, 
-  Users, 
-  Shield, 
-  Menu, 
-  UserCheck, 
-  FileText, 
-  ChevronRight 
+import {
+  Building2,
+  ChevronRight,
+  FileText,
+  Menu,
+  Shield,
+  UserCheck,
+  Users
 } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 

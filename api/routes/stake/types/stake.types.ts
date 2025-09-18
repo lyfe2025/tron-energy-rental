@@ -100,6 +100,11 @@ export interface DelegateRecord {
   lock_period?: number
   is_locked: boolean
   error_message?: string
+  // 前端需要的字段
+  fromAddress?: string
+  toAddress?: string
+  from_address?: string
+  to_address?: string
 }
 
 // 解冻记录

@@ -324,8 +324,32 @@ export class TronService {
 
   // 获取委托交易记录
   async getDelegateTransactionHistory(address: string, limit: number = 20, offset: number = 0): Promise<ServiceResponse<any[]>> {
+    const { appendFileSync } = await import('fs');
+    appendFileSync('/tmp/tron-debug.log', `=== TronService.getDelegateTransactionHistory 被调用 ${new Date().toISOString()} ===\n`);
+    appendFileSync('/tmp/tron-debug.log', `地址: ${address}, 限制: ${limit}, 偏移: ${offset}\n`);
+    
     await this.waitForInitialization();
-    return await this.stakingService.getDelegateTransactionHistory(address, limit, offset);
+    appendFileSync('/tmp/tron-debug.log', `初始化完成，调用stakingService...\n`);
+    
+    const result = await this.stakingService.getDelegateTransactionHistory(address, limit, offset);
+    appendFileSync('/tmp/tron-debug.log', `stakingService返回结果: ${JSON.stringify({success: result.success, dataLength: result.data?.length})}\n`);
+    
+    // 如果有数据，记录前几条的详细信息
+    if (result.success && result.data && result.data.length > 0) {
+      appendFileSync('/tmp/tron-debug.log', `前3条记录详情:\n`);
+      result.data.slice(0, 3).forEach((record, index) => {
+        appendFileSync('/tmp/tron-debug.log', `记录${index + 1}: ${JSON.stringify({
+          operation_type: record.operation_type,
+          amount: record.amount,
+          to_address: record.to_address,
+          from_address: record.from_address,
+          transaction_id: record.transaction_id?.substring(0, 12)
+        })}\n`);
+      });
+    }
+    appendFileSync('/tmp/tron-debug.log', `\n`);
+    
+    return result;
   }
 
   /**

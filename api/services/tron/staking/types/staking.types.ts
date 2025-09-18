@@ -104,6 +104,7 @@ export interface FormattedStakeRecord {
   created_at: string;
   block_number?: number;
   to_address?: string;
+  from_address?: string;
   fee?: number;
 }
 

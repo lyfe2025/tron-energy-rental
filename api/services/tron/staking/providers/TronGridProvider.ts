@@ -1,59 +1,44 @@
 import type {
-  ChainParametersResponse,
-  NetworkConfig,
-  ServiceResponse,
-  TronGridAccountResponse,
-  TronGridConfig
-} from '../types/staking.types';
-import { NetworkProvider } from './NetworkProvider';
+    ChainParametersResponse,
+    NetworkConfig,
+    ServiceResponse,
+    TronGridAccountResponse
+} from '../types/staking.types.ts';
+
+import { TronGridApiClient } from './tron-grid/TronGridApiClient.ts';
+import { TronGridDataFormatter } from './tron-grid/TronGridDataFormatter.ts';
+import { TronGridErrorHandler } from './tron-grid/TronGridErrorHandler.ts';
+import { TronGridValidator } from './tron-grid/TronGridValidator.ts';
 
 /**
- * TronGrid API提供者
- * 负责与TronGrid API的所有通信
+ * TronGrid API提供者主协调器
+ * 整合API客户端、数据格式化、错误处理和验证等服务
  */
 export class TronGridProvider {
-  private networkProvider: NetworkProvider;
+  private apiClient: TronGridApiClient;
+  private dataFormatter: TronGridDataFormatter;
+  private errorHandler: TronGridErrorHandler;
+  private validator: TronGridValidator;
 
   constructor(networkConfig?: NetworkConfig) {
-    this.networkProvider = new NetworkProvider(networkConfig);
+    this.apiClient = new TronGridApiClient(networkConfig);
+    this.dataFormatter = new TronGridDataFormatter();
+    this.errorHandler = new TronGridErrorHandler();
+    this.validator = new TronGridValidator();
   }
 
   /**
    * 设置网络配置
    */
   setNetworkConfig(config: NetworkConfig): void {
-    this.networkProvider.setNetworkConfig(config);
-  }
+    // 验证配置
+    const validation = this.errorHandler.validateNetworkConfig(config);
+    if (!validation.isValid) {
+      console.error(`[TronGridProvider] 网络配置无效: ${validation.error}`);
+      return;
+    }
 
-  /**
-   * 获取TronGrid配置
-   */
-  private getTronGridConfig(): TronGridConfig {
-    return this.networkProvider.getTronGridConfig();
-  }
-
-  /**
-   * 通用的API请求方法
-   */
-  private async makeRequest(
-    url: string, 
-    options: RequestInit = {}
-  ): Promise<Response> {
-    const { baseUrl, headers } = this.getTronGridConfig();
-    const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
-
-    console.log(`[TronGridProvider] 发起API请求: ${fullUrl}`);
-
-    const response = await fetch(fullUrl, {
-      ...options,
-      headers: {
-        ...headers,
-        ...options.headers
-      }
-    });
-
-    console.log(`[TronGridProvider] API响应状态: ${response.status} ${response.statusText}`);
-    return response;
+    this.apiClient.setNetworkConfig(config);
   }
 
   /**
@@ -64,121 +49,131 @@ export class TronGridProvider {
     limit: number = 20, 
     orderBy: string = 'block_timestamp,desc'
   ): Promise<ServiceResponse<any[]>> {
-    try {
-      console.log(`[TronGridProvider] 获取账户交易记录: ${address}`);
+    // 验证参数
+    const validation = this.validator.validateSearchParams({ address, limit });
+    if (!validation.isValid) {
+      return this.errorHandler.handleException(
+        new Error(validation.errors.join(', ')),
+        '获取账户交易记录',
+        []
+      );
+    }
 
-      const url = `/v1/accounts/${address}/transactions?limit=${Math.min(limit * 10, 200)}&order_by=${orderBy}`;
-      const response = await this.makeRequest(url);
-
-      if (response.ok) {
+    return this.errorHandler.handleApiCall(
+      () => this.apiClient.getRequest(`/v1/accounts/${address}/transactions?limit=${Math.min(limit * 10, 200)}&order_by=${orderBy}&visible=true`),
+      '获取账户交易记录',
+      async (response) => {
         const data = await response.json();
-        const transactions = data.data || [];
+        let transactions = data.data || [];
+
+        // 处理TronGrid API可能返回对象而非数组的情况
+        if (transactions && typeof transactions === 'object' && !Array.isArray(transactions)) {
+          console.log(`[TronGridProvider] 🔧 检测到对象格式数据，转换为数组`);
+          
+          // 将对象的值转换为数组
+          const transactionValues = Object.values(transactions);
+          console.log(`[TronGridProvider] 转换前对象键数: ${Object.keys(transactions).length}`);
+          console.log(`[TronGridProvider] 转换后数组长度: ${transactionValues.length}`);
+          
+          // 调试：检查转换后的第一个交易是否有正确的结构
+          if (transactionValues.length > 0) {
+            const firstTx = transactionValues[0] as any;
+            console.log(`[TronGridProvider] 🔍 转换后第一条交易结构检查:`, {
+              hasTxID: !!firstTx?.txID,
+              hasRawData: !!firstTx?.raw_data,
+              hasContract: !!firstTx?.raw_data?.contract,
+              contractType: firstTx?.raw_data?.contract?.[0]?.type,
+              txID: firstTx?.txID?.substring(0, 12) + '...'
+            });
+          }
+          
+          transactions = transactionValues;
+        }
+
+        // 确保transactions是数组
+        if (!Array.isArray(transactions)) {
+          console.warn(`[TronGridProvider] ⚠️ 无法处理数据格式:`, typeof transactions);
+          transactions = [];
+        }
+
+        // 最终验证：检查数组中的交易是否有正确的结构
+        if (transactions.length > 0) {
+          const validTransactions = transactions.filter(tx => tx && typeof tx === 'object');
+          console.log(`[TronGridProvider] 📊 数据验证: 总数 ${transactions.length}, 有效交易 ${validTransactions.length}`);
+          
+          if (validTransactions.length !== transactions.length) {
+            console.warn(`[TronGridProvider] ⚠️ 发现 ${transactions.length - validTransactions.length} 条无效交易数据`);
+            transactions = validTransactions;
+          }
+        }
+
+        // 验证响应数据
+        const responseValidation = this.validator.validateTransactionList(transactions);
+        if (!responseValidation.isValid) {
+          console.warn('[TronGridProvider] 交易数据验证失败:', responseValidation.errors);
+        }
 
         console.log(`[TronGridProvider] 成功获取 ${transactions.length} 条交易记录`);
-
-        return {
-          success: true,
-          data: transactions
-        };
-      } else {
-        const error = `TronGrid API请求失败: ${response.status} ${response.statusText}`;
-        console.warn(`[TronGridProvider] ${error}`);
-        return {
-          success: false,
-          error,
-          data: []
-        };
-      }
-    } catch (error: any) {
-      console.error('[TronGridProvider] 获取账户交易记录失败:', error);
-      return {
-        success: false,
-        error: error.message,
-        data: []
-      };
-    }
+        return this.validator.sanitizeResponseData(transactions);
+      },
+      []
+    );
   }
 
   /**
    * 获取账户详细信息
    */
   async getAccountInfo(address: string): Promise<ServiceResponse<TronGridAccountResponse>> {
-    try {
-      console.log(`[TronGridProvider] 获取账户信息: ${address}`);
-
-      const response = await this.makeRequest('/wallet/getaccount', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          address: address,
-          visible: true
-        })
-      });
-
-      if (response.ok) {
-        const accountInfo = await response.json();
-        console.log(`[TronGridProvider] 成功获取账户信息`);
-
-        return {
-          success: true,
-          data: accountInfo
-        };
-      } else {
-        const error = `获取账户信息失败: ${response.status} ${response.statusText}`;
-        console.warn(`[TronGridProvider] ${error}`);
-        return {
-          success: false,
-          error
-        };
-      }
-    } catch (error: any) {
-      console.error('[TronGridProvider] 获取账户信息失败:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+    // 验证地址格式
+    const validation = this.errorHandler.validateTronAddress(address);
+    if (!validation.isValid) {
+      return this.errorHandler.handleException(
+        new Error(validation.error || 'Invalid address'),
+        '获取账户信息'
+      );
     }
+
+    return this.errorHandler.handleApiCall(
+      () => this.apiClient.postRequest('/wallet/getaccount', {
+        address: address,
+        visible: true
+      }),
+      '获取账户信息',
+      async (response) => {
+        const accountInfo = await response.json();
+
+        // 验证响应数据
+        const responseValidation = this.validator.validateAccountInfo(accountInfo);
+        if (!responseValidation.isValid) {
+          console.warn('[TronGridProvider] 账户信息验证失败:', responseValidation.errors);
+        }
+
+        console.log(`[TronGridProvider] 成功获取账户信息`);
+        return this.validator.sanitizeResponseData(accountInfo);
+      }
+    );
   }
 
   /**
    * 获取TRON网络链参数
    */
   async getChainParameters(): Promise<ServiceResponse<ChainParametersResponse>> {
-    try {
-      console.log(`[TronGridProvider] 🔍 查询TRON网络链参数...`);
-
-      const response = await this.makeRequest('/wallet/getchainparameters', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
+    return this.errorHandler.handleApiCall(
+      () => this.apiClient.postRequest('/wallet/getchainparameters', {}),
+      '查询TRON网络链参数',
+      async (response) => {
         const chainParams = await response.json();
-        console.log(`[TronGridProvider] ✅ 获取到链参数`);
 
-        return {
-          success: true,
-          data: chainParams
-        };
-      } else {
-        const error = `获取链参数失败: ${response.status} ${response.statusText}`;
-        console.warn(`[TronGridProvider] ${error}`);
-        return {
-          success: false,
-          error
-        };
+        // 验证响应数据
+        const responseValidation = this.validator.validateChainParameters(chainParams);
+        if (!responseValidation.isValid) {
+          console.warn('[TronGridProvider] 链参数验证失败:', responseValidation.errors);
+        }
+
+        console.log(`[TronGridProvider] ✅ 获取到链参数`);
+        return this.validator.sanitizeResponseData(chainParams);
       }
-    } catch (error: any) {
-      console.error('[TronGridProvider] 查询链参数失败:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    );
   }
 
   /**
@@ -191,10 +186,16 @@ export class TronGridProvider {
     try {
       console.log(`[TronGridProvider] 搜索代理给 ${receiverAddress} 的交易`);
 
-      // 由于TRON Grid API的限制，我们使用一种变通的方法：
-      // 1. 先通过通用搜索获取最近的代理交易
-      // 2. 然后过滤出接收方为指定地址的交易
-      
+      // 验证参数
+      const validation = this.validator.validateSearchParams({ address: receiverAddress, limit });
+      if (!validation.isValid) {
+        return this.errorHandler.handleException(
+          new Error(validation.errors.join(', ')),
+          '搜索接收方交易',
+          []
+        );
+      }
+
       // 搜索最近的代理合约交易
       const contractTypes = ['DelegateResourceContract', 'UnDelegateResourceContract'];
       const searchPromises = contractTypes.map(contractType => 
@@ -219,9 +220,8 @@ export class TronGridProvider {
         const parameter = contract?.parameter?.value;
         
         if (parameter?.receiver_address) {
-          // 将hex地址转换为base58格式进行比较
           try {
-            const receiverAddressBase58 = this.convertHexToBase58(parameter.receiver_address);
+            const receiverAddressBase58 = this.dataFormatter.convertHexToBase58(parameter.receiver_address);
             return receiverAddressBase58.toLowerCase() === receiverAddress.toLowerCase();
           } catch (error) {
             console.warn('[TronGridProvider] 地址转换失败:', error);
@@ -241,15 +241,10 @@ export class TronGridProvider {
 
       return {
         success: true,
-        data: sortedTransactions
+        data: this.validator.sanitizeResponseData(sortedTransactions)
       };
     } catch (error: any) {
-      console.error('[TronGridProvider] 搜索接收方交易失败:', error);
-      return {
-        success: false,
-        error: error.message,
-        data: []
-      };
+      return this.errorHandler.handleException(error, '搜索接收方交易', []);
     }
   }
 
@@ -260,101 +255,28 @@ export class TronGridProvider {
     contractType: string,
     limit: number = 50
   ): Promise<ServiceResponse<any[]>> {
-    try {
-      // 使用TronGrid的合约事件搜索API
-      const url = `/v1/transactions?contract_type=${contractType}&limit=${limit}&order_by=block_timestamp,desc`;
-      const response = await this.makeRequest(url);
+    // 验证合约类型
+    const validation = this.validator.validateSearchParams({ contractType, limit });
+    if (!validation.isValid) {
+      return this.errorHandler.handleException(
+        new Error(validation.errors.join(', ')),
+        `搜索 ${contractType} 交易`,
+        []
+      );
+    }
 
-      if (response.ok) {
+    return this.errorHandler.handleApiCall(
+      () => this.apiClient.getRequest(`/v1/transactions?contract_type=${contractType}&limit=${limit}&order_by=block_timestamp,desc&visible=true`),
+      `搜索 ${contractType} 交易`,
+      async (response) => {
         const data = await response.json();
         const transactions = data.data || [];
 
         console.log(`[TronGridProvider] 找到 ${transactions.length} 条 ${contractType} 交易`);
-
-        return {
-          success: true,
-          data: transactions
-        };
-      } else {
-        const error = `搜索 ${contractType} 交易失败: ${response.status} ${response.statusText}`;
-        console.warn(`[TronGridProvider] ${error}`);
-        return {
-          success: false,
-          error,
-          data: []
-        };
-      }
-    } catch (error: any) {
-      console.error(`[TronGridProvider] 搜索 ${contractType} 交易失败:`, error);
-      return {
-        success: false,
-        error: error.message,
-        data: []
-      };
-    }
-  }
-
-  /**
-   * 将hex地址转换为base58地址
-   */
-  private convertHexToBase58(hexAddress: string): string {
-    try {
-      // 如果已经是base58格式，直接返回
-      if (hexAddress.startsWith('T') && hexAddress.length === 34) {
-        return hexAddress;
-      }
-      
-      // 如果是hex格式，使用DelegateOperation的转换逻辑
-      if (hexAddress.startsWith('41') && hexAddress.length === 42) {
-        console.log(`[TronGridProvider] 转换hex地址为Base58: ${hexAddress}`);
-        // 创建临时TronWeb实例进行地址转换
-        // 注意：这里需要使用与DelegateOperation相同的转换逻辑
-        try {
-          // 使用标准的TRON地址转换方法
-          const TronWeb = require('tronweb');
-          const base58Address = TronWeb.address.fromHex(hexAddress);
-          if (base58Address && base58Address.startsWith('T')) {
-            console.log(`[TronGridProvider] 转换成功: ${hexAddress} -> ${base58Address}`);
-            return base58Address;
-          }
-        } catch (conversionError) {
-          console.warn(`[TronGridProvider] 使用TronWeb转换失败:`, conversionError);
-        }
-        
-        // 如果TronWeb转换失败，尝试手动转换（备用方案）
-        console.warn(`[TronGridProvider] 地址转换失败，保持原格式: ${hexAddress}`);
-        return hexAddress;
-      }
-      
-      return hexAddress;
-    } catch (error) {
-      console.warn('[TronGridProvider] 地址格式转换失败:', error);
-      return hexAddress;
-    }
-  }
-
-  /**
-   * 筛选特定类型的交易
-   */
-  filterTransactionsByType(
-    transactions: any[], 
-    contractTypes: string[]
-  ): any[] {
-    console.log(`[TronGridProvider] 筛选交易类型: ${contractTypes.join(', ')}`);
-
-    const filtered = transactions.filter((tx: any) => {
-      const contractType = tx.raw_data?.contract?.[0]?.type;
-      const isMatch = contractTypes.includes(contractType);
-      
-      if (isMatch) {
-        console.log(`[TronGridProvider] ✅ 匹配交易: ${contractType} - ${tx.txID?.substring(0, 12)}...`);
-      }
-      
-      return isMatch;
-    });
-
-    console.log(`[TronGridProvider] 筛选出 ${filtered.length} 条匹配交易`);
-    return filtered;
+        return this.validator.sanitizeResponseData(transactions);
+      },
+      []
+    );
   }
 
   /**
@@ -371,33 +293,32 @@ export class TronGridProvider {
     try {
       console.log(`[TronGridProvider] 🔍 获取账户质押状态: ${address}`);
 
+      // 验证地址
+      const addressValidation = this.errorHandler.validateTronAddress(address);
+      if (!addressValidation.isValid) {
+        const defaultStakeStatus = {
+          unlockingTrx: 0,
+          withdrawableTrx: 0,
+          stakedEnergy: 0,
+          stakedBandwidth: 0,
+          delegatedEnergy: 0,
+          delegatedBandwidth: 0
+        };
+        
+        return this.errorHandler.handleException(
+          new Error(addressValidation.error || 'Invalid address'),
+          '获取账户质押状态',
+          defaultStakeStatus
+        );
+      }
+
       // 并行获取账户信息和交易记录
       const [accountInfoResponse, transactionsResponse] = await Promise.all([
         this.getAccountInfo(address),
         this.getAccountTransactions(address, 50)
       ]);
 
-      if (!accountInfoResponse.success || !accountInfoResponse.data) {
-        return {
-          success: false,
-          error: '获取账户信息失败',
-          data: {
-            unlockingTrx: 0,
-            withdrawableTrx: 0,
-            stakedEnergy: 0,
-            stakedBandwidth: 0,
-            delegatedEnergy: 0,
-            delegatedBandwidth: 0
-          }
-        };
-      }
-
-      const accountInfo = accountInfoResponse.data;
-      
-      console.log(`[TronGridProvider] 🔍 开始分析账户质押状态 - 地址: ${address}`);
-      
-      // 计算质押状态数据
-      const stakeStatus = {
+      const defaultStakeStatus = {
         unlockingTrx: 0,
         withdrawableTrx: 0,
         stakedEnergy: 0,
@@ -406,148 +327,27 @@ export class TronGridProvider {
         delegatedBandwidth: 0
       };
 
-      // 1. 从账户信息获取冻结资源（V2版本）
-      if ((accountInfo as any).frozenV2) {
-        (accountInfo as any).frozenV2.forEach((frozen: any) => {
-          const amount = frozen.amount || 0;
-          const resourceType = frozen.type;
-          
-          if (resourceType === 'ENERGY') {
-            stakeStatus.stakedEnergy += amount / 1000000; // 转换为TRX
-          } else if (resourceType === 'BANDWIDTH') {
-            stakeStatus.stakedBandwidth += amount / 1000000; // 转换为TRX
-          }
-        });
+      if (!accountInfoResponse.success || !accountInfoResponse.data) {
+        return {
+          success: false,
+          error: '获取账户信息失败',
+          data: defaultStakeStatus
+        };
       }
 
-      // 兼容旧版本冻结信息
-      if ((accountInfo as any).frozen) {
-        (accountInfo as any).frozen.forEach((frozen: any) => {
-          const amount = frozen.frozen_balance || 0;
-          const resourceType = frozen.resource_type;
-          
-          if (resourceType === 'ENERGY') {
-            stakeStatus.stakedEnergy += amount / 1000000; // 转换为TRX
-          } else if (resourceType === 'BANDWIDTH') {
-            stakeStatus.stakedBandwidth += amount / 1000000; // 转换为TRX
-          }
-        });
-      }
-
-      // 2. 从账户信息获取待提取资源（V2版本）
-      if ((accountInfo as any).unfrozenV2) {
-        const currentTime = Date.now();
-        console.log(`[TronGridProvider] 🔍 发现 ${(accountInfo as any).unfrozenV2.length} 条 V2 解质押记录`);
-        
-        (accountInfo as any).unfrozenV2.forEach((unfrozen: any, index: number) => {
-          const amount = unfrozen.unfreeze_amount || 0;  // 修复：应该是 unfreeze_amount 而不是 amount
-          let expireTime = unfrozen.unfreeze_expire_time || 0;
-          
-          console.log(`[TronGridProvider] 📊 V2记录[${index}]: ${amount / 1000000} TRX, 过期时间: ${new Date(expireTime).toISOString()}`);
-          
-          // 检查时间戳单位：如果expireTime看起来像秒时间戳（小于当前毫秒时间戳的1/1000），转换为毫秒
-          if (expireTime > 0 && expireTime < currentTime / 1000) {
-            expireTime = expireTime * 1000;
-            console.log(`[TronGridProvider] 时间戳转换: ${unfrozen.unfreeze_expire_time} -> ${expireTime}`);
-          }
-          
-          if (expireTime > currentTime) {
-            // 还在解锁期内
-            const trxAmount = amount / 1000000;
-            stakeStatus.unlockingTrx += trxAmount;
-            console.log(`[TronGridProvider] ➡️ V2解锁中 TRX: +${trxAmount} (unfrozenV2)`);
-          } else {
-            // 已过解锁期，可以提取
-            const trxAmount = amount / 1000000;
-            stakeStatus.withdrawableTrx += trxAmount;
-            console.log(`[TronGridProvider] ✅ V2待提取 TRX: +${trxAmount} (unfrozenV2)`);
-          }
-        });
-      }
-
-      // 兼容旧版本解冻信息
-      if ((accountInfo as any).unfrozen) {
-        const currentTime = Date.now();
-        console.log(`[TronGridProvider] 🔍 unfrozen (旧版) 数据:`, JSON.stringify((accountInfo as any).unfrozen, null, 2));
-        
-        (accountInfo as any).unfrozen.forEach((unfrozen: any) => {
-          const amount = unfrozen.unfrozen_balance || 0;
-          let expireTime = unfrozen.expire_time || 0;
-          
-          // 检查时间戳单位
-          if (expireTime > 0 && expireTime < currentTime / 1000) {
-            expireTime = expireTime * 1000;
-          }
-          
-          if (expireTime > currentTime) {
-            // 还在解锁期内
-            const trxAmount = amount / 1000000;
-            stakeStatus.unlockingTrx += trxAmount;
-            console.log(`[TronGridProvider] ➡️ V1解锁中 TRX: +${trxAmount} (unfrozen)`);
-          } else {
-            // 已过解锁期，可以提取
-            const trxAmount = amount / 1000000;
-            stakeStatus.withdrawableTrx += trxAmount;
-            console.log(`[TronGridProvider] ✅ V1待提取 TRX: +${trxAmount} (unfrozen)`);
-          }
-        });
-      }
-
-      // 3. 从账户信息获取代理资源
-      if ((accountInfo as any).delegated_resource) {
-        (accountInfo as any).delegated_resource.forEach((delegated: any) => {
-          const amount = delegated.frozen_balance_for_others || 0;
-          const resourceType = delegated.resource;
-          
-          if (resourceType === 'ENERGY') {
-            stakeStatus.delegatedEnergy += amount / 1000000;
-          } else if (resourceType === 'BANDWIDTH') {
-            stakeStatus.delegatedBandwidth += amount / 1000000;
-          }
-        });
-      }
-
-      // 4. 如果账户信息中没有足够的数据，从交易记录中补充分析
-      // 但如果账户信息中已经有unfrozenV2数据，就不需要再从交易记录分析了（避免重复计算）
-      const hasAccountUnfrozenData = !!(accountInfo as any).unfrozenV2 || !!(accountInfo as any).unfrozen;
-      console.log(`[TronGridProvider] 🔍 是否有账户解质押数据: ${hasAccountUnfrozenData}`);
+      const accountInfo = accountInfoResponse.data;
+      console.log(`[TronGridProvider] 🔍 开始分析账户质押状态 - 地址: ${address}`);
       
-      if (!hasAccountUnfrozenData && transactionsResponse.success && transactionsResponse.data) {
-        const transactions = transactionsResponse.data;
-        
-        for (const tx of transactions) {
-          if (!tx.raw_data?.contract?.[0]) continue;
-          
-          const contract = tx.raw_data.contract[0];
-          const contractType = contract.type;
-          const parameter = contract.parameter?.value;
-          
-          if (!parameter) continue;
+      // 使用数据格式化器处理质押状态
+      const stakeStatus = this.dataFormatter.formatStakeStatus(
+        accountInfo, 
+        transactionsResponse.success ? transactionsResponse.data : []
+      );
 
-          // 处理解冻交易，计算解锁中的TRX
-          if (contractType === 'UnfreezeBalanceV2Contract') {
-            const unfreezeAmount = parameter.unfreeze_balance || 0;
-            const resourceType = parameter.resource;
-            const txTime = tx.block_timestamp || 0;
-            
-            // TRON V2 解冻需要14天等待期
-            const waitingPeriod = 14 * 24 * 60 * 60 * 1000; // 14天
-            const unlockTime = txTime + waitingPeriod;
-            const currentTime = Date.now();
-            
-            if (unlockTime > currentTime) {
-              // 仍在等待期内
-              const amount = unfreezeAmount / 1000000;
-              stakeStatus.unlockingTrx += amount;
-              console.log(`[TronGridProvider] ➡️ 交易记录解锁中 TRX: +${amount} (transaction)`);
-            } else {
-              // 等待期已过，可提取
-              const amount = unfreezeAmount / 1000000;
-              stakeStatus.withdrawableTrx += amount;
-              console.log(`[TronGridProvider] ✅ 交易记录待提取 TRX: +${amount} (transaction)`);
-            }
-          }
-        }
+      // 验证返回数据
+      const stakeValidation = this.validator.validateStakeStatus(stakeStatus);
+      if (!stakeValidation.isValid) {
+        console.warn('[TronGridProvider] 质押状态数据验证失败:', stakeValidation.errors);
       }
 
       console.log(`[TronGridProvider] ✅ 质押状态计算完成:`, stakeStatus);
@@ -557,19 +357,16 @@ export class TronGridProvider {
         data: stakeStatus
       };
     } catch (error: any) {
-      console.error('[TronGridProvider] 获取账户质押状态失败:', error);
-      return {
-        success: false,
-        error: error.message,
-        data: {
-          unlockingTrx: 0,
-          withdrawableTrx: 0,
-          stakedEnergy: 0,
-          stakedBandwidth: 0,
-          delegatedEnergy: 0,
-          delegatedBandwidth: 0
-        }
+      const defaultStakeStatus = {
+        unlockingTrx: 0,
+        withdrawableTrx: 0,
+        stakedEnergy: 0,
+        stakedBandwidth: 0,
+        delegatedEnergy: 0,
+        delegatedBandwidth: 0
       };
+      
+      return this.errorHandler.handleException(error, '获取账户质押状态', defaultStakeStatus);
     }
   }
 
@@ -584,43 +381,29 @@ export class TronGridProvider {
         return null;
       }
 
-      const chainParams = chainParamsResponse.data;
-      
-      // 查找解锁期相关参数
-      const unlockParam = chainParams.chainParameter?.find((param: any) => 
-        param.key && (
-          param.key.includes('UNFREEZE') || 
-          param.key.includes('WAITING') ||
-          param.key.includes('DELAY')
-        )
-      );
-      
-      if (unlockParam) {
-        const periodDays = parseInt(unlockParam.value) || null;
-        console.log(`[TronGridProvider] 🎯 找到解锁期参数:`, unlockParam);
-        return periodDays ? periodDays * 24 * 60 * 60 * 1000 : null;
-      }
-      
-      console.warn(`[TronGridProvider] ⚠️ 无法从链参数获取解锁期`);
-      return null;
-      
+      return this.dataFormatter.parseUnlockPeriodFromChainParams(chainParamsResponse.data);
     } catch (error: any) {
       console.error('[TronGridProvider] 查询网络解锁期失败:', error);
       return null;
     }
   }
 
+  // ===================
+  // 便利方法
+  // ===================
+
+  /**
+   * 筛选特定类型的交易
+   */
+  filterTransactionsByType(transactions: any[], contractTypes: string[]): any[] {
+    return this.dataFormatter.filterTransactionsByType(transactions, contractTypes);
+  }
+
   /**
    * 写入调试日志到文件
    */
   writeDebugLog(content: string): void {
-    try {
-      const { appendFileSync } = require('fs');
-      const timestamp = new Date().toISOString();
-      appendFileSync('/tmp/tron-debug.log', `[${timestamp}] ${content}\n`);
-    } catch (error) {
-      console.warn('[TronGridProvider] 写入调试日志失败:', error);
-    }
+    this.errorHandler.writeDebugLog(content);
   }
 
   /**
@@ -632,11 +415,6 @@ export class TronGridProvider {
     isTestNet: boolean;
     isValid: boolean;
   } {
-    return {
-      name: this.networkProvider.getNetworkName(),
-      id: this.networkProvider.getNetworkId(),
-      isTestNet: this.networkProvider.isTestNet(),
-      isValid: this.networkProvider.isConfigValid()
-    };
+    return this.apiClient.getNetworkInfo();
   }
 }

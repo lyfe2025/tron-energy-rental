@@ -319,6 +319,12 @@ export function useMenu() {
             name: '系统监控',
             path: '/config/monitoring',
             permission: 'config:monitoring:view'
+          },
+          {
+            id: 166,
+            name: '资源消耗配置',
+            path: '/config/resource-consumption',
+            permission: 'config:resource-consumption:view'
           }
         ]
       },

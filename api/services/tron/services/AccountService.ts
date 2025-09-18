@@ -10,7 +10,8 @@ export class AccountService {
   // 获取账户信息
   async getAccount(address: string): Promise<ServiceResponse<AccountData>> {
     try {
-      const account = await this.tronWeb.trx.getAccount(address);
+      // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
+      const account = await this.tronWeb.trx.getAccount(address, { visible: true });
       return {
         success: true,
         data: {
@@ -36,9 +37,10 @@ export class AccountService {
       const startTime = Date.now();
       
       // 需要同时获取account和accountResources信息，因为代理数据在account中
+      // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
       const [resources, accountInfo] = await Promise.all([
-        this.tronWeb.trx.getAccountResources(address),
-        this.tronWeb.trx.getAccount(address)
+        this.tronWeb.trx.getAccountResources(address, { visible: true }),
+        this.tronWeb.trx.getAccount(address, { visible: true })
       ]);
       
       console.log('🔍 [AccountService] TRON API 详细数据:', {

@@ -8,7 +8,7 @@ import { Router } from 'express';
 // 导入各个功能模块路由
 import configRoutes from './config.js';
 import crudRoutes from './crud.js';
-import extendedConfigRoutes from './extended-config.js';
+import extendedConfigRoutes from './extended-config/index.js';
 import logsRoutes from './logs.js';
 import networkConfigRoutes from './network-config.js';
 import statsRoutes from './stats.js';

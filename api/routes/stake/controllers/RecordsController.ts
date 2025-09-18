@@ -5,12 +5,12 @@ import type { Request, Response } from 'express';
 import { query } from '../../../database/index.js';
 import { tronService } from '../../../services/tron.js';
 import type {
-  DelegateRecord,
-  PaginatedResponse,
-  RouteHandler,
-  StakeQueryParams,
-  StakeRecord,
-  UnfreezeRecord
+    DelegateRecord,
+    PaginatedResponse,
+    RouteHandler,
+    StakeQueryParams,
+    StakeRecord,
+    UnfreezeRecord
 } from '../types/stake.types.js';
 
 export class RecordsController {
@@ -18,8 +18,6 @@ export class RecordsController {
    * 获取质押记录 (从TRON网络API)
    */
   static getStakeRecords: RouteHandler = async (req: Request, res: Response) => {
-    console.log('[RecordsController] 🚀🚀🚀 质押记录API被调用');
-    console.log('[RecordsController] 完整请求参数:', JSON.stringify(req.query, null, 2));
     
     try {
       const { 
@@ -83,7 +81,6 @@ export class RecordsController {
       console.log(`[RecordsController] 开始获取质押记录，地址: ${targetAddress}, 限制: ${limit}`);
       
       // 从TRON网络获取真实的质押记录
-      console.log('[RecordsController] 🌐🌐🌐 即将调用 tronService.getStakeTransactionHistory');
       console.log('[RecordsController] 调用参数:', { 
         targetAddress, 
         limit: parseInt(limit) * 2, 
@@ -239,6 +236,7 @@ export class RecordsController {
       }
 
       let filteredRecords = tronResult.data || [];
+      console.log(`[RecordsController] 获取到${filteredRecords.length}条委托记录`);
 
       // 应用过滤条件
       if (operation_type) {
@@ -272,23 +270,28 @@ export class RecordsController {
       const endIndex = parseInt(limit);
       const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
 
-      // 转换为委托记录格式
+      // ✅ 修复：映射字段以支持前端的方向判断逻辑
       const delegateRecords = paginatedRecords.map((record: any) => ({
         id: record.id,
-        txid: record.transaction_id,
-        transaction_id: record.transaction_id,
-        pool_id: record.pool_id,
-        pool_account_id: record.pool_id,
+        pool_account_id: record.pool_id || '',
+        operation_type: record.operation_type,
         receiver_address: record.to_address || '',
         amount: record.amount,
         resource_type: record.resource_type,
-        operation_type: record.operation_type,
-        lock_period: 0, // TRON 2.0 没有锁定期
-        is_locked: false,
-        status: record.status,
+        txid: record.transaction_id,
+        status: record.status === 'success' ? 'confirmed' : record.status,
         created_at: record.created_at,
-        updated_at: record.created_at
-      }));
+        is_locked: false,
+        lock_period: 0,
+        confirmed_at: record.created_at,
+        error_message: record.status === 'failed' ? 'Transaction failed' : undefined,
+        // ✅ 关键修复：添加前端需要的字段用于方向判断
+        fromAddress: record.from_address || '',  // 前端兼容性字段
+        toAddress: record.to_address || '',      // 前端兼容性字段
+        from_address: record.from_address || '', // 原始字段
+        to_address: record.to_address || ''      // 原始字段
+      } as DelegateRecord));
+      
       
       const response: PaginatedResponse<DelegateRecord> = {
         success: true,

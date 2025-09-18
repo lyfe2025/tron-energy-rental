@@ -184,6 +184,12 @@ const router = createRouter({
           meta: { roles: ['super_admin', 'admin'] }
         },
         {
+          path: 'config/resource-consumption',
+          name: 'config-resource-consumption',
+          component: () => import('@/pages/Config/ResourceConsumption/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
           path: 'system/settings',
           name: 'system-settings',
           component: () => import('@/pages/Settings/index.vue'),

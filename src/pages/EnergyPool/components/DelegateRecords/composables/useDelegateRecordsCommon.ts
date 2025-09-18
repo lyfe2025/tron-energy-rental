@@ -84,8 +84,12 @@ export function useDelegateRecordsCommon(
         return record.toAddress.toLowerCase() !== currentAddress.toLowerCase()
       }
     } else {
-      // 代理获得：当前地址是接收方（toAddress）
-      return record.toAddress.toLowerCase() === currentAddress.toLowerCase()
+      // 代理获得：当前地址是接收方（toAddress或to_address）
+      if ((record as any).to_address) {
+        return (record as any).to_address.toLowerCase() === currentAddress.toLowerCase()
+      } else {
+        return record.toAddress.toLowerCase() === currentAddress.toLowerCase()
+      }
     }
   })
   })

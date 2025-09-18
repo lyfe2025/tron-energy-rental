@@ -11,7 +11,8 @@ export class TransactionService {
   // 获取地址的交易历史
   async getTransactionsFromAddress(address: string, limit: number = 10, offset: number = 0) {
     try {
-      const transactions = await this.tronWeb.trx.getTransactionsFromAddress(address, limit, offset);
+      // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
+      const transactions = await this.tronWeb.trx.getTransactionsFromAddress(address, limit, offset, { visible: true });
       return transactions;
     } catch (error) {
       console.error('Failed to get transactions from address:', error);
@@ -22,8 +23,9 @@ export class TransactionService {
   // 获取交易信息
   async getTransaction(txid: string): Promise<ServiceResponse> {
     try {
-      const transaction = await this.tronWeb.trx.getTransaction(txid);
-      const transactionInfo = await this.tronWeb.trx.getTransactionInfo(txid);
+      // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
+      const transaction = await this.tronWeb.trx.getTransaction(txid, { visible: true });
+      const transactionInfo = await this.tronWeb.trx.getTransactionInfo(txid, { visible: true });
       
       return {
         success: true,
@@ -49,7 +51,8 @@ export class TransactionService {
       const checkTransfer = async () => {
         try {
           // 获取最近的交易
-          const transactions = await this.tronWeb.trx.getTransactionsFromAddress(toAddress, 1, 0);
+          // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
+          const transactions = await this.tronWeb.trx.getTransactionsFromAddress(toAddress, 1, 0, { visible: true });
           
           for (const tx of transactions) {
             if (tx.raw_data.contract[0].parameter.value.amount >= amount) {
