@@ -1,8 +1,8 @@
 import type {
-    ChainParametersResponse,
-    NetworkConfig,
-    ServiceResponse,
-    TronGridAccountResponse
+  ChainParametersResponse,
+  NetworkConfig,
+  ServiceResponse,
+  TronGridAccountResponse
 } from '../types/staking.types.ts';
 
 import { TronGridApiClient } from './tron-grid/TronGridApiClient.ts';
@@ -66,6 +66,17 @@ export class TronGridProvider {
         const data = await response.json();
         let transactions = data.data || [];
 
+        console.log(`[TronGridProvider] 🔍 API原始响应分析:`, {
+          dataType: typeof data.data,
+          isArray: Array.isArray(data.data),
+          firstTransaction: data.data?.[0] ? {
+            txID: data.data[0].txID?.substring(0, 12),
+            contractType: data.data[0].raw_data?.contract?.[0]?.type,
+            owner_address: data.data[0].raw_data?.contract?.[0]?.parameter?.value?.owner_address,
+            receiver_address: data.data[0].raw_data?.contract?.[0]?.parameter?.value?.receiver_address
+          } : 'N/A'
+        });
+
         // 处理TronGrid API可能返回对象而非数组的情况
         if (transactions && typeof transactions === 'object' && !Array.isArray(transactions)) {
           console.log(`[TronGridProvider] 🔧 检测到对象格式数据，转换为数组`);
@@ -114,7 +125,36 @@ export class TronGridProvider {
         }
 
         console.log(`[TronGridProvider] 成功获取 ${transactions.length} 条交易记录`);
-        return this.validator.sanitizeResponseData(transactions);
+        
+        // 🔍 调试：在sanitize之前检查数据
+        if (transactions.length > 0) {
+          const firstTx = transactions[0];
+          const contract = firstTx.raw_data?.contract?.[0];
+          const parameter = contract?.parameter?.value;
+          console.log(`[TronGridProvider] 🔍 sanitize之前的地址:`, {
+            owner_address: parameter?.owner_address,
+            receiver_address: parameter?.receiver_address,
+            owner_type: typeof parameter?.owner_address,
+            receiver_type: typeof parameter?.receiver_address
+          });
+        }
+        
+        const sanitizedData = this.validator.sanitizeResponseData(transactions);
+        
+        // 🔍 调试：在sanitize之后检查数据
+        if (Array.isArray(sanitizedData) && sanitizedData.length > 0) {
+          const firstTx = sanitizedData[0];
+          const contract = firstTx.raw_data?.contract?.[0];
+          const parameter = contract?.parameter?.value;
+          console.log(`[TronGridProvider] 🔍 sanitize之后的地址:`, {
+            owner_address: parameter?.owner_address,
+            receiver_address: parameter?.receiver_address,
+            owner_type: typeof parameter?.owner_address,
+            receiver_type: typeof parameter?.receiver_address
+          });
+        }
+        
+        return sanitizedData;
       },
       []
     );

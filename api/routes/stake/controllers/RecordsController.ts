@@ -5,12 +5,12 @@ import type { Request, Response } from 'express';
 import { query } from '../../../database/index.js';
 import { tronService } from '../../../services/tron.js';
 import type {
-    DelegateRecord,
-    PaginatedResponse,
-    RouteHandler,
-    StakeQueryParams,
-    StakeRecord,
-    UnfreezeRecord
+  DelegateRecord,
+  PaginatedResponse,
+  RouteHandler,
+  StakeQueryParams,
+  StakeRecord,
+  UnfreezeRecord
 } from '../types/stake.types.js';
 
 export class RecordsController {

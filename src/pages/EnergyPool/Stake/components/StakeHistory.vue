@@ -27,7 +27,7 @@
       <!-- 代理出去记录 -->
       <div v-if="activeTab === 'delegate_out' && selectedAccount">
         <DelegateRecords 
-          :pool-id="currentNetworkId" 
+          :pool-id="selectedAccount.id" 
           :network-id="currentNetworkId" 
           :account-id="selectedAccount.id"
           :delegate-direction="'out'"
@@ -37,7 +37,7 @@
       <!-- 代理获得记录 -->
       <div v-if="activeTab === 'delegate_in' && selectedAccount">
         <DelegateRecords 
-          :pool-id="currentNetworkId" 
+          :pool-id="selectedAccount.id" 
           :network-id="currentNetworkId" 
           :account-id="selectedAccount.id"
           :delegate-direction="'in'"
@@ -47,7 +47,7 @@
       <!-- 解质押记录 -->
       <div v-if="activeTab === 'unfreeze' && selectedAccount">
         <UnfreezeRecords 
-          :pool-id="currentNetworkId" 
+          :pool-id="selectedAccount.id" 
           :network-id="currentNetworkId" 
           :account-id="selectedAccount.id" 
         />
