@@ -8,7 +8,8 @@ import { ElMessage } from 'element-plus'
 import { apiClient } from '../../../../services/api/core/apiClient'
 import type {
     BandwidthConfig,
-    EnergyConfig
+    EnergyConfig,
+    PresetValue
 } from '../types/resource-consumption.types'
 
 const API_BASE_URL = '/api/system-configs/configs'

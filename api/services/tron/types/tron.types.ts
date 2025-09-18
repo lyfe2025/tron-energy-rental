@@ -106,6 +106,10 @@ export interface ResourceData {
     available: number; // 实际可用于出租的能量
     delegatedOut?: number; // 代理给别人的能量
     delegatedIn?: number; // 从别人获得的能量代理
+    // 新增字段
+    totalStaked?: number; // 总质押TRX数量（SUN单位）
+    directStaked?: number; // 直接质押TRX数量（SUN单位）
+    delegateStaked?: number; // 代理质押TRX数量（SUN单位）
   };
   bandwidth: {
     used: number;
@@ -116,6 +120,10 @@ export interface ResourceData {
     delegatedIn?: number; // 从别人获得的带宽代理
     freeUsed?: number; // 免费带宽已使用（调试信息）
     stakedUsed?: number; // 质押带宽已使用（调试信息）
+    // 新增字段
+    totalStaked?: number; // 总质押TRX数量（SUN单位）
+    directStaked?: number; // 直接质押TRX数量（SUN单位）
+    delegateStaked?: number; // 代理质押TRX数量（SUN单位）
   };
   delegation?: {
     energyOut: number;

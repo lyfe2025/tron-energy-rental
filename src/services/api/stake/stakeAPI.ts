@@ -23,6 +23,8 @@ export interface StakeStatistics {
 }
 
 export interface AccountResources {
+  address?: string
+  balance?: number
   energy: {
     used: number
     limit: number
@@ -30,6 +32,10 @@ export interface AccountResources {
     available: number
     delegatedOut: number
     delegatedIn: number
+    // 新增字段
+    totalStaked: number
+    directStaked: number
+    delegateStaked: number
   }
   bandwidth: {
     used: number
@@ -40,6 +46,18 @@ export interface AccountResources {
     delegatedIn: number
     freeUsed: number
     stakedUsed: number
+    // 新增字段
+    totalStaked: number
+    directStaked: number
+    delegateStaked: number
+  }
+  frozen?: {
+    energy: number
+    bandwidth: number
+  }
+  delegated?: {
+    energy: number
+    bandwidth: number
   }
   delegation: {
     energyOut: number
@@ -116,6 +134,34 @@ export const stakeAPI = {
    */
   getAccountResources: (address: string, networkId?: string) => 
     apiClient.get<ApiResponse<AccountResources>>(`/api/energy-pool/stake/account-resources/${encodeURIComponent(address)}${networkId ? `?networkId=${networkId}` : ''}`),
+
+  /**
+   * 获取账户详细信息
+   */
+  getAccountInfo: (address: string, networkId?: string) => 
+    apiClient.get<ApiResponse<any>>(`/api/energy-pool/stake/account-info/${encodeURIComponent(address)}${networkId ? `?networkId=${networkId}` : ''}`),
+
+  /**
+   * 获取账户质押状态（包含可提取资源）
+   */
+  getAccountStakeStatus: (address: string, networkId: string) => 
+    apiClient.get<ApiResponse<{
+      address: string
+      stakeStatus: {
+        unlockingTrx: number
+        withdrawableTrx: number
+        stakedEnergy: number
+        stakedBandwidth: number
+        delegatedEnergy: number
+        delegatedBandwidth: number
+      }
+      networkInfo: {
+        id: string
+        name: string
+        type: string
+      }
+      timestamp: string
+    }>>(`/api/energy-pool/accounts/${encodeURIComponent(address)}/stake-status?network_id=${networkId}`),
 
   /**
    * 质押TRX

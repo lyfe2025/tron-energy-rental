@@ -47,6 +47,7 @@
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
+    "compression": "^1.8.1",
     "constants-browserify": "^1.0.0",
     "cors": "^2.8.5",
     "crypto-browserify": "^3.12.1",
@@ -91,6 +92,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/express-validator": "^3.0.2",

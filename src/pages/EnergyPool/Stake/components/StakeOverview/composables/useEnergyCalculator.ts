@@ -2,8 +2,8 @@
  * 能量计算 Composable
  * 提供各种能量相关的计算功能
  */
-import { computed } from 'vue';
 import type { Ref } from 'vue';
+import { computed } from 'vue';
 
 export function useEnergyCalculator(realTimeData: Ref<any>) {
   /**

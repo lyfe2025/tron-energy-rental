@@ -5,9 +5,9 @@ import type { Request, Response } from 'express';
 import { query } from '../../../database/index.js';
 import { tronService } from '../../../services/tron.js';
 import type {
-  RouteHandler,
-  StakeQueryParams,
-  StakeStatistics
+    RouteHandler,
+    StakeQueryParams,
+    StakeStatistics
 } from '../types/stake.types.js';
 
 export class OverviewController {
@@ -194,7 +194,14 @@ export class OverviewController {
         }
       }
 
+      console.log('🔍 [OverviewController] 调用 getAccountResources:', { address, networkId });
       const result = await tronService.getAccountResources(address);
+      console.log('🔍 [OverviewController] getAccountResources 结果:', { 
+        success: result.success, 
+        hasData: !!result.data,
+        delegatedBandwidthOut: result.data?.bandwidth?.delegatedOut,
+        delegationBandwidthOut: result.data?.delegation?.bandwidthOut
+      });
       
       if (result.success) {
         res.json({ success: true, data: result.data });

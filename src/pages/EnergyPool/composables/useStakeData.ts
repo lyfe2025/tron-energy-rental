@@ -1,16 +1,16 @@
 import { stakeAPI } from '@/services/api'
+import type { AccountResources } from '@/services/api/stake/stakeAPI'
 import { reactive, ref } from 'vue'
 import type {
-    AccountInfo,
-    AccountResources,
-    DelegateRecord,
-    DelegateRecordQueryParams,
-    StakePagination,
-    StakeRecord,
-    StakeRecordQueryParams,
-    StakeStatistics,
-    UnfreezeRecord,
-    UnfreezeRecordQueryParams
+  AccountInfo,
+  DelegateRecord,
+  DelegateRecordQueryParams,
+  StakePagination,
+  StakeRecord,
+  StakeRecordQueryParams,
+  StakeStatistics,
+  UnfreezeRecord,
+  UnfreezeRecordQueryParams
 } from '../types/stake.types'
 
 export function useStakeData() {
@@ -251,21 +251,20 @@ export function useStakeData() {
   }
 
   // 获取账户资源信息
-  const loadAccountResources = async (address: string) => {
+  const loadAccountResources = async (address: string, networkId?: string) => {
     try {
       loading.value = true
       error.value = null
-      // TODO: API方法暂时不可用，使用模拟数据或等待API实现
-      console.warn('getAccountResources API method not implemented yet')
-      accountResources.value = {
-        address,
-        balance: 0,
-        energy: { total: 0, used: 0, available: 0 },
-        bandwidth: { total: 0, used: 0, available: 0 },
-        frozen: { energy: 0, bandwidth: 0 },
-        delegated: { energy: 0, bandwidth: 0 }
+      console.log('🔍 [useStakeData] 加载账户资源:', { address, networkId })
+      const response = await stakeAPI.getAccountResources(address, networkId)
+      if (response.data.success && response.data.data) {
+        accountResources.value = response.data.data
+        console.log('✅ [useStakeData] 账户资源加载成功:', response.data.data)
+      } else {
+        throw new Error(response.data.message || '获取账户资源失败')
       }
     } catch (err: any) {
+      console.error('❌ [useStakeData] 账户资源加载失败:', err)
       handleError(err, '获取账户资源')
     } finally {
       loading.value = false
@@ -273,21 +272,20 @@ export function useStakeData() {
   }
 
   // 获取账户信息
-  const loadAccountInfo = async (address: string) => {
+  const loadAccountInfo = async (address: string, networkId?: string) => {
     try {
       loading.value = true
       error.value = null
-      // TODO: API方法暂时不可用，使用模拟数据或等待API实现
-      console.warn('getAccountInfo API method not implemented yet')
-      accountInfo.value = {
-        address,
-        balance: 0,
-        createTime: Date.now(),
-        latestOperationTime: Date.now(),
-        allowance: 0,
-        activePermissions: []
+      console.log('🔍 [useStakeData] 加载账户信息:', { address, networkId })
+      const response = await stakeAPI.getAccountInfo(address, networkId)
+      if (response.data.success && response.data.data) {
+        accountInfo.value = response.data.data
+        console.log('✅ [useStakeData] 账户信息加载成功:', response.data.data)
+      } else {
+        throw new Error(response.data.message || '获取账户信息失败')
       }
     } catch (err: any) {
+      console.error('❌ [useStakeData] 账户信息加载失败:', err)
       handleError(err, '获取账户信息')
     } finally {
       loading.value = false

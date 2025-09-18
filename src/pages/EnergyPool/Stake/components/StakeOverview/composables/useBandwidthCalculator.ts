@@ -2,8 +2,8 @@
  * 带宽计算 Composable
  * 提供各种带宽相关的计算功能
  */
-import { computed, type ComputedRef } from 'vue';
 import type { Ref } from 'vue';
+import { computed } from 'vue';
 
 export function useBandwidthCalculator(realTimeData: Ref<any>) {
   /**

@@ -74,9 +74,13 @@ export function useStakeFormatters() {
 
   // 获取状态文本
   const getStatusText = (status: string): string => {
+    console.log(`[useStakeFormatters] 🎯 状态转换: "${status}" (${typeof status})`);
+    
     switch (status) {
       case 'success':
         return '成功'
+      case 'confirmed':
+        return '已确认'
       case 'pending':
         return '处理中'
       case 'failed':
@@ -85,7 +89,12 @@ export function useStakeFormatters() {
         return '可提取'
       case 'withdrawn':
         return '已提取'
+      case 'withdrawable':
+        return '可提取'
+      case 'unfreezing':
+        return '解质押中'
       default:
+        console.warn(`[useStakeFormatters] ⚠️ 未识别的状态: "${status}"`);
         return '未知'
     }
   }
