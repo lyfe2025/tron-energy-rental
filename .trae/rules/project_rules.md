@@ -10,5 +10,5 @@ curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: applicati
 6.代码修改完后运行rm -rf node_modules/.cache && rm -rf dist && npm run check来验证所有TypeScript错误是否已修复
 7.前端服务运行在5173端口，后端运行在3001端口。
 8.TRON 相关信息获取，需要根据不同网络，直接从TRON官方API获取实时数据，而不是依赖数据库。
-9.遵守 DRY (Don't Repeat Yourself) 原则。
+9.遵守 DRY (Don't Repeat Yourself) 原则和SOLID原则。
 10.TRON API调用要明确设置 visible: true，确保地址统一为Base58格式。
