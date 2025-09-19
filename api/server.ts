@@ -9,10 +9,12 @@ import { LogRotationManager, appLogger } from './utils/logger.js';
 /**
  * start server with port
  */
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001');
+const HOST_ADDRESS = process.env.HOST_ADDRESS || '0.0.0.0';
 
-const server = app.listen(PORT, async () => {
-  console.log(`Server ready on port ${PORT}`);
+const server = app.listen(PORT, HOST_ADDRESS, async () => {
+  console.log(`🚀 Server running on ${HOST_ADDRESS}:${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   
   // 启动调度器服务
   schedulerService.start();

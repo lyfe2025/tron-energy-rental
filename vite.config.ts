@@ -56,22 +56,22 @@ export default defineConfig(({ mode }) => {
       include: ['buffer', 'crypto-browserify', 'stream-browserify'],
     },
     server: {
+      host: process.env.VITE_HOST || '0.0.0.0',
+      port: parseInt(process.env.VITE_PORT || '5173'),
       proxy: {
         '/api': {
-          target: 'http://localhost:3001',
+          target: process.env.VITE_API_URL || 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
-          configure: (proxy) => {
-            proxy.on('error', (err) => {
-              // eslint-disable-next-line no-console
+          ws: true,
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
               console.log('proxy error', err);
             });
-            proxy.on('proxyReq', (proxyReq, req) => {
-              // eslint-disable-next-line no-console
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
               console.log('Sending Request to the Target:', req.method, req.url);
             });
-            proxy.on('proxyRes', (proxyRes, req) => {
-              // eslint-disable-next-line no-console
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
               console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           },
