@@ -60,6 +60,7 @@ export interface DelegateRecord {
   // 新增字段：支持Base58格式的发起方和接收方地址
   from_address?: string       // 代理发起方地址 (Base58格式)
   to_address?: string         // 代理接收方地址 (Base58格式)
+  fromAddress?: string        // 前端兼容性字段（代理发起方）
   direction?: 'incoming' | 'outgoing'  // 交易方向（相对于查询地址）
 }
 

@@ -131,10 +131,10 @@
                   <span class="font-medium text-gray-700 whitespace-nowrap">{{ textConfig.addressLabel }}:</span>
                   <div class="flex items-center space-x-2 min-w-0 flex-1">
                     <span class="font-mono text-gray-900 bg-gray-100 px-3 py-1.5 rounded border text-xs break-all select-all">
-                      {{ record.toAddress }}
+                      {{ record.fromAddress || record.from_address }}
                     </span>
                     <button
-                      @click="copyToClipboard(record.toAddress, textConfig.addressLabel)"
+                      @click="copyToClipboard(record.fromAddress || record.from_address, textConfig.addressLabel)"
                       class="flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                       :title="'复制' + textConfig.addressLabel"
                     >

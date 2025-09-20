@@ -220,10 +220,11 @@ export class DelegateRecordsHandler extends BaseRecordsHandler {
         confirmed_at: record.created_at,
         error_message: record.status === 'failed' ? 'Transaction failed' : undefined,
         // ✅ 关键修复：添加前端需要的字段用于方向判断
-        fromAddress: record.from_address || '',  // 前端兼容性字段
-        toAddress: record.to_address || '',      // 前端兼容性字段
-        from_address: record.from_address || '', // 原始字段
-        to_address: record.to_address || ''      // 原始字段
+        // ✅ 标准映射：from_address=代理发起方，to_address=代理接收方
+        fromAddress: record.from_address || '',  // 前端兼容性字段（代理发起方）
+        toAddress: record.to_address || '',      // 前端兼容性字段（代理接收方）
+        from_address: record.from_address || '', // 原始字段（代理发起方）
+        to_address: record.to_address || ''      // 原始字段（代理接收方）
       } as DelegateRecord;
       
       // 调试日志：显示记录状态

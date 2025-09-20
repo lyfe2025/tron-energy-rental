@@ -397,14 +397,19 @@ export class DelegateRecordHandler {
             receiver_address_hex: parameter?.receiver_address
           });
           
+          // ✅ 正确的地址映射：按照TRON官方文档
+          // owner_address 是代理发起方，receiver_address 是代理接收方
           const fromAddress = parameter?.owner_address ? this.convertHexToBase58(parameter.owner_address) : '';
           const toAddress = parameter?.receiver_address ? this.convertHexToBase58(parameter.receiver_address) : '';
           
-          console.log(`[DelegateRecordHandler] 🔍 转换后地址:`, {
-            fromAddress,
-            toAddress,
+          console.log(`[DelegateRecordHandler] 🔍 转换后地址（标准映射）:`, {
+            原始_owner_address: parameter?.owner_address?.substring(0, 12) + '...',
+            原始_receiver_address: parameter?.receiver_address?.substring(0, 12) + '...',
+            fromAddress: fromAddress?.substring(0, 12) + '...',
+            toAddress: toAddress?.substring(0, 12) + '...',
             fromValid: fromAddress.startsWith('T') && fromAddress.length === 34,
-            toValid: toAddress.startsWith('T') && toAddress.length === 34
+            toValid: toAddress.startsWith('T') && toAddress.length === 34,
+            映射说明: 'owner_address -> from_address, receiver_address -> to_address'
           });
           
           // 🔧 详细调试资源类型判断

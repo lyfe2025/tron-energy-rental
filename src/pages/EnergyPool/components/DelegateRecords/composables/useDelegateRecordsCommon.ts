@@ -604,7 +604,8 @@ export function getDelegateInTextConfig(): DelegateRecordsTextConfig {
     undelegateDialogTitle: '确认取消他人代理给自己',
     undelegateDialogMessage: (record, formatTrx, formatAddress) => {
       const amount = formatTrx(record.amount)
-      const address = formatAddress(record.toAddress)
+      // 🔧 修复：在"他人代理给自己"场景中，显示发送方地址（fromAddress）
+      const address = formatAddress(record.fromAddress || record.from_address || record.toAddress)
       return `确定要取消来自 ${address} 的 ${amount} 代理吗？`
     },
     undelegateButtonText: '取消代理'

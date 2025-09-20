@@ -241,8 +241,9 @@ export class DelegateResourceAPIHandler {
       status: 'success', // 通过API获取的都是已成功的代理
       created_at: new Date(resource.expireTime * 1000).toISOString(),
       transaction_id: '', // API方式无法获取具体交易ID
-      from_address: resource.from,
-      to_address: resource.to,
+      // ✅ 标准映射：保持与TRON官方文档一致
+      from_address: resource.from,  // 代理发起方
+      to_address: resource.to,      // 代理接收方
       pool_id: '',
       address: direction === 'out' ? resource.from : resource.to,
       block_number: 0,
