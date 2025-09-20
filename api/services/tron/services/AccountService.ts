@@ -103,20 +103,22 @@ export class AccountService {
         'TotalNetLimit': resources.TotalNetLimit
       });
 
-      // TRON API的EnergyLimit是净可用能量 = 质押获得 + 代理获得 - 代理出去
+      // ✅ 修正：TRON API的EnergyLimit是净可用能量，需要计算真正的质押获得能量
       const netAvailableEnergy = resources.EnergyLimit || 0;
       const usedEnergy = resources.EnergyUsed || 0;
       
-      // 计算理论质押获得的能量（从净可用能量反推）
+      // 计算代理能量值（使用TRON网络参数计算）
       const delegatedEnergyInValue = (delegatedEnergyIn / 1000000) * 76.2; // 代理获得的能量
       const delegatedEnergyOutValue = (delegatedEnergyOut / 1000000) * 76.2; // 代理出去的能量
-      const stakingOnlyEnergy = netAvailableEnergy - delegatedEnergyInValue + delegatedEnergyOutValue;
+      
+      // ✅ 修正：质押获得的能量 = 净可用能量 + 代理出去的能量 - 代理获得的能量
+      const stakingOnlyEnergy = netAvailableEnergy + delegatedEnergyOutValue - delegatedEnergyInValue;
       
       // 理论总能量 = 质押获得 + 代理获得
       const theoreticalTotalEnergy = stakingOnlyEnergy + delegatedEnergyInValue;
       
-      // 实际可用能量 = 净可用能量 - 已使用
-      const actualAvailableEnergy = netAvailableEnergy - usedEnergy;
+      // ✅ 修正：实际可用能量 = 净可用能量 - 已使用
+      const actualAvailableEnergy = Math.max(0, netAvailableEnergy - usedEnergy);
 
       // 🔧 修正：使用TRON网络动态计算公式计算实际代理带宽
       // 公式：带宽 = (质押SUN / 全网总权重) × 全网总带宽
@@ -155,25 +157,39 @@ export class AccountService {
         }
       });
       
-      // 质押获得的带宽 (不包含免费带宽)
-      const stakingOnlyBandwidth = stakedNetLimit;
+      // ✅ 修正：质押获得的带宽 = 净可用质押带宽 + 代理出去的带宽（简化值）
+      // TRON API的NetLimit是净可用带宽，需要加上代理出去的部分才是真正的"质押获得"
+      // 使用简化的代理值用于前端显示
+      const delegatedBandwidthOutSimplified = Math.floor(delegatedBandwidthOutValue / 1000000);
+      const stakingOnlyBandwidth = stakedNetLimit + delegatedBandwidthOutSimplified;
       
       // 理论总带宽 = 质押获得 + 他人代理给自己 + 免费 600
       const theoreticalTotalBandwidth = stakingOnlyBandwidth + delegatedBandwidthInValue + freeNetLimit;
       
-      // ✅ 修正：实际可用带宽 = 理论总带宽 - 已使用
-      // 注意：代理出去的资源不影响当前账户的可用带宽（因为质押的TRX还是属于这个账户）
-      const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth);
+      // ✅ 修正：实际可用带宽 = 理论总带宽 - 已使用 - 代理出去的（简化值）
+      // 注意：代理出去的资源不能被当前账户使用
+      const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth - delegatedBandwidthOutSimplified);
       
       // 数据差异监控和警告
       console.log('📊 [AccountService] 带宽计算结果:', {
         address,
-        freeNetUsed,
-        stakedNetUsed,
-        totalUsedBandwidth,
-        theoreticalTotalBandwidth,
-        actualAvailableBandwidth,
-        calculationNote: '如与区块浏览器有差异，通常在±20个单位内属正常现象'
+        '原始数据': {
+          stakedNetLimit,
+          delegatedBandwidthOutValue,
+          delegatedBandwidthOutSimplified,
+          delegatedBandwidthInValue
+        },
+        '计算结果': {
+          '质押获得带宽(修正后)': stakingOnlyBandwidth,
+          '理论总带宽': theoreticalTotalBandwidth,
+          '实际可用带宽': actualAvailableBandwidth
+        },
+        '使用情况': {
+          freeNetUsed,
+          stakedNetUsed,
+          totalUsedBandwidth
+        },
+        calculationNote: '质押获得 = NetLimit + 代理出去简化值，如与区块浏览器有差异，通常在±20个单位内属正常现象'
       });
       
       return {
