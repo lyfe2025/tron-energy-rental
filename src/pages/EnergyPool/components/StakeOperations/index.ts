@@ -8,13 +8,42 @@ export { default as DelegateModal } from './DelegateModal.vue'
 export { default as StakeModal } from './StakeModal.vue'
 export { default as StakeSuccessModal } from './StakeSuccessModal.vue'
 export { default as TransactionConfirmModal } from './TransactionConfirmModal.vue'
-export { default as UnstakeModal } from './UnstakeModal.vue'
-export { default as UnstakeTransactionConfirmModal } from './UnstakeTransactionConfirmModal.vue'
+// 注意：UnstakeModal 和 UnstakeTransactionConfirmModal 的默认导出在下面的选择性导出中处理
 export { default as WithdrawModal } from './WithdrawModal.vue'
 
 // 导出共享的类型和工具
 export * from './shared/types'
 export { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
+
+// 导出分离后的子组件模块 - 选择性导出避免冲突
+export {
+    UnstakeAccountInfo, UnstakeAmountInput, UnstakeDelegatingResources, UnstakeExplanation, UnstakeForm,
+    // UnstakeModal 组件和类型
+    UnstakeModal, UnstakePreview, UnstakeResourceSelector, UnstakeWithdrawableResources,
+    // UnstakeModal composables
+    useUnstakeForm,
+    useUnstakeModal,
+    useUnstakeResources,
+    useUnstakeSubmit,
+    useUnstakeValidation, type ResourceInfo, type UnstakeAccountBalance,
+    // UnstakeModal 类型 (避免与shared冲突)
+    type UnstakeFormData, type UnstakeModalState,
+    type UnstakeTransactionData
+} from './UnstakeModal'
+
+export {
+    TransactionActions, TransactionDetails,
+    TransactionFees, TransactionHeader,
+    TransactionIcon,
+    // UnstakeTransactionConfirmModal 组件和类型
+    UnstakeTransactionConfirmModal,
+    // UnstakeTransactionConfirmModal composables
+    useTransactionConfirm,
+    useTransactionFees, type FeeDetailInfo, type TransactionConfirmState,
+    type TransactionDetailInfo, type TransactionFeeState, type UnstakeTransactionConfirmEmits,
+    // UnstakeTransactionConfirmModal 类型
+    type UnstakeTransactionConfirmProps
+} from './UnstakeTransactionConfirmModal'
 
 // 操作类型枚举，用于统一管理操作类型
 export enum StakeOperation {

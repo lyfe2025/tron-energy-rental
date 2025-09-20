@@ -15,8 +15,7 @@ export interface BaseOperationProps {
 // 质押操作参数
 export interface StakeOperationProps extends BaseOperationProps {}
 
-// 解质押操作参数
-export interface UnstakeOperationProps extends BaseOperationProps {}
+// 解质押操作参数 - 已移至 UnstakeModal/types.ts
 
 // 代理操作参数
 export interface DelegateOperationProps extends BaseOperationProps {}
@@ -41,11 +40,7 @@ export interface StakeFormData {
   amount: string
 }
 
-// 解质押表单数据
-export interface UnstakeFormData {
-  resourceType: ResourceType
-  amount: string
-}
+// 解质押表单数据 - 已移至 UnstakeModal/types.ts
 
 // 代理表单数据
 export interface DelegateFormData {
