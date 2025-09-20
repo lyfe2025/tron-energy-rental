@@ -51,7 +51,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <span class="text-sm font-medium text-blue-800">正在代理中资源</span>
-                <button class="text-xs text-blue-600 hover:text-blue-700 underline" title="代理中的资源需要通过「回收代理」操作来取回">
+                <button class="text-xs text-blue-600 hover:text-blue-700 underline" title="代理中的资源需要通过「取消代理」操作来取回">
                   ?
                 </button>
               </div>
@@ -65,7 +65,7 @@
                 <span>• 带宽代理: {{ formatTrxAmount(extendedState.accountBalance.bandwidthDelegatedOut) }} TRX</span>
               </div>
               <div class="mt-1 text-xs text-blue-600 italic">
-                💡 代理中的资源需要通过「回收代理」操作来取回，不能直接解质押
+                💡 代理中的资源需要通过「取消代理」操作来取回，不能直接解质押
               </div>
             </div>
           </div>
@@ -136,7 +136,14 @@
               <label class="block text-sm font-medium text-gray-700">解锁数量</label>
               <div class="text-sm text-gray-600">
                 可解锁：<span class="font-semibold text-blue-600">{{ getCurrentResourceStaked() }} TRX</span> 
-                <span class="text-blue-500 font-bold">MAX</span>
+                <button 
+                  type="button" 
+                  @click="setMaxAmount" 
+                  :disabled="!extendedState.accountBalance || getCurrentResourceStakedAmount() <= 0"
+                  class="text-blue-500 font-bold hover:text-blue-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed ml-1"
+                >
+                  MAX
+                </button>
               </div>
             </div>
             <div class="relative">
@@ -152,16 +159,6 @@
               <div class="absolute inset-y-0 right-0 flex items-center pr-4">
                 <span class="text-gray-500 font-medium">TRX</span>
               </div>
-            </div>
-            <div class="flex items-center justify-end mt-2">
-              <button 
-                type="button" 
-                @click="setMaxAmount" 
-                :disabled="!extendedState.accountBalance || getCurrentResourceStakedAmount() <= 0"
-                class="text-xs text-blue-600 hover:text-blue-700 underline disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                最大值
-              </button>
             </div>
           </div>
 
@@ -259,6 +256,17 @@
         </div>
       </div>
     </div>
+
+    <!-- 交易确认弹窗 -->
+    <UnstakeTransactionConfirmModal
+      v-if="showTransactionConfirm && transactionData"
+      :transaction-data="transactionData"
+      :network-params="state.networkParams"
+      :estimated-resource="calculateEstimatedResource(form.amount, form.resourceType)"
+      :account-name="accountName || '未知账户'"
+      @confirm="handleTransactionConfirm"
+      @reject="handleTransactionReject"
+    />
   </div>
 </template>
 
@@ -268,6 +276,7 @@ import { stakeAPI } from '@/services/api'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { UnstakeFormData, UnstakeOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
+import UnstakeTransactionConfirmModal, { type UnstakeTransactionData } from './UnstakeTransactionConfirmModal.vue'
 
 interface Emits {
   close: []
@@ -354,6 +363,15 @@ const getDelegatingResources = () => {
 // 待提取的解锁资源（参考官方界面"同时提取 50 TRX 质押本金"）
 // 这里暂时返回固定值，实际应该从API获取解锁记录
 const withdrawableAmount = ref(0)
+
+// 交易确认弹窗状态
+const showTransactionConfirm = ref(false)
+const transactionData = ref<UnstakeTransactionData | null>(null)
+
+// 账户名
+const accountName = computed(() => {
+  return props.accountName || '未知账户'
+})
 
 // 设置最大可解质押金额
 const setMaxAmount = async () => {
@@ -483,7 +501,7 @@ const loadAccountBalance = async () => {
   }
 }
 
-// 处理表单提交
+// 处理表单提交 - 显示交易确认弹窗
 const handleSubmit = async () => {
   if (!isFormValid.value || !state.value.networkParams) return
   if (!accountBalance.value || accountBalance.value.staked <= 0) {
@@ -516,31 +534,29 @@ const handleSubmit = async () => {
     return
   }
 
-  try {
-    state.value.loading = true
-    state.value.error = ''
-
-    // 调用解质押API
-    const result = await stakeAPI.unfreezeTrx({
-      networkId: props.poolId,
-      poolAccountId: props.accountId || '',
-      accountAddress: props.accountAddress || '',
-      amount,
-      resourceType: form.value.resourceType
-    })
-
-    if (result.data.success) {
-      emit('success')
-      alert(`解质押成功！解质押金额: ${formatTrxAmount(amount)} TRX，等待期后可提取`)
-    } else {
-      throw new Error(result.data.message || '解质押失败')
-    }
-  } catch (err: any) {
-    console.error('❌ [UnstakeModal] 解质押失败:', err)
-    state.value.error = err.message || '解质押失败，请重试'
-  } finally {
-    state.value.loading = false
+  // 准备交易数据
+  transactionData.value = {
+    amount: amount,
+    resourceType: form.value.resourceType,
+    accountAddress: props.accountAddress || '',
+    poolId: props.poolId,
+    accountId: props.accountId
   }
+
+  // 调试信息
+  console.log('🔍 [UnstakeModal] 创建解锁交易数据:', {
+    props: {
+      poolId: props.poolId,
+      accountId: props.accountId,
+      accountAddress: props.accountAddress,
+      accountName: props.accountName
+    },
+    transactionData: transactionData.value,
+    表单数据: form.value
+  })
+
+  // 显示交易确认弹窗
+  showTransactionConfirm.value = true
 }
 
 // 监听网络ID变化，重新加载数据
@@ -568,6 +584,47 @@ watch(() => form.value.resourceType, (newType) => {
   // 清空错误信息
   state.value.error = ''
 }, { immediate: false })
+
+// 处理交易确认
+const handleTransactionConfirm = async (data: UnstakeTransactionData) => {
+  try {
+    state.value.loading = true
+    state.value.error = ''
+
+    // 调用解质押API
+    const result = await stakeAPI.unfreezeTrx({
+      networkId: data.poolId,
+      poolAccountId: data.accountId || '',
+      accountAddress: data.accountAddress,
+      amount: data.amount,
+      resourceType: data.resourceType
+    })
+
+    if (result.data.success) {
+      // 关闭确认弹窗
+      showTransactionConfirm.value = false
+      transactionData.value = null
+      
+      // 发出成功事件
+      emit('success')
+      alert(`解质押成功！解质押金额: ${formatTrxAmount(data.amount)} TRX，等待期后可提取`)
+    } else {
+      throw new Error(result.data.message || '解质押失败')
+    }
+  } catch (err: any) {
+    console.error('❌ [UnstakeModal] 解质押失败:', err)
+    state.value.error = err.message || '解质押失败，请重试'
+    // 保持确认弹窗显示，让用户看到错误信息
+  } finally {
+    state.value.loading = false
+  }
+}
+
+// 处理交易拒绝
+const handleTransactionReject = () => {
+  showTransactionConfirm.value = false
+  transactionData.value = null
+}
 
 // 组件挂载时加载数据
 onMounted(() => {

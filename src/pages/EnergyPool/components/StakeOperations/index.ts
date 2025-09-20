@@ -9,6 +9,7 @@ export { default as StakeModal } from './StakeModal.vue'
 export { default as StakeSuccessModal } from './StakeSuccessModal.vue'
 export { default as TransactionConfirmModal } from './TransactionConfirmModal.vue'
 export { default as UnstakeModal } from './UnstakeModal.vue'
+export { default as UnstakeTransactionConfirmModal } from './UnstakeTransactionConfirmModal.vue'
 export { default as WithdrawModal } from './WithdrawModal.vue'
 
 // 导出共享的类型和工具

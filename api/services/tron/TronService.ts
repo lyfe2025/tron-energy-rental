@@ -3,16 +3,16 @@ import { DelegationService } from './services/DelegationService';
 import { StakingService } from './services/StakingService';
 import { TransactionService } from './services/TransactionService';
 import type {
-    AccountData,
-    DelegateResourceParams,
-    FreezeBalanceV2Params,
-    ResourceData,
-    ServiceResponse,
-    StakeOverview,
-    TransactionResult,
-    TronConfig,
-    UnfreezeBalanceV2Params,
-    WithdrawExpireUnfreezeParams
+  AccountData,
+  DelegateResourceParams,
+  FreezeBalanceV2Params,
+  ResourceData,
+  ServiceResponse,
+  StakeOverview,
+  TransactionResult,
+  TronConfig,
+  UnfreezeBalanceV2Params,
+  WithdrawExpireUnfreezeParams
 } from './types/tron.types';
 import { TronUtils } from './utils/tronUtils';
 
