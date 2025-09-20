@@ -121,7 +121,7 @@ import { useRoute, useRouter } from 'vue-router'
 interface Network {
   id: number
   name: string
-  type: string
+  type?: string
   rpc_url: string
   explorer_url?: string
   is_active: boolean

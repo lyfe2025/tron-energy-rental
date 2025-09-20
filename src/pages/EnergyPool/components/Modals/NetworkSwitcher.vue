@@ -40,7 +40,7 @@
 interface Network {
   id: string
   name: string
-  type: string
+  type?: string
   rpc_url: string
   is_active: boolean
   health_status?: string

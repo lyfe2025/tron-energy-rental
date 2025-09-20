@@ -2,8 +2,12 @@
  * local server entry file, for local development
  */
 import app from './app.js';
+import { DatabaseService } from './database/DatabaseService';
+import { RedisService } from './services/cache/RedisService';
+import { paymentService } from './services/payment';
 import { schedulerService } from './services/scheduler.js';
 import { multiBotManager } from './services/telegram-bot.js';
+import { TransactionMonitorService } from './services/transaction-monitor.js';
 import { LogRotationManager, appLogger } from './utils/logger.js';
 
 /**
@@ -11,6 +15,15 @@ import { LogRotationManager, appLogger } from './utils/logger.js';
  */
 const PORT = parseInt(process.env.PORT || '3001');
 const HOST_ADDRESS = process.env.HOST_ADDRESS || '0.0.0.0';
+
+// 初始化交易监听服务
+const redisService = new RedisService();
+const databaseService = new DatabaseService();
+const transactionMonitor = new TransactionMonitorService(
+  redisService,
+  paymentService,
+  databaseService
+);
 
 const server = app.listen(PORT, HOST_ADDRESS, async () => {
   console.log(`🚀 Server running on ${HOST_ADDRESS}:${PORT}`);
@@ -47,6 +60,20 @@ const server = app.listen(PORT, HOST_ADDRESS, async () => {
     console.error('❌ 多机器人管理器启动失败:', error);
     console.warn('⚠️ 服务器将继续运行，但Telegram功能不可用');
   }
+
+  // 启动交易监听服务
+  try {
+    console.log('⚡ 正在启动交易监听服务...');
+    await transactionMonitor.startMonitoring();
+    console.log('✅ 交易监听服务已启动');
+    
+    // 输出监听状态
+    const monitorStatus = transactionMonitor.getStatus();
+    console.log(`📡 监听状态: ${monitorStatus.isRunning ? '运行中' : '未运行'}, 监听地址数: ${monitorStatus.monitoredAddresses}`);
+  } catch (error) {
+    console.error('❌ 交易监听服务启动失败:', error);
+    console.warn('⚠️ 服务器将继续运行，但闪租功能不可用');
+  }
 });
 
 /**
@@ -57,6 +84,11 @@ async function gracefulShutdown(signal: string) {
   console.log('🛑 开始优雅关闭服务器...');
   
   try {
+    // 停止交易监听服务
+    console.log('⚡ 正在停止交易监听服务...');
+    await transactionMonitor.stopMonitoring();
+    console.log('✅ 交易监听服务已停止');
+    
     // 停止多机器人管理器
     console.log('🤖 正在停止所有机器人...');
     await multiBotManager.stopAll();

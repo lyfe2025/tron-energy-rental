@@ -427,6 +427,145 @@ export class TronService {
   }
 
   /**
+   * 为闪租业务代理能量
+   * @param toAddress - 接收能量的地址
+   * @param totalEnergy - 需要代理的总能量
+   * @param durationHours - 代理持续时间（小时）
+   * @param networkId - 网络ID
+   */
+  async delegateEnergyForFlashRent(
+    toAddress: string,
+    totalEnergy: number,
+    durationHours: number,
+    networkId: string
+  ): Promise<string> {
+    await this.waitForInitialization();
+    
+    try {
+      console.log(`开始为闪租业务代理能量`, {
+        toAddress,
+        totalEnergy,
+        durationHours,
+        networkId
+      });
+
+      // 1. 选择合适的能量池账户
+      const selectedAccount = await this.selectEnergyPoolAccount(totalEnergy, networkId);
+      if (!selectedAccount) {
+        throw new Error('没有找到有足够能量的池账户');
+      }
+
+      console.log(`选中能量池账户: ${selectedAccount.address}`, {
+        priority: selectedAccount.priority,
+        available_energy: selectedAccount.available_energy
+      });
+
+      // 2. 设置能量池账户私钥
+      await this.setPoolAccountPrivateKey(selectedAccount.id);
+
+      try {
+        // 3. 执行能量代理
+        const delegationResult = await this.delegationService.delegateResource({
+          ownerAddress: selectedAccount.address,
+          receiverAddress: toAddress,
+          balance: Math.ceil(totalEnergy / 1000), // 转换为TRX sun units 
+          resource: 'ENERGY',
+          lock: durationHours > 0,
+          lockPeriod: durationHours > 0 ? Math.ceil(durationHours * 3600 / 3) : undefined // TRON锁定期以3秒为单位
+        });
+
+        if (!delegationResult.success) {
+          throw new Error(`能量代理失败: ${delegationResult.error}`);
+        }
+
+        console.log(`能量代理成功: ${delegationResult.txid}`);
+        return delegationResult.txid!;
+
+      } finally {
+        // 4. 恢复默认私钥
+        await this.restoreDefaultPrivateKey();
+      }
+    } catch (error) {
+      console.error('闪租能量代理失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 选择合适的能量池账户
+   */
+  private async selectEnergyPoolAccount(
+    requiredEnergy: number,
+    networkId: string
+  ): Promise<any> {
+    try {
+      // 按优先级查询能量池账户
+      const result = await query(
+        `SELECT ep.*, a.address, a.private_key
+         FROM energy_pools ep
+         JOIN accounts a ON ep.account_id = a.id
+         WHERE ep.network_id = $1 
+           AND ep.is_active = true 
+           AND ep.status = 'active'
+         ORDER BY ep.priority DESC`,
+        [networkId]
+      );
+
+      if (!result.rows || result.rows.length === 0) {
+        return null;
+      }
+
+      // 依次检查每个账户的可用能量
+      for (const account of result.rows) {
+        try {
+          const availableEnergy = await this.checkAvailableEnergy(account.address, networkId);
+          
+          if (availableEnergy >= requiredEnergy) {
+            return {
+              ...account,
+              available_energy: availableEnergy
+            };
+          }
+        } catch (error) {
+          console.warn(`检查账户 ${account.address} 能量失败:`, error);
+          continue;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('选择能量池账户失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 检查账户可用能量
+   */
+  private async checkAvailableEnergy(address: string, networkId: string): Promise<number> {
+    try {
+      // 获取账户资源信息
+      const resourceResult = await this.getAccountResources(address);
+      
+      if (!resourceResult.success) {
+        return 0;
+      }
+
+      const resources = resourceResult.data;
+      
+      // 计算可用能量
+      const totalEnergyLimit = resources.energy?.limit || 0;
+      const usedEnergy = resources.energy?.used || 0;
+      const availableEnergy = totalEnergyLimit - usedEnergy;
+
+      return Math.max(0, availableEnergy);
+    } catch (error) {
+      console.error(`检查地址 ${address} 可用能量失败:`, error);
+      return 0;
+    }
+  }
+
+  /**
    * @deprecated 已移除数据库存储逻辑，所有质押数据从TRON网络实时获取
    * 保留此方法以避免类型错误，但不执行任何操作
    */

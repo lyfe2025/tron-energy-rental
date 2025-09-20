@@ -51,7 +51,8 @@ export const NETWORK_ICON_CLASS_MAP: Record<string, string> = {
  * @param type 网络类型（英文）
  * @returns 中文显示名称
  */
-export function getNetworkTypeText(type: string): string {
+export function getNetworkTypeText(type: string | undefined): string {
+  if (!type) return '未知网络'
   const lowerType = type.toLowerCase()
   return NETWORK_TYPE_MAP[lowerType] || type
 }
@@ -61,7 +62,8 @@ export function getNetworkTypeText(type: string): string {
  * @param type 网络类型
  * @returns 图标字符
  */
-export function getNetworkIcon(type: string): string {
+export function getNetworkIcon(type: string | undefined): string {
+  if (!type) return '?'
   const lowerType = type.toLowerCase()
   return NETWORK_ICON_MAP[lowerType] || 'N'
 }
@@ -71,7 +73,8 @@ export function getNetworkIcon(type: string): string {
  * @param type 网络类型
  * @returns CSS类名
  */
-export function getNetworkIconClass(type: string): string {
+export function getNetworkIconClass(type: string | undefined): string {
+  if (!type) return 'bg-gray-500'
   const lowerType = type.toLowerCase()
   return NETWORK_ICON_CLASS_MAP[lowerType] || 'bg-gray-500'
 }

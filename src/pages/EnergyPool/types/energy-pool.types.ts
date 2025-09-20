@@ -46,7 +46,7 @@ export interface EnergyPoolStatistics {
 export interface Network {
   id: string
   name: string
-  type: string
+  type?: string
   rpc_url: string
   chain_id?: string
   is_active: boolean

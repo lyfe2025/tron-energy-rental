@@ -9,10 +9,13 @@ export class PriceConfigController {
     this.priceConfigService = new PriceConfigService()
   }
 
-  // 获取所有价格配置
+  // 获取所有价格配置（支持按网络ID筛选）
   getAllConfigs = async (req: Request, res: Response) => {
     try {
-      const configs = await this.priceConfigService.getAllConfigs()
+      const { network_id } = req.query
+      const configs = await this.priceConfigService.getAllConfigs(
+        typeof network_id === 'string' ? network_id : undefined
+      )
       res.json(configs)
     } catch (error) {
       logger.error('Get all configs error:', error)

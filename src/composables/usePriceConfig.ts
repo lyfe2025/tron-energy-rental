@@ -15,6 +15,8 @@ export interface PriceConfig {
   created_by: string
   created_at: string
   updated_at: string
+  network_id?: string
+  network_name?: string
 }
 
 export interface EnergyFlashConfig {
@@ -54,18 +56,89 @@ export function usePriceConfig() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // 加载所有价格配置
-  const loadConfigs = async () => {
+  // 加载所有价格配置（支持按网络ID筛选）
+  const loadConfigs = async (networkId?: string) => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.get('/price-configs')
+      const params = networkId ? { network_id: networkId } : {}
+      const response = await api.get('/price-configs', { params })
       configs.value = response.data
     } catch (err: any) {
       error.value = err.message || '加载配置失败'
       console.error('Load configs error:', err)
     } finally {
       loading.value = false
+    }
+  }
+
+  // 加载闪租配置（支持网络筛选）
+  const loadFlashRentConfigs = async (networkId?: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const params = networkId ? { network_id: networkId } : {}
+      const response = await api.get('/system/flash-rent-config', { params })
+      
+      // 更新configs数组，替换闪租配置
+      const flashConfigs = response.data.data || response.data
+      
+      // 移除现有的闪租配置
+      configs.value = configs.value.filter(c => c.mode_type !== 'energy_flash')
+      
+      // 添加新的闪租配置
+      if (flashConfigs && flashConfigs.length > 0) {
+        configs.value.push(...flashConfigs)
+      }
+    } catch (err: any) {
+      error.value = err.message || '加载闪租配置失败'
+      console.error('Load flash rent configs error:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 更新闪租配置
+  const updateFlashRentConfig = async (configId: string, configData: any) => {
+    try {
+      const response = await api.put(`/system/flash-rent-config/${configId}`, {
+        name: configData.name,
+        description: configData.description,
+        config: configData.config,
+        is_active: configData.is_active,
+        enable_image: configData.enable_image,
+        image_url: configData.image_url,
+        image_alt: configData.image_alt
+      })
+      
+      // 更新本地数据
+      const index = configs.value.findIndex(c => c.id == configId) // 使用 == 进行类型转换比较
+      if (index !== -1) {
+        configs.value[index] = response.data
+      }
+      
+      return response.data
+    } catch (err: any) {
+      error.value = err.message || '更新闪租配置失败'
+      throw err
+    }
+  }
+
+  // 创建闪租配置
+  const createFlashRentConfig = async (networkId: string, name: string, description: string, configData: any) => {
+    try {
+      const response = await api.post('/system/flash-rent-config', {
+        name,
+        description,
+        config: configData,
+        network_id: networkId
+      })
+      
+      configs.value.push(response.data)
+      return response.data
+    } catch (err: any) {
+      error.value = err.message || '创建闪租配置失败'
+      throw err
     }
   }
 
@@ -195,6 +268,9 @@ export function usePriceConfig() {
     loading,
     error,
     loadConfigs,
+    loadFlashRentConfigs,
+    updateFlashRentConfig,
+    createFlashRentConfig,
     getConfig,
     updateConfig,
     toggleConfigStatus,

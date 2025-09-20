@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import adminRoleRoutes from './admin-roles.js';
 import departmentRoutes from './departments.js';
+import flashRentConfigRoutes from './flash-rent-config.js';
 import logRoutes from './logs.js';
 import menuRoutes from './menus.js';
 import permissionRoutes from './permissions.js';
@@ -34,5 +35,8 @@ router.use('/logs', logRoutes);
 
 // 权限管理路由
 router.use('/permissions', permissionRoutes);
+
+// 能量闪租配置路由
+router.use('/flash-rent-config', flashRentConfigRoutes);
 
 export default router;

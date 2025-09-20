@@ -1,8 +1,8 @@
 import pool from '../config/database'
 import {
-    validateEnergyFlashConfig,
-    validateTransactionPackageConfig,
-    validateTrxExchangeConfig
+  validateEnergyFlashConfig,
+  validateTransactionPackageConfig,
+  validateTrxExchangeConfig
 } from '../middleware/validation'
 import { logger } from '../utils/logger'
 
@@ -46,17 +46,37 @@ export interface UpdatePriceConfigData {
 }
 
 export class PriceConfigService {
-  // 获取所有价格配置
-  async getAllConfigs(): Promise<PriceConfig[]> {
+  // 获取所有价格配置（支持按网络ID筛选）
+  async getAllConfigs(networkId?: string): Promise<PriceConfig[]> {
     try {
-      const query = `
-        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
-               image_url, image_alt, enable_image, 
-               is_active, created_by, created_at, updated_at
-        FROM price_configs
-        ORDER BY created_at DESC
-      `
-      const result = await pool.query(query)
+      let query: string
+      let params: any[] = []
+      
+      if (networkId) {
+        query = `
+          SELECT pc.id, pc.mode_type, pc.name, pc.description, pc.config, pc.inline_keyboard_config, 
+                 pc.image_url, pc.image_alt, pc.enable_image, 
+                 pc.is_active, pc.created_by, pc.created_at, pc.updated_at, pc.network_id,
+                 tn.name as network_name, tn.network_type
+          FROM price_configs pc
+          LEFT JOIN tron_networks tn ON pc.network_id = tn.id
+          WHERE pc.network_id = $1
+          ORDER BY pc.created_at DESC
+        `
+        params = [networkId]
+      } else {
+        query = `
+          SELECT pc.id, pc.mode_type, pc.name, pc.description, pc.config, pc.inline_keyboard_config, 
+                 pc.image_url, pc.image_alt, pc.enable_image, 
+                 pc.is_active, pc.created_by, pc.created_at, pc.updated_at, pc.network_id,
+                 tn.name as network_name, tn.network_type
+          FROM price_configs pc
+          LEFT JOIN tron_networks tn ON pc.network_id = tn.id
+          ORDER BY pc.created_at DESC
+        `
+      }
+      
+      const result = await pool.query(query, params)
       return result.rows
     } catch (error) {
       logger.error('Get all configs error:', error)

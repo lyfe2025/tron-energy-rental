@@ -35,6 +35,12 @@ const router = createRouter({
         {
           path: 'price-config',
           name: 'PriceConfig',
+          component: () => import('@/pages/PriceConfig/NetworkSelection.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'price-config/:networkId',
+          name: 'price-config-network',
           component: () => import('@/pages/PriceConfig/index.vue'),
           meta: { roles: ['super_admin', 'admin'] }
         },
