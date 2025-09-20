@@ -56,8 +56,13 @@ export function useUnstakeModal(props: UnstakeOperationProps) {
     transactionData,
     showConfirmModal,
     handleTransactionConfirm,
-    handleTransactionReject
-  } = useUnstakeSubmit(props)
+    handleTransactionReject,
+    // 成功弹窗状态和方法
+    showSuccessModal,
+    successData,
+    hideSuccessModal,
+    handleViewTransaction
+  } = useUnstakeSubmit(props, computed(() => baseState.value.networkParams))
 
   // 扩展的模态框状态
   const state = computed<UnstakeModalState>(() => ({
@@ -181,6 +186,12 @@ export function useUnstakeModal(props: UnstakeOperationProps) {
     
     // 确认弹窗状态
     showTransactionConfirm,
-    transactionData
+    transactionData,
+    
+    // 成功弹窗状态和方法
+    showSuccessModal,
+    successData,
+    hideSuccessModal,
+    handleViewTransaction
   }
 }

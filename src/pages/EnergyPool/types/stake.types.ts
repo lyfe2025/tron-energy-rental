@@ -139,8 +139,8 @@ export interface FreezeParams {
 export interface UnfreezeParams {
   networkId: string           // 网络ID (tron_networks表)
   poolAccountId: string       // 能量池账户ID (energy_pools表)
-  accountAddress?: string
-  amount: number
+  accountAddress: string      // 解质押地址（必需）
+  amount: number              // 解质押金额 (TRX单位)
   resourceType: 'ENERGY' | 'BANDWIDTH'
 }
 

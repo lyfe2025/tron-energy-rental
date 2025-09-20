@@ -8,6 +8,7 @@ export { default as DelegateModal } from './DelegateModal.vue'
 export { default as StakeModal } from './StakeModal.vue'
 export { default as StakeSuccessModal } from './StakeSuccessModal.vue'
 export { default as TransactionConfirmModal } from './TransactionConfirmModal.vue'
+export { default as UnstakeSuccessModal } from './UnstakeSuccessModal.vue'
 // 注意：UnstakeModal 和 UnstakeTransactionConfirmModal 的默认导出在下面的选择性导出中处理
 export { default as WithdrawModal } from './WithdrawModal.vue'
 

@@ -208,46 +208,6 @@ export const stakeAPI = {
     return apiClient.post<ApiResponse<StakeOperationResult>>('/api/energy-pool/stake/freeze', requestData)
   },
 
-  /**
-   * 解质押TRX
-   */
-  unfreezeTrx: (data: Omit<StakeOperationData, 'lockPeriod'>) => {
-    // 验证必需参数
-    if (!data.accountAddress) {
-      throw new Error('账户地址不能为空')
-    }
-    
-    // 验证TRON地址格式
-    if (!data.accountAddress.startsWith('T') || data.accountAddress.length !== 34) {
-      throw new Error(`无效的TRON地址格式: ${data.accountAddress}`)
-    }
-    
-    // 验证金额
-    if (!data.amount || data.amount <= 0) {
-      throw new Error('解质押金额必须大于0')
-    }
-    
-    // 根据TRON官方文档，unfreeze_balance需要以SUN为单位
-    const unfreezeBalanceInSun = Math.floor(data.amount * 1000000)
-    
-    // 转换参数格式以匹配后端期望
-    const requestData = {
-      ownerAddress: data.accountAddress,
-      unfreezeBalance: unfreezeBalanceInSun, // 转换为SUN单位
-      resource: data.resourceType,
-      networkId: data.networkId,           // 网络ID (tron_networks表)
-      accountId: data.poolAccountId        // 能量池账户ID (energy_pools表)
-    }
-    
-    console.log('🔍 [StakeAPI] 解质押请求参数:', {
-      原始数据: data,
-      转换后数据: requestData,
-      TRX金额: data.amount,
-      SUN金额: unfreezeBalanceInSun
-    })
-    
-    return apiClient.post<ApiResponse<StakeOperationResult>>('/api/energy-pool/stake/unfreeze', requestData)
-  },
 
   /**
    * 代理资源
@@ -470,6 +430,45 @@ export const stakeAPI = {
       canWithdraw?: boolean
       daysUntilWithdrawable?: number
     }>>>('/api/energy-pool/stake/unfreezes', { params: queryParams })
+  },
+
+  /**
+   * 解质押TRX
+   * 调用TRON网络的UnfreezeBalanceV2合约
+   */
+  unfreezeTrx: (params: {
+    networkId: string           // 网络ID 
+    poolAccountId: string       // 能量池账户ID
+    accountAddress: string      // 解质押地址
+    amount: number              // 解质押金额 (TRX单位)
+    resourceType: 'ENERGY' | 'BANDWIDTH'  // 资源类型
+  }) => {
+    console.log('🔍 [stakeAPI] 调用解质押API:', {
+      endpoint: '/api/energy-pool/stake/unfreeze',
+      params: {
+        ownerAddress: params.accountAddress,
+        unfreezeBalance: params.amount * 1000000, // 转换为SUN
+        resource: params.resourceType,
+        networkId: params.networkId,
+        accountId: params.poolAccountId
+      }
+    });
+
+    return apiClient.post<ApiResponse<{
+      success: boolean
+      txid: string
+      energyUsed?: number
+      netUsed?: number
+      unfreezeTime: string
+      expireTime: string
+      error?: string
+    }>>('/api/energy-pool/stake/unfreeze', {
+      ownerAddress: params.accountAddress,
+      unfreezeBalance: params.amount * 1000000, // 转换为SUN (1 TRX = 1,000,000 SUN)
+      resource: params.resourceType,
+      networkId: params.networkId,
+      accountId: params.poolAccountId
+    })
   },
 };
 

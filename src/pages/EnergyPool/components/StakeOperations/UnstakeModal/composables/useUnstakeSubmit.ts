@@ -4,12 +4,23 @@
 
 import { stakeAPI } from '@/services/api'
 import { ref } from 'vue'
+import type { UnstakeSuccessData } from '../../UnstakeSuccessModal.vue'
 import type { UnstakeFormData, UnstakeOperationProps, UnstakeTransactionData } from '../types'
 
-export function useUnstakeSubmit(props: UnstakeOperationProps) {
+import type { NetworkParameters } from '@/services/networkParametersService'
+import type { Ref } from 'vue'
+
+export function useUnstakeSubmit(
+  props: UnstakeOperationProps, 
+  networkParams?: Ref<NetworkParameters | null>
+) {
   // 交易确认弹窗状态
   const showTransactionConfirm = ref(false)
   const transactionData = ref<UnstakeTransactionData | null>(null)
+
+  // 成功弹窗状态
+  const showSuccessModal = ref(false)
+  const successData = ref<UnstakeSuccessData | null>(null)
 
   // 准备交易数据
   const prepareTransactionData = (form: UnstakeFormData): UnstakeTransactionData => {
@@ -63,12 +74,26 @@ export function useUnstakeSubmit(props: UnstakeOperationProps) {
         // 关闭确认弹窗
         hideConfirmModal()
         
-        // 格式化金额显示
-        const formatAmount = (num: number) => num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 6 })
+        // 准备成功弹窗数据
+        const resultData = result.data.data
         
-        // 显示成功消息
-        const message = `解质押成功！解质押金额: ${formatAmount(data.amount)} TRX，等待期后可提取`
-        alert(message)
+        // 计算预估失去的资源量（简化估算：能量约为TRX*365，带宽约为TRX*600）
+        const estimatedLostResource = data.resourceType === 'ENERGY' 
+          ? data.amount * 365 
+          : data.amount * 600
+        
+        // 设置成功弹窗数据
+        successData.value = {
+          amount: data.amount,
+          resourceType: data.resourceType,
+          lostResource: estimatedLostResource,
+          unfreezeTime: resultData?.unfreezeTime || new Date().toISOString(),
+          unlockPeriodText: networkParams?.value?.unlockPeriodText || '14天',
+          transactionHash: resultData?.txid
+        }
+        
+        // 显示成功弹窗
+        showSuccessModal.value = true
         
         return Promise.resolve()
       } else {
@@ -101,10 +126,28 @@ export function useUnstakeSubmit(props: UnstakeOperationProps) {
     hideConfirmModal()
   }
 
+  // 隐藏成功弹窗
+  const hideSuccessModal = () => {
+    showSuccessModal.value = false
+    successData.value = null
+  }
+
+  // 处理查看交易
+  const handleViewTransaction = (txHash: string) => {
+    // 根据网络类型构建交易查看链接
+    const explorerUrl = 'https://tronscan.org/#/transaction/' + txHash
+    window.open(explorerUrl, '_blank')
+    console.log('🔍 [useUnstakeSubmit] 查看交易:', txHash)
+  }
+
   return {
-    // 状态
+    // 确认弹窗状态
     showTransactionConfirm,
     transactionData,
+    
+    // 成功弹窗状态
+    showSuccessModal,
+    successData,
     
     // 方法
     prepareTransactionData,
@@ -112,6 +155,10 @@ export function useUnstakeSubmit(props: UnstakeOperationProps) {
     executeUnstakeTransaction,
     hideConfirmModal,
     handleTransactionConfirm,
-    handleTransactionReject
+    handleTransactionReject,
+    
+    // 成功弹窗方法
+    hideSuccessModal,
+    handleViewTransaction
   }
 }

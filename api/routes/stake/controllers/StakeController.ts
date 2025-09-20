@@ -111,78 +111,143 @@ export class StakeController {
   };
 
   /**
-   * 解质押TRX
+   * 解质押TRX - 完整生命周期日志版本
+   * 参考: https://developers.tron.network/reference/unfreezebalancev2-1
    */
   static unfreeze: RouteHandler = async (req: Request, res: Response) => {
+    const requestId = Date.now().toString(36);
+    console.log('\n' + '='.repeat(80));
+    console.log(`🚀 [StakeController] 解质押请求开始 [ID: ${requestId}]`);
+    console.log('='.repeat(80));
+
     try {
       const { ownerAddress, unfreezeBalance, resource, networkId, accountId } = req.body as StakeOperationRequest;
       
+      console.log('\n📋 [步骤1/7] 请求参数验证:');
+      console.log('  原始请求:', {
+        ownerAddress,
+        unfreezeBalance: `${unfreezeBalance} SUN (${unfreezeBalance / 1000000} TRX)`,
+        resource,
+        networkId,
+        accountId,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+      
       // 验证参数
       if (!ownerAddress || !unfreezeBalance || !resource) {
-        res.status(400).json({ 
+        console.log('  ❌ 参数验证失败: 缺少必要参数');
+        return res.status(400).json({ 
           success: false, 
           error: 'ownerAddress, unfreezeBalance, and resource are required' 
         });
       }
       
       if (!['ENERGY', 'BANDWIDTH'].includes(resource)) {
-        res.status(400).json({ 
+        console.log('  ❌ 参数验证失败: 资源类型无效');
+        return res.status(400).json({ 
           success: false, 
           error: 'resource must be ENERGY or BANDWIDTH' 
         });
       }
       
       if (unfreezeBalance <= 0) {
-        res.status(400).json({ 
+        console.log('  ❌ 参数验证失败: 解质押金额无效');
+        return res.status(400).json({ 
           success: false, 
           error: 'unfreezeBalance must be greater than 0' 
         });
       }
+
+      console.log('  ✅ 参数验证通过');
       
-      // 🔧 步骤1: 根据networkId(网络ID)切换到正确的网络
+      // 🔧 步骤2: 根据networkId(网络ID)切换到正确的网络
+      console.log('\n🌐 [步骤2/7] 网络切换:');
       if (networkId) {
-        console.log('🔍 [StakeController] [解质押] 切换到网络:', networkId);
+        console.log(`  切换到网络: ${networkId}`);
         await tronService.switchToNetwork(networkId);
+        console.log('  ✅ 网络切换完成');
+      } else {
+        console.log('  使用默认网络');
       }
 
-      // 🔧 步骤2: 如果有accountId(能量池账户ID)，获取对应的私钥
+      // 🔧 步骤3: 如果有accountId(能量池账户ID)，获取对应的私钥
+      console.log('\n🔑 [步骤3/7] 私钥管理:');
       let privateKeyChanged = false;
       if (accountId) {
-        console.log('🔍 [StakeController] [解质押] 获取能量池账户私钥:', accountId);
+        console.log(`  获取能量池账户私钥: ${accountId}`);
         await tronService.setPoolAccountPrivateKey(accountId);
         privateKeyChanged = true;
+        console.log('  ✅ 私钥设置完成');
+      } else {
+        console.log('  使用默认私钥');
       }
 
       try {
-        // 执行解质押
+        // 🔧 步骤4: 执行解质押交易
+        console.log('\n🔓 [步骤4/7] 执行解质押交易:');
+        const unfreezeStart = Date.now();
+        
         const result = await tronService.unfreezeBalanceV2({
           ownerAddress,
           unfreezeBalance,
           resource
         });
-      
-      if (result.success) {
-        // 解质押成功，直接返回结果（不再存储到数据库，所有数据从TRON网络实时获取）
         
-          res.json({ success: true, data: result });
-          return;
+        const unfreezeTime = Date.now() - unfreezeStart;
+        console.log(`  解质押操作耗时: ${unfreezeTime}ms`);
+      
+        // 🔧 步骤5: 处理交易结果
+        console.log('\n🎯 [步骤5/7] 处理交易结果:');
+        if (result.success) {
+          console.log('  ✅ 解质押交易成功:', {
+            txid: result.txid,
+            energyUsed: result.energyUsed,
+            netUsed: result.netUsed,
+            unfreezeTime: (result as any).unfreezeTime,
+            expireTime: (result as any).expireTime
+          });
+
+          console.log('\n📤 [步骤6/7] 返回成功响应');
+          return res.json({ success: true, data: result });
         } else {
-          res.status(400).json({ success: false, error: result.error });
-          return;
+          console.log('  ❌ 解质押交易失败:', result.error);
+          console.log('\n📤 [步骤6/7] 返回失败响应');
+          return res.status(400).json({ success: false, error: result.error });
         }
       } finally {
-        // 🔧 步骤3: 恢复默认私钥，确保不影响其他操作
+        // 🔧 步骤7: 恢复默认私钥，确保不影响其他操作
+        console.log('\n🔄 [步骤7/7] 清理和恢复:');
         if (privateKeyChanged) {
-          console.log('🔍 [StakeController] [解质押] 恢复默认私钥');
+          console.log('  恢复默认私钥...');
           await tronService.restoreDefaultPrivateKey();
+          console.log('  ✅ 私钥恢复完成');
+        } else {
+          console.log('  无需恢复私钥');
         }
+
+        console.log('\n' + '='.repeat(80));
+        console.log(`🎉 [StakeController] 解质押请求处理完成 [ID: ${requestId}]`);
+        console.log('='.repeat(80) + '\n');
       }
     } catch (error: any) {
-      console.error('解质押失败:', error);
-      res.status(500).json({ 
+      console.log('\n💥 [StakeController] 解质押请求异常:');
+      console.log('  异常详情:', {
+        错误类型: error.constructor.name,
+        错误信息: error.message,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log('\n' + '='.repeat(80));
+      console.log(`💥 [StakeController] 解质押请求异常终止 [ID: ${requestId}]`);
+      console.log('='.repeat(80) + '\n');
+
+      return res.status(500).json({ 
         success: false, 
         error: '服务器内部错误',
-        details: error.message 
+        details: error.message,
+        requestId
       });
     }
   };

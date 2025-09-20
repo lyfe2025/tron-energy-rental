@@ -88,12 +88,21 @@
       @confirm="handleTransactionConfirm"
       @reject="handleTransactionReject"
     />
+
+    <!-- 解锁成功弹窗 -->
+    <UnstakeSuccessModal
+      v-if="showSuccessModal && successData"
+      :data="successData"
+      @close="hideSuccessModal"
+      @viewTransaction="handleViewTransaction"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { buttonClasses, modalClasses } from '../shared/useStakeModal'
+import UnstakeSuccessModal from '../UnstakeSuccessModal.vue'
 import UnstakeTransactionConfirmModal from '../UnstakeTransactionConfirmModal.vue'
 import UnstakeForm from './components/UnstakeForm.vue'
 import { useUnstakeModal } from './composables'
@@ -134,7 +143,13 @@ const {
   
   // 确认弹窗状态
   showTransactionConfirm,
-  transactionData
+  transactionData,
+  
+  // 成功弹窗状态和方法
+  showSuccessModal,
+  successData,
+  hideSuccessModal,
+  handleViewTransaction
 } = useUnstakeModal(props)
 
 // 成功处理 - 包装emit

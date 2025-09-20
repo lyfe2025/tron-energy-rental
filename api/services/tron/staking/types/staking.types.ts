@@ -1,23 +1,23 @@
 import type {
-    DelegateResourceParams,
-    FreezeBalanceV2Params,
-    ServiceResponse,
-    StakeOverview,
-    StakeTransactionParams,
-    TransactionResult,
-    UnfreezeBalanceV2Params,
-    WithdrawExpireUnfreezeParams
+  DelegateResourceParams,
+  FreezeBalanceV2Params,
+  ServiceResponse,
+  StakeOverview,
+  StakeTransactionParams,
+  TransactionResult,
+  UnfreezeBalanceV2Params,
+  WithdrawExpireUnfreezeParams
 } from '../../types/tron.types';
 
 // 重新导出基础类型以便使用
 export type {
-    DelegateResourceParams, FreezeBalanceV2Params,
-    ServiceResponse,
-    StakeOverview,
-    StakeTransactionParams,
-    TransactionResult,
-    UnfreezeBalanceV2Params,
-    WithdrawExpireUnfreezeParams
+  DelegateResourceParams, FreezeBalanceV2Params,
+  ServiceResponse,
+  StakeOverview,
+  StakeTransactionParams,
+  TransactionResult,
+  UnfreezeBalanceV2Params,
+  WithdrawExpireUnfreezeParams
 };
 
 // 网络配置相关类型
