@@ -2,7 +2,7 @@
  * API请求日志中间件
  * 统一记录API请求响应日志，减少日志噪音
  */
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { logPerformance, structuredLogger } from '../utils/logger.js';
 
 // 需要跳过日志记录的路径

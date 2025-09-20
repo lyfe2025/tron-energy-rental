@@ -3,12 +3,14 @@ import axios from 'axios';
 // 获取API基础URL - 与apiClient.ts保持一致
 const getApiBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
-  // 如果是localhost部署，使用相对路径让nginx代理
-  if (apiUrl && apiUrl.includes('localhost')) {
-    return '/api';
+  
+  // 始终使用完整地址，除非明确设置为使用代理
+  if (apiUrl) {
+    return apiUrl + '/api';
   }
-  // 其他情况使用完整地址
-  return (apiUrl || 'http://localhost:3001') + '/api';
+  
+  // 默认地址
+  return 'http://localhost:3001/api';
 };
 
 // 创建 axios 实例

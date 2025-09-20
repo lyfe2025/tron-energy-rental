@@ -7,15 +7,14 @@ const getApiBaseUrl = () => {
     return (window as any).__VITE_ENV__.VITE_API_URL || '';
   }
   
-  // 优化：支持同服务器部署
-  // 如果 VITE_API_URL 明确设置为localhost，说明是同服务器部署，使用相对路径
+  // 优化：始终使用完整URL，除非明确设置为使用代理
   const apiUrl = import.meta.env.VITE_API_URL;
-  if (apiUrl && apiUrl.includes('localhost')) {
-    return ''; // 使用相对路径，由nginx代理
+  if (apiUrl) {
+    return apiUrl; // 使用完整URL
   }
   
-  // 默认配置：开发环境用相对路径，生产环境用localhost（向后兼容）
-  return process.env.NODE_ENV === 'development' ? '' : 'http://localhost:3001';
+  // 默认配置
+  return 'http://localhost:3001';
 };
 
 const API_BASE_URL = getApiBaseUrl();

@@ -9,8 +9,8 @@ module.exports = {
       name: 'tron-energy-api',
       script: './api/server.ts',
       interpreter: 'tsx',
-      instances: 2, // 根据CPU核心数调整
-      exec_mode: 'cluster',
+      instances: 1, // 先用1个实例测试
+      exec_mode: 'fork', // 先用fork模式
       
       // 环境变量
       env: {
@@ -54,37 +54,38 @@ module.exports = {
       merge_logs: true
     },
     
-    // Telegram机器人服务 (如果需要单独管理)
+    // 前端静态文件服务器
     {
-      name: 'tron-telegram-bots',
-      script: './api/services/telegram/BotManager.ts',
-      interpreter: 'tsx',
+      name: 'tron-energy-frontend',
+      script: 'npx',
+      args: 'serve -s dist -l 5173',
       instances: 1,
       exec_mode: 'fork',
       
       env: {
-        NODE_ENV: 'production',
-        SERVICE_TYPE: 'telegram_bots'
+        NODE_ENV: 'production'
       },
-      env_file: '.env.production',
       
+      // 日志配置
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      error_file: './logs/telegram-error.log',
-      out_file: './logs/telegram-out.log',
-      log_file: './logs/telegram-combined.log',
+      error_file: './logs/frontend-error.log',
+      out_file: './logs/frontend-out.log',
+      log_file: './logs/frontend-combined.log',
+      time: true,
       
+      // 重启配置
       autorestart: true,
       max_restarts: 5,
       min_uptime: '10s',
-      max_memory_restart: '1G',
+      max_memory_restart: '512M',
       
+      // 监控配置
       watch: false,
       ignore_watch: [
         'logs',
         'node_modules',
-        'uploads',
-        'public',
-        'dist'
+        'api',
+        '.git'
       ]
     }
   ],
