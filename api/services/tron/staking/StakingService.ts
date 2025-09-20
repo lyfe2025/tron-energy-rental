@@ -1,24 +1,24 @@
 import type {
-    DelegateOperationResult,
-    DelegateResourceParams,
-    FormattedStakeRecord,
-    FormattedUnfreezeRecord,
-    FreezeBalanceV2Params,
-    FreezeOperationResult,
-    NetworkConfig,
-    ServiceResponse,
-    StakeOverview,
-    StakeTransactionParams,
-    TransactionResult,
-    UndelegateResourceParams,
-    UnfreezeBalanceV2Params,
-    UnfreezeOperationResult,
-    WithdrawExpireUnfreezeParams
+  DelegateOperationResult,
+  DelegateResourceParams,
+  FormattedStakeRecord,
+  FormattedUnfreezeRecord,
+  FreezeBalanceV2Params,
+  FreezeOperationResult,
+  NetworkConfig,
+  ServiceResponse,
+  StakeOverview,
+  StakeTransactionParams,
+  TransactionResult,
+  UndelegateResourceParams,
+  UnfreezeBalanceV2Params,
+  UnfreezeOperationResult,
+  WithdrawExpireUnfreezeParams
 } from './types/staking.types';
 
 import { DelegateOperation } from './operations/DelegateOperation';
 import { FreezeOperation } from './operations/FreezeOperation';
-import { UnfreezeOperation } from './operations/UnfreezeOperation';
+import { UnfreezeOperation } from './operations/unfreeze/UnfreezeOperation';
 import { NetworkProvider } from './providers/NetworkProvider';
 
 /**
@@ -132,7 +132,7 @@ export class StakingService {
   }
 
   /**
-   * 获取委托交易记录
+   * 获取委托交易记录（基于交易历史）
    */
   async getDelegateTransactionHistory(
     address: string, 
@@ -140,6 +140,44 @@ export class StakingService {
     offset: number = 0
   ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
     return this.delegateOperation.getDelegateTransactionHistory(address, limit, offset);
+  }
+
+  /**
+   * 获取代理记录（智能选择方法）
+   * direction: 'out' = 代理给他人, 'in' = 他人代理给自己, undefined = 所有记录
+   */
+  async getDelegateRecords(
+    address: string,
+    direction?: 'out' | 'in',
+    limit: number = 20,
+    offset: number = 0,
+    useOfficialAPI: boolean = true
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    return this.delegateOperation.getDelegateRecords(address, direction, limit, offset, useOfficialAPI);
+  }
+
+  /**
+   * 获取代理给他人的资源记录（基于TRON官方API）
+   */
+  async getDelegatedResourcesOut(
+    address: string,
+    toAddress?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    return this.delegateOperation.getDelegatedResourcesOut(address, toAddress, limit, offset);
+  }
+
+  /**
+   * 获取他人代理给自己的资源记录（基于TRON官方API）
+   */
+  async getDelegatedResourcesIn(
+    address: string,
+    fromAddress?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    return this.delegateOperation.getDelegatedResourcesIn(address, fromAddress, limit, offset);
   }
 
   /**

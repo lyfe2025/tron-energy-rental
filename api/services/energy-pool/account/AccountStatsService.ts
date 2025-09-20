@@ -165,7 +165,7 @@ export class AccountStatsService {
     const delegatedBandwidthOutTrx = delegatedBandwidthOut / 1000000;
     
     // === 能量计算 ===
-    // 理论总能量 = 净可用能量 + 代理出去的能量
+    // 理论总能量 = 净可用能量 + 代理给他人的能量
     let theoreticalTotalEnergy = energyLimit;
     
     if (delegatedEnergyOutTrx > 0) {
@@ -178,8 +178,8 @@ export class AccountStatsService {
     // === 带宽计算（关键修复） ===
     // 1. 免费带宽 = 600
     // 2. 质押获得的带宽 = netLimit（TRON API已返回）
-    // 3. 代理出去的带宽需要从理论总带宽中计算
-    // 4. 理论总带宽 = 免费带宽 + 质押带宽 + 代理出去的带宽
+    // 3. 代理给他人的带宽需要从理论总带宽中计算
+    // 4. 理论总带宽 = 免费带宽 + 质押带宽 + 代理给他人的带宽
     
     let theoreticalTotalBandwidth = freeNetLimit + netLimit; // 基础带宽
     

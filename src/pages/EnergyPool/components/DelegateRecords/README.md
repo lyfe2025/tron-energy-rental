@@ -9,8 +9,8 @@ DelegateRecords.vue 组件已成功进行安全分离，将原来的单一组件
 ```
 DelegateRecords/
 ├── components/                    # 子组件
-│   ├── DelegateOutRecords.vue    # 代理出去记录组件
-│   ├── DelegateInRecords.vue     # 代理获得记录组件
+│   ├── DelegateOutRecords.vue    # 代理给他人记录组件
+│   ├── DelegateInRecords.vue     # 他人代理给自己记录组件
 │   ├── AllDelegateRecords.vue    # 所有记录组件（不区分方向）
 │   └── index.ts                  # 组件导出文件
 ├── composables/                  # 组合式函数
@@ -44,25 +44,25 @@ DelegateRecords/
 
 **行为:**
 - 如果指定了 `delegateDirection`，直接渲染对应的子组件
-- 如果未指定，显示标签页切换界面（代理出去/代理获得/所有记录）
+- 如果未指定，显示标签页切换界面（代理给他人/他人代理给自己/所有记录）
 
-### 2. DelegateOutRecords.vue (代理出去记录)
+### 2. DelegateOutRecords.vue (代理给他人记录)
 
-专门处理代理出去记录的组件。
+专门处理代理给他人记录的组件。
 
 **特点:**
 - 只显示当前账户代理给其他地址的记录
 - 地址标签显示为"接收方地址"
-- 操作文本为"代理出去"/"取消代理出去"
+- 操作文本为"代理给他人"/"取消代理给他人"
 
-### 3. DelegateInRecords.vue (代理获得记录)
+### 3. DelegateInRecords.vue (他人代理给自己记录)
 
-专门处理代理获得记录的组件。
+专门处理他人代理给自己记录的组件。
 
 **特点:**
 - 只显示其他地址代理给当前账户的记录
-- 地址标签显示为"代理方地址"
-- 操作文本为"代理获得"/"取消代理获得"
+- 地址标签显示为"发送方地址"
+- 操作文本为"他人代理给自己"/"取消他人代理给自己"
 - 代理图标使用绿色主题
 
 ### 4. AllDelegateRecords.vue (所有记录)
@@ -164,14 +164,14 @@ interface DelegateRecordsTextConfig {
 ```vue
 <template>
   <div>
-    <!-- 代理出去记录 -->
+    <!-- 代理给他人记录 -->
     <DelegateOutRecords
       :pool-id="poolId"
       :network-id="networkId"
       :account-id="accountId"
     />
     
-    <!-- 代理获得记录 -->
+    <!-- 他人代理给自己记录 -->
     <DelegateInRecords
       :pool-id="poolId"
       :network-id="networkId"

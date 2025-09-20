@@ -28,7 +28,7 @@ export class FreezeOperation {
 
   constructor(params: OperationParams) {
     this.tronWeb = params.tronWeb;
-    this.tronGridProvider = new TronGridProvider(params.networkConfig);
+    this.tronGridProvider = new TronGridProvider(params.networkConfig, params.tronWeb);
     
     // 初始化各个处理组件
     this.validator = new FreezeValidator(this.tronWeb);

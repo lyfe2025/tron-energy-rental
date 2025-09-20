@@ -13,7 +13,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            代理出去记录
+            代理给他人记录
           </button>
           <button
             @click="activeTab = 'in'"
@@ -24,7 +24,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            代理获得记录
+            他人代理给自己记录
           </button>
           <button
             @click="activeTab = 'all'"
@@ -43,7 +43,7 @@
 
     <!-- 根据方向或标签页渲染对应组件 -->
     <div class="delegate-records-content">
-      <!-- 代理出去记录 -->
+      <!-- 代理给他人记录 -->
       <DelegateOutRecords
         v-if="shouldShowOutRecords"
         :pool-id="poolId"
@@ -51,7 +51,7 @@
         :account-id="accountId"
       />
 
-      <!-- 代理获得记录 -->
+      <!-- 他人代理给自己记录 -->
       <DelegateInRecords
         v-else-if="shouldShowInRecords"
         :pool-id="poolId"
@@ -80,7 +80,7 @@ const props = defineProps<{
   poolId: string      // 实际上是网络ID
   networkId: string   // 网络ID
   accountId: string   // 能量池账户ID
-  delegateDirection?: DelegateDirection  // 代理方向：out=代理出去，in=代理获得
+  delegateDirection?: DelegateDirection  // 代理方向：out=代理给他人，in=他人代理给自己
 }>()
 
 // 当前激活的标签页（仅在没有指定方向时使用）

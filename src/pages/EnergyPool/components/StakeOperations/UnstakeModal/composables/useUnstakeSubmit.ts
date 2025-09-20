@@ -134,10 +134,42 @@ export function useUnstakeSubmit(
 
   // 处理查看交易
   const handleViewTransaction = (txHash: string) => {
-    // 根据网络类型构建交易查看链接
-    const explorerUrl = 'https://tronscan.org/#/transaction/' + txHash
-    window.open(explorerUrl, '_blank')
-    console.log('🔍 [useUnstakeSubmit] 查看交易:', txHash)
+    // 根据网络配置构建交易查看链接
+    let explorerUrl = 'https://tronscan.org' // 默认主网链接
+    
+    if (networkParams?.value) {
+      const params = networkParams.value
+      
+      // 优先使用网络配置中的blockExplorerUrl
+      if (params.blockExplorerUrl) {
+        explorerUrl = params.blockExplorerUrl.replace(/\/+$/, '') // 移除尾部斜杠
+      } else {
+        // 根据网络类型提供默认浏览器链接
+        switch (params.network) {
+          case 'shasta':
+            explorerUrl = 'https://shasta.tronscan.org'
+            break
+          case 'nile':
+            explorerUrl = 'https://nile.tronscan.org'
+            break
+          default:
+            explorerUrl = 'https://tronscan.org'
+            break
+        }
+      }
+    }
+    
+    // 构建完整的交易链接
+    const fullUrl = `${explorerUrl}/#/transaction/${txHash}`
+    
+    console.log('🔍 [useUnstakeSubmit] 查看交易:', {
+      txHash,
+      network: networkParams?.value?.network || 'unknown',
+      blockExplorerUrl: networkParams?.value?.blockExplorerUrl || 'not configured',
+      finalUrl: fullUrl
+    })
+    
+    window.open(fullUrl, '_blank')
   }
 
   return {

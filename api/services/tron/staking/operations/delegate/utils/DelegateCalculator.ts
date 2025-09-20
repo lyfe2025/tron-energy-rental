@@ -80,7 +80,7 @@ export class DelegateCalculator {
         bandwidth: receivedBandwidth,
         totalTrx: (receivedEnergy + receivedBandwidth) / SUN_TO_TRX
       },
-      // 净代理（接收 - 代理出去）
+      // 净代理（接收 - 代理给他人）
       netDelegation: {
         energy: receivedEnergy - delegatedEnergy,
         bandwidth: receivedBandwidth - delegatedBandwidth,

@@ -49,6 +49,11 @@ export function useDelegateModal(props: any, state: any, isFormValid: any, emit:
     return validateAmount(form.value.amount, form.value.resourceType, currentAvailable)
   }
 
+  // 包装地址验证函数
+  const wrappedValidateAddress = (address: string) => {
+    return validateAddress(address, props.accountAddress)
+  }
+
   // 包装设置最大数量函数
   const wrappedSetMaxAmount = () => {
     setMaxAmount(availableEnergy.value, availableBandwidth.value)
@@ -70,7 +75,7 @@ export function useDelegateModal(props: any, state: any, isFormValid: any, emit:
   // 初始化所有监听器
   const initializeWatchers = () => {
     setupResourceWatchers()
-    setupAddressValidation(form)
+    setupAddressValidation(form, props.accountAddress)
     setupAmountValidation(form, availableEnergy, availableBandwidth)
     setupFormWatchers(form, wrappedValidateLockPeriod)
   }
@@ -96,7 +101,7 @@ export function useDelegateModal(props: any, state: any, isFormValid: any, emit:
     isValidatingAddress,
     
     // 方法
-    validateAddress,
+    validateAddress: wrappedValidateAddress,
     validateLockPeriod: wrappedValidateLockPeriod,
     validateAmount: wrappedValidateAmount,
     setMaxAmount: wrappedSetMaxAmount,

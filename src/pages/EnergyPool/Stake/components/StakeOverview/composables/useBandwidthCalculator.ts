@@ -21,7 +21,7 @@ export function useBandwidthCalculator(realTimeData: Ref<any>) {
   });
 
   /**
-   * 计算代理出去的带宽
+   * 计算代理给他人的带宽
    * ✅ 修正：直接使用后端返回的delegation.bandwidthOut值（已通过TRON网络动态公式计算）
    */
   const calculateDelegatedOutBandwidth = computed((): number => {
@@ -53,7 +53,7 @@ export function useBandwidthCalculator(realTimeData: Ref<any>) {
   });
 
   /**
-   * 计算代理获得的带宽
+   * 计算他人代理给自己的带宽
    * ✅ 修正：直接使用后端返回的delegation.bandwidthIn值（已通过TRON网络动态公式计算）
    */
   const calculateDelegatedInBandwidth = computed((): number => {

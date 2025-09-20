@@ -84,8 +84,8 @@ export function useStakeData(): StakeDataState {
   const tabs = [
     { key: 'stake', label: '质押记录' },
     { key: 'unfreeze', label: '解质押记录' },
-    { key: 'delegate_out', label: '代理出去' },
-    { key: 'delegate_in', label: '代理获得' }
+    { key: 'delegate_out', label: '代理给他人' },
+    { key: 'delegate_in', label: '他人代理给自己' }
   ]
 
   return {

@@ -60,7 +60,7 @@ export function useUnstakeResources(props: UnstakeOperationProps) {
           withdrawable: 0, // 需要从解质押记录中计算
           energyStaked: energyTotalStaked, // 能量质押的TRX数量（直接+代理）
           bandwidthStaked: bandwidthTotalStaked, // 带宽质押的TRX数量（直接+代理）
-          // 代理出去数量（用于"代理中资源"显示）
+          // 代理给他人数量（用于“代理中资源”显示）
           energyDelegatedOut: (resources.energy?.delegatedOut || 0) / 1000000,
           bandwidthDelegatedOut: (resources.bandwidth?.delegatedOut || 0) / 1000000,
           // 直接质押数量（可解质押）

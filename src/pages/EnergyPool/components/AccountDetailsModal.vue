@@ -128,11 +128,11 @@
               </div>
               <div class="text-center bg-yellow-50 p-2 rounded">
                 <div class="font-semibold text-yellow-600">{{ Math.floor(((realTimeAccountData.realTimeData.value.energy.delegatedOut || 0) / 1000000) * 76.2).toLocaleString() }}</div>
-                <div class="text-yellow-700">代理出去</div>
+                <div class="text-yellow-700">代理给他人</div>
               </div>
               <div class="text-center bg-purple-50 p-2 rounded">
                 <div class="font-semibold text-purple-600">{{ Math.floor(((realTimeAccountData.realTimeData.value.energy.delegatedIn || 0) / 1000000) * 76.2).toLocaleString() }}</div>
-                <div class="text-purple-700">代理获得</div>
+                <div class="text-purple-700">他人代理给自己</div>
               </div>
             </div>
           </div>
@@ -215,11 +215,11 @@
               </div>
               <div class="text-center bg-yellow-50 p-2 rounded">
                 <div class="font-semibold text-yellow-600">{{ Math.floor((realTimeAccountData.realTimeData.value.delegation?.bandwidthOut || realTimeAccountData.realTimeData.value.bandwidth.delegatedOut || 0) / 1000000).toLocaleString() }}</div>
-                <div class="text-yellow-700">代理出去</div>
+                <div class="text-yellow-700">代理给他人</div>
               </div>
               <div class="text-center bg-purple-50 p-2 rounded">
                 <div class="font-semibold text-purple-600">{{ Math.floor((realTimeAccountData.realTimeData.value.delegation?.bandwidthIn || realTimeAccountData.realTimeData.value.bandwidth.delegatedIn || 0) / 1000000).toLocaleString() }}</div>
-                <div class="text-purple-700">代理获得</div>
+                <div class="text-purple-700">他人代理给自己</div>
               </div>
             </div>
           </div>

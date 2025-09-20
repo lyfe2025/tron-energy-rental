@@ -1,14 +1,15 @@
 import { TronGridProvider } from '../../providers/TronGridProvider';
 import type {
-  DelegateOperationResult,
-  DelegateResourceParams,
-  FormattedStakeRecord,
-  OperationParams,
-  ServiceResponse,
-  UndelegateResourceParams
+    DelegateOperationResult,
+    DelegateResourceParams,
+    FormattedStakeRecord,
+    OperationParams,
+    ServiceResponse,
+    UndelegateResourceParams
 } from '../../types/staking.types';
 import { DelegateNotificationHandler } from './handlers/DelegateNotificationHandler';
 import { DelegateRecordHandler } from './handlers/DelegateRecordHandler';
+import { DelegateResourceAPIHandler } from './handlers/DelegateResourceAPIHandler';
 import { DelegateResourceHandler } from './handlers/DelegateResourceHandler';
 import { DelegateCalculator } from './utils/DelegateCalculator';
 import { DelegateValidator } from './validators/DelegateValidator';
@@ -23,17 +24,23 @@ export class DelegateOperation {
   private validator: DelegateValidator;
   private resourceHandler: DelegateResourceHandler;
   private recordHandler: DelegateRecordHandler;
+  private apiHandler: DelegateResourceAPIHandler;
   private notificationHandler: DelegateNotificationHandler;
   private calculator: DelegateCalculator;
 
   constructor(params: OperationParams) {
     this.tronWeb = params.tronWeb;
-    this.tronGridProvider = new TronGridProvider(params.networkConfig);
+    this.tronGridProvider = new TronGridProvider(params.networkConfig, params.tronWeb);
     
     // 初始化各个处理组件
     this.validator = new DelegateValidator(this.tronWeb);
     this.resourceHandler = new DelegateResourceHandler(this.tronWeb);
     this.recordHandler = new DelegateRecordHandler(this.tronWeb, this.tronGridProvider);
+    this.apiHandler = new DelegateResourceAPIHandler(
+      this.tronGridProvider.getApiClient(),
+      this.tronGridProvider.getErrorHandler(), 
+      this.tronGridProvider.getValidator()
+    );
     this.notificationHandler = new DelegateNotificationHandler();
     this.calculator = new DelegateCalculator(this.tronWeb);
   }
@@ -120,7 +127,7 @@ export class DelegateOperation {
   }
 
   /**
-   * 获取代理交易记录
+   * 获取代理交易记录（基于交易历史）
    */
   async getDelegateTransactionHistory(
     address: string, 
@@ -128,6 +135,125 @@ export class DelegateOperation {
     offset: number = 0
   ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
     return this.recordHandler.getDelegateTransactionHistory(address, limit, offset);
+  }
+
+  /**
+   * 获取代理给他人的资源记录（基于TRON官方API）
+   * 使用 getDelegatedResourceV2 API
+   */
+  async getDelegatedResourcesOut(
+    address: string,
+    toAddress?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    try {
+      console.log(`[DelegateOperation] 🔍 获取代理给他人资源: ${address}${toAddress ? ` → ${toAddress}` : ''}`);
+      
+      const result = await this.apiHandler.getDelegatedResourcesOut(address, toAddress, limit, offset);
+      
+      if (!result.success || !result.data) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // 转换为标准格式
+      const standardRecords = this.apiHandler.convertToStandardFormat(result.data.delegatedResource, 'out');
+      
+      console.log(`[DelegateOperation] ✅ 代理给他人API成功获取 ${standardRecords.length} 条记录`);
+      
+      return {
+        success: true,
+        data: standardRecords
+      };
+    } catch (error: any) {
+      console.error(`[DelegateOperation] 获取代理给他人资源失败:`, error);
+      return {
+        success: false,
+        error: error.message || '获取代理给他人资源失败',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * 获取他人代理给自己的资源记录（基于TRON官方API）
+   * 使用 getDelegatedResourceAccountIndexV2 API
+   */
+  async getDelegatedResourcesIn(
+    address: string,
+    fromAddress?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    try {
+      console.log(`[DelegateOperation] 🔍 获取他人代理给自己资源: ${address}${fromAddress ? ` ← ${fromAddress}` : ''}`);
+      
+      const result = await this.apiHandler.getDelegatedResourcesIn(address, fromAddress, limit, offset);
+      
+      if (!result.success || !result.data) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // 转换为标准格式
+      const standardRecords = this.apiHandler.convertToStandardFormat(result.data.delegatedResource, 'in');
+      
+      console.log(`[DelegateOperation] ✅ 他人代理给自己API成功获取 ${standardRecords.length} 条记录`);
+      
+      return {
+        success: true,
+        data: standardRecords
+      };
+    } catch (error: any) {
+      console.error(`[DelegateOperation] 获取他人代理给自己资源失败:`, error);
+      return {
+        success: false,
+        error: error.message || '获取他人代理给自己资源失败',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * 获取代理记录（智能选择方法）
+   * direction: 'out' = 代理给他人, 'in' = 他人代理给自己, undefined = 所有记录
+   */
+  async getDelegateRecords(
+    address: string,
+    direction?: 'out' | 'in',
+    limit: number = 20,
+    offset: number = 0,
+    useOfficialAPI: boolean = true
+  ): Promise<ServiceResponse<FormattedStakeRecord[]>> {
+    try {
+      console.log(`[DelegateOperation] 🎯 获取代理记录: 地址=${address}, 方向=${direction || '全部'}, 使用官方API=${useOfficialAPI}`);
+      
+      if (useOfficialAPI && direction) {
+        // 使用官方API获取精确的方向数据
+        if (direction === 'out') {
+          return await this.getDelegatedResourcesOut(address, undefined, limit, offset);
+        } else if (direction === 'in') {
+          return await this.getDelegatedResourcesIn(address, undefined, limit, offset);
+        }
+      }
+      
+      // 回退到交易历史方法
+      console.log(`[DelegateOperation] 🔄 回退使用交易历史方法`);
+      return await this.getDelegateTransactionHistory(address, limit, offset);
+      
+    } catch (error: any) {
+      console.error(`[DelegateOperation] 获取代理记录失败:`, error);
+      return {
+        success: false,
+        error: error.message || '获取代理记录失败',
+        data: []
+      };
+    }
   }
 
   /**

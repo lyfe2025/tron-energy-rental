@@ -16,7 +16,7 @@ export function useDelegateValidation() {
   const isValidatingAddress = ref(false)
 
   // 验证TRON地址
-  const validateAddress = async (address: string) => {
+  const validateAddress = async (address: string, currentAccountAddress?: string) => {
     if (!address || !address.trim()) {
       addressValidation.value = null
       return
@@ -27,6 +27,24 @@ export function useDelegateValidation() {
       
       // 使用我们的地址验证工具
       const result = TronAddressValidator.validateAddress(address.trim())
+      
+      // 检查是否是当前账户地址
+      if (result.isValid && currentAccountAddress) {
+        const normalizedReceiver = address.trim().toLowerCase()
+        const normalizedCurrent = currentAccountAddress.toLowerCase()
+        
+        if (normalizedReceiver === normalizedCurrent) {
+          result.isValid = false
+          result.errors.push('接收方地址不能是当前账户的地址')
+          result.confidence = 'low'
+          
+          console.log('🚫 地址验证失败: 不能代理给自己', {
+            receiverAddress: address.trim(),
+            currentAddress: currentAccountAddress
+          })
+        }
+      }
+      
       addressValidation.value = result
       
       console.log('🔍 地址验证结果:', {
@@ -142,13 +160,13 @@ export function useDelegateValidation() {
   }
 
   // 设置地址验证监听器
-  const setupAddressValidation = (form: any) => {
+  const setupAddressValidation = (form: any, currentAccountAddress?: string) => {
     watch(() => form.value.receiverAddress, (newAddress) => {
       if (newAddress && newAddress.trim()) {
         // 使用防抖，避免频繁验证
         setTimeout(() => {
           if (form.value.receiverAddress === newAddress) {
-            validateAddress(newAddress)
+            validateAddress(newAddress, currentAccountAddress)
           }
         }, 500)
       } else {

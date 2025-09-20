@@ -158,10 +158,10 @@ export interface DelegateParams {
 export interface UndelegateParams {
   networkId: string           // 网络ID (tron_networks表)
   poolAccountId: string       // 能量池账户ID (energy_pools表)
-  accountAddress?: string
-  toAddress: string
-  amount: number
-  resourceType: 'ENERGY' | 'BANDWIDTH'
+  accountAddress: string      // 代理方账户地址（必需）
+  toAddress: string           // 接收方地址
+  amount: number              // 代理数量
+  resourceType: 'ENERGY' | 'BANDWIDTH'  // 资源类型
 }
 
 // 记录查询参数接口
@@ -186,6 +186,8 @@ export interface DelegateRecordQueryParams {
   toAddress?: string
   startDate?: string
   endDate?: string
+  // ✅ 新增：方向参数（用于后端日志，实际过滤在前端进行）
+  direction?: 'out' | 'in'    // 代理方向：out=代理给他人, in=他人代理给自己
 }
 
 export interface UnfreezeRecordQueryParams {

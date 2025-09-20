@@ -31,7 +31,7 @@ export interface UnstakeAccountBalance {
   withdrawable: number
   energyStaked: number
   bandwidthStaked: number
-  // 代理出去的数量（用于"代理中资源"显示）
+  // 代理给他人的数量（用于“代理中资源”显示）
   energyDelegatedOut: number
   bandwidthDelegatedOut: number
   // 直接质押的数量（可解质押）

@@ -11,22 +11,22 @@ export function useDelegateResources(props: any, state: any) {
   const loadingResources = ref(!!props.accountAddress)
 
   // 获取当前可代理的资源数量
-  // 🔧 修正：根据TRON官方文档，可代理的资源不能包括从其他人那里代理获得的资源
+  // 🔧 修正：根据TRON官方文档，可代理的资源不能包括他人代理给自己的资源
   const availableEnergy = computed(() => {
     if (!accountResources.value) return 0
     
     const energyData = accountResources.value.energy
-    // 可代理的能量 = 可用能量 - 从其他人代理获得的能量
-    // 这确保只有自己质押获得的能量可以代理出去
+    // 可代理的能量 = 可用能量 - 他人代理给自己的能量
+    // 这确保只有自己质押获得的能量可以代理给他人
     const delegatedInEnergy = (energyData.delegatedIn / 1000000) * 76.2 // 将TRX转换为能量值
     const delegatableEnergy = Math.max(0, energyData.available - delegatedInEnergy)
     
     console.log('🔍 [useDelegateResources] 可代理能量计算:', {
       '总可用能量': energyData.available,
-      '代理获得能量TRX': energyData.delegatedIn / 1000000,
-      '代理获得能量值': delegatedInEnergy,
+      '他人代理给自己能量TRX': energyData.delegatedIn / 1000000,
+      '他人代理给自己能量值': delegatedInEnergy,
       '最终可代理能量': delegatableEnergy,
-      '说明': '只有自己质押获得的能量可以代理出去'
+      '说明': '只有自己质押获得的能量可以代理给他人'
     })
     
     return Math.floor(delegatableEnergy) // 向下取整，确保不超过实际可代理数量
@@ -36,21 +36,21 @@ export function useDelegateResources(props: any, state: any) {
     if (!accountResources.value) return 0
     
     const bandwidthData = accountResources.value.bandwidth
-    // 可代理的带宽 = 质押获得的带宽 - 已代理出去的部分
-    // 使用limit字段（仅质押获得）而不是available字段（包含代理获得）
+    // 可代理的带宽 = 质押获得的带宽 - 已代理给他人的部分
+    // 使用limit字段（仅质押获得）而不是available字段（包含他人代理给自己）
     const stakingOnlyBandwidth = bandwidthData.limit // 仅质押获得的带宽
-    const alreadyDelegatedOut = bandwidthData.delegatedOut // 已代理出去的TRX数量（SUN）
+    const alreadyDelegatedOut = bandwidthData.delegatedOut // 已代理给他人的TRX数量（SUN）
     
-    // 将已代理出去的TRX转换为带宽值进行计算
+    // 将已代理给他人的TRX转换为带宽值进行计算
     const delegatedOutBandwidth = (alreadyDelegatedOut / 1000000) * 1000 // TRX转带宽的简化计算
     const delegatableBandwidth = Math.max(0, stakingOnlyBandwidth - delegatedOutBandwidth)
     
     console.log('🔍 [useDelegateResources] 可代理带宽计算:', {
       '质押获得带宽': stakingOnlyBandwidth,
-      '已代理出去TRX': alreadyDelegatedOut / 1000000,
-      '已代理出去带宽值': delegatedOutBandwidth,
+      '已代理给他人TRX': alreadyDelegatedOut / 1000000,
+      '已代理给他人带宽值': delegatedOutBandwidth,
       '最终可代理带宽': delegatableBandwidth,
-      '说明': '只计算自己质押获得的带宽，排除代理获得的部分'
+      '说明': '只计算自己质押获得的带宽，排除他人代理给自己的部分'
     })
     
     return Math.floor(delegatableBandwidth) // 向下取整，确保不超过实际可代理数量

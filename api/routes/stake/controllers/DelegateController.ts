@@ -79,7 +79,7 @@ export class DelegateController {
       } = req.body as DelegateOperationRequest;
       
       console.log('📋 [步骤1] 参数解析结果:', {
-        ownerAddress: `${ownerAddress} (代理方地址)`,
+        ownerAddress: `${ownerAddress} (发送方地址)`,
         receiverAddress: `${receiverAddress} (接收方地址)`,
         balance: `${balance} SUN (代理数量)`,
         resource: `${resource} (资源类型)`,

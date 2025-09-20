@@ -42,7 +42,7 @@ export function useUnstakeForm() {
   }
 
   // 获取当前选择资源类型的可解质押数量（数值）
-  // 解质押只能解锁直接质押的数量，不包括代理出去的
+  // 解质押只能解锁直接质押的数量，不包括代理给他人的
   const getCurrentResourceStakedAmount = (accountBalance: UnstakeAccountBalance | null) => {
     if (!accountBalance) return 0
     
@@ -57,7 +57,7 @@ export function useUnstakeForm() {
   const getDelegatingResources = (accountBalance: UnstakeAccountBalance | null) => {
     if (!accountBalance) return 0
     
-    // 获取真实的代理出去的数量（delegatedOut）
+    // 获取真实的代理给他人的数量（delegatedOut）
     const energyDelegated = accountBalance.energyDelegatedOut || 0
     const bandwidthDelegated = accountBalance.bandwidthDelegatedOut || 0
     return energyDelegated + bandwidthDelegated

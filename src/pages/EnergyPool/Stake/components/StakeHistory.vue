@@ -24,7 +24,7 @@
         <StakeRecords :pool-id="selectedAccount.id" :network-id="currentNetworkId" />
       </div>
 
-      <!-- 代理出去记录 -->
+      <!-- 代理给他人记录 -->
       <div v-if="activeTab === 'delegate_out' && selectedAccount">
         <DelegateRecords 
           :pool-id="selectedAccount.id" 
@@ -34,7 +34,7 @@
         />
       </div>
 
-      <!-- 代理获得记录 -->
+      <!-- 他人代理给自己记录 -->
       <div v-if="activeTab === 'delegate_in' && selectedAccount">
         <DelegateRecords 
           :pool-id="selectedAccount.id" 

@@ -97,12 +97,13 @@
               </svg>
               <svg
                 v-else
-                class="w-5 h-5 text-red-600"
+                class="w-5 h-5 text-orange-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <circle cx="12" cy="12" r="10" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
               </svg>
             </div>
 

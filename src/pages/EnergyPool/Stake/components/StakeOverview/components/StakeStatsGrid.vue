@@ -164,13 +164,13 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
-              <p class="text-xs font-medium text-gray-600">代理出去</p>
+              <p class="text-xs font-medium text-gray-600">代理给他人</p>
             </div>
             <p class="text-sm font-bold text-indigo-600">{{ realTimeAccountData.formatEnergy(energyCalculator.calculateDelegatedOutEnergy.value) }}</p>
           </div>
         </div>
 
-        <!-- 代理获得能量 -->
+        <!-- 他人代理给自己能量 -->
         <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -179,7 +179,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m6 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
-              <p class="text-xs font-medium text-gray-600">代理获得</p>
+              <p class="text-xs font-medium text-gray-600">他人代理给自己</p>
             </div>
             <p class="text-sm font-bold text-teal-600">{{ realTimeAccountData.formatEnergy(energyCalculator.calculateDelegatedInEnergy.value) }}</p>
           </div>
@@ -262,13 +262,13 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
-              <p class="text-xs font-medium text-gray-600">代理出去</p>
+              <p class="text-xs font-medium text-gray-600">代理给他人</p>
             </div>
             <p class="text-sm font-bold text-pink-600">{{ realTimeAccountData.formatBandwidth(bandwidthCalculator.calculateDelegatedOutBandwidth.value) }}</p>
           </div>
         </div>
 
-        <!-- 代理获得带宽 -->
+        <!-- 他人代理给自己带宽 -->
         <div class="bg-white rounded-md p-2 shadow-sm border border-gray-100">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -277,7 +277,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m6 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
-              <p class="text-xs font-medium text-gray-600">代理获得</p>
+              <p class="text-xs font-medium text-gray-600">他人代理给自己</p>
             </div>
             <p class="text-sm font-bold text-cyan-600">{{ realTimeAccountData.formatBandwidth(bandwidthCalculator.calculateDelegatedInBandwidth.value) }}</p>
           </div>

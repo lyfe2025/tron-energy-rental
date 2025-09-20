@@ -53,7 +53,7 @@ interface DelegateTransactionData {
   amount: string                 // 代理数量
   resourceType: 'ENERGY' | 'BANDWIDTH'  // 资源类型
   receiverAddress: string        // 接收方地址
-  accountAddress: string         // 代理方地址
+  accountAddress: string         // 发送方地址
   enableLockPeriod: boolean      // 是否启用锁定期
   lockPeriod?: number           // 锁定期(天)
   poolId: string                // 资源池ID

@@ -28,7 +28,7 @@ export interface DelegateRecordsBaseProps {
  * 代理记录组件属性（包含方向）
  */
 export interface DelegateRecordsProps extends DelegateRecordsBaseProps {
-  delegateDirection?: DelegateDirection  // 代理方向：out=代理出去，in=代理获得
+  delegateDirection?: DelegateDirection  // 代理方向：out=代理给他人，in=他人代理给自己
 }
 
 /**

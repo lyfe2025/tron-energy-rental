@@ -2,15 +2,15 @@ import { stakeAPI } from '@/services/api'
 import type { AccountResources } from '@/services/api/stake/stakeAPI'
 import { reactive, ref } from 'vue'
 import type {
-    AccountInfo,
-    DelegateRecord,
-    DelegateRecordQueryParams,
-    StakePagination,
-    StakeRecord,
-    StakeRecordQueryParams,
-    StakeStatistics,
-    UnfreezeRecord,
-    UnfreezeRecordQueryParams
+  AccountInfo,
+  DelegateRecord,
+  DelegateRecordQueryParams,
+  StakePagination,
+  StakeRecord,
+  StakeRecordQueryParams,
+  StakeStatistics,
+  UnfreezeRecord,
+  UnfreezeRecordQueryParams
 } from '../types/stake.types'
 
 export function useStakeData() {
@@ -162,24 +162,92 @@ export function useStakeData() {
     try {
       loading.value = true
       error.value = null
+      console.log('🚀 [useStakeData] ========== 开始加载代理记录 ==========')
+      console.log('🔍 [useStakeData] 前端传入参数:', params)
+      
+      // 新策略说明
+      console.log('🎯 [useStakeData] 采用新策略:', {
+        backendStrategy: '获取所有代理记录',
+        frontendStrategy: `根据direction='${params.direction||'未指定'}'在前端智能过滤`,
+        advantage: '简单可靠，避免TRON官方API限制'
+      })
+      
+      const startTime = Date.now()
       const response = await stakeAPI.getDelegateRecords(params)
+      const endTime = Date.now()
+      
+      console.log('📡 [useStakeData] API调用完成，耗时:', `${endTime - startTime}ms`)
+      console.log('📡 [useStakeData] 完整API响应:', {
+        statusCode: response.status,
+        headers: response.headers,
+        dataStructure: {
+          hasData: !!response.data,
+          dataType: typeof response.data,
+          success: response.data?.success,
+          dataCount: response.data?.data?.length || 0,
+          error: (response.data as any)?.error,
+          pagination: response.data?.pagination
+        }
+      })
+      
+      if (response.data?.data) {
+        console.log('🔍 [useStakeData] 原始API数据前3条:', 
+          response.data.data.slice(0, 3).map((record: any, index: number) => ({
+            序号: index + 1,
+            id: record.id,
+            operation_type: record.operation_type,
+            status: record.status,
+            from_address: record.from_address?.substring(0, 10) + '...',
+            to_address: record.to_address?.substring(0, 10) + '...',
+            fromAddress: record.fromAddress?.substring(0, 10) + '...',
+            toAddress: record.toAddress?.substring(0, 10) + '...',
+            amount: record.amount,
+            resource_type: record.resource_type
+          }))
+        )
+      }
+      
       if (response.data.success && response.data.data) {
         // 转换API返回的字段名到前端期望的DelegateRecord格式
-        const records = response.data.data.map((record: any) => ({
-          id: record.id,
-          poolAccountId: record.pool_id || record.pool_account_id,
-          txid: record.transaction_id || record.txid,
-          operationType: record.operation_type === 'unknown' ? 'delegate' : record.operation_type,
-          toAddress: record.receiver_address || record.to_address || '',
-          amount: record.amount || 0,
-          resourceType: record.resource_type,
-          lockPeriod: record.lock_period,
-          expireTime: record.expire_time,
-          status: record.status,
-          createdAt: record.created_at || record.updated_at
-        }))
+        const records = response.data.data.map((record: any) => {
+          const mappedRecord = {
+            id: record.id,
+            poolAccountId: record.pool_id || record.pool_account_id,
+            txid: record.transaction_id || record.txid,
+            operationType: record.operation_type === 'unknown' ? 'delegate' : record.operation_type,
+            toAddress: record.receiver_address || record.to_address || '',
+            amount: record.amount || 0,
+            resourceType: record.resource_type,
+            lockPeriod: record.lock_period,
+            expireTime: record.expire_time,
+            status: record.status,
+            createdAt: record.created_at || record.updated_at,
+            // 添加调试字段
+            fromAddress: record.fromAddress || record.from_address || '',
+            from_address: record.from_address || '',
+            to_address: record.to_address || ''
+          }
+          
+          console.log('🔍 [useStakeData] 记录映射:', {
+            txid: record.txid?.substring(0, 12),
+            operationType: mappedRecord.operationType,
+            status: mappedRecord.status,
+            originalStatus: record.status,
+            canUndelegate: mappedRecord.operationType === 'delegate' && mappedRecord.status === 'success'
+          })
+          
+          return mappedRecord
+        })
+        
         delegateRecords.value = records
         Object.assign(pagination, response.data.pagination)
+        
+        console.log('✅ [useStakeData] 成功加载代理记录:', {
+          total: records.length,
+          delegateCount: records.filter(r => r.operationType === 'delegate').length,
+          successCount: records.filter(r => r.status === 'success').length,
+          canUndelegateCount: records.filter(r => r.operationType === 'delegate' && r.status === 'success').length
+        })
       } else {
         throw new Error(response.data.message || '获取代理记录失败')
       }

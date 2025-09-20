@@ -5,16 +5,16 @@ import { DelegationService } from './tron/services/DelegationService';
 import { StakingService } from './tron/services/StakingService';
 import { TransactionService } from './tron/services/TransactionService';
 import type {
-  AccountData,
-  DelegateResourceParams,
-  FreezeBalanceV2Params,
-  ResourceData,
-  ServiceResponse,
-  StakeOverview,
-  TransactionResult,
-  TronConfig,
-  UnfreezeBalanceV2Params,
-  WithdrawExpireUnfreezeParams
+    AccountData,
+    DelegateResourceParams,
+    FreezeBalanceV2Params,
+    ResourceData,
+    ServiceResponse,
+    StakeOverview,
+    TransactionResult,
+    TronConfig,
+    UnfreezeBalanceV2Params,
+    WithdrawExpireUnfreezeParams
 } from './tron/types/tron.types';
 import { TronUtils } from './tron/utils/tronUtils';
 
@@ -348,6 +348,26 @@ export class TronService {
       });
     }
     appendFileSync('/tmp/tron-debug.log', `\n`);
+    
+    return result;
+  }
+
+  // 新增：智能代理记录获取方法
+  async getDelegateRecords(
+    address: string,
+    direction?: 'out' | 'in',
+    limit: number = 20,
+    offset: number = 0,
+    useOfficialAPI: boolean = true
+  ): Promise<ServiceResponse<any[]>> {
+    const { appendFileSync } = await import('fs');
+    appendFileSync('/tmp/tron-debug.log', `=== TronService.getDelegateRecords 被调用 ${new Date().toISOString()} ===\n`);
+    appendFileSync('/tmp/tron-debug.log', `参数: address=${address}, direction=${direction}, useOfficialAPI=${useOfficialAPI}\n`);
+    
+    await this.waitForInitialization();
+    
+    const result = await this.stakingService.getDelegateRecords(address, direction, limit, offset, useOfficialAPI);
+    appendFileSync('/tmp/tron-debug.log', `智能代理记录结果: ${JSON.stringify({success: result.success, dataLength: result.data?.length})}\n`);
     
     return result;
   }

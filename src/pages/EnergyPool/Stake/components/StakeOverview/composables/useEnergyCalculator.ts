@@ -7,7 +7,7 @@ import { computed } from 'vue';
 
 export function useEnergyCalculator(realTimeData: Ref<any>) {
   /**
-   * 计算代理出去的能量
+   * 计算代理给他人的能量
    */
   const calculateDelegatedOutEnergy = computed((): number => {
     const delegatedOut = realTimeData.value?.energy?.delegatedOut || 0;
@@ -15,7 +15,7 @@ export function useEnergyCalculator(realTimeData: Ref<any>) {
   });
 
   /**
-   * 计算代理获得的能量
+   * 计算他人代理给自己的能量
    */
   const calculateDelegatedInEnergy = computed((): number => {
     const delegatedIn = realTimeData.value?.energy?.delegatedIn || 0;

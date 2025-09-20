@@ -195,6 +195,27 @@
         {{ textConfig.emptyTitle }}
       </h3>
       <p class="text-gray-600">{{ textConfig.emptyMessage }}</p>
+      
+      <!-- 调试信息 -->
+      <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+        <h4 class="font-medium text-yellow-900 mb-2">🔍 调试信息</h4>
+        <div class="text-sm text-yellow-800 space-y-1">
+          <div><strong>加载状态:</strong> {{ loading ? '加载中' : '已完成' }}</div>
+          <div><strong>错误状态:</strong> {{ error || '无' }}</div>
+          <div><strong>原始记录数:</strong> {{ delegateRecords?.length || 0 }}</div>
+          <div><strong>过滤后记录数:</strong> {{ filteredDelegateRecords.length }}</div>
+          <div><strong>当前方向:</strong> 他人代理给自己</div>
+          <div><strong>池ID:</strong> {{ poolId }}</div>
+          <div><strong>账户ID:</strong> {{ accountId }}</div>
+          <div><strong>网络ID:</strong> {{ networkId }}</div>
+        </div>
+        <button 
+          @click="loadRecords()" 
+          class="mt-3 px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
+        >
+          🔄 重新加载
+        </button>
+      </div>
     </div>
 
     <!-- 分页 -->
@@ -264,6 +285,7 @@ const textConfig = getDelegateInTextConfig()
 const {
   loading,
   error,
+  delegateRecords,
   filteredDelegateRecords,
   pagination,
   showUndelegateDialog,

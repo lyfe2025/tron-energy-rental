@@ -123,7 +123,7 @@ export class DelegateValidator {
     const normalizedReceiver = receiverAddress.toLowerCase();
 
     if (normalizedOwner === normalizedReceiver) {
-      throw new Error('Cannot delegate resources to the same address');
+      throw new Error('代理失败：接收方地址不能是当前账户的地址，请选择其他接收方地址');
     }
   }
 }

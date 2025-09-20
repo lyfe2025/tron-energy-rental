@@ -126,7 +126,7 @@ class DelegateSigningService {
     }
 
     if (!transactionData.accountAddress) {
-      errors.push('代理方地址不能为空')
+      errors.push('发送方地址不能为空')
     }
 
     if (transactionData.enableLockPeriod && (!transactionData.lockPeriod || transactionData.lockPeriod <= 0)) {

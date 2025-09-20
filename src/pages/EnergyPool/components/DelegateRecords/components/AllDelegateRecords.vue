@@ -307,17 +307,17 @@ const getRecordDirection = (record: DelegateRecord) => {
     const current = currentAddress.toLowerCase()
     
     if (toAddress === current) {
-      return 'in'  // 代理获得：当前地址是接收方
+      return 'in'  // 他人代理给自己：当前地址是接收方
     } else if (fromAddress === current) {
-      return 'out' // 代理出去：当前地址是发起方
+      return 'out' // 代理给他人：当前地址是发起方
     }
   }
   
   // 回退到旧逻辑（向后兼容）
   if (record.toAddress.toLowerCase() === currentAddress.toLowerCase()) {
-    return 'in'  // 代理获得
+    return 'in'  // 他人代理给自己
   } else {
-    return 'out' // 代理出去
+    return 'out' // 代理给他人
   }
 }
 
@@ -338,7 +338,7 @@ const getDirectionText = (record: DelegateRecord) => {
 // 获取地址标签
 const getAddressLabel = (record: DelegateRecord) => {
   const direction = getRecordDirection(record)
-  return direction === 'in' ? '代理方地址' : '接收方地址'
+  return direction === 'in' ? '发送方地址' : '接收方地址'
 }
 
 // 获取要显示的地址
@@ -348,10 +348,10 @@ const getDisplayAddress = (record: DelegateRecord) => {
   // 使用新的字段优先
   if ((record as any).from_address && (record as any).to_address) {
     if (direction === 'in') {
-      // 代理获得：显示发起方地址
+      // 他人代理给自己：显示发起方地址
       return (record as any).from_address
     } else {
-      // 代理出去：显示接收方地址
+      // 代理给他人：显示接收方地址
       return (record as any).to_address
     }
   }
@@ -365,9 +365,9 @@ const getLocalOperationTypeText = (record: DelegateRecord) => {
   const direction = getRecordDirection(record)
   
   if (record.operationType === 'delegate') {
-    return direction === 'in' ? '代理获得' : '代理出去'
+    return direction === 'in' ? '他人代理给自己' : '代理给他人'
   } else if (record.operationType === 'undelegate') {
-    return direction === 'in' ? '取消代理获得' : '取消代理出去'
+    return direction === 'in' ? '取消他人代理给自己' : '取消代理给他人'
   }
   return record.operationType
 }

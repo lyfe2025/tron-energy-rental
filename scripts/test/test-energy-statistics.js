@@ -47,7 +47,7 @@ async function testEnergyStatistics() {
     
     if (stats.totalEnergy === stats.availableEnergy) {
       console.log('❌ 问题仍然存在: 总能量与可用能量完全相同!');
-      console.log('   这意味着没有考虑代理出去的能量或已使用的能量');
+      console.log('   这意味着没有考虑代理给他人的能量或已使用的能量');
     } else {
       console.log('✅ 修复成功: 总能量与可用能量不同，说明正确计算了代理和使用情况');
       

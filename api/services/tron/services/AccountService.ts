@@ -121,13 +121,13 @@ export class AccountService {
       const usedEnergy = resources.EnergyUsed || 0;
       
       // 计算代理能量值（使用TRON网络参数计算）
-      const delegatedEnergyInValue = (delegatedEnergyIn / 1000000) * 76.2; // 代理获得的能量
-      const delegatedEnergyOutValue = (delegatedEnergyOut / 1000000) * 76.2; // 代理出去的能量
+      const delegatedEnergyInValue = (delegatedEnergyIn / 1000000) * 76.2; // 他人代理给自己的能量
+      const delegatedEnergyOutValue = (delegatedEnergyOut / 1000000) * 76.2; // 代理给他人的能量
       
-      // ✅ 修正：质押获得的能量 = 净可用能量 + 代理出去的能量 - 代理获得的能量
+      // ✅ 修正：质押获得的能量 = 净可用能量 + 代理给他人的能量 - 他人代理给自己的能量
       const stakingOnlyEnergy = netAvailableEnergy + delegatedEnergyOutValue - delegatedEnergyInValue;
       
-      // 理论总能量 = 质押获得 + 代理获得
+      // 理论总能量 = 质押获得 + 他人代理给自己
       const theoreticalTotalEnergy = stakingOnlyEnergy + delegatedEnergyInValue;
       
       // ✅ 修正：实际可用能量 = 净可用能量 - 已使用
@@ -170,8 +170,8 @@ export class AccountService {
         }
       });
       
-      // ✅ 修正：质押获得的带宽 = 净可用质押带宽 + 代理出去的带宽（简化值）
-      // TRON API的NetLimit是净可用带宽，需要加上代理出去的部分才是真正的"质押获得"
+      // ✅ 修正：质押获得的带宽 = 净可用质押带宽 + 代理给他人的带宽（简化值）
+      // TRON API的NetLimit是净可用带宽，需要加上代理给他人的部分才是真正的“质押获得”
       // 使用简化的代理值用于前端显示
       const delegatedBandwidthOutSimplified = Math.floor(delegatedBandwidthOutValue / 1000000);
       const stakingOnlyBandwidth = stakedNetLimit + delegatedBandwidthOutSimplified;
@@ -179,8 +179,8 @@ export class AccountService {
       // 理论总带宽 = 质押获得 + 他人代理给自己 + 免费 600
       const theoreticalTotalBandwidth = stakingOnlyBandwidth + delegatedBandwidthInValue + freeNetLimit;
       
-      // ✅ 修正：实际可用带宽 = 理论总带宽 - 已使用 - 代理出去的（简化值）
-      // 注意：代理出去的资源不能被当前账户使用
+      // ✅ 修正：实际可用带宽 = 理论总带宽 - 已使用 - 代理给他人的（简化值）
+      // 注意：代理给他人的资源不能被当前账户使用
       const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth - delegatedBandwidthOutSimplified);
       
       // 数据差异监控和警告
@@ -202,7 +202,7 @@ export class AccountService {
           stakedNetUsed,
           totalUsedBandwidth
         },
-        calculationNote: '质押获得 = NetLimit + 代理出去简化值，如与区块浏览器有差异，通常在±20个单位内属正常现象'
+        calculationNote: '质押获得 = NetLimit + 代理给他人简化值，如与区块浏览器有差异，通常在±20个单位内属正常现象'
       });
       
       return {
@@ -211,7 +211,7 @@ export class AccountService {
           energy: {
             used: usedEnergy,
             limit: Math.max(0, stakingOnlyEnergy), // 仅质押获得的能量
-            total: Math.max(0, theoreticalTotalEnergy), // 理论总能量（质押+代理获得）
+            total: Math.max(0, theoreticalTotalEnergy), // 理论总能量（质押+他人代理给自己）
             available: Math.max(0, actualAvailableEnergy), // 实际可用能量（扣除已使用的）
             delegatedOut: delegatedEnergyOut, // 代理给别人的TRX数量
             delegatedIn: delegatedEnergyIn, // 从别人获得的TRX数量
@@ -223,8 +223,8 @@ export class AccountService {
           bandwidth: {
             used: totalUsedBandwidth, // 总已使用带宽（免费+质押）
             limit: Math.max(0, stakingOnlyBandwidth), // 仅质押获得的带宽 (不含免费600)
-            total: Math.max(0, theoreticalTotalBandwidth), // 理论总带宽（质押+代理获得+免费600）
-            available: Math.max(0, actualAvailableBandwidth), // 实际可用带宽（总带宽-已使用-代理出去）
+            total: Math.max(0, theoreticalTotalBandwidth), // 理论总带宽（质押+他人代理给自己+免费600）
+            available: Math.max(0, actualAvailableBandwidth), // 实际可用带宽（总带宽-已使用-代理给他人）
             delegatedOut: delegatedBandwidthOut, // 代理给别人的TRX数量
             delegatedIn: delegatedBandwidthIn, // 从别人获得的TRX数量
             // 添加详细的使用情况，便于调试

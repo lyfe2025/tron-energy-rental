@@ -70,6 +70,7 @@ const handleClose = () => {
 
 const handleViewTransaction = (txHash: string) => {
   console.log('查看交易:', txHash)
+  // 演示页面使用默认主网链接
   const url = `https://tronscan.org/#/transaction/${txHash}`
   window.open(url, '_blank')
 }

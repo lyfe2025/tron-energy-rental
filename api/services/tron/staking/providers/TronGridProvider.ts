@@ -19,12 +19,27 @@ export class TronGridProvider {
   private dataFormatter: TronGridDataFormatter;
   private errorHandler: TronGridErrorHandler;
   private validator: TronGridValidator;
+  private tronWeb: any; // TronWeb实例用于地址格式转换
 
-  constructor(networkConfig?: NetworkConfig) {
+  constructor(networkConfig?: NetworkConfig, tronWeb?: any) {
     this.apiClient = new TronGridApiClient(networkConfig);
     this.dataFormatter = new TronGridDataFormatter();
     this.errorHandler = new TronGridErrorHandler();
     this.validator = new TronGridValidator();
+    this.tronWeb = tronWeb; // 保存TronWeb实例
+  }
+
+  // Getter方法用于访问内部组件
+  getApiClient() {
+    return this.apiClient;
+  }
+
+  getErrorHandler() {
+    return this.errorHandler;
+  }
+
+  getValidator() {
+    return this.validator;
   }
 
   /**
@@ -126,39 +141,150 @@ export class TronGridProvider {
 
         console.log(`[TronGridProvider] 成功获取 ${transactions.length} 条交易记录`);
         
-        // 🔍 调试：在sanitize之前检查数据
-        if (transactions.length > 0) {
-          const firstTx = transactions[0];
-          const contract = firstTx.raw_data?.contract?.[0];
-          const parameter = contract?.parameter?.value;
-          console.log(`[TronGridProvider] 🔍 sanitize之前的地址:`, {
-            owner_address: parameter?.owner_address,
-            receiver_address: parameter?.receiver_address,
-            owner_type: typeof parameter?.owner_address,
-            receiver_type: typeof parameter?.receiver_address
-          });
-        }
+        // 🔄 地址格式标准化：确保所有地址都是Base58格式
+        transactions = this.normalizeAddressFormats(transactions);
         
         const sanitizedData = this.validator.sanitizeResponseData(transactions);
-        
-        // 🔍 调试：在sanitize之后检查数据
-        if (Array.isArray(sanitizedData) && sanitizedData.length > 0) {
-          const firstTx = sanitizedData[0];
-          const contract = firstTx.raw_data?.contract?.[0];
-          const parameter = contract?.parameter?.value;
-          console.log(`[TronGridProvider] 🔍 sanitize之后的地址:`, {
-            owner_address: parameter?.owner_address,
-            receiver_address: parameter?.receiver_address,
-            owner_type: typeof parameter?.owner_address,
-            receiver_type: typeof parameter?.receiver_address
-          });
-        }
         
         return sanitizedData;
       },
       []
     );
   }
+
+  /**
+   * 标准化地址格式：将hex地址转换为Base58格式
+   * 转换失败时保持原格式，确保不影响整体功能
+   */
+  private normalizeAddressFormats(transactions: any[]): any[] {
+    try {
+      console.log(`[TronGridProvider] 🔄 开始地址格式标准化，处理 ${transactions.length} 条交易`);
+      
+      let convertedCount = 0;
+      
+      const processedTransactions = transactions.map((tx, index) => {
+        if (!tx || !tx.raw_data || !tx.raw_data.contract) {
+          return tx;
+        }
+        
+        // 处理每个合约中的地址
+        const processedTx = { ...tx };
+        processedTx.raw_data = { ...tx.raw_data };
+        processedTx.raw_data.contract = tx.raw_data.contract.map((contract: any) => {
+          if (!contract || !contract.parameter || !contract.parameter.value) {
+            return contract;
+          }
+          
+          const processedContract = { ...contract };
+          processedContract.parameter = { ...contract.parameter };
+          processedContract.parameter.value = { ...contract.parameter.value };
+          
+          const value = processedContract.parameter.value;
+          
+          // 转换owner_address
+          if (value.owner_address) {
+            const originalAddress = value.owner_address;
+            const converted = this.convertToBase58(originalAddress);
+            if (converted && converted !== originalAddress) {
+              value.owner_address = converted;
+              convertedCount++;
+            }
+          }
+          
+          // 转换receiver_address
+          if (value.receiver_address) {
+            const originalAddress = value.receiver_address;
+            const converted = this.convertToBase58(originalAddress);
+            if (converted && converted !== originalAddress) {
+              value.receiver_address = converted;
+              convertedCount++;
+            }
+          }
+          
+          // 转换to_address（如果存在）
+          if (value.to_address) {
+            const originalAddress = value.to_address;
+            const converted = this.convertToBase58(originalAddress);
+            if (converted && converted !== originalAddress) {
+              value.to_address = converted;
+              convertedCount++;
+            }
+          }
+          
+          return processedContract;
+        });
+        
+        return processedTx;
+      });
+      
+      console.log(`[TronGridProvider] ✅ 地址格式标准化完成:`, {
+        总交易数: transactions.length,
+        转换成功: convertedCount,
+        保持原格式: transactions.length - convertedCount,
+        状态: '完成（转换失败时保持原格式）'
+      });
+      
+      return processedTransactions;
+      
+    } catch (error: any) {
+      console.warn(`[TronGridProvider] ⚠️ 地址格式标准化失败，保持原格式:`, error.message);
+      return transactions; // 发生错误时返回原数据，确保不影响整体功能
+    }
+  }
+
+  /**
+   * 将地址转换为Base58格式
+   * @param address 可能是hex或Base58格式的地址
+   * @returns Base58格式的地址，转换失败时返回null
+   */
+  private convertToBase58(address: string): string | null {
+    try {
+      if (!address || typeof address !== 'string') {
+        return null;
+      }
+      
+      // 🎯 根据TRON官方文档进行标准格式检查
+      // Base58格式：以T开头的34字符地址
+      if (address.startsWith('T') && address.length === 34) {
+        // 已经是标准Base58格式，直接返回
+        return address;
+      }
+      
+      // Hex格式：以41开头的42字符十六进制地址
+      if (address.length === 42 && address.startsWith('41') && /^41[0-9a-fA-F]{40}$/.test(address)) {
+        // 🚀 标准Hex格式，使用TronWeb官方转换
+        if (this.tronWeb && this.tronWeb.address && this.tronWeb.address.fromHex) {
+          try {
+            const base58Address = this.tronWeb.address.fromHex(address);
+            
+            // 验证转换结果符合Base58标准
+            if (base58Address && base58Address.startsWith('T') && base58Address.length === 34) {
+              console.log(`[TronGridProvider] ✅ 标准Hex→Base58转换: ${address.substring(0, 12)}... → ${base58Address.substring(0, 12)}...`);
+              return base58Address;
+            }
+          } catch (conversionError: any) {
+            console.log(`[TronGridProvider] ⚠️ TronWeb转换失败: ${address.substring(0, 12)}...，错误: ${conversionError.message}`);
+          }
+        } else {
+          console.log(`[TronGridProvider] ⚠️ TronWeb不可用，无法转换标准Hex地址: ${address.substring(0, 12)}...`);
+        }
+      } else {
+        // 非标准格式地址，记录并保持原样
+        if (!address.startsWith('T')) {
+          console.log(`[TronGridProvider] ⚠️ 非标准TRON地址格式: ${address.substring(0, 12)}... (长度: ${address.length})`);
+          console.log(`[TronGridProvider] 📖 TRON标准格式参考: https://developers.tron.network/docs/account`);
+        }
+      }
+      
+      // 保持原格式，确保不影响整体显示
+      return address;
+      
+    } catch (error: any) {
+      console.log(`[TronGridProvider] ⚠️ 地址处理异常，保持原格式: ${error.message}`);
+      return address;
+    }
+  }
+
 
   /**
    * 获取账户详细信息

@@ -284,7 +284,7 @@ export const stakeAPI = {
     console.log('🔍 [StakeAPI] 代理资源请求参数:', {
       原始数据: data,
       转换后数据: requestData,
-      代理方地址: data.accountAddress,
+      发送方地址: data.accountAddress,
       接收方地址: data.toAddress,
       TRX金额: data.amount,
       SUN金额: balanceInSun,
@@ -339,7 +339,7 @@ export const stakeAPI = {
     console.log('🔍 [StakeAPI] 取消代理资源请求参数:', {
       原始数据: data,
       转换后数据: requestData,
-      代理方地址: data.accountAddress,
+      发送方地址: data.accountAddress,
       接收方地址: data.toAddress,
       TRX金额: data.amount,
       SUN金额: balanceInSun
@@ -388,13 +388,20 @@ export const stakeAPI = {
     resourceType?: 'ENERGY' | 'BANDWIDTH'
     startDate?: string
     endDate?: string
+    // ✅ 新增：方向参数（用于后端日志，实际过滤在前端进行）
+    direction?: 'out' | 'in'    // 代理方向：out=代理给他人, in=他人代理给自己
   }) => {
+    console.log('📡 [stakeAPI] getDelegateRecords调用参数:', params)
+    
     // 转换为后端期望的参数格式
     const queryParams = {
       ...params,
       poolId: params.poolAccountId // 后端仍使用 poolId 作为能量池账户ID
     }
     delete (queryParams as any).poolAccountId // 删除前端的参数名
+    
+    console.log('📡 [stakeAPI] 转换后的查询参数:', queryParams)
+    
     return apiClient.get<PaginatedApiResponse<StakeRecordsResponse>>('/api/energy-pool/stake/delegates', { params: queryParams })
   },
 

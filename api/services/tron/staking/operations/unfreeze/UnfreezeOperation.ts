@@ -32,7 +32,7 @@ export class UnfreezeOperation {
 
   constructor(params: OperationParams) {
     this.tronWeb = params.tronWeb;
-    this.tronGridProvider = new TronGridProvider(params.networkConfig);
+    this.tronGridProvider = new TronGridProvider(params.networkConfig, params.tronWeb);
     
     // 初始化各个专门的处理组件
     this.balanceHandler = new UnfreezeBalanceHandler(this.tronWeb);

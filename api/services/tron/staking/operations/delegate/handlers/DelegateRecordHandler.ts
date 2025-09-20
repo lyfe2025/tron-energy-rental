@@ -315,7 +315,10 @@ export class DelegateRecordHandler {
       console.log(`[DelegateRecordHandler] 🔍 开始获取委托交易记录: ${address}, limit=${limit}, offset=${offset}`);
       
       // 使用TronGridProvider获取账户交易记录
-      const transactionsResult = await this.tronGridProvider.getAccountTransactions(address, limit * 3);
+      // 确保不超过TronGrid API的限制（200），同时获取足够多的记录进行过滤
+      const apiLimit = Math.min(limit * 2, 200);
+      console.log(`[DelegateRecordHandler] 🔍 API调用限制: 原始=${limit}, 计算后=${apiLimit}`);
+      const transactionsResult = await this.tronGridProvider.getAccountTransactions(address, apiLimit);
       
       if (!transactionsResult.success || !transactionsResult.data) {
         console.log(`[DelegateRecordHandler] 获取交易记录失败或无数据`);
