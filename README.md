@@ -3,10 +3,11 @@
 <div align="center">
 
 ![TRON Energy Rental](https://img.shields.io/badge/TRON-Energy%20Rental-red?style=for-the-badge&logo=tron)
-![Vue 3](https://img.shields.io/badge/Vue-3.4+-4FC08D?style=for-the-badge&logo=vue.js)
+![Vue 3](https://img.shields.io/badge/Vue-3.4.15+-4FC08D?style=for-the-badge&logo=vue.js)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-3178C6?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791?style=for-the-badge&logo=postgresql)
+![Redis](https://img.shields.io/badge/Redis-6+-DC382D?style=for-the-badge&logo=redis)
 
 **基于 TRON 2.0 质押机制的专业能量租赁平台**
 
@@ -50,11 +51,18 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 
 ### 🤖 智能化功能
 
-- **Telegram 机器人**
+- **多机器人管理系统**
+  - 支持多个Telegram机器人同时运行
+  - 智能负载均衡和故障转移
+  - 实时机器人状态监控
+  - 动态机器人配置管理
+
+- **Telegram 机器人集群**
   - 24/7 自动化服务
   - 多语言支持
   - 实时通知推送
   - 便捷的命令操作
+  - Webhook和长轮询双模式
 
 - **代理系统**
   - 多级代理佣金
@@ -67,6 +75,8 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
   - 详细的财务报表
   - 系统性能监控
   - 异常告警机制
+  - 缓存系统监控
+  - 数据库性能监控
 
 ### 🛡️ 安全特性
 
@@ -80,26 +90,29 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 
 ### 前端技术栈
 
-- **框架**: Vue 3.4+ + TypeScript
-- **构建工具**: Vite 5.0+
-- **UI 组件**: Element Plus
-- **状态管理**: Pinia
-- **路由管理**: Vue Router 4
-- **样式框架**: Tailwind CSS
-- **图表库**: ECharts
-- **HTTP 客户端**: Axios
+- **框架**: Vue 3.4.15+ + TypeScript 5.3+
+- **构建工具**: Vite 5.0.12+
+- **UI 组件**: Element Plus 2.11+
+- **状态管理**: Pinia 3.0+
+- **路由管理**: Vue Router 4.2+
+- **样式框架**: Tailwind CSS 3.4+
+- **图表库**: ECharts 6.0+ / Recharts 3.1+
+- **HTTP 客户端**: Axios 1.6+
+- **图标库**: Lucide Vue Next
 
 ### 后端技术栈
 
-- **运行时**: Node.js 18+
-- **框架**: Express.js + TypeScript
-- **数据库**: PostgreSQL 12+
-- **缓存**: Redis 6+
-- **区块链**: TronWeb SDK
-- **身份验证**: JWT
-- **数据验证**: Joi + Express Validator
-- **日志系统**: Winston
-- **进程管理**: PM2
+- **运行时**: Node.js 18+ / TypeScript 5.3+
+- **框架**: Express.js 4.21+ + TypeScript
+- **数据库**: PostgreSQL 12+ (pg 8.11+)
+- **缓存**: Redis 6+ (ioredis 5.7+ / redis 4.6+)
+- **区块链**: TronWeb 6.0+ SDK
+- **身份验证**: JWT (jsonwebtoken 9.0+)
+- **数据验证**: Joi 17.11+ + Express Validator 7.2+
+- **日志系统**: Winston 3.17+ (日志轮转支持)
+- **进程管理**: PM2 / Docker
+- **定时任务**: Node-cron 4.2+
+- **消息推送**: Telegram Bot API (node-telegram-bot-api 0.66+)
 
 ### 基础设施
 
@@ -136,8 +149,11 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 
 3. **配置环境变量**
    ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，配置数据库和其他必要参数
+   # 复制生产环境配置模板
+   cp deployment/templates/env.production.template .env
+   # 或复制开发环境配置模板
+   cp deployment/templates/env.development.template .env.development
+   # 编辑配置文件，设置数据库、Redis、TRON网络等参数
    ```
 
 4. **数据库初始化**
@@ -176,11 +192,22 @@ pnpm run restart
 ### 核心 API 端点
 
 - **认证相关**: `/api/auth/*`
-- **质押管理**: `/api/stake/*`
+- **质押管理**: `/api/energy-pool/stake/*`
+- **能量池管理**: `/api/energy-pool/*`, `/api/energy-pools-extended/*`
 - **订单管理**: `/api/orders/*`
-- **用户管理**: `/api/users/*`
+- **用户管理**: `/api/users/*`, `/api/user-levels/*`
 - **代理系统**: `/api/agents/*`
 - **统计数据**: `/api/statistics/*`
+- **系统管理**: `/api/system/*`, `/api/system-configs/*`
+- **机器人管理**: `/api/bots/*`, `/api/multi-bot/*`
+- **Telegram集成**: `/api/telegram/*`, `/api/telegram-bot-notifications/*`
+- **TRON网络**: `/api/tron/*`, `/api/tron-networks/*`
+- **支付系统**: `/api/payment/*`
+- **价格配置**: `/api/price-configs/*`
+- **监控系统**: `/api/monitoring/*`, `/api/network-logs/*`
+- **配置缓存**: `/api/config-cache/*`
+- **文件上传**: `/api/uploads/*`
+- **调度任务**: `/api/scheduler/*`
 
 ### API 使用示例
 
@@ -191,8 +218,14 @@ curl -X POST http://localhost:3001/api/auth/login \
   -d '{"email":"admin@tronrental.com","password":"admin123456"}'
 
 # 获取质押概览
-curl -X GET http://localhost:3001/api/stake/overview \
+curl -X GET http://localhost:3001/api/energy-pool/stake/overview \
   -H "Authorization: Bearer <your-token>"
+
+# 健康检查
+curl -X GET http://localhost:3001/api/health
+
+# 获取API端点列表
+curl -X GET http://localhost:3001/api
 ```
 
 详细的 API 文档请参考: [docs/质押管理系统详细文档.md](./docs/质押管理系统详细文档.md)
@@ -240,45 +273,98 @@ curl -X GET http://localhost:3001/api/stake/overview \
 ```
 tron-energy-rental/
 ├── src/                    # 前端源码
-│   ├── components/         # Vue 组件
-│   ├── pages/             # 页面组件
+│   ├── components/         # Vue 组件 (116个文件)
+│   ├── pages/             # 页面组件 (456个文件)
 │   ├── stores/            # Pinia 状态管理
+│   ├── services/          # 前端服务层 (27个文件)
+│   ├── composables/       # Vue组合式函数
+│   ├── utils/             # 工具函数
+│   ├── types/             # TypeScript 类型定义
+│   └── router/            # 路由配置
+├── api/                   # 后端源码
+│   ├── routes/            # API路由定义 (覆盖所有业务模块)
+│   ├── services/          # 业务逻辑层 (202个服务文件)
+│   │   ├── telegram-bot/  # Telegram机器人服务集群
+│   │   ├── tron/          # TRON区块链服务
+│   │   ├── monitoring/    # 系统监控服务
+│   │   ├── config-cache/  # 配置缓存服务
+│   │   └── energy-pool/   # 能量池管理服务
+│   ├── controllers/       # 控制器层
+│   ├── middleware/        # 中间件 (认证、验证、RBAC等)
+│   ├── config/            # 配置管理
+│   ├── database/          # 数据库连接配置
 │   ├── utils/             # 工具函数
 │   └── types/             # TypeScript 类型定义
-├── api/                   # 后端源码
-│   ├── routes/            # 路由定义
-│   ├── services/          # 业务逻辑
-│   ├── models/            # 数据模型
-│   ├── middleware/        # 中间件
-│   └── utils/             # 工具函数
 ├── migrations/            # 数据库迁移文件
 ├── docs/                  # 项目文档
+│   ├── api/               # API文档
+│   ├── tron-api/          # TRON API文档
+│   ├── telegram-bot-api/  # Telegram机器人API文档
+│   └── DONE/              # 已完成功能文档
 ├── deployment/            # 部署相关文件
-├── scripts/               # 脚本文件
-└── tests/                 # 测试文件
+│   ├── scripts/           # 部署脚本
+│   ├── configs/           # 服务器配置
+│   ├── docker/            # Docker配置
+│   └── templates/         # 配置模板
+├── scripts/               # 各类脚本文件
+│   ├── admin/             # 管理员脚本
+│   ├── database/          # 数据库脚本
+│   ├── development/       # 开发脚本
+│   └── maintenance/       # 维护脚本
+├── tests/                 # 测试文件
+│   ├── unit/              # 单元测试
+│   ├── integration/       # 集成测试
+│   ├── e2e/               # 端到端测试
+│   └── fixtures/          # 测试数据
+├── logs/                  # 日志文件
+├── backups/               # 数据库备份
+└── public/                # 静态资源
+    ├── uploads/           # 上传文件
+    └── assets/            # 静态资源
 ```
 
 ### 开发脚本
 
 ```bash
-# 代码检查
+# 开发服务
+pnpm run dev               # 同时启动前端和后端
+pnpm run client:dev        # 启动前端开发服务器
+pnpm run server:dev        # 启动后端开发服务器
+pnpm run restart           # 一键重启所有服务
+
+# 代码检查和类型检查
 pnpm run lint              # ESLint 检查
-pnpm run type-check        # TypeScript 类型检查
-pnpm run check             # 完整检查
+pnpm run lint:fix          # 自动修复ESLint错误
+pnpm run type-check        # 前端TypeScript类型检查
+pnpm run type-check:api    # 后端TypeScript类型检查
+pnpm run check             # Vue组件类型检查
 
 # 测试
 pnpm run test              # 运行测试
-pnpm run test:coverage     # 测试覆盖率
-pnpm run test:ui           # 测试 UI
+pnpm run test:run          # 运行测试（非监听模式）
+pnpm run test:ui           # 测试 UI界面
+pnpm run test:coverage     # 测试覆盖率报告
+pnpm run test:unit         # 运行单元测试
+pnpm run test:integration  # 运行集成测试
+pnpm run test:watch        # 监听模式运行测试
 
-# 数据库
+# 数据库管理
+pnpm run db:create         # 创建数据库
+pnpm run db:setup          # 创建数据库并运行迁移
 pnpm run migrate           # 运行迁移
 pnpm run migrate:status    # 迁移状态
 pnpm run migrate:rollback  # 回滚迁移
+pnpm run migrate:sync      # 同步迁移文件
+pnpm run migrate:sync:dry  # 干运行同步迁移
 
-# 构建
+# 构建和预览
 pnpm run build             # 构建生产版本
 pnpm run preview           # 预览构建结果
+
+# 代码注释管理
+pnpm run comments:apply    # 应用中文注释
+pnpm run comments:verify   # 验证注释
+pnpm run comments:setup    # 设置注释系统
 ```
 
 ### 代码规范
@@ -316,26 +402,63 @@ pnpm run test:coverage
 tests/
 ├── unit/                  # 单元测试
 ├── integration/           # 集成测试
+├── e2e/                   # 端到端测试
 ├── fixtures/              # 测试数据
-└── helpers/               # 测试工具
+├── mocks/                 # 模拟数据
+├── setup/                 # 测试设置
+├── utils/                 # 测试工具
+└── setup.ts               # 全局测试配置
 ```
+
+### 测试覆盖率要求
+
+- **全局覆盖率**: 80%
+- **分支覆盖率**: 80%
+- **函数覆盖率**: 80%
+- **语句覆盖率**: 80%
 
 ## 📊 监控与日志
 
 ### 日志系统
 
 - **日志级别**: error, warn, info, debug
-- **日志文件**: `logs/app.log`
-- **日志轮转**: 按日期和大小自动轮转
+- **日志文件**: 
+  - 应用日志: `logs/app-YYYY-MM-DD.log`
+  - 后端日志: `logs/backend.log`
+  - 前端日志: `logs/frontend.log`
+  - 机器人日志: `logs/bots/`
+- **日志轮转**: 按日期自动轮转，自动清理策略
 - **结构化日志**: JSON 格式便于分析
+- **日志管理**: LogRotationManager 统一管理
 
 ### 监控指标
 
-- 系统资源使用率
-- API 响应时间
-- 数据库连接状态
-- Redis 缓存命中率
-- 业务关键指标
+- **系统资源监控**
+  - CPU、内存、磁盘使用率
+  - 网络流量和连接状态
+  - 进程健康状态
+
+- **应用性能监控**
+  - API 响应时间
+  - 请求成功率和错误率
+  - 并发连接数
+  - 服务可用性
+
+- **数据库监控**
+  - PostgreSQL 连接状态
+  - 查询性能和慢查询
+  - 数据库锁和死锁
+
+- **缓存监控**
+  - Redis 缓存命中率
+  - 内存使用情况
+  - 连接池状态
+
+- **业务监控**
+  - 质押操作成功率
+  - 机器人服务状态
+  - 订单处理效率
+  - TRON网络连接状态
 
 ## 🤝 贡献指南
 
@@ -403,6 +526,10 @@ type(scope): description
 <div align="center">
 
 **⭐ 如果这个项目对你有帮助，请给我们一个 Star！**
+
+**🔧 当前版本**: v1.0.0  
+**📅 最后更新**: 2025年9月  
+**💻 活跃维护**: ✅ 持续更新中
 
  Made with ❤️ by TRON Energy Rental Team
 
