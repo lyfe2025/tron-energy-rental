@@ -171,6 +171,7 @@
       :account-name="stakeData.selectedAccount.value.name"
       @close="stakeData.showStakeModal.value = false"
       @success="stakeOperations.onOperationSuccess"
+      @open-delegate="handleOpenDelegateFromStake"
     />
 
     <!-- 解质押模态框 -->
@@ -235,6 +236,16 @@ const handleShowDelegate = () => {
   console.log('  - currentNetworkId:', !!stakeData.currentNetworkId.value)
   console.log('  - selectedAccount:', !!stakeData.selectedAccount.value)
   console.log('  - 最终显示条件:', stakeData.showDelegateModal.value && stakeData.currentNetworkId.value && stakeData.selectedAccount.value)
+}
+
+// 从质押成功弹窗打开代理模态框
+const handleOpenDelegateFromStake = () => {
+  console.log('🎯 [Index] 从质押成功弹窗接收到 openDelegate 事件')
+  // 关闭质押模态框
+  stakeData.showStakeModal.value = false
+  // 打开代理模态框
+  stakeData.showDelegateModal.value = true
+  console.log('🎯 [Index] 质押模态框已关闭，代理模态框已打开')
 }
 
 // 监听路由变化

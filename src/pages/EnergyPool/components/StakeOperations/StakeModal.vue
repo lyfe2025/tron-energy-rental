@@ -290,6 +290,7 @@ import TransactionConfirmModal from './TransactionConfirmModal.vue'
 interface Emits {
   close: []
   success: []
+  openDelegate: []
 }
 
 const props = defineProps<StakeOperationProps>()
@@ -509,18 +510,20 @@ const handleViewTransaction = (hash: string) => {
 }
 
 const handleVoteReward = () => {
-  // 跳转到投票页面或打开投票模态框
+  // 显示待开发提示
   showSuccessModal.value = false
   successData.value = null
-  // TODO: 实现投票功能导航
-  console.log('跳转到投票页面')
+  // 显示待开发提示消息
+  alert('投票获取奖励功能正在开发中，敬请期待！')
+  console.log('投票获取奖励功能 - 待开发')
 }
 
 const handleDelegateResource = () => {
-  // 打开资源代理模态框
+  // 关闭成功弹窗，打开资源代理模态框
   showSuccessModal.value = false
   successData.value = null
-  // TODO: 实现资源代理功能
-  console.log('打开资源代理功能')
+  // 发出事件给父组件，让父组件打开代理资源弹窗
+  emit('openDelegate')
+  console.log('发出openDelegate事件，打开资源代理功能')
 }
 </script>
