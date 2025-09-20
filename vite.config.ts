@@ -70,15 +70,22 @@ export default defineConfig(({ mode }) => {
           secure: false,
           ws: true,
           configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, _res) => {
-              console.log('proxy error', err);
+            proxy.on('error', (err, req, _res) => {
+              // 只记录错误，不记录正常请求
+              console.error(`[Proxy Error] ${req.method} ${req.url}:`, err.message);
             });
-            proxy.on('proxyReq', (proxyReq, req, _res) => {
-              console.log('Sending Request to the Target:', req.method, req.url);
-            });
-            proxy.on('proxyRes', (proxyRes, req, _res) => {
-              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-            });
+            
+            // 开发环境可以通过环境变量启用详细日志
+            if (process.env.VITE_PROXY_VERBOSE === 'true') {
+              proxy.on('proxyReq', (proxyReq, req, _res) => {
+                console.log(`[Proxy Request] ${req.method} ${req.url}`);
+              });
+              proxy.on('proxyRes', (proxyRes, req, _res) => {
+                const status = proxyRes.statusCode || 0;
+                const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'log';
+                console[level](`[Proxy Response] ${req.method} ${req.url} - ${status}`);
+              });
+            }
           },
         },
         '/uploads': {

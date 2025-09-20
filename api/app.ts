@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import path from 'path';
 import pool from './config/database.js';
+import { apiErrorLogger, requestLogger } from './middleware/requestLogger.js';
 import adminsRoutes from './routes/admins.ts';
 import agentsRoutes from './routes/agents.ts';
 import authRoutes from './routes/auth.ts';
@@ -54,18 +55,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 app.use('/assets', express.static(path.join(process.cwd(), 'public/assets')));
 
-// 全局请求日志中间件（用于调试）
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.includes('/api/bots') && req.method === 'PUT') {
-    console.log(`\n🌐 [全局中间件] 收到机器人PUT请求:`);
-    console.log(`📍 路径: ${req.method} ${req.path}`);
-    console.log(`📋 Body:`, req.body);
-    console.log(`🕐 时间: ${new Date().toLocaleString()}`);
-    console.log(`🔑 认证: ${req.headers.authorization ? '有Token' : '无Token'}`);
-    console.log(`===============================`);
-  }
-  next();
-});
+// 结构化请求日志中间件
+app.use(requestLogger);
 
 // API 路由
 app.use('/api/auth', authRoutes);
@@ -159,6 +150,11 @@ app.use('/api', (req: Request, res: Response): void => {
     ]
   });
 });
+
+/**
+ * API错误日志中间件
+ */
+app.use(apiErrorLogger);
 
 /**
  * error handler middleware

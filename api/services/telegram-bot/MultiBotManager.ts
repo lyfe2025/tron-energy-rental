@@ -3,7 +3,7 @@
  * 管理多个 Telegram 机器人实例的生命周期
  * 支持并发运行、动态添加/删除、状态监控
  */
-import { createBotLogger } from '../../utils/logger.js';
+import { createBotLogger, logOnce, structuredLogger } from '../../utils/logger.js';
 import { configService, type TelegramBotConfig } from '../config/ConfigService.js';
 import { TelegramBotService } from './TelegramBotService.js';
 
@@ -22,6 +22,7 @@ export class MultiBotManager {
   private isInitialized: boolean = false;
   private logger: any;
   private configChangeListener: (() => void) | null = null;
+  private lastInitTime: number = 0;
 
   constructor() {
     this.logger = createBotLogger('MultiBotManager');
@@ -32,19 +33,46 @@ export class MultiBotManager {
    * 初始化所有活跃的机器人
    */
   async initialize(): Promise<void> {
+    const now = Date.now();
+    
+    // 防止频繁重复初始化（5分钟内不重复记录）
+    if (this.isInitialized && now - this.lastInitTime < 5 * 60 * 1000) {
+      return;
+    }
+
     try {
-      this.logger.info('🚀 多机器人管理器开始初始化');
+      // 使用防重复日志，避免频繁启动时的日志噪音
+      logOnce('multibot-manager-init', 'info', '多机器人管理器开始初始化', {
+        category: 'BOT',
+        module: 'MultiBotManager',
+        action: 'initialize'
+      });
       
       // 获取所有活跃的机器人配置
       const activeBots = await configService.getActiveBotConfigs();
       
       if (activeBots.length === 0) {
-        this.logger.warn('⚠️ 未找到活跃的机器人配置');
+        logOnce('multibot-manager-no-bots', 'warn', '未找到活跃的机器人配置', {
+          category: 'BOT',
+          module: 'MultiBotManager',
+          action: 'initialize'
+        });
         this.isInitialized = true;
+        this.lastInitTime = now;
         return;
       }
 
-      this.logger.info(`📋 发现 ${activeBots.length} 个活跃机器人配置`);
+      // 只在bot数量变化时记录
+      const currentBotCount = this.botInstances.size;
+      if (activeBots.length !== currentBotCount) {
+        structuredLogger.bot.start(`MultiBotManager`, {
+          module: 'MultiBotManager',
+          context: {
+            activeBotCount: activeBots.length,
+            previousBotCount: currentBotCount
+          }
+        });
+      }
 
       // 并发初始化所有机器人
       const initPromises = activeBots.map(botConfig => 
@@ -63,16 +91,33 @@ export class MultiBotManager {
         } else {
           failureCount++;
           const botConfig = activeBots[index];
-          this.logger.error(`❌ 机器人 ${botConfig.botName} 初始化失败:`, result.reason);
+          structuredLogger.bot.error(botConfig.botName, result.reason as Error, {
+            module: 'MultiBotManager',
+            action: 'initialize',
+            context: { botId: botConfig.id }
+          });
         }
       });
 
-      this.logger.info(`✅ 多机器人管理器初始化完成: ${successCount} 成功, ${failureCount} 失败`);
+      // 只在结果有意义时记录（有失败或首次成功）
+      if (failureCount > 0 || !this.isInitialized) {
+        structuredLogger.business.info('initialize', 
+          `多机器人管理器初始化完成: ${successCount} 成功, ${failureCount} 失败`, {
+          module: 'MultiBotManager',
+          context: { successCount, failureCount, totalCount: activeBots.length }
+        });
+      }
+
       this.isInitialized = true;
+      this.lastInitTime = now;
 
     } catch (error) {
-      this.logger.error('❌ 多机器人管理器初始化失败:', error);
-      this.isInitialized = true; // 标记为已初始化，避免无限等待
+      structuredLogger.bot.error('MultiBotManager', error as Error, {
+        module: 'MultiBotManager',
+        action: 'initialize'
+      });
+      this.isInitialized = true;
+      this.lastInitTime = now;
       throw error;
     }
   }
@@ -82,7 +127,21 @@ export class MultiBotManager {
    */
   private async createBotInstance(botConfig: TelegramBotConfig): Promise<BotInstance> {
     try {
-      this.logger.info(`🔧 创建机器人实例: ${botConfig.botName} (${botConfig.id})`);
+      // 检查是否已存在该机器人实例，避免重复创建日志
+      const existingInstance = this.botInstances.get(botConfig.id);
+      if (existingInstance && existingInstance.status === 'running') {
+        return existingInstance;
+      }
+
+      // 只在实际创建新实例时记录，并使用结构化日志
+      structuredLogger.bot.start(botConfig.botName, {
+        module: 'MultiBotManager',
+        action: 'create_instance',
+        context: {
+          botId: botConfig.id,
+          workMode: botConfig.workMode
+        }
+      });
 
       // 创建机器人服务实例
       const botService = new TelegramBotService({
@@ -111,11 +170,23 @@ export class MultiBotManager {
       // 添加到管理器
       this.botInstances.set(botConfig.id, botInstance);
 
-      this.logger.info(`✅ 机器人实例已创建并启动: ${botConfig.botName}`);
+      // 使用防重复日志，避免频繁重启时的噪音
+      logOnce(`bot-instance-ready-${botConfig.id}`, 'info', 
+        `机器人实例已创建并启动: ${botConfig.botName}`, {
+        category: 'BOT',
+        module: 'MultiBotManager',
+        action: 'instance_ready',
+        context: { botId: botConfig.id }
+      });
+
       return botInstance;
 
     } catch (error) {
-      this.logger.error(`❌ 创建机器人实例失败: ${botConfig.botName}`, error);
+      structuredLogger.bot.error(botConfig.botName, error as Error, {
+        module: 'MultiBotManager',
+        action: 'create_instance',
+        context: { botId: botConfig.id }
+      });
       throw error;
     }
   }

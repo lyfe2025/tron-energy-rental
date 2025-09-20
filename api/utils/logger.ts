@@ -2,10 +2,10 @@
  * Winston 日志配置
  * 支持分层日志：文件系统存储运行日志，数据库存储业务事件
  */
+import fs from 'fs';
+import path from 'path';
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import path from 'path';
-import fs from 'fs';
 
 // 日志级别定义
 export const LOG_LEVELS = {
@@ -17,6 +17,21 @@ export const LOG_LEVELS = {
 
 // 日志级别类型
 export type LogLevel = keyof typeof LOG_LEVELS;
+
+// 日志分类定义
+export const LOG_CATEGORIES = {
+  SYSTEM: 'SYSTEM',      // 系统启动、关闭、配置变更
+  API: 'API',            // API请求响应
+  BOT: 'BOT',            // 机器人相关操作
+  TRON: 'TRON',          // TRON网络交互
+  DATABASE: 'DATABASE',   // 数据库操作
+  CACHE: 'CACHE',        // 缓存操作
+  SCHEDULER: 'SCHEDULER', // 定时任务
+  SECURITY: 'SECURITY',   // 安全相关
+  BUSINESS: 'BUSINESS'    // 业务逻辑
+} as const;
+
+export type LogCategory = keyof typeof LOG_CATEGORIES;
 
 // 业务事件类型（需要存储到数据库）
 export const BUSINESS_EVENTS = [
@@ -30,6 +45,51 @@ export const BUSINESS_EVENTS = [
 ] as const;
 
 export type BusinessEventType = typeof BUSINESS_EVENTS[number];
+
+// 扩展的日志元数据接口
+export interface LogMetadata {
+  category?: LogCategory;
+  module?: string;
+  action?: string;
+  userId?: string;
+  requestId?: string;
+  duration?: number;
+  error?: {
+    code?: string;
+    stack?: string;
+  };
+  context?: Record<string, any>;
+}
+
+// 结构化日志格式化器
+const structuredFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.errors({ stack: true }),
+  winston.format.printf(({ timestamp, level, message, category, module, action, ...meta }) => {
+    const logEntry: any = {
+      timestamp,
+      level,
+      message,
+      ...(category && { category }),
+      ...(module && { module }),
+      ...(action && { action }),
+      ...(Object.keys(meta).length > 0 && { meta })
+    };
+    return JSON.stringify(logEntry);
+  })
+);
+
+// 控制台格式化器（开发环境）
+const consoleFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'HH:mm:ss' }),
+  winston.format.colorize(),
+  winston.format.printf(({ timestamp, level, message, category, module, action }) => {
+    const categoryPrefix = category ? `[${category}]` : '';
+    const modulePrefix = module ? `[${module}]` : '';
+    const actionPrefix = action ? `[${action}]` : '';
+    return `${timestamp} ${level}: ${categoryPrefix}${modulePrefix}${actionPrefix} ${message}`;
+  })
+);
 
 // 确保日志目录存在
 function ensureLogDirectory(botId: string): string {
@@ -46,37 +106,35 @@ export function createBotLogger(botId: string): winston.Logger {
   
   return winston.createLogger({
     levels: LOG_LEVELS,
-    format: winston.format.combine(
-      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      winston.format.errors({ stack: true }),
-      winston.format.json()
-    ),
+    format: structuredFormat,
     transports: [
       // 运行日志 - 按日期轮转
       new DailyRotateFile({
         filename: path.join(logDir, 'runtime-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
-        maxSize: '20m',
-        maxFiles: '14d', // 保留14天
-        level: 'debug',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json()
-        )
+        maxSize: '10m',
+        maxFiles: '7d', // 机器人日志保留7天
+        level: 'info', // 只记录info及以上级别
+        format: structuredFormat
       }),
       
       // 错误日志 - 单独文件
       new DailyRotateFile({
         filename: path.join(logDir, 'error-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
-        maxSize: '20m',
+        maxSize: '10m',
         maxFiles: '30d', // 错误日志保留更久
         level: 'error',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json()
-        )
-      })
+        format: structuredFormat
+      }),
+      
+      // 开发环境下输出到控制台
+      ...(process.env.NODE_ENV === 'development' ? [
+        new winston.transports.Console({
+          level: 'debug',
+          format: consoleFormat
+        })
+      ] : [])
     ]
   });
 }
@@ -84,28 +142,32 @@ export function createBotLogger(botId: string): winston.Logger {
 // 全局应用日志记录器
 export const appLogger = winston.createLogger({
   levels: LOG_LEVELS,
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
+  format: structuredFormat,
   transports: [
-    // 应用运行日志
+    // 应用运行日志 - 分类存储
     new DailyRotateFile({
       filename: path.join(process.cwd(), 'logs', 'app-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d',
-      level: 'info'
+      level: 'info',
+      format: structuredFormat
+    }),
+    
+    // 错误日志单独存储
+    new DailyRotateFile({
+      filename: path.join(process.cwd(), 'logs', 'app-error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '10m',
+      maxFiles: '30d',
+      level: 'error',
+      format: structuredFormat
     }),
     
     // 控制台输出（开发环境）
     new winston.transports.Console({
-      level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
+      level: process.env.NODE_ENV === 'development' ? 'debug' : 'warn',
+      format: consoleFormat
     })
   ]
 });
@@ -198,6 +260,130 @@ export async function readLogFile(filePath: string): Promise<Array<{timestamp: s
     appLogger.error(`读取日志文件失败 ${filePath}:`, error);
     return [];
   }
+}
+
+// 结构化日志辅助函数
+export const structuredLogger = {
+  // 系统日志
+  system: {
+    info: (message: string, meta?: LogMetadata) => 
+      appLogger.info(message, { category: LOG_CATEGORIES.SYSTEM, ...meta }),
+    warn: (message: string, meta?: LogMetadata) => 
+      appLogger.warn(message, { category: LOG_CATEGORIES.SYSTEM, ...meta }),
+    error: (message: string, meta?: LogMetadata) => 
+      appLogger.error(message, { category: LOG_CATEGORIES.SYSTEM, ...meta })
+  },
+  
+  // API日志
+  api: {
+    request: (method: string, path: string, meta?: LogMetadata) => 
+      appLogger.info(`${method} ${path}`, { category: LOG_CATEGORIES.API, action: 'request', ...meta }),
+    response: (method: string, path: string, status: number, duration?: number, meta?: LogMetadata) => 
+      appLogger.info(`${method} ${path} - ${status}`, { 
+        category: LOG_CATEGORIES.API, 
+        action: 'response', 
+        duration,
+        ...meta 
+      }),
+    error: (method: string, path: string, error: Error, meta?: LogMetadata) => 
+      appLogger.error(`${method} ${path} - Error: ${error.message}`, { 
+        category: LOG_CATEGORIES.API, 
+        action: 'error',
+        error: { code: error.name, stack: error.stack },
+        ...meta 
+      })
+  },
+  
+  // 机器人日志
+  bot: {
+    start: (botId: string, meta?: LogMetadata) => 
+      appLogger.info(`Bot started: ${botId}`, { category: LOG_CATEGORIES.BOT, action: 'start', ...meta }),
+    stop: (botId: string, meta?: LogMetadata) => 
+      appLogger.info(`Bot stopped: ${botId}`, { category: LOG_CATEGORIES.BOT, action: 'stop', ...meta }),
+    error: (botId: string, error: Error, meta?: LogMetadata) => 
+      appLogger.error(`Bot error: ${botId} - ${error.message}`, { 
+        category: LOG_CATEGORIES.BOT, 
+        action: 'error',
+        error: { code: error.name, stack: error.stack },
+        ...meta 
+      })
+  },
+  
+  // TRON网络日志
+  tron: {
+    transaction: (txId: string, action: string, meta?: LogMetadata) => 
+      appLogger.info(`TRON ${action}: ${txId}`, { category: LOG_CATEGORIES.TRON, action, ...meta }),
+    error: (action: string, error: Error, meta?: LogMetadata) => 
+      appLogger.error(`TRON ${action} failed: ${error.message}`, { 
+        category: LOG_CATEGORIES.TRON, 
+        action: 'error',
+        error: { code: error.name, stack: error.stack },
+        ...meta 
+      })
+  },
+  
+  // 数据库日志
+  database: {
+    query: (sql: string, duration?: number, meta?: LogMetadata) => 
+      appLogger.debug(`Database query executed`, { 
+        category: LOG_CATEGORIES.DATABASE, 
+        action: 'query',
+        duration,
+        context: { sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '') },
+        ...meta 
+      }),
+    error: (sql: string, error: Error, meta?: LogMetadata) => 
+      appLogger.error(`Database query failed: ${error.message}`, { 
+        category: LOG_CATEGORIES.DATABASE, 
+        action: 'error',
+        error: { code: error.name, stack: error.stack },
+        context: { sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '') },
+        ...meta 
+      })
+  },
+  
+  // 业务日志
+  business: {
+    info: (action: string, message: string, meta?: LogMetadata) => 
+      appLogger.info(message, { category: LOG_CATEGORIES.BUSINESS, action, ...meta }),
+    warn: (action: string, message: string, meta?: LogMetadata) => 
+      appLogger.warn(message, { category: LOG_CATEGORIES.BUSINESS, action, ...meta }),
+    error: (action: string, error: Error, meta?: LogMetadata) => 
+      appLogger.error(`Business error in ${action}: ${error.message}`, { 
+        category: LOG_CATEGORIES.BUSINESS, 
+        action: 'error',
+        error: { code: error.name, stack: error.stack },
+        ...meta 
+      })
+  }
+};
+
+// 性能监控日志
+export function logPerformance(operation: string, startTime: number, meta?: LogMetadata): void {
+  const duration = Date.now() - startTime;
+  const level = duration > 5000 ? 'warn' : duration > 1000 ? 'info' : 'debug';
+  
+  appLogger[level](`Performance: ${operation} completed in ${duration}ms`, {
+    category: LOG_CATEGORIES.SYSTEM,
+    action: 'performance',
+    duration,
+    ...meta
+  });
+}
+
+// 防重复日志（避免同样的错误频繁记录）
+const logCache = new Map<string, number>();
+export function logOnce(key: string, level: LogLevel, message: string, meta?: LogMetadata): void {
+  const now = Date.now();
+  const lastLogged = logCache.get(key);
+  
+  // 如果同样的日志在5分钟内已经记录过，则跳过
+  if (lastLogged && now - lastLogged < 5 * 60 * 1000) {
+    return;
+  }
+  
+  logCache.set(key, now);
+  appLogger[level](message, meta);
 }
 
 // 日志轮转管理器
