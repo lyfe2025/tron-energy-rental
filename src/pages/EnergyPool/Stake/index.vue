@@ -87,10 +87,11 @@
       <!-- 质押操作 -->
       <div class="mb-6">
         <StakeOperations
+          :overview="realTimeAccountData.realTimeData.value?.stakeStatus"
           @show-stake="stakeData.showStakeModal.value = true"
           @show-unstake="stakeData.showUnstakeModal.value = true"
           @show-delegate="handleShowDelegate"
-          @handle-withdraw="stakeOperations.handleWithdraw"
+          @handle-withdraw="handleWithdrawTrx"
         />
       </div>
 
@@ -195,15 +196,135 @@
       @close="stakeData.showDelegateModal.value = false"
       @success="stakeOperations.onOperationSuccess"
     />
+
+    <!-- 提取TRX确认弹窗 -->
+    <div v-if="showWithdrawConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <!-- 弹窗头部 -->
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">提取TRX</h3>
+          <button @click="cancelWithdrawTrx" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 提取图标 -->
+        <div class="flex justify-center mb-6">
+          <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 提取信息 -->
+        <div class="text-center mb-6">
+          <p class="text-gray-700 text-base">
+            您在质押 2.0 有 <span class="font-bold text-gray-900">{{ realTimeAccountData.formatStakeTrx(realTimeAccountData.realTimeData.value?.stakeStatus?.withdrawableTrx || 0) }}</span> 质押本金待提取，确认提取？
+          </p>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="flex space-x-3">
+          <button
+            @click="cancelWithdrawTrx"
+            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="confirmWithdrawTrx"
+            :disabled="withdrawLoading"
+            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <span v-if="withdrawLoading">提取中...</span>
+            <span v-else>确认</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提取结果弹窗 -->
+    <div 
+      v-if="showWithdrawResult" 
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="text-center">
+          <!-- 成功或失败图标 -->
+          <div class="flex justify-center mb-6">
+            <div 
+              class="w-16 h-16 rounded-full flex items-center justify-center"
+              :class="withdrawResult.success 
+                ? 'bg-green-100' 
+                : 'bg-red-100'"
+            >
+              <!-- 成功图标 -->
+              <svg 
+                v-if="withdrawResult.success" 
+                class="w-8 h-8 text-green-600" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <!-- 失败图标 -->
+              <svg 
+                v-else 
+                class="w-8 h-8 text-red-600" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- 标题 -->
+          <h3 
+            class="text-lg font-semibold mb-4"
+            :class="withdrawResult.success 
+              ? 'text-green-900' 
+              : 'text-red-900'"
+          >
+            {{ withdrawResult.title }}
+          </h3>
+          
+          <!-- 内容 -->
+          <p class="text-gray-700 text-base mb-6">
+            {{ withdrawResult.message }}
+          </p>
+          
+          <!-- 交易ID（如果有） -->
+          <div v-if="withdrawResult.success && withdrawResult.txid" class="mb-6 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">交易ID:</p>
+            <p class="text-xs font-mono text-gray-800 break-all">{{ withdrawResult.txid }}</p>
+          </div>
+          
+          <!-- 确认按钮 -->
+          <button
+            @click="showWithdrawResult = false"
+            class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            知道了
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getNetworkTypeText } from '@/utils/network'
 import { RefreshCw } from 'lucide-vue-next'
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import AccountSelector from '../components/AccountSelector.vue'
 // 使用新的质押操作组件结构
+import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData'
 import {
   DelegateModal,
   StakeModal,
@@ -219,33 +340,102 @@ import { useStakeOperations } from './composables/useStakeOperations'
 // 使用分离的composables
 const stakeData = useStakeData()
 const stakeOperations = useStakeOperations(stakeData)
+const realTimeAccountData = useRealTimeAccountData()
+
+// 提取TRX确认弹窗状态
+const showWithdrawConfirm = ref(false)
+const withdrawLoading = ref(false)
+
+// 提取结果提示弹窗状态
+const showWithdrawResult = ref(false)
+const withdrawResult = ref<{
+  success: boolean
+  title: string
+  message: string
+  txid?: string
+}>({
+  success: false,
+  title: '',
+  message: ''
+})
+
+// 处理提取TRX
+const handleWithdrawTrx = () => {
+  const withdrawableTrx = realTimeAccountData.realTimeData.value?.stakeStatus?.withdrawableTrx || 0
+  
+  if (withdrawableTrx > 0) {
+    showWithdrawConfirm.value = true
+  } else {
+    console.warn('⚠️ [Index] 没有可提取的TRX')
+  }
+}
+
+// 确认提取TRX
+const confirmWithdrawTrx = async () => {
+  if (!stakeData.selectedAccount.value?.tron_address) {
+    console.error('❌ [Index] 没有选中的账户地址')
+    return
+  }
+
+  try {
+    withdrawLoading.value = true
+    console.log('🔄 [Index] 开始提取TRX...')
+    
+    // 使用质押操作的withdrawUnfrozen方法
+    const result = await stakeData.stakeComposable.withdrawUnfrozen(
+      stakeData.selectedAccount.value.tron_address,
+      stakeData.currentNetworkId.value,
+      stakeData.selectedAccount.value.id
+    )
+    
+    if (result) {
+      console.log('✅ [Index] 提取TRX成功', result)
+      showWithdrawConfirm.value = false
+      
+      // 显示成功提示
+      withdrawResult.value = {
+        success: true,
+        title: '提取成功',
+        message: `已成功提取TRX到您的账户${result.txid ? `，交易ID: ${result.txid}` : ''}`,
+        txid: result.txid
+      }
+      showWithdrawResult.value = true
+      
+      // 刷新数据
+      await stakeOperations.refreshData()
+    }
+  } catch (error: any) {
+    console.error('❌ [Index] 提取TRX失败:', error)
+    showWithdrawConfirm.value = false
+    
+    // 显示错误提示
+    withdrawResult.value = {
+      success: false,
+      title: '提取失败',
+      message: error.message || '提取TRX失败，请稍后重试'
+    }
+    showWithdrawResult.value = true
+  } finally {
+    withdrawLoading.value = false
+  }
+}
+
+// 取消提取TRX
+const cancelWithdrawTrx = () => {
+  showWithdrawConfirm.value = false
+}
 
 // 代理模态框处理
 const handleShowDelegate = () => {
-  console.log('🎯 [Index] 接收到 showDelegate 事件')
-  console.log('🎯 [Index] 当前状态检查:')
-  console.log('  - currentNetworkId:', stakeData.currentNetworkId.value)
-  console.log('  - selectedAccount:', stakeData.selectedAccount.value)
-  console.log('  - showDelegateModal (before):', stakeData.showDelegateModal.value)
-  
   stakeData.showDelegateModal.value = true
-  
-  console.log('  - showDelegateModal (after):', stakeData.showDelegateModal.value)
-  console.log('🎯 [Index] DelegateModal 显示条件:')
-  console.log('  - showDelegateModal:', stakeData.showDelegateModal.value)
-  console.log('  - currentNetworkId:', !!stakeData.currentNetworkId.value)
-  console.log('  - selectedAccount:', !!stakeData.selectedAccount.value)
-  console.log('  - 最终显示条件:', stakeData.showDelegateModal.value && stakeData.currentNetworkId.value && stakeData.selectedAccount.value)
 }
 
 // 从质押成功弹窗打开代理模态框
 const handleOpenDelegateFromStake = () => {
-  console.log('🎯 [Index] 从质押成功弹窗接收到 openDelegate 事件')
   // 关闭质押模态框
   stakeData.showStakeModal.value = false
   // 打开代理模态框
   stakeData.showDelegateModal.value = true
-  console.log('🎯 [Index] 质押模态框已关闭，代理模态框已打开')
 }
 
 // 监听路由变化
@@ -261,6 +451,22 @@ watch(
       if (stakeData.stakeComposable.loadOverview && stakeData.selectedAccountId.value) {
         await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)
       }
+    }
+  },
+  { immediate: true }
+)
+
+// 监听账户和网络变化，自动获取实时数据
+watch(
+  () => [stakeData.selectedAccount.value, stakeData.currentNetworkId.value] as const,
+  async ([selectedAccount, networkId]) => {
+    if (selectedAccount?.tron_address && networkId) {
+      await realTimeAccountData.fetchRealTimeData(
+        selectedAccount.tron_address,
+        networkId,
+        false, // 不显示toast提示
+        true   // 包含质押状态
+      )
     }
   },
   { immediate: true }

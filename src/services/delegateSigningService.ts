@@ -23,28 +23,7 @@ class DelegateSigningService {
     networkId: string
   ): Promise<DelegateSigningResult> {
     try {
-      console.log('🔐 [DelegateSigningService] 开始代理资源签名:', {
-        amount: transactionData.amount,
-        resourceType: transactionData.resourceType,
-        receiverAddress: transactionData.receiverAddress,
-        accountAddress: transactionData.accountAddress,
-        enableLockPeriod: transactionData.enableLockPeriod,
-        lockPeriod: transactionData.lockPeriod,
-        networkId,
-        'transactionData.poolId': transactionData.poolId,
-        'transactionData.accountId': transactionData.accountId
-      })
-
-      // 🔧 修复：使用accountId作为poolAccountId，而不是poolId
-      // poolId在某些情况下被错误地当作networkId使用
-      const poolAccountId = transactionData.accountId || transactionData.poolId;
-      
-      console.log('🔍 [DelegateSigningService] 参数修正:', {
-        '原poolId': transactionData.poolId,
-        '原accountId': transactionData.accountId,
-        '最终使用的poolAccountId': poolAccountId,
-        '说明': 'accountId应该是能量池账户ID，poolId可能被误用为networkId'
-      });
+      const poolAccountId = transactionData.accountId || transactionData.poolId
 
       // 构建API调用数据
       const apiData: DelegateOperationData = {
@@ -57,12 +36,8 @@ class DelegateSigningService {
         poolAccountId: poolAccountId
       }
 
-      console.log('🔐 [DelegateSigningService] 调用代理API:', apiData)
-
       // 调用后端API进行代理操作
       const response = await stakeAPI.delegateResource(apiData)
-
-      console.log('🔐 [DelegateSigningService] API响应:', response)
 
       if (response.data.success) {
         const result: DelegateSigningResult = {
@@ -71,7 +46,6 @@ class DelegateSigningService {
           message: response.data.message || '代理资源成功'
         }
 
-        console.log('✅ [DelegateSigningService] 代理成功:', result)
         return result
       } else {
         const errorResult: DelegateSigningResult = {
@@ -176,17 +150,14 @@ class DelegateSigningService {
       const network = networkStore.getNetworkById(networkId)
       
       if (network?.explorer_url) {
-        console.log(`🔗 [DelegateSigningService] 从网络表获取浏览器URL: ${network.explorer_url}`)
         return network.explorer_url
       }
       
       // 如果网络表中没有找到，使用默认URL
-      console.warn(`⚠️ [DelegateSigningService] 网络 ${networkId} 未找到浏览器URL，使用默认主网`)
-      return 'https://tronscan.org' // 默认使用主网
+      return 'https://tronscan.org'
       
     } catch (error) {
-      console.error('❌ [DelegateSigningService] 获取浏览器URL失败:', error)
-      return 'https://tronscan.org' // 出错时使用默认主网
+      return 'https://tronscan.org'
     }
   }
 }

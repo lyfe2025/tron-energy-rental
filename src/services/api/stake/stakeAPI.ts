@@ -300,22 +300,25 @@ export const stakeAPI = {
       '说明': '用户输入资源数量 → 计算所需TRX → 转换为SUN传递给TRON API'
     });
     
+    // 检查是否启用了锁定期（通过检查lockPeriod是否为有效值）
+    const hasLockPeriod = data.lockPeriod !== undefined && data.lockPeriod !== null && data.lockPeriod > 0;
+    
     // 转换参数格式以匹配后端期望
     const requestData: any = {
       ownerAddress: data.accountAddress,
       receiverAddress: data.toAddress,
       balance: balanceInSun,               // 🔧 修正：使用正确转换的SUN数量
       resource: data.resourceType,
-      lock: data.lockPeriod ? true : false,
+      lock: hasLockPeriod,                 // 🔧 修正：基于是否有有效的锁定期来设置
       networkId: data.networkId,           // 网络ID (tron_networks表)
       accountId: data.poolAccountId        // 能量池账户ID (energy_pools表)
     }
     
     // 只有在启用锁定期时才传递 lockPeriod 参数
-    if (data.lockPeriod && data.lockPeriod > 0) {
+    if (hasLockPeriod) {
       requestData.lockPeriod = data.lockPeriod
     }
-    // 如果是永久代理，不传递 lockPeriod 参数，让后端使用默认值
+    // 🔧 修正：永久代理时，lock=false且不传递lockPeriod参数
     
     // 调试信息
     console.log('🔍 [StakeAPI] 代理资源请求参数:', {
@@ -388,7 +391,7 @@ export const stakeAPI = {
   /**
    * 提取已解质押资金
    */
-  withdrawUnfrozen: (data: { poolId: string }) => 
+  withdrawUnfrozen: (data: { ownerAddress: string, networkId?: string, accountId?: string }) => 
     apiClient.post<ApiResponse<WithdrawResult>>('/api/energy-pool/stake/withdraw', data),
 
   /**

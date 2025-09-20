@@ -47,11 +47,11 @@ export function useStakeOperations() {
   }
 
   // 提取已解质押资金
-  const withdrawUnfrozen = async (poolId: string) => {
+  const withdrawUnfrozen = async (ownerAddress: string, networkId?: string, accountId?: string) => {
     try {
       loading.value = true
       error.value = null
-      const response = await stakeAPI.withdrawUnfrozen({ poolId })
+      const response = await stakeAPI.withdrawUnfrozen({ ownerAddress, networkId, accountId })
       if (response.data.success) {
         return response.data.data
       } else {

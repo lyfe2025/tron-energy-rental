@@ -68,7 +68,9 @@ export class DelegationService {
 
       // 构建交易 - 统一使用Base58地址格式 (T开头格式，如TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g)
       const balanceStr = balance.toString();          // 确保 balance 是字符串格式
-      const lockPeriodNum = lockPeriod || 0;          // 确保 lockPeriod 是数字格式
+      
+      // 🔧 修正：保持 lockPeriod 的原始状态，不强制转换为0
+      const lockPeriodNum = lockPeriod;  // 保持 undefined/null/number 的原始状态
 
       // 确保地址为Base58格式
       const ownerBase58 = this.convertToBase58Address(ownerAddress);
@@ -82,45 +84,50 @@ export class DelegationService {
         resource: resource,
         lock: lock,
         lockPeriod: lockPeriodNum,
-        lockPeriodType: typeof lockPeriodNum
+        lockPeriodType: typeof lockPeriodNum,
+        lockPeriodIsUndefined: lockPeriodNum === undefined
       });
 
       // 根据TronWeb官方文档，delegateResource的正确参数顺序是：
       // delegateResource(amount, receiverAddress, resource, address, lock, options)
       let transaction;
       
-      if (lock && lockPeriodNum > 0) {
+      // 🔧 修正：正确判断是否启用锁定期
+      if (lock && lockPeriodNum !== undefined && lockPeriodNum !== null && lockPeriodNum > 0) {
         // 🔧 单位转换：将小时转换为区块数 (TRON API要求)
         // 用户输入：小时数 → API期望：区块数 (每区块约3秒)
         const lockPeriodInBlocks = Math.round(lockPeriodNum * 1200);
         
-        console.log('🔧 [DelegationService] 单位转换:', {
+        console.log('🔧 [DelegationService] 限期代理模式，单位转换:', {
           输入的小时数: lockPeriodNum,
           转换后的区块数: lockPeriodInBlocks,
           转换公式: 'hours × 1200 = blocks'
         });
         
-        // 限期代理 - 传递锁定期选项和visible参数
+        // 限期代理 - 正确的参数顺序
         transaction = await this.tronWeb.transactionBuilder.delegateResource(
-          balanceStr,                                   // amount (string) - 金额，单位为SUN
+          parseInt(balanceStr),                         // amount (number) - 金额，单位为SUN
           receiverBase58,                               // receiverAddress (string) - 接收方地址，Base58格式
           resource,                                     // resource (string) - ENERGY 或 BANDWIDTH  
           ownerBase58,                                  // address (string) - 委托方地址，Base58格式
-          lock,                                        // lock (boolean) - 是否锁定
-          { 
-            lockPeriod: lockPeriodInBlocks,            // lock_period (int) - 锁定期，单位为区块数
-            visible: true                              // visible - 指定使用Base58地址格式
-          }
+          true,                                        // lock (boolean) - 限期代理设为true
+          lockPeriodInBlocks,                          // lockPeriod (number) - 锁定期，单位为区块数
+          { visible: true }                            // options - 指定使用Base58地址格式
         );
       } else {
-        // 永久代理 - 传递visible参数
+        // 永久代理 - 正确传递所有7个参数位置
+        console.log('🔧 [DelegationService] 永久代理模式，明确传递所有参数位置');
+        
+        // 根据TronWeb源码，方法签名：delegateResource(amount, receiverAddress, resource, address, lock, lockPeriod?, options)
+        // 必须明确传递 undefined 作为 lockPeriod，然后传递 options
         transaction = await this.tronWeb.transactionBuilder.delegateResource(
-          balanceStr,                                   // amount (string) - 金额，单位为SUN
+          parseInt(balanceStr),                         // amount (number) - 金额，单位为SUN
           receiverBase58,                               // receiverAddress (string) - 接收方地址，Base58格式
           resource,                                     // resource (string) - ENERGY 或 BANDWIDTH  
           ownerBase58,                                  // address (string) - 委托方地址，Base58格式
           false,                                       // lock (boolean) - 永久代理设为false
-          { visible: true }                            // options - 指定使用Base58地址格式
+          undefined,                                   // lockPeriod (undefined) - 明确传递undefined
+          { visible: true }                            // options - 第7个参数
         );
       }
 

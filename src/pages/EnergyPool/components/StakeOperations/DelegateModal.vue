@@ -129,7 +129,7 @@
 
   <!-- 成功弹窗 -->
   <DelegateSuccessModal
-    v-if="showSuccessModal && transactionData"
+    v-if="showSuccessModal"
     :transactionData="transactionData"
     :txid="successTxid"
     :explorerUrl="successExplorerUrl"
@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import type { DelegateOperationProps } from './shared/types'
 import { buttonClasses, modalClasses, useStakeModal } from './shared/useStakeModal'
@@ -209,30 +209,6 @@ const {
   handleSubmit
 } = useDelegateModal(props, state, isFormValid, emit)
 
-console.log('🎯 [DelegateModal] 业务逻辑初始化完成')
-
-// 调试按钮状态
-watch(() => ({
-  loading: state.value.loading,
-  networkParams: !!state.value.networkParams,
-  receiverAddress: !!form.value.receiverAddress,
-  amount: !!form.value.amount,
-  amountError: amountError.value,
-  enableLockPeriod: form.value.enableLockPeriod,
-  lockPeriodError: !!lockPeriodError.value,
-  lockPeriod: !!form.value.lockPeriod,
-  isValidatingAddress: isValidatingAddress.value,
-  addressValidation: !!addressValidation.value,
-  addressValid: addressValidation.value?.isValid
-}), (newVal) => {
-  console.log('🔍 [DelegateModal] 按钮状态检查:', newVal)
-  const isButtonDisabled = state.value.loading || !state.value.networkParams || 
-    !form.value.receiverAddress || !form.value.amount || 
-    (amountError.value && !amountError.value.startsWith('✅')) || 
-    (form.value.enableLockPeriod && (!!lockPeriodError.value || !form.value.lockPeriod)) || 
-    isValidatingAddress.value || !addressValidation.value || !addressValidation.value.isValid
-  console.log('🚫 [DelegateModal] 按钮是否禁用:', isButtonDisabled)
-}, { deep: true })
 
 // 交易确认模态框状态
 const showTransactionConfirm = ref(false)
@@ -242,6 +218,7 @@ const transactionData = ref<DelegateTransactionData | null>(null)
 const showSuccessModal = ref(false)
 const successTxid = ref<string>()
 const successExplorerUrl = ref<string>()
+
 
 // 包装原始的 handleSubmit，先显示交易确认
 const handleDelegateSubmit = async () => {
@@ -277,14 +254,6 @@ const handleDelegateSubmit = async () => {
   state.value.error = ''
 
   // 准备交易数据
-  console.log('🎯 [DelegateModal] 准备交易数据 - Props分析:', {
-    'props.poolId': props.poolId,
-    'props.accountId': props.accountId,
-    'props.accountAddress': props.accountAddress,
-    'props.accountName': props.accountName,
-    '说明': 'poolId和accountId的含义需要明确区分'
-  });
-  
   transactionData.value = {
     amount: form.value.amount,
     resourceType: form.value.resourceType,
@@ -295,8 +264,6 @@ const handleDelegateSubmit = async () => {
     poolId: props.poolId,
     accountId: props.accountId
   }
-  
-  console.log('📦 [DelegateModal] 构建的交易数据:', transactionData.value);
 
   // 显示交易确认模态框
   showTransactionConfirm.value = true
@@ -306,12 +273,12 @@ const handleDelegateSubmit = async () => {
 const handleTransactionConfirm = async (confirmedData: DelegateTransactionData) => {
   showTransactionConfirm.value = false
   
+  // 保留交易数据以供成功弹窗使用
+  transactionData.value = confirmedData
+  
   try {
     state.value.loading = true
     state.value.error = ''
-
-    console.log('🚀 [DelegateModal] 开始执行代理交易流程');
-    console.log('📋 [DelegateModal] 收到确认的交易数据:', confirmedData);
 
     // 验证交易数据
     const validationErrors = delegateSigningService.validateTransactionData(confirmedData)
@@ -320,38 +287,14 @@ const handleTransactionConfirm = async (confirmedData: DelegateTransactionData) 
       return
     }
 
-    // 使用真实的签名服务执行代理操作
-    // 🔧 修复：从路由参数获取真实的networkId，不要用poolId代替
+    // 获取网络ID
     const networkId = (route.params.networkId as string) || state.value.networkParams?.networkId
     if (!networkId) {
       state.value.error = '网络ID未找到，请刷新页面重试'
       return
     }
     
-    console.log('🌐 [DelegateModal] 网络ID确认结果:', {
-      '路由参数networkId': route.params.networkId,
-      '网络参数networkId': state.value.networkParams?.networkId,
-      '最终使用networkId': networkId,
-      '来源': route.params.networkId ? '路由参数' : '网络参数'
-    });
-    
-    console.log('🔍 [DelegateModal] Props vs 交易数据对比:', {
-      'Props': {
-        poolId: props.poolId,
-        accountId: props.accountId,
-        accountAddress: props.accountAddress
-      },
-      '交易数据': {
-        poolId: confirmedData.poolId,
-        accountId: confirmedData.accountId,
-        accountAddress: confirmedData.accountAddress
-      },
-      '网络信息': {
-        networkId,
-        networkName: state.value.networkParams?.networkName
-      }
-    });
-    
+    // 执行代理操作
     const result = await delegateSigningService.signDelegateTransaction(confirmedData, networkId)
 
     if (result.success) {
@@ -359,21 +302,11 @@ const handleTransactionConfirm = async (confirmedData: DelegateTransactionData) 
       successTxid.value = result.txid
       successExplorerUrl.value = delegateSigningService.getExplorerUrl(networkId)
       showSuccessModal.value = true
-      
-      // 触发成功事件，让父组件刷新数据
-      emit('success')
-      
-      console.log('✅ [DelegateModal] 代理成功:', {
-        txid: result.txid,
-        message: result.message
-      })
     } else {
       // 代理失败，显示错误信息
       state.value.error = result.error || '代理操作失败'
-      console.error('❌ [DelegateModal] 代理失败:', result.error)
     }
   } catch (err: any) {
-    console.error('❌ [DelegateModal] 代理异常:', err)
     state.value.error = err.message || '代理失败，请重试'
   } finally {
     state.value.loading = false
@@ -391,7 +324,9 @@ const handleSuccessModalClose = () => {
   showSuccessModal.value = false
   successTxid.value = undefined
   successExplorerUrl.value = undefined
-  // 关闭成功弹窗时也关闭主模态框
+  
+  // 在成功弹窗关闭时才触发success事件，让父组件刷新数据
+  emit('success')
   emit('close')
 }
 </script>

@@ -33,8 +33,8 @@
 
         <!-- 详细信息 -->
         <div class="text-gray-600 text-sm mb-6">
-          为 <span class="font-mono text-gray-900">{{ formatAddress(transactionData.receiverAddress) }}</span> 
-          代理 {{ formatAmount(transactionData.amount) }} {{ resourceTypeName }}
+          为 <span class="font-mono text-gray-900">{{ formatAddress(transactionData?.receiverAddress || '') }}</span> 
+          代理 {{ formatAmount(transactionData?.amount || '0') }} {{ resourceTypeName }}
         </div>
 
         <!-- 查看交易链接 -->
@@ -82,9 +82,10 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+
 // 计算属性
 const resourceTypeName = computed(() => {
-  return props.transactionData.resourceType === 'ENERGY' ? '能量' : '带宽'
+  return props.transactionData?.resourceType === 'ENERGY' ? '能量' : '带宽'
 })
 
 // 方法
@@ -100,10 +101,9 @@ const formatAmount = (amount: string | number) => {
 
 const viewTransaction = () => {
   if (props.txid && props.explorerUrl) {
-    const url = `${props.explorerUrl}/transaction/${props.txid}`
+    const url = `${props.explorerUrl}/#/transaction/${props.txid}`
     window.open(url, '_blank')
   } else if (props.txid) {
-    // 如果没有提供explorerUrl，使用默认的TRON浏览器
     const url = `https://tronscan.org/#/transaction/${props.txid}`
     window.open(url, '_blank')
   }

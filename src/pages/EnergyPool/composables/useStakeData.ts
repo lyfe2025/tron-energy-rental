@@ -2,15 +2,15 @@ import { stakeAPI } from '@/services/api'
 import type { AccountResources } from '@/services/api/stake/stakeAPI'
 import { reactive, ref } from 'vue'
 import type {
-  AccountInfo,
-  DelegateRecord,
-  DelegateRecordQueryParams,
-  StakePagination,
-  StakeRecord,
-  StakeRecordQueryParams,
-  StakeStatistics,
-  UnfreezeRecord,
-  UnfreezeRecordQueryParams
+    AccountInfo,
+    DelegateRecord,
+    DelegateRecordQueryParams,
+    StakePagination,
+    StakeRecord,
+    StakeRecordQueryParams,
+    StakeStatistics,
+    UnfreezeRecord,
+    UnfreezeRecordQueryParams
 } from '../types/stake.types'
 
 export function useStakeData() {

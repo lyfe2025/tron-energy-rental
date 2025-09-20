@@ -1,11 +1,11 @@
 import { TronGridProvider } from '../../providers/TronGridProvider';
 import type {
-    FormattedStakeRecord,
-    FreezeBalanceV2Params,
-    FreezeOperationResult,
-    OperationParams,
-    ServiceResponse,
-    StakeOverview
+  FormattedStakeRecord,
+  FreezeBalanceV2Params,
+  FreezeOperationResult,
+  OperationParams,
+  ServiceResponse,
+  StakeOverview
 } from '../../types/staking.types';
 import { FreezeBalanceHandler } from './handlers/FreezeBalanceHandler';
 import { FreezeNotificationHandler } from './handlers/FreezeNotificationHandler';

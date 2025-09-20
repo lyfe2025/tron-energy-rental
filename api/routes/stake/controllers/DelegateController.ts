@@ -213,14 +213,19 @@ export class DelegateController {
       let result;
       try {
         console.log('🔨 [步骤4] 开始构建TRON交易');
-        const delegateParams = {
+        const delegateParams: any = {
           ownerAddress,
           receiverAddress,
           balance,
           resource,
-          lock: lock || false,
-          lockPeriod: lockPeriod || 0
+          lock: lock || false
         };
+        
+        // 🔧 修正：只有在启用锁定且提供了有效lockPeriod时才传递
+        if (lock && lockPeriod && lockPeriod > 0) {
+          delegateParams.lockPeriod = lockPeriod;
+        }
+        
         console.log('📦 交易参数:', delegateParams);
         
         console.log('⚡ [步骤5] 执行代理操作 (构建→签名→广播)');

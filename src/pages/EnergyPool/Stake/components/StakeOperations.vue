@@ -55,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
+
 // Props
-defineProps<{
+const props = defineProps<{
   overview?: any
 }>()
 
@@ -70,11 +71,6 @@ const emit = defineEmits<{
 
 // 代理按钮点击处理
 const handleDelegateClick = () => {
-  console.log('🎯 [StakeOperations] 代理资源按钮被点击')
-  console.log('🎯 [StakeOperations] 即将发出 showDelegate 事件')
-  
   emit('showDelegate')
-  
-  console.log('🎯 [StakeOperations] showDelegate 事件已发出')
 }
 </script>

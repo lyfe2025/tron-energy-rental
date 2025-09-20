@@ -45,6 +45,47 @@ export class WithdrawController {
           });
         }
         
+        // 先根据地址获取账户的私钥并设置
+        try {
+          const accountQuery = `
+            SELECT private_key_encrypted 
+            FROM energy_pools 
+            WHERE tron_address = $1 AND status = 'active'
+          `;
+          
+          const accountResult = await query(accountQuery, [ownerAddress]);
+          
+          if (accountResult.rows.length === 0) {
+            return res.status(404).json({
+              success: false,
+              error: 'Account not found or inactive',
+              details: '未找到对应的活跃账户'
+            });
+          }
+          
+          const privateKey = accountResult.rows[0].private_key_encrypted;
+          
+          if (!privateKey || privateKey.length !== 64) {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid private key format',
+              details: '账户私钥格式无效'
+            });
+          }
+          
+          // 直接设置私钥到TronWeb实例
+          tronService['tronWeb'].setPrivateKey(privateKey);
+          console.log('✅ [WithdrawController] 已为地址设置私钥:', ownerAddress.substring(0, 8) + '...');
+          
+        } catch (keyError: any) {
+          console.error('获取账户私钥失败:', keyError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to get account private key',
+            details: keyError.message
+          });
+        }
+        
         // 执行提取
         result = await tronService.withdrawExpireUnfreeze({ ownerAddress });
       } catch (error: any) {
@@ -174,6 +215,51 @@ export class WithdrawController {
               address,
               success: false,
               error: 'No withdrawable funds available'
+            });
+            continue;
+          }
+          
+          // 先设置该地址对应的私钥
+          try {
+            const accountQuery = `
+              SELECT private_key_encrypted 
+              FROM energy_pools 
+              WHERE tron_address = $1 AND status = 'active'
+            `;
+            
+            const accountResult = await query(accountQuery, [address]);
+            
+            if (accountResult.rows.length === 0) {
+              results.push({
+                index: i,
+                address,
+                success: false,
+                error: 'Account not found or inactive'
+              });
+              continue;
+            }
+            
+            const privateKey = accountResult.rows[0].private_key_encrypted;
+            
+            if (!privateKey || privateKey.length !== 64) {
+              results.push({
+                index: i,
+                address,
+                success: false,
+                error: 'Invalid private key format'
+              });
+              continue;
+            }
+            
+            // 设置私钥
+            tronService['tronWeb'].setPrivateKey(privateKey);
+            
+          } catch (keyError: any) {
+            results.push({
+              index: i,
+              address,
+              success: false,
+              error: `Failed to set private key: ${keyError.message}`
             });
             continue;
           }
