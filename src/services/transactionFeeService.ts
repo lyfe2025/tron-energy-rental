@@ -54,7 +54,7 @@ export interface UnstakingFeeParams {
 }
 
 class TransactionFeeService {
-  private readonly BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  private readonly BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
   /**
    * 计算代理交易费用 - 基于TRON官方API

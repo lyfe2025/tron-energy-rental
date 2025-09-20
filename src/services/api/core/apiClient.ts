@@ -1,12 +1,20 @@
 import axios, { type AxiosInstance } from 'axios';
 
-// API基础配置 - 兼容TypeScript编译
+// API基础配置 - 支持同服务器部署
 const getApiBaseUrl = () => {
   // 使用window对象来获取环境变量，避免TypeScript编译错误
   if (typeof window !== 'undefined' && (window as any).__VITE_ENV__) {
-    return (window as any).__VITE_ENV__.VITE_API_BASE_URL || '';
+    return (window as any).__VITE_ENV__.VITE_API_URL || '';
   }
-  // 默认配置
+  
+  // 优化：支持同服务器部署
+  // 如果 VITE_API_URL 明确设置为localhost，说明是同服务器部署，使用相对路径
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl && apiUrl.includes('localhost')) {
+    return ''; // 使用相对路径，由nginx代理
+  }
+  
+  // 默认配置：开发环境用相对路径，生产环境用localhost（向后兼容）
   return process.env.NODE_ENV === 'development' ? '' : 'http://localhost:3001';
 };
 

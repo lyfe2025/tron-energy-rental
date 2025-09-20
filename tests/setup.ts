@@ -40,7 +40,7 @@ global.fetch = vi.fn()
 
 // Mock environment variables
 process.env.NODE_ENV = 'test'
-process.env.API_BASE_URL = 'http://localhost:3001'
+process.env.VITE_API_URL = 'http://localhost:3001'
 
 // Reset all mocks before each test
 beforeEach(() => {

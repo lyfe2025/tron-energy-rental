@@ -29,7 +29,8 @@ export default defineConfig(({ mode }) => {
       }),
       // 根据环境变量控制 Vue DevTools 启用状态
       ...(enableDevTools ? [VueDevTools({
-        launchEditor: 'code'
+        launchEditor: 'code',
+        componentInspector: false, // 禁用组件检查器以减少错误
       })] : []),
       traeBadgePlugin({
         variant: 'dark',
@@ -58,6 +59,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: process.env.VITE_HOST || '0.0.0.0',
       port: parseInt(process.env.VITE_PORT || '5173'),
+      // 完全通过环境变量 VITE_ALLOWED_HOSTS 控制允许访问的主机
+      allowedHosts: process.env.VITE_ALLOWED_HOSTS 
+        ? process.env.VITE_ALLOWED_HOSTS.split(',').map(host => host.trim())
+        : ['localhost', '127.0.0.1'], // 默认只允许本地访问
       proxy: {
         '/api': {
           target: process.env.VITE_API_URL || 'http://localhost:3001',
@@ -77,7 +82,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/uploads': {
-          target: 'http://localhost:3001',
+          target: process.env.VITE_API_URL || 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
         }

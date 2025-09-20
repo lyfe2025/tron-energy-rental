@@ -6,9 +6,12 @@
 // 环境类型定义
 export type Environment = 'development' | 'staging' | 'production'
 
-// 获取当前环境
+// 获取当前环境 - 优先使用 VITE_ENV，回退到 NODE_ENV
 export const getCurrentEnv = (): Environment => {
-  return (import.meta.env.VITE_ENV as Environment) || 'development'
+  // 优先使用自定义的 VITE_ENV，如果没有则使用标准的 NODE_ENV
+  const viteEnv = import.meta.env.VITE_ENV as Environment;
+  const nodeEnv = import.meta.env.NODE_ENV as Environment;
+  return viteEnv || nodeEnv || 'development';
 }
 
 // 环境检查函数

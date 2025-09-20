@@ -1,8 +1,19 @@
-import axios from 'axios'
+import axios from 'axios';
+
+// 获取API基础URL - 与apiClient.ts保持一致
+const getApiBaseUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  // 如果是localhost部署，使用相对路径让nginx代理
+  if (apiUrl && apiUrl.includes('localhost')) {
+    return '/api';
+  }
+  // 其他情况使用完整地址
+  return (apiUrl || 'http://localhost:3001') + '/api';
+};
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -45,4 +56,5 @@ api.interceptors.response.use(
   }
 )
 
-export { api }
+export { api };
+
