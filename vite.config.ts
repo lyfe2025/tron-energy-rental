@@ -46,10 +46,11 @@ export default defineConfig(({ mode }) => {
         crypto: 'crypto-browserify',
         stream: 'stream-browserify',
         buffer: 'buffer',
+        process: 'process/browser',
       },
     },
     optimizeDeps: {
-      include: ['buffer', 'crypto-browserify', 'stream-browserify'],
+      include: ['buffer', 'crypto-browserify', 'stream-browserify', 'process', 'bip39', '@scure/bip32'],
     },
     server: {
       host: process.env.VITE_HOST || '0.0.0.0',

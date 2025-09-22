@@ -1,9 +1,9 @@
 import { query } from '../../../database/index.ts';
 import type {
-    AddAccountResult,
-    BatchUpdateResult,
-    EnergyPoolAccount,
-    UpdateAccountResult
+  AddAccountResult,
+  BatchUpdateResult,
+  EnergyPoolAccount,
+  UpdateAccountResult
 } from '../types/account.types.ts';
 
 /**

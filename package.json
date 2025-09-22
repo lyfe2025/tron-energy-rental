@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "preinstall": "node -e \"console.log('\\n📦 使用项目配置的镜像源安装依赖...\\n')\"",
+    "postinstall": "node -e \"console.log('\\n✅ 依赖安装完成！使用 npm run dev 启动开发服务器\\n')\"",
+    "setup": "npm run registry:check && npm install",
     "client:dev": "vite",
     "server:dev": "nodemon",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
@@ -40,12 +43,16 @@
     "db:setup": "npm run db:create && npm run migrate",
     "comments:apply": "tsx scripts/apply-chinese-comments.ts",
     "comments:verify": "tsx scripts/verify-comments.ts",
-    "comments:setup": "npm run comments:apply && npm run comments:verify"
+    "comments:setup": "npm run comments:apply && npm run comments:verify",
+    "registry:check": "echo '当前npm镜像源:' && npm config get registry && echo '当前pnpm镜像源:' && pnpm config get registry",
+    "registry:taobao": "npm config set registry https://registry.npmmirror.com/ && pnpm config set registry https://registry.npmmirror.com/ && echo '✅ 已切换到淘宝镜像源'",
+    "registry:npm": "npm config set registry https://registry.npmjs.org/ && pnpm config set registry https://registry.npmjs.org/ && echo '✅ 已切换到npm官方镜像源'",
+    "registry:reset": "npm config delete registry && pnpm config delete registry && echo '✅ 已重置镜像源配置'"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@scure/bip32": "^2.0.0",
     "@types/bcrypt": "^6.0.0",
-    "@types/bip39": "^3.0.4",
     "@types/multer": "^2.0.0",
     "assert": "^2.1.0",
     "axios": "^1.6.2",
@@ -64,7 +71,6 @@
     "events": "^3.3.0",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
-    "hdkey": "^2.1.0",
     "ioredis": "^5.7.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",

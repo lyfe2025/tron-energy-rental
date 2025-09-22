@@ -29,6 +29,16 @@ export class TransactionMonitorService {
   private intervalId?: NodeJS.Timeout;
   private readonly POLL_INTERVAL = 5000; // 5秒轮询
   private readonly PROCESSED_TX_TTL = 86400; // 24小时
+  
+  // ⏰ 基于时间的查询配置
+  private readonly ORDER_PROCESSING_TIME = 60; // 订单处理预估时间：60秒
+  private readonly SAFETY_BUFFER = 30; // 安全缓冲时间：30秒  
+  private readonly QUERY_TIME_WINDOW = this.ORDER_PROCESSING_TIME + this.SAFETY_BUFFER; // 查询时间窗口：90秒
+  
+  // 📈 动态调整配置
+  private readonly MAX_QUERY_TIME_WINDOW = 300; // 最大时间窗口：5分钟
+  private readonly MIN_QUERY_TIME_WINDOW = 30;  // 最小时间窗口：30秒
+  
   private monitoredAddresses: Map<string, MonitoredAddress> = new Map();
   private isRunning = false;
 
@@ -79,6 +89,24 @@ export class TransactionMonitorService {
       this.logger.error('启动交易监听服务失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 🎯 根据系统负载动态计算时间窗口
+   * @returns 调整后的时间窗口（秒）
+   */
+  private calculateDynamicTimeWindow(): number {
+    // TODO: 未来可以基于以下因素动态调整：
+    // 1. 当前处理队列长度
+    // 2. 平均处理时间统计
+    // 3. 系统负载情况
+    // 4. 网络拥堵状况
+    
+    // 当前使用保守的固定窗口
+    return Math.max(
+      this.MIN_QUERY_TIME_WINDOW,
+      Math.min(this.QUERY_TIME_WINDOW, this.MAX_QUERY_TIME_WINDOW)
+    );
   }
 
   /**
@@ -218,11 +246,20 @@ export class TransactionMonitorService {
     const { address, networkId, networkName, tronWebInstance, tronGridProvider } = monitoredAddress;
     
     try {
-      // 📥 步骤1: 查询交易记录
-      this.logger.debug(`📥 [${networkName}] 步骤1: 查询地址交易记录: ${address}`);
+      // 📥 步骤1: 按时间窗口查询交易记录  
+      const dynamicTimeWindow = this.calculateDynamicTimeWindow();
+      const timeWindow = dynamicTimeWindow * 1000; // 转换为毫秒
+      const currentTime = Date.now();
+      const queryFromTime = currentTime - timeWindow;
       
-      // ✅ 使用现代TronGrid HTTP API获取交易记录，而不是已弃用的TronWeb方法
-      const transactionsResult = await tronGridProvider.getAccountTransactions(address, 20, 'block_timestamp,desc');
+      this.logger.debug(`📥 [${networkName}] 步骤1: 查询地址交易记录 (动态时间窗口: ${dynamicTimeWindow}秒): ${address}`);
+      
+      // ✅ 按时间范围查询，而非固定条数 - 查询最近90秒的交易
+      const transactionsResult = await tronGridProvider.getAccountTransactions(
+        address, 
+        200, // 设置较大的条数上限，主要依靠客户端时间过滤
+        'block_timestamp,desc'
+      );
       
       if (!transactionsResult.success || !transactionsResult.data || transactionsResult.data.length === 0) {
         return;
@@ -244,10 +281,34 @@ export class TransactionMonitorService {
         }
       }
 
-      // 按时间戳降序排序，处理最新的交易
+      // 按时间戳降序排序，并根据时间窗口过滤交易
       const sortedTx = transactions
         .filter((tx: any) => tx && tx.raw_data && tx.raw_data.contract)
+        .filter((tx: any) => {
+          // ⏰ 时间窗口过滤：只处理最近90秒内的交易
+          const txTimestamp = tx.raw_data?.timestamp || 0;
+          const isWithinTimeWindow = txTimestamp >= queryFromTime;
+          
+          if (!isWithinTimeWindow) {
+            this.logger.debug(`⏰ [${networkName}] 交易超出时间窗口，跳过: ${tx.txID?.substring(0, 12)}... (${new Date(txTimestamp).toISOString()})`);
+          }
+          
+          return isWithinTimeWindow;
+        })
         .sort((a: any, b: any) => (b.raw_data?.timestamp || 0) - (a.raw_data?.timestamp || 0));
+
+      // 📊 记录过滤结果
+      const totalTx = transactions.length;
+      const filteredTx = sortedTx.length;
+      
+      if (totalTx > 0) {
+        this.logger.debug(`📊 [${networkName}] 时间窗口过滤结果: 总交易 ${totalTx} 条 → 符合条件 ${filteredTx} 条 (时间窗口: ${dynamicTimeWindow}秒)`);
+      }
+      
+      if (filteredTx === 0) {
+        this.logger.debug(`📭 [${networkName}] 步骤1完成: 时间窗口内暂无新交易`);
+        return;
+      }
 
       for (const tx of sortedTx) {
         try {
