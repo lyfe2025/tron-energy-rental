@@ -1,7 +1,7 @@
 import TronWeb from 'tronweb';
 import { Logger } from 'winston';
 import { DatabaseService } from '../database/DatabaseService';
-import { createBotLogger } from '../utils/logger';
+import { createBotLogger, orderLogger } from '../utils/logger';
 import { RedisService } from './cache/RedisService';
 import { PaymentService } from './payment';
 import { TronGridProvider } from './tron/staking/providers/TronGridProvider';
@@ -30,14 +30,9 @@ export class TransactionMonitorService {
   private readonly POLL_INTERVAL = 5000; // 5秒轮询
   private readonly PROCESSED_TX_TTL = 86400; // 24小时
   
-  // ⏰ 基于时间的查询配置
-  private readonly ORDER_PROCESSING_TIME = 60; // 订单处理预估时间：60秒
-  private readonly SAFETY_BUFFER = 30; // 安全缓冲时间：30秒  
-  private readonly QUERY_TIME_WINDOW = this.ORDER_PROCESSING_TIME + this.SAFETY_BUFFER; // 查询时间窗口：90秒
-  
-  // 📈 动态调整配置
-  private readonly MAX_QUERY_TIME_WINDOW = 300; // 最大时间窗口：5分钟
-  private readonly MIN_QUERY_TIME_WINDOW = 30;  // 最小时间窗口：30秒
+  // 🎯 智能查询配置
+  private readonly ORDER_PROCESSING_TIME = 90 * 1000; // 90秒保守处理时间
+  private readonly QUERY_TIME_WINDOW = this.ORDER_PROCESSING_TIME; // 查询时间窗口
   
   private monitoredAddresses: Map<string, MonitoredAddress> = new Map();
   private isRunning = false;
@@ -89,24 +84,6 @@ export class TransactionMonitorService {
       this.logger.error('启动交易监听服务失败:', error);
       throw error;
     }
-  }
-
-  /**
-   * 🎯 根据系统负载动态计算时间窗口
-   * @returns 调整后的时间窗口（秒）
-   */
-  private calculateDynamicTimeWindow(): number {
-    // TODO: 未来可以基于以下因素动态调整：
-    // 1. 当前处理队列长度
-    // 2. 平均处理时间统计
-    // 3. 系统负载情况
-    // 4. 网络拥堵状况
-    
-    // 当前使用保守的固定窗口
-    return Math.max(
-      this.MIN_QUERY_TIME_WINDOW,
-      Math.min(this.QUERY_TIME_WINDOW, this.MAX_QUERY_TIME_WINDOW)
-    );
   }
 
   /**
@@ -240,28 +217,20 @@ export class TransactionMonitorService {
   }
 
   /**
-   * 轮询单个地址的交易
+   * 轮询单个地址的交易 - 基于时间窗口的智能查询
    */
   private async pollAddressTransactions(monitoredAddress: MonitoredAddress): Promise<void> {
     const { address, networkId, networkName, tronWebInstance, tronGridProvider } = monitoredAddress;
     
     try {
-      // 📥 步骤1: 按时间窗口查询交易记录  
-      const dynamicTimeWindow = this.calculateDynamicTimeWindow();
-      const timeWindow = dynamicTimeWindow * 1000; // 转换为毫秒
-      const currentTime = Date.now();
-      const queryFromTime = currentTime - timeWindow;
+      // 🕐 计算查询时间范围：当前时间向前90秒
+      const now = Date.now();
+      const queryStartTime = now - this.QUERY_TIME_WINDOW;
       
-      this.logger.debug(`📥 [${networkName}] 步骤1: 查询地址交易记录 (动态时间窗口: ${dynamicTimeWindow}秒): ${address}`);
+      // 📥 查询最近90秒内的交易记录（增加查询数量以确保覆盖时间窗口）
+      const transactionsResult = await tronGridProvider.getAccountTransactions(address, 200, 'block_timestamp,desc');
       
-      // ✅ 按时间范围查询，而非固定条数 - 查询最近90秒的交易
-      const transactionsResult = await tronGridProvider.getAccountTransactions(
-        address, 
-        200, // 设置较大的条数上限，主要依靠客户端时间过滤
-        'block_timestamp,desc'
-      );
-      
-      if (!transactionsResult.success || !transactionsResult.data || transactionsResult.data.length === 0) {
+      if (!transactionsResult.success || !transactionsResult.data) {
         return;
       }
 
@@ -269,53 +238,55 @@ export class TransactionMonitorService {
       let transactions = transactionsResult.data;
       if (!Array.isArray(transactions)) {
         if (transactions && typeof transactions === 'object') {
-          // 这是预期的情况：TronGrid API有时返回对象格式，我们转换为数组
           transactions = Object.values(transactions);
-          if (transactions.length > 0) {
-            this.logger.debug(`📊 [${networkName}] 步骤1.1: 转换交易数据格式: object -> array (${transactions.length} 条记录)`);
-          }
         } else {
-          // 这是意外情况：数据既不是数组也不是对象
-          this.logger.warn(`⚠️ [${networkName}] 交易数据格式异常: ${typeof transactions}, 使用空数组`);
           transactions = [];
         }
       }
 
-      // 按时间戳降序排序，并根据时间窗口过滤交易
-      const sortedTx = transactions
+      // 🎯 过滤：只处理最近90秒内的交易
+      const recentTransactions = transactions
         .filter((tx: any) => tx && tx.raw_data && tx.raw_data.contract)
         .filter((tx: any) => {
-          // ⏰ 时间窗口过滤：只处理最近90秒内的交易
-          const txTimestamp = tx.raw_data?.timestamp || 0;
-          const isWithinTimeWindow = txTimestamp >= queryFromTime;
-          
-          if (!isWithinTimeWindow) {
-            this.logger.debug(`⏰ [${networkName}] 交易超出时间窗口，跳过: ${tx.txID?.substring(0, 12)}... (${new Date(txTimestamp).toISOString()})`);
-          }
-          
-          return isWithinTimeWindow;
+          const txTimestamp = tx.raw_data.timestamp || 0;
+          return txTimestamp >= queryStartTime;
         })
         .sort((a: any, b: any) => (b.raw_data?.timestamp || 0) - (a.raw_data?.timestamp || 0));
 
-      // 📊 记录过滤结果
-      const totalTx = transactions.length;
-      const filteredTx = sortedTx.length;
-      
-      if (totalTx > 0) {
-        this.logger.debug(`📊 [${networkName}] 时间窗口过滤结果: 总交易 ${totalTx} 条 → 符合条件 ${filteredTx} 条 (时间窗口: ${dynamicTimeWindow}秒)`);
-      }
-      
-      if (filteredTx === 0) {
-        this.logger.debug(`📭 [${networkName}] 步骤1完成: 时间窗口内暂无新交易`);
-        return;
-      }
-
-      for (const tx of sortedTx) {
-        try {
-          await this.processSingleTransaction(tx, networkId, networkName, tronWebInstance);
-        } catch (error) {
-          this.logger.error(`❌ [${networkName}] 处理交易失败 ${tx.txID}:`, error);
+      // 📊 只显示关键信息：待处理交易数量
+      if (recentTransactions.length > 0) {
+        this.logger.info(`🔍 [${networkName}] 发现 ${recentTransactions.length} 条待处理交易记录`);
+        
+        // =============== 开始处理 ===============
+        orderLogger.info(`=============== 开始处理 [${networkName}] ===============`, { 
+          networkName, 
+          transactionCount: recentTransactions.length 
+        });
+        
+        let processedCount = 0;
+        for (const tx of recentTransactions) {
+          try {
+            processedCount++;
+            orderLogger.info(`${processedCount}. 处理交易: ${tx.txID}`, { 
+              txId: tx.txID,
+              networkName,
+              step: 1
+            });
+            await this.processSingleTransaction(tx, networkId, networkName, tronWebInstance);
+          } catch (error) {
+            orderLogger.error(`❌ 处理交易失败 ${tx.txID}`, { 
+              txId: tx.txID,
+              networkName,
+              error: error.message 
+            });
+          }
         }
+        
+        // =============== 处理结束 ===============
+        orderLogger.info(`=============== 处理结束 [${networkName}] ===============`, { 
+          networkName, 
+          processedCount 
+        });
       }
     } catch (error) {
       this.logger.error(`❌ [${networkName}] 轮询地址 ${monitoredAddress.address} 交易失败:`, error);
@@ -352,30 +323,38 @@ export class TransactionMonitorService {
         return;
       }
 
-      // 🔍 步骤2: 检测到新的TRX转账
-      this.logger.info(`🔍 [${networkName}] 步骤2: 检测到新的TRX转账 - ${transaction.txID}`, {
+      // 2. 检测到新的TRX转账
+      orderLogger.info(`   2. 检测到TRX转账: ${transaction.amount} TRX`, {
+        txId: transaction.txID,
+        amount: `${transaction.amount} TRX`,
         from: transaction.from,
         to: transaction.to,
-        amount: `${transaction.amount} TRX`,
-        network: networkName,
-        timestamp: new Date(transaction.timestamp).toISOString()
+        networkName,
+        step: 2
       });
 
-      // 🏷️ 步骤3: 标记交易为处理中（防止重复处理）
+      // 3. 标记交易为处理中
       await this.markTransactionProcessed(txId);
-      this.logger.info(`🏷️ [${networkName}] 步骤3: 交易已标记为处理中 - ${txId}`);
+      orderLogger.info(`   3. 标记交易为处理中`, {
+        txId: transaction.txID,
+        networkName,
+        step: 3
+      });
 
-      // 🔄 步骤4: 转交给PaymentService处理
-      this.logger.info(`🔄 [${networkName}] 步骤4: 转交给PaymentService处理 - ${transaction.txID}`, {
-        fromAddress: transaction.from,
-        amount: `${transaction.amount} TRX`,
-        networkId: networkId,
-        nextSteps: '步骤5-6: 交易验证和订单创建'
+      // 4. 转交给PaymentService处理
+      orderLogger.info(`   4. 转交给PaymentService处理`, {
+        txId: transaction.txID,
+        networkName,
+        step: 4
       });
       
       await this.paymentService.handleFlashRentPayment(transaction, networkId);
       
-      this.logger.info(`🎯 [${networkName}] 完成: 整个交易处理流程完成 - ${transaction.txID}`);
+      orderLogger.info(`   ✅ 交易处理完成`, {
+        txId: transaction.txID,
+        networkName,
+        status: 'completed'
+      });
 
     } catch (error) {
       this.logger.error(`❌ [${networkName}] 处理交易 ${txId} 时发生错误:`, error);

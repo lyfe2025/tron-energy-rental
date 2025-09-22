@@ -1,4 +1,5 @@
 import { query } from '../../database/index';
+import { orderLogger } from '../../utils/logger';
 import { getNetworkName, getOrderService } from './utils';
 
 export class FlashRentPaymentService {
@@ -13,59 +14,64 @@ export class FlashRentPaymentService {
     const networkName = await getNetworkName(networkId);
     
     try {
-      // 🔍 步骤5: 验证交易有效性
-      console.log(`🔍 [${networkName}] 步骤5: 开始验证闪租交易 - ${transaction.txID}`, {
-        txID: transaction.txID,
-        fromAddress: transaction.from,
-        toAddress: transaction.to,
-        amount: `${transaction.amount} TRX`,
-        networkId: networkId
+      // 5. 验证交易有效性
+      orderLogger.info(`   5. 验证交易有效性`, {
+        txId: transaction.txID,
+        networkName,
+        step: 5
       });
 
       if (!this.validateFlashRentTransaction(transaction)) {
-        console.warn(`❌ [${networkName}] 步骤5: 交易验证失败 - ${transaction.txID} (无效的闪租交易)`);
+        orderLogger.warn(`   ❌ 交易验证失败`, {
+          txId: transaction.txID,
+          networkName,
+          step: 5,
+          status: 'validation_failed'
+        });
         return;
       }
 
-      console.log(`✅ [${networkName}] 步骤5: 交易验证通过 - ${transaction.txID}`);
+      orderLogger.info(`   ✅ 交易验证通过`, {
+        txId: transaction.txID,
+        networkName,
+        step: 5,
+        status: 'validation_passed'
+      });
 
       const { from: fromAddress, amount: trxAmount } = transaction;
       
-      // 📦 步骤6: 创建闪租订单
-      console.log(`📦 [${networkName}] 步骤6: 开始创建闪租订单 - ${transaction.txID}`, {
-        fromAddress: fromAddress,
-        trxAmount: `${trxAmount} TRX`,
-        networkId: networkId,
-        expectedOrderType: 'FLASH_RENT'
+      // 6. 创建闪租订单
+      orderLogger.info(`   6. 创建闪租订单`, {
+        txId: transaction.txID,
+        networkName,
+        fromAddress,
+        amount: `${trxAmount} TRX`,
+        step: 6
       });
 
       // 调用OrderService创建闪租订单
       const orderService = await getOrderService();
       const order = await orderService.createFlashRentOrder(fromAddress, trxAmount, networkId, transaction.txID);
       
-      console.log(`✅ [${networkName}] 步骤6: 闪租订单创建成功 - ${transaction.txID}`, {
+      orderLogger.info(`   ✅ 闪租订单创建成功: ${order.order_number}`, {
+        txId: transaction.txID,
         orderId: order.id,
         orderNumber: order.order_number,
-        energyAmount: `${order.energy_amount} Energy`,
-        calculatedUnits: order.calculated_units
-      });
-
-      console.log(`🎉 [${networkName}] 完成: 闪租支付流程完成 - ${transaction.txID}`, {
-        订单号: order.order_number,
-        能量数量: `${order.energy_amount} Energy`,
-        计算笔数: order.calculated_units,
-        支付金额: `${trxAmount} TRX`
+        energyAmount: order.energy_amount,
+        networkName,
+        step: 6,
+        status: 'order_created'
       });
       
     } catch (error) {
-      console.error(`❌ [${networkName}] 错误: 闪租支付处理失败 - ${transaction.txID}`, {
+      orderLogger.error(`❌ 闪租支付处理失败`, {
+        txId: transaction.txID,
+        networkName,
         error: error.message,
         stack: error.stack,
-        transaction: {
-          txID: transaction.txID,
-          from: transaction.from,
-          amount: `${transaction.amount} TRX`
-        }
+        fromAddress: transaction.from,
+        amount: `${transaction.amount} TRX`,
+        status: 'processing_failed'
       });
       
       // 记录失败的交易处理
