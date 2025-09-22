@@ -4,7 +4,7 @@
  * 负责Telegram机器人配置的查询和管理
  */
 
-import pool from '../../../config/database.js';
+import { query } from '../../../database/index.js';
 import type { TelegramBotConfig, TronNetworkConfig } from '../ConfigService.js';
 import { ConfigCacheService } from './ConfigCacheService.js';
 
@@ -25,15 +25,14 @@ export class TelegramBotConfigService {
       return cached;
     }
 
-    const client = await pool.connect();
     try {
-      const query = `
+      const queryText = `
         SELECT * FROM telegram_bots 
         ${activeOnly ? 'WHERE is_active = true' : ''}
         ORDER BY created_at ASC
       `;
       
-      const result = await client.query(query);
+      const result = await query(queryText);
       const bots = result.rows.map(row => ({
         id: row.id,
         botName: row.bot_name,
@@ -56,8 +55,9 @@ export class TelegramBotConfigService {
 
       this.cacheService.setCache(cacheKey, bots);
       return bots;
-    } finally {
-      client.release();
+    } catch (error) {
+      console.error('Error fetching telegram bots:', error);
+      throw error;
     }
   }
 
@@ -71,9 +71,8 @@ export class TelegramBotConfigService {
       return cached;
     }
 
-    const client = await pool.connect();
     try {
-      const result = await client.query(
+      const result = await query(
         'SELECT * FROM telegram_bots WHERE id = $1',
         [id]
       );
@@ -105,8 +104,9 @@ export class TelegramBotConfigService {
 
       this.cacheService.setCache(cacheKey, bot);
       return bot;
-    } finally {
-      client.release();
+    } catch (error) {
+      console.error('Error fetching telegram bot by id:', error);
+      throw error;
     }
   }
 
@@ -120,15 +120,14 @@ export class TelegramBotConfigService {
       return cached;
     }
 
-    const client = await pool.connect();
     try {
       // 获取活跃的机器人配置
       const botQuery = 'SELECT * FROM telegram_bots WHERE is_active = true ORDER BY created_at ASC';
-      const botResult = await client.query(botQuery);
+      const botResult = await query(botQuery);
       
       // 获取所有网络配置
       const networkQuery = 'SELECT * FROM tron_networks WHERE is_active = true';
-      const networkResult = await client.query(networkQuery);
+      const networkResult = await query(networkQuery);
       const networksMap = new Map();
       networkResult.rows.forEach(network => {
         networksMap.set(network.id, {
@@ -204,8 +203,9 @@ export class TelegramBotConfigService {
 
       this.cacheService.setCache(cacheKey, configs);
       return configs;
-    } finally {
-      client.release();
+    } catch (error) {
+      console.error('Error fetching active bot configs:', error);
+      throw error;
     }
   }
 }

@@ -1,19 +1,26 @@
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { defineConfig, loadEnv } from 'vite'
-import traeBadgePlugin from 'vite-plugin-trae-solo-badge'
 import VueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 // 根据 Vue 官方文档的推荐配置，支持环境变量控制
 export default defineConfig(({ mode }) => {
-  // 加载环境变量
+  // 加载环境变量，但排除NODE_ENV让Vite自己管理
   const env = loadEnv(mode, process.cwd(), '')
   
   // 检查是否启用 Vue DevTools
   const enableDevTools = mode === 'development' && env.VITE_VUE_DEVTOOLS !== 'false'
   
+  // 确定实际的NODE_ENV值：开发模式用development，否则用production
+  const nodeEnv = mode === 'development' ? 'development' : 'production'
+  
   return {
+    // 修复 Vite NODE_ENV 冲突问题：明确设置 process.env.NODE_ENV
+    define: {
+      global: 'globalThis',
+      'process.env.NODE_ENV': JSON.stringify(nodeEnv),
+    },
     build: {
       sourcemap: mode === 'development' ? true : 'hidden',
     },
@@ -32,15 +39,6 @@ export default defineConfig(({ mode }) => {
         launchEditor: 'code',
         componentInspector: false, // 禁用组件检查器以减少错误
       })] : []),
-      traeBadgePlugin({
-        variant: 'dark',
-        position: 'bottom-right',
-        prodOnly: true,
-        clickable: true,
-        clickUrl: 'https://www.trae.ai/solo?showJoin=1',
-        autoTheme: true,
-        autoThemeTarget: '#app',
-      }),
     ],
     resolve: {
       alias: {
@@ -49,9 +47,6 @@ export default defineConfig(({ mode }) => {
         stream: 'stream-browserify',
         buffer: 'buffer',
       },
-    },
-    define: {
-      global: 'globalThis',
     },
     optimizeDeps: {
       include: ['buffer', 'crypto-browserify', 'stream-browserify'],

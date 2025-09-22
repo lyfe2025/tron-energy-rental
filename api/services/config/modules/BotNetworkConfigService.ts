@@ -4,7 +4,7 @@
  * 负责机器人和TRON网络关联配置的查询和管理
  */
 
-import pool from '../../../config/database.js';
+import { query } from '../../../database/index.js';
 import type { BotNetworkConfig } from '../ConfigService.js';
 import { ConfigCacheService } from './ConfigCacheService.js';
 
@@ -25,17 +25,15 @@ export class BotNetworkConfigService {
       return cached;
     }
 
-    const client = await pool.connect();
-    try {
-      let query = 'SELECT id, network_configurations FROM telegram_bots WHERE is_active = true';
-      const params: any[] = [];
-      
-      if (botId) {
-        params.push(botId);
-        query += ` AND id = $${params.length}`;
-      }
-      
-      const result = await client.query(query, params);
+    let queryStr = 'SELECT id, network_configurations FROM telegram_bots WHERE is_active = true';
+    const params: any[] = [];
+    
+    if (botId) {
+      params.push(botId);
+      queryStr += ` AND id = $${params.length}`;
+    }
+    
+    const result = await query(queryStr, params);
       const configs: BotNetworkConfig[] = [];
       
       result.rows.forEach(row => {
@@ -70,8 +68,5 @@ export class BotNetworkConfigService {
 
       this.cacheService.setCache(cacheKey, configs);
       return configs;
-    } finally {
-      client.release();
-    }
   }
 }

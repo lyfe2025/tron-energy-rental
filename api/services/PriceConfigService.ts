@@ -1,8 +1,8 @@
 import pool from '../config/database'
 import {
-  validateEnergyFlashConfig,
-  validateTransactionPackageConfig,
-  validateTrxExchangeConfig
+    validateEnergyFlashConfig,
+    validateTransactionPackageConfig,
+    validateTrxExchangeConfig
 } from '../middleware/validation'
 import { logger } from '../utils/logger'
 
@@ -60,7 +60,7 @@ export class PriceConfigService {
                  tn.name as network_name, tn.network_type
           FROM price_configs pc
           LEFT JOIN tron_networks tn ON pc.network_id = tn.id
-          WHERE pc.network_id = $1
+          WHERE pc.network_id = $1::uuid
           ORDER BY pc.created_at DESC
         `
         params = [networkId]

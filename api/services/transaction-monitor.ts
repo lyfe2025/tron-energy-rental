@@ -1,9 +1,10 @@
-import TronWeb from 'tronweb';
+import TronWebModule from 'tronweb';
 import { Logger } from 'winston';
 import { DatabaseService } from '../database/DatabaseService';
 import { createBotLogger } from '../utils/logger';
 import { RedisService } from './cache/RedisService';
 import { PaymentService } from './payment';
+const TronWeb = TronWebModule.default || TronWebModule;
 
 interface MonitoredAddress {
   address: string;
@@ -121,6 +122,8 @@ export class TransactionMonitorService {
           pc.config->>'payment_address' as payment_address,
           pc.network_id,
           tn.name as network_name,
+          tn.rpc_url,
+          tn.api_key,
           tn.config
         FROM price_configs pc
         JOIN tron_networks tn ON pc.network_id = tn.id
@@ -135,7 +138,8 @@ export class TransactionMonitorService {
         const address = row.payment_address;
         const networkId = row.network_id;
         const networkName = row.network_name;
-        const networkConfig = row.config;
+        const rpcUrl = row.rpc_url;
+        const apiKey = row.api_key;
 
         if (!address || !networkId) {
           this.logger.warn(`跳过无效配置: address=${address}, networkId=${networkId}`);
@@ -144,9 +148,9 @@ export class TransactionMonitorService {
 
         try {
           // 创建对应网络的TronWeb实例
-          const tronWebInstance = new (TronWeb as any)({
-            fullHost: networkConfig.fullNode,
-            headers: { "TRON-PRO-API-KEY": networkConfig.apiKey || '' },
+          const tronWebInstance = new TronWeb.TronWeb({
+            fullHost: rpcUrl,
+            headers: { "TRON-PRO-API-KEY": apiKey || '' },
             privateKey: '01' // 临时私钥，仅用于查询
           });
 

@@ -16,6 +16,7 @@ router.use(authenticateToken);
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { network_id } = req.query;
+    
 
     let queryStr = `
       SELECT 
@@ -40,7 +41,7 @@ router.get('/', async (req: Request, res: Response) => {
     const queryParams: any[] = [];
     
     if (network_id) {
-      queryStr += ' AND pc.network_id = $1';
+      queryStr += ' AND pc.network_id = $1::uuid';
       queryParams.push(network_id);
     }
     
