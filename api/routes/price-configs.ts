@@ -38,11 +38,18 @@ router.put('/:modeType',
   priceConfigController.updateConfig
 )
 
-// 切换配置状态
+// 切换配置状态（所有同类型配置）
 router.patch('/:modeType/toggle', 
   authenticateToken,
   requireRole(['super_admin', 'admin']),
   priceConfigController.toggleConfigStatus
+)
+
+// 切换特定网络的配置状态
+router.patch('/:modeType/:networkId/toggle', 
+  authenticateToken,
+  requireRole(['super_admin', 'admin']),
+  priceConfigController.toggleConfigStatusByNetwork
 )
 
 // 删除价格配置

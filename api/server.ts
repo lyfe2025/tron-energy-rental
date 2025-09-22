@@ -2,6 +2,7 @@
  * local server entry file, for local development
  */
 import app from './app.js';
+import { connectRedis } from './config/redis.js';
 import { DatabaseService } from './database/DatabaseService';
 import { RedisService } from './services/cache/RedisService';
 import { paymentService } from './services/payment';
@@ -25,9 +26,27 @@ const transactionMonitor = new TransactionMonitorService(
   databaseService
 );
 
+// 设置全局单例实例，供其他模块使用
+import { setTransactionMonitorInstance } from './utils/transaction-monitor-singleton.js';
+setTransactionMonitorInstance(transactionMonitor);
+
 const server = app.listen(PORT, HOST_ADDRESS, async () => {
   console.log(`🚀 Server running on ${HOST_ADDRESS}:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // 连接Redis
+  try {
+    console.log('📦 正在连接Redis...');
+    const redisConnected = await connectRedis();
+    if (redisConnected) {
+      console.log('✅ Redis连接成功');
+    } else {
+      console.warn('⚠️ Redis连接失败，某些功能可能不可用');
+    }
+  } catch (error) {
+    console.error('❌ Redis连接失败:', error);
+    console.warn('⚠️ 服务器将继续运行，但缓存功能不可用');
+  }
   
   // 启动调度器服务
   schedulerService.start();

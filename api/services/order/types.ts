@@ -13,6 +13,7 @@ export interface CreateOrderRequest {
 
 export interface Order {
   id: number;
+  order_number: string;
   user_id: number;
   package_id: number;
   energy_amount: number;
@@ -24,6 +25,7 @@ export interface Order {
   payment_amount?: number;
   payment_tx_hash?: string;
   delegation_tx_hash?: string;
+  calculated_units?: number;
   expires_at?: Date;
   created_at: Date;
   updated_at: Date;

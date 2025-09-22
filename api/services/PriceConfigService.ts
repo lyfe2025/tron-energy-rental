@@ -1,8 +1,8 @@
 import pool from '../config/database'
 import {
-    validateEnergyFlashConfig,
-    validateTransactionPackageConfig,
-    validateTrxExchangeConfig
+  validateEnergyFlashConfig,
+  validateTransactionPackageConfig,
+  validateTrxExchangeConfig
 } from '../middleware/validation'
 import { logger } from '../utils/logger'
 
@@ -219,7 +219,7 @@ export class PriceConfigService {
     }
   }
 
-  // 更新配置状态
+  // 更新配置状态（所有同类型配置）
   async updateConfigStatus(modeType: string, isActive: boolean): Promise<PriceConfig | null> {
     try {
       const query = `
@@ -230,10 +230,33 @@ export class PriceConfigService {
                   image_url, image_alt, enable_image, 
                   is_active, created_by, created_at, updated_at
       `
+      
       const result = await pool.query(query, [isActive, modeType])
+      
       return result.rows[0] || null
     } catch (error) {
       logger.error('Update config status error:', error)
+      throw error
+    }
+  }
+
+  // 更新特定网络的配置状态
+  async updateConfigStatusByNetwork(modeType: string, networkId: string, isActive: boolean): Promise<PriceConfig | null> {
+    try {
+      const query = `
+        UPDATE price_configs 
+        SET is_active = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE mode_type = $2 AND network_id = $3
+        RETURNING id, mode_type, network_id, name, description, config, inline_keyboard_config, 
+                  image_url, image_alt, enable_image, 
+                  is_active, created_by, created_at, updated_at
+      `
+      
+      const result = await pool.query(query, [isActive, modeType, networkId])
+      
+      return result.rows[0] || null
+    } catch (error) {
+      logger.error('Update config status by network error:', error)
       throw error
     }
   }

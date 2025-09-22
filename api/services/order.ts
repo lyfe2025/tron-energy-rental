@@ -117,24 +117,59 @@ class OrderService {
     // 使用静态导入的query和tronService
     
     try {
-      // 1. 根据network_id获取闪租配置
+      // ✅ 步骤5: 获取闪租配置
+      console.log(`[步骤5] 🔍 获取闪租配置: 交易 ${txId}`, {
+        networkId: networkId,
+        fromAddress: fromAddress,
+        trxAmount: trxAmount
+      });
+
       const config = await this.getFlashRentConfig(networkId);
       if (!config) {
         throw new Error(`Flash rent config not found for network: ${networkId}`);
       }
 
-      // 2. 计算笔数和总能量
+      console.log(`[步骤5] ✅ 获取配置成功:`, {
+        单价: config.price_per_unit + ' TRX',
+        每笔能量: config.energy_per_unit,
+        最大笔数: config.max_units,
+        收款地址: config.payment_address
+      });
+
+      // ✅ 步骤6: 计算笔数和总能量
+      console.log(`[步骤6] 🧮 开始计算订单参数: 交易 ${txId}`);
+      
       const calculatedUnits = this.calculateUnits(trxAmount, config);
       const totalEnergy = this.calculateTotalEnergy(calculatedUnits, config);
+
+      console.log(`[步骤6] ✅ 计算完成:`, {
+        支付金额: trxAmount + ' TRX',
+        计算笔数: calculatedUnits,
+        总能量: totalEnergy,
+        实际价值: (calculatedUnits * config.price_per_unit) + ' TRX'
+      });
 
       if (calculatedUnits === 0) {
         throw new Error(`Insufficient payment amount: ${trxAmount} TRX`);
       }
 
-      // 3. 生成订单号
+      // ✅ 步骤7: 生成订单号
+      console.log(`[步骤7] 🔢 生成订单号: 交易 ${txId}`);
       const orderNumber = await this.generateOrderNumber();
+      console.log(`[步骤7] ✅ 订单号生成成功: ${orderNumber}`);
 
-      // 4. 创建订单记录
+      // ✅ 步骤8: 创建订单记录
+      console.log(`[步骤8] 💾 创建订单记录到数据库: ${orderNumber}`, {
+        订单号: orderNumber,
+        网络ID: networkId,
+        订单类型: 'FLASH_RENT',
+        目标地址: fromAddress,
+        能量数量: totalEnergy,
+        支付金额: trxAmount + ' TRX',
+        计算笔数: calculatedUnits,
+        交易哈希: txId
+      });
+
       const result = await query(
         `INSERT INTO orders (
           order_number, user_id, network_id, order_type, target_address,
@@ -161,15 +196,22 @@ class OrderService {
       );
 
       const order = result.rows[0];
-      console.log(`Flash rent order created: ${order.id}`, {
-        orderNumber,
-        fromAddress,
-        trxAmount,
-        calculatedUnits,
-        totalEnergy
+      console.log(`[步骤8] ✅ 订单记录创建成功: ${orderNumber}`, {
+        数据库ID: order.id,
+        状态: order.status,
+        支付状态: order.payment_status,
+        能量数量: order.energy_amount,
+        计算笔数: order.calculated_units
       });
 
-      // 5. 立即尝试代理能量
+      // ✅ 步骤9: 立即尝试代理能量
+      console.log(`[步骤9] ⚡ 开始能量代理: ${orderNumber}`, {
+        目标地址: fromAddress,
+        代理能量: totalEnergy,
+        代理时长: config.expiry_hours + '小时',
+        网络ID: networkId
+      });
+
       try {
         const delegationTxId = await tronService.delegateEnergyForFlashRent(
           fromAddress,
@@ -178,7 +220,18 @@ class OrderService {
           networkId
         );
 
-        // 6. 更新订单状态为完成
+        console.log(`[步骤9] ✅ 能量代理成功: ${orderNumber}`, {
+          代理交易ID: delegationTxId,
+          代理状态: '成功'
+        });
+
+        // ✅ 步骤10: 更新订单状态为完成
+        console.log(`[步骤10] 📝 更新订单状态: ${orderNumber}`, {
+          新状态: 'completed',
+          代理能量: totalEnergy,
+          代理交易ID: delegationTxId
+        });
+
         await query(
           `UPDATE orders SET 
             status = $1, 
@@ -190,13 +243,33 @@ class OrderService {
           ['completed', totalEnergy, delegationTxId, new Date(), new Date(), order.id]
         );
 
-        console.log(`Flash rent order completed: ${order.id}, delegation tx: ${delegationTxId}`);
+        console.log(`[步骤10] ✅ 订单状态更新成功: ${orderNumber}`);
+
+        console.log(`[总结] 🎉 闪租订单完成: ${orderNumber}`, {
+          订单详情: {
+            订单号: orderNumber,
+            数据库ID: order.id,
+            目标地址: fromAddress,
+            支付金额: trxAmount + ' TRX',
+            获得能量: totalEnergy,
+            计算笔数: calculatedUnits,
+            支付交易: txId,
+            代理交易: delegationTxId,
+            最终状态: 'completed',
+            完成时间: new Date().toISOString()
+          }
+        });
         
         return { ...order, status: 'completed', delegated_energy_amount: totalEnergy, delegation_tx_id: delegationTxId };
       } catch (delegationError) {
-        console.error(`Energy delegation failed for order ${order.id}:`, delegationError);
+        console.error(`[步骤9] ❌ 能量代理失败: ${orderNumber}`, {
+          错误信息: delegationError.message,
+          错误堆栈: delegationError.stack,
+          订单ID: order.id
+        });
         
         // 更新订单状态为失败
+        console.log(`[步骤10] 📝 更新订单状态为失败: ${orderNumber}`);
         await query(
           `UPDATE orders SET 
             status = $1, 
@@ -205,10 +278,25 @@ class OrderService {
           ['failed', new Date(), order.id]
         );
 
+        console.log(`[总结] ❌ 闪租订单失败: ${orderNumber}`, {
+          订单ID: order.id,
+          失败原因: delegationError.message,
+          当前状态: 'failed'
+        });
+
         return { ...order, status: 'failed' };
       }
     } catch (error) {
-      console.error('Create flash rent order error:', error);
+      console.error(`[错误] ❌ 创建闪租订单失败: 交易 ${txId}`, {
+        错误信息: error.message,
+        错误堆栈: error.stack,
+        订单参数: {
+          fromAddress,
+          trxAmount,
+          networkId,
+          txId
+        }
+      });
       throw error;
     }
   }

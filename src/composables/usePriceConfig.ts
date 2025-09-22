@@ -186,15 +186,17 @@ export function usePriceConfig() {
     }
   }
 
-  // 切换配置状态
+  // 切换配置状态（全局 - 影响所有网络）
   const toggleConfigStatus = async (modeType: string) => {
     try {
       const config = getConfig(modeType)
       if (!config) throw new Error('配置不存在')
 
+
       const response = await api.patch(`/price-configs/${modeType}/toggle`, {
         is_active: !config.is_active
       })
+
       
       // 更新本地数据
       const index = configs.value.findIndex(c => c.mode_type === modeType)
@@ -205,6 +207,35 @@ export function usePriceConfig() {
       return response.data
     } catch (err: any) {
       error.value = err.message || '切换状态失败'
+      throw err
+    }
+  }
+
+  // 切换特定网络的配置状态（推荐使用）
+  const toggleConfigStatusByNetwork = async (modeType: string, networkId: string, isActive?: boolean) => {
+    try {
+      const config = configs.value.find(c => c.mode_type === modeType && c.network_id === networkId)
+      const currentStatus = config ? config.is_active : false
+      const targetStatus = isActive !== undefined ? isActive : !currentStatus
+
+
+      const response = await api.patch(`/price-configs/${modeType}/${networkId}/toggle`, {
+        is_active: targetStatus
+      })
+
+      
+      // 更新本地数据
+      const index = configs.value.findIndex(c => c.mode_type === modeType && c.network_id === networkId)
+      if (index !== -1) {
+        configs.value[index].is_active = response.data.is_active
+      } else {
+        // 如果本地没有找到对应配置，添加到列表中
+        configs.value.push(response.data)
+      }
+      
+      return response.data
+    } catch (err: any) {
+      error.value = err.message || '网络级配置切换失败'
       throw err
     }
   }
@@ -273,7 +304,8 @@ export function usePriceConfig() {
     createFlashRentConfig,
     getConfig,
     updateConfig,
-    toggleConfigStatus,
+    toggleConfigStatus, // ⚠️ 全局API（不推荐使用）
+    toggleConfigStatusByNetwork, // ✅ 网络级API（推荐使用）
     createConfig,
     deleteConfig,
     getEnergyFlashConfig,

@@ -54,6 +54,7 @@ export interface UpdateUserData {
 // 订单相关类型
 export interface Order {
   id: number
+  order_number: string
   user_id: number
   package_id: number
   energy_amount: number
@@ -65,6 +66,7 @@ export interface Order {
   payment_amount?: number
   payment_tx_hash?: string
   delegation_tx_hash?: string
+  calculated_units?: number
   expires_at?: string
   created_at: string
   updated_at: string

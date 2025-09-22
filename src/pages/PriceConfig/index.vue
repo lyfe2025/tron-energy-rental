@@ -142,7 +142,8 @@ const {
   loadFlashRentConfigs,
   updateFlashRentConfig,
   updateConfig,
-  toggleConfigStatus,
+  toggleConfigStatus, // ⚠️ 全局API（已弃用）
+  toggleConfigStatusByNetwork, // ✅ 网络级API（新增）
   getTrxExchangeConfig
 } = usePriceConfig()
 
@@ -203,7 +204,6 @@ const loadCurrentNetwork = async () => {
         throw new Error('未找到指定的网络')
       }
       
-      console.log('✅ [PriceConfig] 当前网络加载完成:', currentNetwork.value)
     } else {
       throw new Error(response.error || '获取网络信息失败')
     }
@@ -220,14 +220,24 @@ const switchNetwork = () => {
   router.push({ name: 'PriceConfig' })
 }
 
-// 切换模式状态 - 保持原有逻辑
+// 切换模式状态 - 使用网络级别API
 const toggleMode = async (modeType: string) => {
   let loadingId: string | null = null
+  
+  
   try {
     loadingId = showLoading('正在更新状态...')
-    await toggleConfigStatus(modeType)
+    
+    if (!networkId.value) {
+      throw new Error('缺少网络ID参数')
+    }
+    
+    // ✅ 使用网络级别API，只影响当前网络
+    await toggleConfigStatusByNetwork(modeType, networkId.value)
+    
     if (loadingId) dismiss(loadingId)
-    success('状态更新成功')
+    success(`${currentNetwork.value?.name} 网络的 ${getConfigTypeName(modeType)} 状态更新成功`)
+    
   } catch (err: any) {
     if (loadingId) dismiss(loadingId)
     console.error('Toggle mode error:', err)
@@ -250,6 +260,16 @@ const toggleMode = async (modeType: string) => {
     
     error(errorMessage)
   }
+}
+
+// 辅助函数：获取配置类型的中文名称
+const getConfigTypeName = (modeType: string): string => {
+  const typeNames: Record<string, string> = {
+    'energy_flash': '能量闪租',
+    'transaction_package': '笔数套餐',
+    'trx_exchange': 'TRX闪兑'
+  }
+  return typeNames[modeType] || modeType
 }
 
 // 保存配置 - 支持闪租配置

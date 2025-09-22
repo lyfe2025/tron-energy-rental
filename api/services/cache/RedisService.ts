@@ -5,7 +5,12 @@ export class RedisService {
     try {
       return await redisOperations.get(key);
     } catch (error) {
-      console.error(`Redis GET error for key ${key}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        console.warn(`Redis连接不可用，跳过获取缓存 ${key}:`, errorMessage);
+      } else {
+        console.error(`Redis GET error for key ${key}:`, error);
+      }
       return null;
     }
   }
@@ -14,7 +19,12 @@ export class RedisService {
     try {
       await redisOperations.set(key, value, expireInSeconds);
     } catch (error) {
-      console.error(`Redis SET error for key ${key}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        console.warn(`Redis连接不可用，跳过设置缓存 ${key}:`, errorMessage);
+      } else {
+        console.error(`Redis SET error for key ${key}:`, error);
+      }
     }
   }
 
@@ -22,7 +32,12 @@ export class RedisService {
     try {
       return await redisOperations.del(key);
     } catch (error) {
-      console.error(`Redis DEL error for key ${key}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        console.warn(`Redis连接不可用，跳过删除缓存 ${key}:`, errorMessage);
+      } else {
+        console.error(`Redis DEL error for key ${key}:`, error);
+      }
       return 0;
     }
   }
@@ -31,7 +46,12 @@ export class RedisService {
     try {
       return await redisOperations.exists(key);
     } catch (error) {
-      console.error(`Redis EXISTS error for key ${key}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        console.warn(`Redis连接不可用，跳过存在性检查 ${key}:`, errorMessage);
+      } else {
+        console.error(`Redis EXISTS error for key ${key}:`, error);
+      }
       return false;
     }
   }

@@ -1,16 +1,17 @@
-import TronWebModule from 'tronweb';
+import TronWeb from 'tronweb';
 import { Logger } from 'winston';
 import { DatabaseService } from '../database/DatabaseService';
 import { createBotLogger } from '../utils/logger';
 import { RedisService } from './cache/RedisService';
 import { PaymentService } from './payment';
-const TronWeb = TronWebModule.default || TronWebModule;
+import { TronGridProvider } from './tron/staking/providers/TronGridProvider';
 
 interface MonitoredAddress {
   address: string;
   networkId: string;
   networkName: string;
   tronWebInstance: any;
+  tronGridProvider: TronGridProvider;
 }
 
 interface Transaction {
@@ -58,7 +59,7 @@ export class TransactionMonitorService {
       }
 
       this.isRunning = true;
-      this.logger.info(`启动交易监听服务，监听 ${this.monitoredAddresses.size} 个地址`);
+      this.logger.info(`🚀 启动交易监听服务，监听 ${this.monitoredAddresses.size} 个地址`);
       
       // 立即执行一次轮询
       await this.pollTransactions();
@@ -103,9 +104,9 @@ export class TransactionMonitorService {
    * 重新加载监听地址（当配置更新时调用）
    */
   async reloadAddresses(): Promise<void> {
-    this.logger.info('重新加载监听地址...');
+    this.logger.info('🔄 重新加载监听地址...');
     await this.loadMonitoredAddresses();
-    this.logger.info(`重新加载完成，当前监听 ${this.monitoredAddresses.size} 个地址`);
+    this.logger.info(`✅ 重新加载完成，当前监听 ${this.monitoredAddresses.size} 个地址`);
   }
 
   /**
@@ -116,7 +117,7 @@ export class TransactionMonitorService {
       // 清空现有地址
       this.monitoredAddresses.clear();
 
-      // 从数据库获取所有激活的能量闪租配置
+      // 从数据库获取所有激活的能量闪租配置（同时要求网络也激活）
       const query = `
         SELECT 
           pc.config->>'payment_address' as payment_address,
@@ -129,6 +130,7 @@ export class TransactionMonitorService {
         JOIN tron_networks tn ON pc.network_id = tn.id
         WHERE pc.mode_type = 'energy_flash' 
           AND pc.is_active = true
+          AND tn.is_active = true
           AND pc.config->>'payment_address' IS NOT NULL
       `;
 
@@ -160,17 +162,28 @@ export class TransactionMonitorService {
             continue;
           }
 
+          // 创建TronGrid提供者用于现代API调用
+          const networkConfig = {
+            networkId,
+            networkName,
+            rpcUrl,
+            apiKey: apiKey || '',
+            isTestNet: networkName.toLowerCase().includes('test')
+          };
+          const tronGridProvider = new TronGridProvider(networkConfig, tronWebInstance);
+
           const monitoredAddress: MonitoredAddress = {
             address,
             networkId,
             networkName,
-            tronWebInstance
+            tronWebInstance,
+            tronGridProvider
           };
 
           this.monitoredAddresses.set(`${networkId}_${address}`, monitoredAddress);
-          this.logger.info(`添加监听地址: ${address} (${networkName})`);
+          this.logger.info(`🌐 [${networkName}] 添加监听地址: ${address}`);
         } catch (error) {
-          this.logger.error(`创建${networkName}网络TronWeb实例失败:`, error);
+          this.logger.error(`❌ [${networkName}] 创建TronWeb实例失败:`, error);
         }
       }
     } catch (error) {
@@ -202,30 +215,49 @@ export class TransactionMonitorService {
    * 轮询单个地址的交易
    */
   private async pollAddressTransactions(monitoredAddress: MonitoredAddress): Promise<void> {
+    const { address, networkId, networkName, tronWebInstance, tronGridProvider } = monitoredAddress;
+    
     try {
-      const { address, networkId, networkName, tronWebInstance } = monitoredAddress;
+      // 📥 步骤1: 查询交易记录
+      this.logger.debug(`📥 [${networkName}] 步骤1: 查询地址交易记录: ${address}`);
       
-      // 获取该地址的最新交易
-      const transactions = await tronWebInstance.trx.getTransactionsToAddress(address, 20);
+      // ✅ 使用现代TronGrid HTTP API获取交易记录，而不是已弃用的TronWeb方法
+      const transactionsResult = await tronGridProvider.getAccountTransactions(address, 20, 'block_timestamp,desc');
       
-      if (!transactions || transactions.length === 0) {
+      if (!transactionsResult.success || !transactionsResult.data || transactionsResult.data.length === 0) {
         return;
+      }
+
+      // 确保数据是数组格式
+      let transactions = transactionsResult.data;
+      if (!Array.isArray(transactions)) {
+        if (transactions && typeof transactions === 'object') {
+          // 这是预期的情况：TronGrid API有时返回对象格式，我们转换为数组
+          transactions = Object.values(transactions);
+          if (transactions.length > 0) {
+            this.logger.debug(`📊 [${networkName}] 步骤1.1: 转换交易数据格式: object -> array (${transactions.length} 条记录)`);
+          }
+        } else {
+          // 这是意外情况：数据既不是数组也不是对象
+          this.logger.warn(`⚠️ [${networkName}] 交易数据格式异常: ${typeof transactions}, 使用空数组`);
+          transactions = [];
+        }
       }
 
       // 按时间戳降序排序，处理最新的交易
       const sortedTx = transactions
-        .filter((tx: any) => tx.raw_data && tx.raw_data.contract)
-        .sort((a: any, b: any) => b.raw_data.timestamp - a.raw_data.timestamp);
+        .filter((tx: any) => tx && tx.raw_data && tx.raw_data.contract)
+        .sort((a: any, b: any) => (b.raw_data?.timestamp || 0) - (a.raw_data?.timestamp || 0));
 
       for (const tx of sortedTx) {
         try {
           await this.processSingleTransaction(tx, networkId, networkName, tronWebInstance);
         } catch (error) {
-          this.logger.error(`处理交易失败 ${tx.txID}:`, error);
+          this.logger.error(`❌ [${networkName}] 处理交易失败 ${tx.txID}:`, error);
         }
       }
     } catch (error) {
-      this.logger.error(`轮询地址 ${monitoredAddress.address} 交易失败:`, error);
+      this.logger.error(`❌ [${networkName}] 轮询地址 ${monitoredAddress.address} 交易失败:`, error);
     }
   }
 
@@ -247,7 +279,8 @@ export class TransactionMonitorService {
 
     try {
       // 验证交易确认状态
-      const txInfo = await tronWebInstance.trx.getTransactionInfo(txId);
+      // ✅ 修复：明确设置 visible: true 确保地址统一为Base58格式
+      const txInfo = await tronWebInstance.trx.getTransactionInfo(txId, { visible: true });
       if (!txInfo.id || txInfo.result !== 'SUCCESS') {
         return; // 交易未确认或失败
       }
@@ -258,21 +291,33 @@ export class TransactionMonitorService {
         return;
       }
 
-      this.logger.info(`检测到新的TRX转账: ${transaction.txID}`, {
+      // 🔍 步骤2: 检测到新的TRX转账
+      this.logger.info(`🔍 [${networkName}] 步骤2: 检测到新的TRX转账 - ${transaction.txID}`, {
         from: transaction.from,
         to: transaction.to,
-        amount: transaction.amount,
-        network: networkName
+        amount: `${transaction.amount} TRX`,
+        network: networkName,
+        timestamp: new Date(transaction.timestamp).toISOString()
       });
 
-      // 标记为已处理（先标记，防止重复处理）
+      // 🏷️ 步骤3: 标记交易为处理中（防止重复处理）
       await this.markTransactionProcessed(txId);
+      this.logger.info(`🏷️ [${networkName}] 步骤3: 交易已标记为处理中 - ${txId}`);
 
-      // 交给PaymentService处理
+      // 🔄 步骤4: 转交给PaymentService处理
+      this.logger.info(`🔄 [${networkName}] 步骤4: 转交给PaymentService处理 - ${transaction.txID}`, {
+        fromAddress: transaction.from,
+        amount: `${transaction.amount} TRX`,
+        networkId: networkId,
+        nextSteps: '步骤5-6: 交易验证和订单创建'
+      });
+      
       await this.paymentService.handleFlashRentPayment(transaction, networkId);
+      
+      this.logger.info(`🎯 [${networkName}] 完成: 整个交易处理流程完成 - ${transaction.txID}`);
 
     } catch (error) {
-      this.logger.error(`处理交易 ${txId} 时发生错误:`, error);
+      this.logger.error(`❌ [${networkName}] 处理交易 ${txId} 时发生错误:`, error);
       // 如果处理失败，移除处理标记以便重试
       await this.removeProcessedMark(txId);
     }
@@ -328,6 +373,12 @@ export class TransactionMonitorService {
       const result = await this.redisService.get(key);
       return result !== null;
     } catch (error) {
+      // 如果是Redis连接问题，跳过去重检查让交易继续处理
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        this.logger.warn(`Redis连接不可用，跳过交易去重检查 ${txId}`);
+        return false;
+      }
       this.logger.error(`检查交易处理状态失败 ${txId}:`, error);
       return false;
     }
@@ -341,6 +392,12 @@ export class TransactionMonitorService {
       const key = `flash_rent_processed:${txId}`;
       await this.redisService.set(key, Date.now().toString(), this.PROCESSED_TX_TTL);
     } catch (error) {
+      // 如果是Redis连接问题，只警告但不影响交易处理
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        this.logger.warn(`Redis连接不可用，无法标记交易处理状态 ${txId}，但交易处理将继续`);
+        return;
+      }
       this.logger.error(`标记交易处理状态失败 ${txId}:`, error);
     }
   }
@@ -353,6 +410,12 @@ export class TransactionMonitorService {
       const key = `flash_rent_processed:${txId}`;
       await this.redisService.del(key);
     } catch (error) {
+      // 如果是Redis连接问题，只警告但不影响交易处理
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        this.logger.warn(`Redis连接不可用，无法移除交易处理标记 ${txId}`);
+        return;
+      }
       this.logger.error(`移除交易处理标记失败 ${txId}:`, error);
     }
   }
