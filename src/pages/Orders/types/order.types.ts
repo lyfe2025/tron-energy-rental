@@ -6,7 +6,7 @@ export type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
 export interface Order {
   id: number
   user_id: number
-  package_id?: number
+  price_config_id?: number  // 替换package_id为price_config_id，关联price_configs表
   energy_amount: number
   duration_hours: number
   price_trx: number

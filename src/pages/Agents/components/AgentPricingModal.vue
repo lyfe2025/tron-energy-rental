@@ -92,28 +92,22 @@
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="(config, index) in pricingConfigs" :key="config.id || index">
-                  <!-- 能量包类型 -->
+                  <!-- 价格配置类型 -->
                   <td class="px-6 py-4 whitespace-nowrap">
                     <select
-                      v-model="config.energy_package_id"
+                      v-model="config.price_config_id"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       @change="handleConfigChange(index)"
                     >
-                      <option value="">请选择能量包</option>
-                      <option
-                        v-for="pkg in energyPackages"
-                        :key="pkg.id"
-                        :value="pkg.id"
-                      >
-                        {{ pkg.name }} ({{ pkg.energy_amount }} TRX)
-                      </option>
+                      <option value="">请选择价格配置</option>
+                      <!-- 价格配置选项将从price_configs表加载 -->
                     </select>
                   </td>
 
                   <!-- 基础价格 -->
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">
-                      {{ getBasePrice(config.energy_package_id) }} TRX
+                      配置价格 TRX
                     </div>
                   </td>
 
@@ -245,11 +239,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue';
-import { X, Plus, Save, Trash2, Package } from 'lucide-vue-next';
+import { Package, Plus, Save, Trash2, X } from 'lucide-vue-next';
 import { toast } from 'sonner';
+import { computed, ref, watch } from 'vue';
 import { useAgentStore } from '../composables/useAgentStore';
-import type { AgentPricingConfig, QuantityDiscount } from '../types';
+import type { AgentPricingConfig } from '../types';
 
 interface Props {
   visible: boolean;
@@ -271,33 +265,25 @@ const loading = ref(false);
 const submitting = ref(false);
 const pricingConfigs = ref<AgentPricingConfig[]>([]);
 const originalConfigs = ref<AgentPricingConfig[]>([]);
-const energyPackages = ref<any[]>([]);
+// energyPackages已移除，现在使用price_configs
 
 // 计算属性
 const hasChanges = computed(() => {
   return JSON.stringify(pricingConfigs.value) !== JSON.stringify(originalConfigs.value);
 });
 
-// 获取基础价格
-const getBasePrice = (packageId: string) => {
-  const pkg = energyPackages.value.find(p => p.id === packageId);
-  return pkg ? pkg.base_price : 0;
-};
+// getBasePrice函数已移除，现在使用price_configs
 
 // 加载数据
 const loadData = async () => {
   try {
     loading.value = true;
     
-    // 并行加载价格配置和能量包列表
-    const [configs, packages] = await Promise.all([
-      agentStore.fetchAgentPricing(props.agentId),
-      loadEnergyPackages()
-    ]);
+    // 加载价格配置
+    const configs = await agentStore.fetchAgentPricing(props.agentId);
     
     pricingConfigs.value = configs || [];
     originalConfigs.value = JSON.parse(JSON.stringify(configs || []));
-    energyPackages.value = packages || [];
   } catch (error) {
     console.error('加载价格配置失败:', error);
     toast.error('加载价格配置失败');
@@ -306,25 +292,15 @@ const loadData = async () => {
   }
 };
 
-// 加载能量包列表
-const loadEnergyPackages = async () => {
-  // TODO: 实现能量包API调用
-  // 这里返回模拟数据
-  return [
-    { id: '1', name: '小型能量包', energy_amount: 1000, base_price: 10 },
-    { id: '2', name: '中型能量包', energy_amount: 5000, base_price: 45 },
-    { id: '3', name: '大型能量包', energy_amount: 10000, base_price: 85 },
-    { id: '4', name: '超大能量包', energy_amount: 50000, base_price: 400 }
-  ];
-};
+// loadEnergyPackages函数已移除，现在使用price_configs
 
 // 添加配置
 const handleAddConfig = () => {
   const newConfig: AgentPricingConfig = {
     id: '',
     agent_id: props.agentId,
-    package_id: '',
-    energy_package_id: '',
+    price_config_id: null,
+    // energy_package_id已移除，使用price_config_id
     agent_price: 0,
     discount_rate: 0,
     quantity_discounts: [],
@@ -378,7 +354,7 @@ const handleBatchSave = async () => {
     
     // 验证配置
     const validConfigs = pricingConfigs.value.filter(config => {
-      return config.energy_package_id && config.agent_price > 0;
+      return config.price_config_id && config.agent_price > 0;
     });
     
     if (validConfigs.length === 0) {

@@ -114,7 +114,7 @@ export class OrderCallbackHandler {
       // 创建订单
       const orderData: CreateOrderRequest = {
         userId: parseInt(user.id),
-        packageId: parseInt(packageInfo.id),
+        priceConfigId: parseInt(packageInfo.id),
         energyAmount: packageInfo.energy,
         priceTrx: packageInfo.price,
         recipientAddress: user.tron_address!,

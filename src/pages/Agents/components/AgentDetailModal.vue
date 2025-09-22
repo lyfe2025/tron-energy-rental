@@ -215,7 +215,7 @@
                   <tr v-for="config in pricingConfigs" :key="config.id">
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm font-medium text-gray-900">
-                        {{ getEnergyPackageName(config.energy_package_id) }}
+                        价格配置 #{{ config.price_config_id || config.id }}
                       </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -286,15 +286,15 @@
 
 <script setup lang="ts">
 import {
-  AlertCircle,
-  Building,
-  Crown,
-  Edit,
-  Package,
-  Settings,
-  TrendingUp,
-  User,
-  X
+    AlertCircle,
+    Building,
+    Crown,
+    Edit,
+    Package,
+    Settings,
+    TrendingUp,
+    User,
+    X
 } from 'lucide-vue-next';
 import { toast } from 'sonner';
 import { ref, watch } from 'vue';
@@ -387,16 +387,7 @@ const getAgentLevelLabel = (level: number | null | undefined) => {
   return labels[level as keyof typeof labels] || `${level}级代理商`;
 };
 
-const getEnergyPackageName = (packageId: string) => {
-  // TODO: 从能量包列表中获取名称
-  const packages = {
-    '1': '小型能量包',
-    '2': '中型能量包',
-    '3': '大型能量包',
-    '4': '超大能量包'
-  };
-  return packages[packageId as keyof typeof packages] || `能量包 ${packageId}`;
-};
+// getEnergyPackageName函数已移除，现在使用price_configs
 
 // 事件处理
 const handleClose = () => {

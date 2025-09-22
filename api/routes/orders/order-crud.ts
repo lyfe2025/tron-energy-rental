@@ -6,7 +6,7 @@ import { orderService } from '../../services/order';
 
 interface CreateOrderRequest {
   userId: number;
-  packageId: number;
+  priceConfigId: number;  // 替换packageId为priceConfigId，关联price_configs表
   energyAmount: number;
   durationHours: number;
   priceTrx: number;
@@ -46,7 +46,7 @@ router.post('/',
     try {
       const orderRequest: CreateOrderRequest = {
         userId: req.body.userId,
-        packageId: req.body.packageId,
+        priceConfigId: req.body.priceConfigId || req.body.packageId, // 兼容旧的packageId字段
         energyAmount: req.body.energyAmount,
         durationHours: req.body.durationHours,
         priceTrx: req.body.priceTrx,

@@ -29,13 +29,13 @@ export class OrderCreationService {
 
       const result = await query(
         `INSERT INTO orders (
-          user_id, package_id, energy_amount, duration_hours, 
+          user_id, price_config_id, energy_amount, duration_hours, 
           price_trx, recipient_address, status, expires_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *`,
         [
           request.userId,
-          request.packageId,
+          request.priceConfigId,
           request.energyAmount,
           request.durationHours,
           request.priceTrx,
@@ -101,7 +101,7 @@ export class OrderCreationService {
       errors.push('Invalid user ID');
     }
 
-    if (!request.packageId || request.packageId <= 0) {
+    if (!request.priceConfigId || request.priceConfigId <= 0) {
       errors.push('Invalid package ID');
     }
 

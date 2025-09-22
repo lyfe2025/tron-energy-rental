@@ -5,16 +5,16 @@ import { DelegationService } from './tron/services/DelegationService';
 import { StakingService } from './tron/services/StakingService';
 import { TransactionService } from './tron/services/TransactionService';
 import type {
-    AccountData,
-    DelegateResourceParams,
-    FreezeBalanceV2Params,
-    ResourceData,
-    ServiceResponse,
-    StakeOverview,
-    TransactionResult,
-    TronConfig,
-    UnfreezeBalanceV2Params,
-    WithdrawExpireUnfreezeParams
+  AccountData,
+  DelegateResourceParams,
+  FreezeBalanceV2Params,
+  ResourceData,
+  ServiceResponse,
+  StakeOverview,
+  TransactionResult,
+  TronConfig,
+  UnfreezeBalanceV2Params,
+  WithdrawExpireUnfreezeParams
 } from './tron/types/tron.types';
 import { TronUtils } from './tron/utils/tronUtils';
 
@@ -501,14 +501,12 @@ export class TronService {
     try {
       // 按优先级查询能量池账户
       const result = await query(
-        `SELECT ep.*, a.address, a.private_key
-         FROM energy_pools ep
-         JOIN accounts a ON ep.account_id = a.id
-         WHERE ep.network_id = $1 
-           AND ep.is_active = true 
-           AND ep.status = 'active'
-         ORDER BY ep.priority DESC`,
-        [networkId]
+        `SELECT id, name, tron_address, private_key_encrypted, total_energy, 
+                available_energy, status, priority, cost_per_energy
+         FROM energy_pools
+         WHERE status = 'active'
+         ORDER BY priority DESC`,
+        []
       );
 
       if (!result.rows || result.rows.length === 0) {
@@ -518,16 +516,18 @@ export class TronService {
       // 依次检查每个账户的可用能量
       for (const account of result.rows) {
         try {
-          const availableEnergy = await this.checkAvailableEnergy(account.address, networkId);
+          const availableEnergy = await this.checkAvailableEnergy(account.tron_address, networkId);
           
           if (availableEnergy >= requiredEnergy) {
             return {
               ...account,
+              address: account.tron_address, // 保持向后兼容
+              private_key: account.private_key_encrypted, // 保持向后兼容
               available_energy: availableEnergy
             };
           }
         } catch (error) {
-          console.warn(`检查账户 ${account.address} 能量失败:`, error);
+          console.warn(`检查账户 ${account.tron_address} 能量失败:`, error);
           continue;
         }
       }

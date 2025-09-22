@@ -56,12 +56,13 @@ export interface Order {
   id: number
   order_number: string
   user_id: number
-  package_id: number
+  price_config_id?: number  // 替换package_id为price_config_id，关联price_configs表
   energy_amount: number
   duration_hours: number
   price_trx: number
   recipient_address: string
   status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
+  order_type?: 'energy_flash' | 'transaction_package' | 'trx_exchange'  // 订单类型
   payment_address?: string
   payment_amount?: number
   payment_tx_hash?: string
@@ -231,49 +232,7 @@ export interface UpdateAgentPricingData {
   is_active?: boolean
 }
 
-// 能量包相关类型
-export interface EnergyPackage {
-  id: string
-  name: string
-  type: 'energy' | 'bandwidth' | 'mixed'
-  description?: string
-  energy_amount: number
-  bandwidth_amount?: number
-  price: number
-  original_price?: number
-  discount_percentage?: number
-  status: 'active' | 'inactive'
-  sales_count?: number
-  today_sales?: number
-  created_at: string
-  updated_at: string
-}
-
-export interface CreateEnergyPackageData {
-  name: string
-  type: 'energy' | 'bandwidth' | 'mixed'
-  description?: string
-  energy_amount: number
-  bandwidth_amount?: number
-  price: number
-  original_price?: number
-  discount_percentage?: number
-  status: 'active' | 'inactive'
-}
-
-export interface UpdateEnergyPackageData {
-  name?: string
-  type?: 'energy' | 'bandwidth' | 'mixed'
-  description?: string
-  energy_amount?: number
-  bandwidth_amount?: number
-  price?: number
-  original_price?: number
-  discount_percentage?: number
-  duration_hours?: number
-  is_active?: boolean
-  status?: string
-}
+// 能量包相关类型已移除，现在使用价格配置表 (price_configs)
 
 // 系统配置相关类型
 export interface SystemConfig {

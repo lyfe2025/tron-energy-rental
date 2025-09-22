@@ -34,9 +34,7 @@ export type {
 // UpdateBotData 从 types/api 导入
 export type { UpdateBotData } from '../../types/api';
 
-// 能量包管理API
-export { energyPackagesAPI } from './energy-packages/energyPackagesAPI';
-export type { EnergyPackageQueryParams } from './energy-packages/energyPackagesAPI';
+// 能量包管理API已移除，现在使用price_configs
 
 // 统计分析API
 export { statisticsAPI } from './statistics/statisticsAPI';
@@ -76,7 +74,7 @@ export type { ConfigHistoryQueryParams, ConfigHistoryRecord, ConfigHistoryRespon
 import { authAPI as authAPIModule } from './auth/authAPI';
 import { botsAPI as botsAPIModule } from './bots/botsAPI';
 import { configCacheAPI as configCacheAPIModule } from './config-cache/configCacheAPI';
-import { energyPackagesAPI as energyPackagesAPIModule } from './energy-packages/energyPackagesAPI';
+// energyPackagesAPI已移除
 import { energyPoolExtendedAPI as energyPoolAPIModule } from './energy-pool/energyPoolExtendedAPI';
 import { ordersAPI as ordersAPIModule } from './orders/ordersAPI';
 import { pricingAPI as pricingAPIModule } from './pricing/pricingAPI';
@@ -93,7 +91,7 @@ const api = {
   orders: ordersAPIModule,
   bots: botsAPIModule,
   configCache: configCacheAPIModule,
-  energyPackages: energyPackagesAPIModule,
+  // energyPackages已移除
   statistics: statisticsAPIModule,
   systemConfigs: systemConfigsAPIModule,
   pricing: pricingAPIModule,
@@ -107,7 +105,7 @@ export default api;
 // 兼容性导出 - 保持与原有代码的兼容性
 export {
     authAPIModule as authApi, botsAPIModule as botsApi, configCacheAPIModule as configCacheApi,
-    energyPackagesAPIModule as energyPackagesApi, energyPoolAPIModule as energyPoolApi, ordersAPIModule as ordersApi, pricingAPIModule as pricingApi, settingsAPIModule as settingsApi, stakeAPIModule as stakeApi, statisticsAPIModule as statisticsApi,
+    energyPoolAPIModule as energyPoolApi, ordersAPIModule as ordersApi, pricingAPIModule as pricingApi, settingsAPIModule as settingsApi, stakeAPIModule as stakeApi, statisticsAPIModule as statisticsApi,
     systemConfigsAPIModule as systemConfigsApi, usersAPIModule as usersApi
 };
 

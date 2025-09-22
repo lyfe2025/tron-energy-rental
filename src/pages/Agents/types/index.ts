@@ -68,7 +68,7 @@ export interface AgentPricing {
 export interface AgentPricingConfig {
   id?: string;
   agent_id: string;
-  package_id: string;
+  price_config_id?: number;  // 替换package_id为price_config_id，关联price_configs表
   template_id?: string;
   price?: number;
   discount_percentage?: number;
@@ -81,7 +81,7 @@ export interface AgentPricingConfig {
   created_at?: Date;
   updated_at?: Date;
   // 添加缺失的属性
-  energy_package_id?: string;
+  // energy_package_id已移除，使用price_config_id
   agent_price?: number;
   discount_rate?: number;
   is_active?: boolean;

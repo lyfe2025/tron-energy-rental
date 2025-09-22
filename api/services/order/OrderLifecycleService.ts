@@ -3,6 +3,7 @@
  * 负责订单状态变更、过期处理等核心业务逻辑
  */
 import { query } from '../../database/index';
+import { orderLogger } from '../../utils/logger';
 import { energyDelegationService } from '../energy-delegation';
 import { paymentService } from '../payment';
 import type { Order } from './types.js';
@@ -184,6 +185,20 @@ export class OrderLifecycleService {
     additionalData?: Partial<Order>
   ): Promise<Order> {
     try {
+      // 获取当前订单状态用于日志对比
+      const currentOrder = await this.getOrderById(orderId);
+      const previousStatus = currentOrder?.status || 'unknown';
+
+      orderLogger.info(`订单状态更新开始`, {
+        orderId: orderId,
+        statusChange: {
+          from: previousStatus,
+          to: status
+        },
+        additionalData: additionalData || {},
+        timestamp: new Date().toISOString()
+      });
+
       const updateFields = ['status = $2', 'updated_at = NOW()'];
       const values = [orderId, status];
       let paramIndex = 3;
@@ -206,18 +221,47 @@ export class OrderLifecycleService {
         RETURNING *
       `;
 
+      orderLogger.info(`执行订单状态更新SQL`, {
+        orderId: orderId,
+        sql: sql.replace(/\s+/g, ' ').trim(),
+        parameters: values,
+        updateFields: updateFields
+      });
+
       const result = await query(sql, values);
       
       if (result.rows.length === 0) {
+        orderLogger.error(`订单状态更新失败：订单未找到`, {
+          orderId: orderId,
+          targetStatus: status
+        });
         throw new Error('Order not found');
       }
 
       const order = result.rows[0];
-      console.log(`Order ${orderId} status updated to ${status}`);
+      
+      orderLogger.info(`✅ 订单状态更新成功`, {
+        orderId: orderId,
+        orderNumber: order.order_number,
+        statusChange: {
+          from: previousStatus,
+          to: order.status
+        },
+        additionalUpdates: additionalData || {},
+        updatedAt: order.updated_at
+      });
 
       return order;
     } catch (error) {
-      console.error('Update order status error:', error);
+      orderLogger.error(`❌ 订单状态更新失败`, {
+        orderId: orderId,
+        targetStatus: status,
+        error: {
+          message: error.message,
+          stack: error.stack
+        },
+        additionalData: additionalData || {}
+      });
       throw error;
     }
   }
