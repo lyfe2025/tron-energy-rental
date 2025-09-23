@@ -1,15 +1,19 @@
+import { useToast } from '@/composables/useToast'
 import { ordersAPI, type OrderQueryParams as APIOrderQueryParams } from '@/services/api'
 import { debounce } from 'lodash-es'
 import { computed, onMounted, reactive, ref } from 'vue'
 import type {
-    Order,
-    OrderFilters,
-    OrderManagementState,
-    OrderQueryParams,
-    OrderStatusUpdateData
+  Order,
+  OrderFilters,
+  OrderManagementState,
+  OrderQueryParams,
+  OrderStatusUpdateData
 } from '../types/order.types'
 
 export function useOrderManagement() {
+  // Toast 通知系统
+  const { success, error: showError } = useToast()
+  
   // 当前网络ID
   const currentNetworkId = ref<string>('')
   
@@ -23,6 +27,7 @@ export function useOrderManagement() {
       processing: 0,
       active: 0,
       completed: 0,
+      manually_completed: 0,
       failed: 0,
       cancelled: 0,
       expired: 0,
@@ -102,7 +107,11 @@ export function useOrderManagement() {
         status: params?.status || state.filters.status || undefined,
         start_date: params?.start_date || state.filters.dateRange.start || undefined,
         end_date: params?.end_date || state.filters.dateRange.end || undefined,
-        network_id: currentNetworkId.value || undefined
+        network_id: currentNetworkId.value || undefined,
+        order_type: state.filters.orderType || undefined,
+        payment_status: state.filters.paymentStatus || undefined,
+        min_amount: state.filters.minAmount || undefined,
+        max_amount: state.filters.maxAmount || undefined
       }
 
       const response = await ordersAPI.getOrders(apiParams)
@@ -118,7 +127,14 @@ export function useOrderManagement() {
           limit: data.pagination?.limit || 10,
           total: data.pagination?.total || 0
         }
-        state.stats = data.stats || null
+        // 确保 stats 包含所有必需字段
+        if (data.stats) {
+          state.stats = {
+            ...state.stats,
+            ...data.stats,
+            manually_completed: (data.stats as any).manually_completed || 0
+          }
+        }
       } else {
         // API调用成功但数据为空
         state.orders = []
@@ -147,7 +163,7 @@ export function useOrderManagement() {
       
       await ordersAPI.updateOrderStatus(data.orderId.toString(), {
         status: data.status,
-        payment_tx_hash: data.payment_tx_hash,
+        tron_tx_hash: data.tron_tx_hash,
       })
       
       // 更新本地状态
@@ -156,10 +172,13 @@ export function useOrderManagement() {
         state.orders[orderIndex] = {
           ...state.orders[orderIndex],
           status: data.status,
-          payment_tx_hash: data.payment_tx_hash || state.orders[orderIndex].payment_tx_hash,
+          tron_tx_hash: data.tron_tx_hash || state.orders[orderIndex].tron_tx_hash,
           updated_at: new Date().toISOString()
         }
       }
+      
+      // 显示成功通知
+      success('订单状态更新成功')
       
       // 关闭模态框
       closeStatusModal()
@@ -167,9 +186,39 @@ export function useOrderManagement() {
       // 刷新统计数据
       await fetchOrders()
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('更新订单状态失败:', error)
-      state.error = error instanceof Error ? error.message : '更新订单状态失败'
+      
+      // 处理API响应中的友好错误消息
+      let errorMessage = '订单状态更新失败'
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data
+        
+        // 优先使用服务器返回的错误消息
+        if (errorData.error) {
+          errorMessage = errorData.error
+        } else if (errorData.message) {
+          errorMessage = errorData.message
+        }
+        
+        // 处理特定的错误代码
+        if (errorData.code === 'DUPLICATE_FLASH_RENT_ORDER') {
+          errorMessage = '该交易哈希对应的闪租订单已存在，无法重复创建'
+        } else if (errorData.code === 'ORDER_NOT_FOUND') {
+          errorMessage = '订单不存在或已被删除'
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      // 显示错误通知
+      showError(errorMessage, {
+        title: '更新失败',
+        duration: 6000
+      })
+      
+      state.error = errorMessage
     } finally {
       state.modal.isUpdating = false
     }

@@ -49,7 +49,11 @@ router.get('/search',
     query('networkId')
       .optional()
       .isString()
-      .withMessage('Network ID must be a string')
+      .withMessage('Network ID must be a string'),
+    query('generalSearch')
+      .optional()
+      .isString()
+      .withMessage('General search must be a string')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -61,7 +65,8 @@ router.get('/search',
         txHash: req.query.txHash as string,
         dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
         dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
-        networkId: req.query.networkId as string
+        networkId: req.query.networkId as string,
+        generalSearch: req.query.generalSearch as string
       };
 
       const limit = parseInt(req.query.limit as string) || 20;

@@ -56,8 +56,16 @@ export class OrderCreationService {
       console.log('Order created:', order.id);
 
       return order;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create order error:', error);
+      
+      // 处理数据库唯一约束冲突错误
+      if (error.code === '23505' && error.constraint === 'idx_orders_unique_flash_rent_tx') {
+        const friendlyError = new Error('该交易哈希对应的闪租订单已存在，无法重复创建');
+        friendlyError.name = 'DuplicateFlashRentOrderError';
+        throw friendlyError;
+      }
+      
       throw error;
     }
   }

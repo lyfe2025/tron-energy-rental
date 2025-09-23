@@ -34,12 +34,34 @@ router.put('/:id/status',
         data: order,
         message: 'Order status updated successfully'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update order status error:', error);
+      
+      // 处理友好的业务错误
+      if (error.name === 'DuplicateFlashRentOrderError') {
+        return res.status(409).json({
+          success: false,
+          error: error.message,
+          message: '订单更新失败',
+          code: 'DUPLICATE_FLASH_RENT_ORDER'
+        });
+      }
+
+      // 处理其他业务错误
+      if (error.message === 'Order not found') {
+        return res.status(404).json({
+          success: false,
+          error: '订单不存在',
+          message: '未找到指定的订单',
+          code: 'ORDER_NOT_FOUND'
+        });
+      }
+
+      // 通用错误处理
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Failed to update order status'
+        error: error instanceof Error ? error.message : '未知错误',
+        message: '订单状态更新失败'
       });
     }
   }

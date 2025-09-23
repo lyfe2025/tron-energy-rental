@@ -52,6 +52,7 @@ export interface OrderStats {
   processing: number;
   active: number;
   completed: number;
+  manually_completed: number;
   failed: number;
   cancelled: number;
   expired: number;

@@ -215,13 +215,59 @@
           ></textarea>
         </div>
         
-        <div v-if="newStatus === 'completed'">
-          <label class="block text-sm font-medium text-gray-700 mb-2">交易哈希</label>
+        <div v-if="newStatus === 'completed' || newStatus === 'manually_completed'">
+          <div class="flex items-center mb-2">
+            <label class="block text-sm font-medium text-gray-700">交易哈希</label>
+            <div class="relative ml-2 group">
+              <div 
+                class="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-500 bg-gray-100 border border-gray-300 rounded-full cursor-help hover:bg-indigo-100 hover:text-indigo-600 hover:border-indigo-300 transition-all duration-200"
+                :title="txHashHelpText"
+              >
+                ?
+              </div>
+              <!-- 悬停提示框 -->
+              <div class="absolute left-0 top-6 w-80 p-4 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-1">
+                <div class="space-y-3">
+                  <div class="font-semibold text-sm text-indigo-300">📋 如何获取交易哈希：</div>
+                  <div class="space-y-2">
+                    <div class="flex items-start">
+                      <span class="inline-block w-4 text-indigo-400 font-medium">1.</span>
+                      <span>在TRON钱包（如TronLink）中查看交易记录</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="inline-block w-4 text-indigo-400 font-medium">2.</span>
+                      <div>
+                        <div>在区块链浏览器中搜索交易：</div>
+                        <div class="ml-2 mt-1">
+                          <div class="text-blue-300">• <a href="https://tronscan.org" target="_blank" class="hover:text-blue-200 underline">tronscan.org</a></div>
+                          <div class="text-blue-300">• <a href="https://tronscan.io" target="_blank" class="hover:text-blue-200 underline">tronscan.io</a></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="inline-block w-4 text-indigo-400 font-medium">3.</span>
+                      <span>交易哈希通常为64位16进制字符串</span>
+                    </div>
+                  </div>
+                  <div class="border-t border-gray-700 pt-2">
+                    <div class="text-yellow-300">
+                      <span class="font-medium">💡 示例：</span>
+                      <div class="mt-1 font-mono text-xs bg-gray-800 p-2 rounded break-all">
+                        96d7459180a649be1c728c575c347ae76a48ca086db2c3b4db21b55a22182018
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 箭头 -->
+                <div class="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+              </div>
+            </div>
+          </div>
           <input 
             v-model="txHash"
             type="text"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="请输入交易哈希..."
+            placeholder="请输入64位交易哈希..."
           />
         </div>
         
@@ -268,7 +314,7 @@ interface Props {
 interface Emits {
   'close-details': []
   'close-status': []
-  'update-status': [data: { orderId: string | number; status: string; txHash?: string; errorMessage?: string }]
+  'update-status': [data: { orderId: string; status: string; tron_tx_hash?: string; errorMessage?: string }]
 }
 
 const props = defineProps<Props>()
@@ -284,6 +330,9 @@ const errorMessage = ref('')
 
 // 复制状态跟踪
 const copyStates = ref<Record<string, 'idle' | 'copying' | 'success'>>({})
+
+// 交易哈希帮助文本
+const txHashHelpText = ref('点击查看如何获取交易哈希')
 
 // 可用状态选项
 const availableStatuses = computed(() => [
@@ -384,15 +433,15 @@ const handleUpdateStatus = () => {
   const updateData: {
     orderId: string
     status: string
-    txHash?: string
+    tron_tx_hash?: string
     errorMessage?: string
   } = {
-    orderId: props.selectedOrder?.id?.toString() || '',
+    orderId: String(props.selectedOrder?.id) || '',
     status: newStatus.value
   }
   
-  if (newStatus.value === 'completed' && txHash.value) {
-    updateData.txHash = txHash.value
+  if ((newStatus.value === 'completed' || newStatus.value === 'manually_completed') && txHash.value) {
+    updateData.tron_tx_hash = txHash.value
   }
   
   if (newStatus.value === 'failed' && errorMessage.value) {

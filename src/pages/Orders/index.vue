@@ -47,6 +47,7 @@
       <OrderSearch
         :search-query="state.filters.search"
         :filters="state.filters"
+        :search-result-count="state.pagination.total"
         @update:search-query="(value) => debouncedSearch(value)"
         @update:filters="updateFilters"
         @search="refreshOrders"
@@ -95,8 +96,8 @@ import NetworkSwitcher from '@/components/NetworkSwitcher.vue'
 import { useCommonNetworkOperations } from '@/composables/useCommonNetworkOperations'
 import { useToast } from '@/composables/useToast'
 import {
-  AlertCircle,
-  RefreshCw
+    AlertCircle,
+    RefreshCw
 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

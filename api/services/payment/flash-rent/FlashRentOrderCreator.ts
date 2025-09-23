@@ -95,12 +95,20 @@ export class FlashRentOrderCreator {
         status: 'initial_order_created'
       });
       
-    } catch (createError) {
+    } catch (createError: any) {
       orderLogger.error(`❌ 创建初始订单记录失败`, {
         txId: transaction.txID,
         orderNumber: transaction._orderNumber,
         error: createError.message
       });
+      
+      // 处理数据库唯一约束冲突错误
+      if (createError.code === '23505' && createError.constraint === 'idx_orders_unique_flash_rent_tx') {
+        const friendlyError = new Error('该交易哈希对应的闪租订单已存在，无法重复创建');
+        friendlyError.name = 'DuplicateFlashRentOrderError';
+        throw friendlyError;
+      }
+      
       throw createError;
     }
   }
@@ -184,12 +192,21 @@ export class FlashRentOrderCreator {
         status: 'failed_order_created'
       });
       
-    } catch (createError) {
+    } catch (createError: any) {
       orderLogger.error(`❌ 创建失败订单记录失败`, {
         txId: transaction.txID,
         error: createError.message,
         originalError: error.message
       });
+      
+      // 处理数据库唯一约束冲突错误 - 对于失败订单记录，我们可以忽略重复
+      if (createError.code === '23505' && createError.constraint === 'idx_orders_unique_flash_rent_tx') {
+        orderLogger.warn(`⚠️ 失败订单记录已存在，跳过重复创建`, {
+          txId: transaction.txID,
+          constraint: createError.constraint
+        });
+        return; // 不抛出错误，因为这只是重复的失败记录
+      }
     }
   }
 

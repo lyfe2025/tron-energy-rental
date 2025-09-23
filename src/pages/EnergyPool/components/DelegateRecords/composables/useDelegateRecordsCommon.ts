@@ -1,4 +1,4 @@
-import { useNetworkStore } from '@/stores/useNetworkStore'
+import { useNetworkStore } from '@/stores/network'
 import { computed, reactive, ref, watch } from 'vue'
 import { useEnergyPool } from '../../../composables/useEnergyPool'
 import type { DelegateRecord } from '../../../composables/useStake'

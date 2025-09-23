@@ -1,5 +1,5 @@
 // 订单状态枚举 - 与后端保持一致
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'manually_completed' | 'failed' | 'cancelled' | 'expired'
 export type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
 
 // 订单接口 - 与后端数据结构匹配
@@ -58,6 +58,7 @@ export interface OrderStats {
   processing: number
   active: number
   completed: number
+  manually_completed: number
   failed: number
   cancelled: number
   expired: number
@@ -73,6 +74,10 @@ export interface OrderFilters {
     start: string
     end: string
   }
+  orderType?: string
+  paymentStatus?: string
+  minAmount?: number
+  maxAmount?: number
 }
 
 // 分页接口
@@ -94,10 +99,10 @@ export interface OrderQueryParams {
 
 // 订单状态更新数据接口
 export interface OrderStatusUpdateData {
-  orderId: number
+  orderId: string
   status: OrderStatus
-  payment_tx_hash?: string
-  // 移除不存在的字段
+  tron_tx_hash?: string
+  errorMessage?: string
 }
 
 // API 响应接口

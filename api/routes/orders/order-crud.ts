@@ -108,22 +108,44 @@ router.get('/',
       const status = req.query.status as string;
       const search = req.query.search as string;
       const networkId = req.query.network_id as string;
+      
+      // 高级搜索参数
+      const orderType = req.query.order_type as string;
+      const paymentStatus = req.query.payment_status as string;
+      const minAmount = req.query.min_amount ? parseFloat(req.query.min_amount as string) : undefined;
+      const maxAmount = req.query.max_amount ? parseFloat(req.query.max_amount as string) : undefined;
 
       // 构建搜索查询
       const searchQuery: any = {};
       if (status) searchQuery.status = status;
       if (networkId) searchQuery.networkId = networkId;
+      if (orderType) searchQuery.orderType = orderType;
+      if (paymentStatus) searchQuery.paymentStatus = paymentStatus;
+      if (minAmount !== undefined) searchQuery.minAmount = minAmount;
+      if (maxAmount !== undefined) searchQuery.maxAmount = maxAmount;
+      
+      // 使用新的通用搜索功能，支持模糊搜索多个字段
       if (search) {
-        // 根据搜索内容判断是地址还是交易哈希
-        if (search.startsWith('T') && search.length === 34) {
-          // TRON地址格式
-          searchQuery.recipientAddress = search;
-        } else if (search.length === 64) {
-          // 交易哈希格式
-          searchQuery.txHash = search;
-        } else if (/^\d+$/.test(search)) {
-          // 数字，可能是用户ID
-          searchQuery.userId = parseInt(search);
+        // 优先使用智能判断逻辑，如果无法精确匹配则使用通用搜索
+        let searchTerm = search.trim();
+        
+        // 处理订单号搜索（移除#前缀）
+        if (searchTerm.startsWith('#')) {
+          searchTerm = searchTerm.substring(1);
+        }
+        
+        if (searchTerm.startsWith('T') && searchTerm.length === 34) {
+          // TRON地址格式 - 精确搜索
+          searchQuery.recipientAddress = searchTerm;
+        } else if (searchTerm.length === 64 && /^[a-fA-F0-9]+$/.test(searchTerm)) {
+          // 交易哈希格式 - 精确搜索
+          searchQuery.txHash = searchTerm;
+        } else if (/^\d+$/.test(searchTerm)) {
+          // 纯数字 - 可能是用户ID或订单ID
+          searchQuery.userId = parseInt(searchTerm);
+        } else {
+          // 其他情况使用通用模糊搜索
+          searchQuery.generalSearch = searchTerm;
         }
       }
 

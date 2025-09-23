@@ -93,7 +93,7 @@ export class OrderQueryService {
   }
 
   /**
-   * 搜索订单
+   * 搜索订单 - 增强版
    */
   async searchOrders(
     searchQuery: {
@@ -104,6 +104,11 @@ export class OrderQueryService {
       dateFrom?: Date;
       dateTo?: Date;
       networkId?: string;
+      generalSearch?: string; // 新增通用搜索字段
+      orderType?: string; // 新增订单类型筛选
+      paymentStatus?: string; // 新增支付状态筛选
+      minAmount?: number; // 最小金额
+      maxAmount?: number; // 最大金额
     },
     limit: number = 20,
     offset: number = 0
@@ -114,45 +119,102 @@ export class OrderQueryService {
       let paramIndex = 1;
 
       if (searchQuery.userId) {
-        conditions.push(`user_id = $${paramIndex}`);
+        conditions.push(`o.user_id = $${paramIndex}`);
         values.push(searchQuery.userId);
         paramIndex++;
       }
 
       if (searchQuery.status) {
-        conditions.push(`status = $${paramIndex}`);
+        conditions.push(`o.status = $${paramIndex}`);
         values.push(searchQuery.status);
         paramIndex++;
       }
 
       if (searchQuery.recipientAddress) {
-        conditions.push(`recipient_address = $${paramIndex}`);
+        conditions.push(`o.target_address = $${paramIndex}`);
         values.push(searchQuery.recipientAddress);
         paramIndex++;
       }
 
       if (searchQuery.txHash) {
-        conditions.push(`(payment_tx_hash = $${paramIndex} OR delegation_tx_hash = $${paramIndex})`);
+        conditions.push(`(o.tron_tx_hash = $${paramIndex} OR o.delegate_tx_hash = $${paramIndex})`);
         values.push(searchQuery.txHash);
         paramIndex++;
       }
 
       if (searchQuery.dateFrom) {
-        conditions.push(`created_at >= $${paramIndex}`);
+        conditions.push(`o.created_at >= $${paramIndex}`);
         values.push(searchQuery.dateFrom);
         paramIndex++;
       }
 
       if (searchQuery.dateTo) {
-        conditions.push(`created_at <= $${paramIndex}`);
+        conditions.push(`o.created_at <= $${paramIndex}`);
         values.push(searchQuery.dateTo);
         paramIndex++;
       }
 
       // 添加网络ID筛选
       if (searchQuery.networkId) {
-        conditions.push(`network_id = $${paramIndex}`);
+        conditions.push(`o.network_id = $${paramIndex}`);
         values.push(searchQuery.networkId);
+        paramIndex++;
+      }
+
+      // 添加订单类型筛选
+      if (searchQuery.orderType) {
+        conditions.push(`o.order_type = $${paramIndex}`);
+        values.push(searchQuery.orderType);
+        paramIndex++;
+      }
+
+      // 添加支付状态筛选
+      if (searchQuery.paymentStatus) {
+        conditions.push(`o.payment_status = $${paramIndex}`);
+        values.push(searchQuery.paymentStatus);
+        paramIndex++;
+      }
+
+      // 添加金额范围筛选
+      if (searchQuery.minAmount !== undefined) {
+        conditions.push(`o.price >= $${paramIndex}`);
+        values.push(searchQuery.minAmount);
+        paramIndex++;
+      }
+
+      if (searchQuery.maxAmount !== undefined) {
+        conditions.push(`o.price <= $${paramIndex}`);
+        values.push(searchQuery.maxAmount);
+        paramIndex++;
+      }
+
+      // 新增通用搜索功能 - 支持订单号、地址、交易哈希、用户信息的模糊搜索
+      if (searchQuery.generalSearch) {
+        const searchTerm = searchQuery.generalSearch.trim();
+        
+        // 转义SQL LIKE特殊字符
+        const escapedSearchTerm = searchTerm
+          .replace(/\\/g, '\\\\')  // 转义反斜杠
+          .replace(/%/g, '\\%')    // 转义百分号
+          .replace(/_/g, '\\_');   // 转义下划线
+        
+        // 构建多字段模糊搜索条件 - 使用正确的数据库字段名
+        const searchConditions = [
+          `o.order_number ILIKE $${paramIndex} ESCAPE '\\'`, // 订单号模糊搜索
+          `CAST(o.id AS TEXT) ILIKE $${paramIndex} ESCAPE '\\'`, // 订单ID
+          `o.target_address ILIKE $${paramIndex} ESCAPE '\\'`, // 目标地址
+          `o.source_address ILIKE $${paramIndex} ESCAPE '\\'`, // 来源地址
+          `o.tron_tx_hash ILIKE $${paramIndex} ESCAPE '\\'`, // TRON交易哈希
+          `o.delegate_tx_hash ILIKE $${paramIndex} ESCAPE '\\'`, // 委托交易哈希
+          `u.username ILIKE $${paramIndex} ESCAPE '\\'`, // 用户名
+          `u.first_name ILIKE $${paramIndex} ESCAPE '\\'`, // 用户姓名
+          `u.last_name ILIKE $${paramIndex} ESCAPE '\\'`, // 用户姓名
+          `CAST(u.telegram_id AS TEXT) ILIKE $${paramIndex} ESCAPE '\\'`, // Telegram ID
+          `u.email ILIKE $${paramIndex} ESCAPE '\\'` // 邮箱
+        ];
+        
+        conditions.push(`(${searchConditions.join(' OR ')})`);
+        values.push(`%${escapedSearchTerm}%`);
         paramIndex++;
       }
 
@@ -160,7 +222,10 @@ export class OrderQueryService {
 
       // 获取总数
       const countResult = await query(
-        `SELECT COUNT(*) as total FROM orders ${whereClause}`,
+        `SELECT COUNT(*) as total 
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         ${whereClause}`,
         values
       );
       const total = parseInt(countResult.rows[0].total);
@@ -205,11 +270,12 @@ export class OrderQueryService {
           COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing,
           COUNT(CASE WHEN status = 'active' THEN 1 END) as active,
           COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+          COUNT(CASE WHEN status = 'manually_completed' THEN 1 END) as manually_completed,
           COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
           COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled,
           COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired,
-          COALESCE(SUM(CASE WHEN status IN ('paid', 'processing', 'active', 'completed') THEN price_trx ELSE 0 END), 0) as total_revenue,
-          COALESCE(AVG(CASE WHEN status IN ('paid', 'processing', 'active', 'completed') THEN price_trx END), 0) as average_order_value
+          COALESCE(SUM(CASE WHEN status IN ('paid', 'processing', 'active', 'completed', 'manually_completed') THEN price ELSE 0 END), 0) as total_revenue,
+          COALESCE(AVG(CASE WHEN status IN ('paid', 'processing', 'active', 'completed', 'manually_completed') THEN price END), 0) as average_order_value
          FROM orders 
          WHERE created_at >= NOW() - INTERVAL ${days} DAY`
       );
@@ -223,6 +289,7 @@ export class OrderQueryService {
         processing: parseInt(stats.processing),
         active: parseInt(stats.active),
         completed: parseInt(stats.completed),
+        manually_completed: parseInt(stats.manually_completed),
         failed: parseInt(stats.failed),
         cancelled: parseInt(stats.cancelled),
         expired: parseInt(stats.expired),

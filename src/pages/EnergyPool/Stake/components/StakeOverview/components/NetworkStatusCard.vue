@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import type { NetworkStoreNetwork } from '../types/index.js';
+import type { NetworkStoreNetwork } from '../types/index.ts';
 
 // Props
 defineProps<{

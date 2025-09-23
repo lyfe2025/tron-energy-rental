@@ -75,7 +75,7 @@ export interface Order {
 
 export interface UpdateOrderStatusData {
   status: string
-  payment_tx_hash?: string
+  tron_tx_hash?: string
   note?: string
 }
 
@@ -277,6 +277,7 @@ export interface OrderStats {
   processing: number
   active: number
   completed: number
+  manually_completed?: number
   failed: number
   cancelled: number
   expired: number

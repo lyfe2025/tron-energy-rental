@@ -68,7 +68,7 @@ export class OrderLifecycleService {
 
       // 更新订单状态为活跃
       await this.updateOrderStatus(orderId, 'active', {
-        delegation_tx_hash: delegation.txId
+        delegate_tx_hash: delegation.txId
       });
 
       console.log(`Order ${orderId} delegation completed:`, delegation.txId);
@@ -257,6 +257,13 @@ export class OrderLifecycleService {
             updateFields.push(`${key} = $${paramIndex}`);
             values.push(value as any);
             paramIndex++;
+            
+            // 对于已完成或已手动补单的订单，将 tron_tx_hash 同时映射到 delegate_tx_hash
+            if (key === 'tron_tx_hash' && (status === 'completed' || status === 'manually_completed')) {
+              updateFields.push(`delegate_tx_hash = $${paramIndex}`);
+              values.push(value as any);
+              paramIndex++;
+            }
           }
         });
       }
@@ -299,7 +306,7 @@ export class OrderLifecycleService {
       });
 
       return order;
-    } catch (error) {
+    } catch (error: any) {
       orderLogger.error(`❌ 订单状态更新失败`, {
         orderId: orderId,
         targetStatus: status,
@@ -309,6 +316,14 @@ export class OrderLifecycleService {
         },
         additionalData: additionalData || {}
       });
+
+      // 处理数据库唯一约束冲突错误
+      if (error.code === '23505' && error.constraint === 'idx_orders_unique_flash_rent_tx') {
+        const friendlyError = new Error('该交易哈希对应的闪租订单已存在，无法重复创建');
+        friendlyError.name = 'DuplicateFlashRentOrderError';
+        throw friendlyError;
+      }
+
       throw error;
     }
   }
@@ -342,8 +357,15 @@ export class OrderLifecycleService {
         Object.entries(additionalData).forEach(([key, value]) => {
           if (value !== undefined && key !== 'id' && key !== 'created_at') {
             updateFields.push(`${key} = $${paramIndex}`);
-            values.push(value);
+            values.push(value as any);
             paramIndex++;
+            
+            // 对于已完成或已手动补单的订单，将 tron_tx_hash 同时映射到 delegate_tx_hash
+            if (key === 'tron_tx_hash' && (status === 'completed' || status === 'manually_completed')) {
+              updateFields.push(`delegate_tx_hash = $${paramIndex}`);
+              values.push(value as any);
+              paramIndex++;
+            }
           }
         });
       }
@@ -373,13 +395,21 @@ export class OrderLifecycleService {
       });
 
       return updatedOrder;
-    } catch (error) {
+    } catch (error: any) {
       orderLogger.error(`订单状态更新失败 (UUID)`, {
         orderId: orderId,
         targetStatus: status,
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });
+
+      // 处理数据库唯一约束冲突错误
+      if (error.code === '23505' && error.constraint === 'idx_orders_unique_flash_rent_tx') {
+        const friendlyError = new Error('该交易哈希对应的闪租订单已存在，无法重复创建');
+        friendlyError.name = 'DuplicateFlashRentOrderError';
+        throw friendlyError;
+      }
+
       throw error;
     }
   }

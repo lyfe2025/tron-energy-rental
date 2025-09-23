@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
     <div 
       v-for="stat in orderStats" 
       :key="stat.label"
@@ -19,14 +19,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import {
+  CheckCheck,
+  CheckCircle,
   Clock,
   RefreshCw,
-  CheckCircle,
   XCircle
-} from 'lucide-vue-next'
-import type { Order } from '../types/order.types'
+} from 'lucide-vue-next';
+import { computed } from 'vue';
+import type { Order } from '../types/order.types';
 
 interface Props {
   orders: Order[]
@@ -64,6 +65,13 @@ const orderStats = computed(() => {
       icon: CheckCircle,
       bgColor: 'bg-green-100',
       iconColor: 'text-green-600'
+    },
+    {
+      label: '已手动补单',
+      value: stats.manually_completed || 0,
+      icon: CheckCheck,
+      bgColor: 'bg-emerald-100',
+      iconColor: 'text-emerald-600'
     },
     {
       label: '失败/取消',

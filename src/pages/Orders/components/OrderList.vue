@@ -220,10 +220,10 @@
                 </button>
                 <!-- 查看委托交易 -->
                 <button
-                  v-if="order.delegation_tx_hash || order.delegate_tx_hash"
-                  @click="viewTransaction(order.delegation_tx_hash || order.delegate_tx_hash, props.network)"
+                  v-if="getDelegationTxHash(order)"
+                  @click="viewTransaction(getDelegationTxHash(order), props.network)"
                   class="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
-                  title="查看委托交易"
+                  :title="getDelegationTxTitle(order)"
                 >
                   <Zap class="h-4 w-4" />
                 </button>
@@ -367,6 +367,33 @@ watch(() => props.network?.id, () => {
 onMounted(() => {
   loadFlashRentConfig()
 })
+
+// 获取委托交易哈希
+const getDelegationTxHash = (order: any): string | null => {
+  // 优先检查专用的委托交易字段
+  if (order.delegate_tx_hash) return order.delegate_tx_hash
+  
+  // 对于已完成或手动补单的订单，可以使用 tron_tx_hash 或 payment_tx_hash
+  if ((order.status === 'completed' || order.status === 'manually_completed')) {
+    if (order.tron_tx_hash) return order.tron_tx_hash
+    if (order.payment_tx_hash) return order.payment_tx_hash
+  }
+  
+  return null
+}
+
+// 获取委托交易按钮的标题
+const getDelegationTxTitle = (order: any): string => {
+  if (order.delegate_tx_hash) {
+    return '查看委托交易'
+  }
+  
+  if ((order.status === 'completed' || order.status === 'manually_completed') && (order.tron_tx_hash || order.payment_tx_hash)) {
+    return '查看相关交易'
+  }
+  
+  return '查看交易'
+}
 </script>
 
 <style scoped src="./OrderList.css"></style>

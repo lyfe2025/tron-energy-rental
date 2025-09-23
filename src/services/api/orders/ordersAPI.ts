@@ -11,6 +11,10 @@ export interface OrderQueryParams extends QueryParams {
   start_date?: string
   end_date?: string
   network_id?: string
+  order_type?: string // 订单类型
+  payment_status?: string // 支付状态
+  min_amount?: number // 最小金额
+  max_amount?: number // 最大金额
 }
 
 export interface OrderListResponse {

@@ -39,7 +39,9 @@ import AccountInfoCard from './components/AccountInfoCard.vue';
 import NetworkStatusCard from './components/NetworkStatusCard.vue';
 import StakeStatsGrid from './components/StakeStatsGrid.vue';
 
-type NetworkStoreNetwork = Network;
+import type { TronNetwork } from '@/types/network';
+
+type NetworkStoreNetwork = TronNetwork;
 
 // Props
 const props = defineProps<{
