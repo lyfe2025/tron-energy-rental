@@ -10,6 +10,7 @@ export interface OrderQueryParams extends QueryParams {
   user_id?: string
   start_date?: string
   end_date?: string
+  network_id?: string
 }
 
 export interface OrderListResponse {

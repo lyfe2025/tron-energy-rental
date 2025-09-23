@@ -58,6 +58,7 @@ class OrderService {
       txHash?: string;
       dateFrom?: Date;
       dateTo?: Date;
+      networkId?: string;
     },
     limit: number = 20,
     offset: number = 0

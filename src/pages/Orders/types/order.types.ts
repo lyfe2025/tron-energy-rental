@@ -5,19 +5,39 @@ export type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
 // 订单接口 - 与后端数据结构匹配
 export interface Order {
   id: number
+  order_number?: string
   user_id: number
+  bot_id?: string
   price_config_id?: number  // 替换package_id为price_config_id，关联price_configs表
+  package_id?: number  // 兼容字段
   energy_amount: number
-  duration_hours: number
-  price_trx: number
-  recipient_address: string
+  duration_hours?: number
+  flash_rent_duration?: number
+  price_trx?: number
+  price?: number  // 兼容字段
+  payment_trx_amount?: string | number  // 实际支付的TRX金额
+  commission_rate?: number
+  commission_amount?: number
+  order_type?: string
+  recipient_address?: string
+  target_address?: string  // 兼容字段
+  source_address?: string
   status: OrderStatus
+  payment_status?: PaymentStatus
   payment_address?: string
   payment_amount?: number
   payment_tx_hash?: string
+  tron_tx_hash?: string  // 兼容字段
   delegation_tx_hash?: string
+  delegate_tx_hash?: string  // 兼容字段
+  energy_pool_account_used?: string
   error_message?: string
+  processing_details?: any
+  retry_count?: number
   expires_at?: string
+  completed_at?: string
+  processing_started_at?: string
+  delegation_started_at?: string
   created_at: string
   updated_at: string
 }

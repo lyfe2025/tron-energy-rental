@@ -93,7 +93,11 @@ router.get('/',
     query('search')
       .optional()
       .isString()
-      .withMessage('Search must be a string')
+      .withMessage('Search must be a string'),
+    query('network_id')
+      .optional()
+      .isString()
+      .withMessage('Network ID must be a string')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -103,10 +107,12 @@ router.get('/',
       const offset = (page - 1) * limit;
       const status = req.query.status as string;
       const search = req.query.search as string;
+      const networkId = req.query.network_id as string;
 
       // 构建搜索查询
       const searchQuery: any = {};
       if (status) searchQuery.status = status;
+      if (networkId) searchQuery.networkId = networkId;
       if (search) {
         // 根据搜索内容判断是地址还是交易哈希
         if (search.startsWith('T') && search.length === 34) {

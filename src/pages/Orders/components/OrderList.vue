@@ -15,22 +15,25 @@
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               订单信息
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              用户
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              用户/地址
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              金额
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              金额/笔数
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              状态
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              能量委托状态
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              创建时间
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              订单/支付状态
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              时间信息
+            </th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               操作
             </th>
           </tr>
@@ -41,51 +44,139 @@
             :key="order.id"
             class="hover:bg-gray-50"
           >
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div>
+            <!-- 订单信息 -->
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="space-y-1">
                 <div class="text-sm font-medium text-gray-900">
-                  #{{ order.id }}
+                  <span v-if="order.order_number">#{{ order.order_number }}</span>
+                  <span v-else>ID:{{ order.id }}</span>
                 </div>
-                <div class="text-sm text-gray-500">
-                  {{ order.energy_amount }} TRX能量
+                <div class="text-xs text-purple-600 font-medium">
+                  {{ getOrderTypeText(order.order_type) }}
                 </div>
-                <div v-if="order.payment_tx_hash" class="text-xs text-gray-400 font-mono">
-                  {{ order.payment_tx_hash.slice(0, 16) }}...
+                <div class="text-xs text-gray-600">
+                  <span class="font-medium">时长:</span>
+                  <span v-if="order.flash_rent_duration">{{ order.flash_rent_duration }}小时</span>
+                  <span v-else-if="order.duration_hours">{{ order.duration_hours }}小时</span>
+                  <span v-else class="text-orange-500">未设置</span>
+                </div>
+                <div v-if="order.payment_tx_hash" class="text-xs text-gray-400 font-mono" :title="order.payment_tx_hash">
+                  支付: {{ order.payment_tx_hash.slice(0, 8) }}...
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-900">{{ order.user_id }}</div>
-              <div v-if="order.recipient_address" class="text-xs text-gray-500 font-mono">
-                {{ order.recipient_address.slice(0, 8) }}...{{ order.recipient_address.slice(-6) }}
+
+            <!-- 用户/地址 -->
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="space-y-1">
+                <div class="text-sm text-gray-900">
+                  <span class="font-medium">用户:</span> {{ order.user_id }}
+                </div>
+                <div v-if="order.recipient_address || order.target_address" class="text-xs text-gray-600 font-mono">
+                  <span class="font-medium">目标:</span> {{ formatAddress(order.recipient_address || order.target_address) }}
+                </div>
+                <div v-if="order.source_address" class="text-xs text-blue-600 font-mono">
+                  <span class="font-medium">来源:</span> {{ formatAddress(order.source_address) }}
+                </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                              <div class="text-sm font-medium text-gray-900">
-                  {{ order.price_trx }} TRX
+
+            <!-- 金额/笔数 -->
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="space-y-1">
+                <div class="text-sm font-medium text-gray-900">
+                  {{ order.price_trx || order.price || 0 }} TRX
                 </div>
-                <div class="text-xs text-gray-500">
-                  ≈ ${{ (order.price_trx * 0.1).toFixed(2) }}
+                <div class="text-xs text-indigo-600">
+                  <span class="font-medium">笔数:</span> {{ calculateOrderCount(order) }}
                 </div>
+                <div v-if="order.commission_amount" class="text-xs text-green-600">
+                  <span class="font-medium">佣金:</span> {{ order.commission_amount }} TRX
+                </div>
+              </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span 
-                :class="[
-                  'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                  getStatusColor(order.status)
-                ]"
-              >
-                {{ getStatusText(order.status) }}
-              </span>
+
+            <!-- 能量委托状态 -->
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="space-y-1">
+                <div class="text-sm font-medium text-blue-700">
+                  {{ formatNumber(order.energy_amount) }} 能量
+                </div>
+                <div class="text-xs">
+                  <span 
+                    :class="[
+                      'inline-flex px-2 py-0.5 text-xs font-medium rounded',
+                      getDelegationStatusColor(order)
+                    ]"
+                  >
+                    {{ getDelegationStatusText(order) }}
+                  </span>
+                </div>
+                <div v-if="order.energy_pool_account_used" class="text-xs text-blue-500 font-mono" :title="order.energy_pool_account_used">
+                  <span class="font-medium">池:</span> {{ formatAddress(order.energy_pool_account_used) }}
+                </div>
+                <div v-if="order.error_message" class="text-xs text-red-600 truncate max-w-32" :title="order.error_message">
+                  <span class="font-medium">错误:</span> {{ order.error_message }}
+                </div>
+              </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatDateTime(order.created_at) }}
+
+            <!-- 订单/支付状态 -->
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="space-y-1">
+                <div>
+                  <span class="text-xs text-gray-500 font-medium">订单状态:</span>
+                  <span 
+                    :class="[
+                      'inline-flex px-2 py-0.5 ml-1 text-xs font-medium rounded-full',
+                      getStatusColor(order.status)
+                    ]"
+                  >
+                    {{ getStatusText(order.status) }}
+                  </span>
+                </div>
+                <div v-if="order.payment_status">
+                  <span class="text-xs text-gray-500 font-medium">支付状态:</span>
+                  <span 
+                    :class="[
+                      'inline-flex px-2 py-0.5 ml-1 text-xs font-medium rounded',
+                      getPaymentStatusColor(order.payment_status)
+                    ]"
+                  >
+                    {{ getPaymentStatusText(order.payment_status) }}
+                  </span>
+                </div>
+                <div v-if="order.retry_count > 0" class="text-xs text-orange-600">
+                  <span class="font-medium">重试:</span> {{ order.retry_count }} 次
+                </div>
+              </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div class="flex items-center space-x-2">
+
+            <!-- 时间信息 -->
+            <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+              <div class="space-y-1">
+                <div><span class="font-medium">创建:</span> {{ formatDateTime(order.created_at) }}</div>
+                <div v-if="order.expires_at" class="text-orange-600">
+                  <span class="font-medium">过期:</span> {{ formatDateTime(order.expires_at) }}
+                </div>
+                <div v-if="order.processing_started_at" class="text-blue-600">
+                  <span class="font-medium">处理:</span> {{ formatDateTime(order.processing_started_at) }}
+                </div>
+                <div v-if="order.delegation_started_at" class="text-purple-600">
+                  <span class="font-medium">委托:</span> {{ formatDateTime(order.delegation_started_at) }}
+                </div>
+                <div v-if="order.completed_at" class="text-green-600">
+                  <span class="font-medium">完成:</span> {{ formatDateTime(order.completed_at) }}
+                </div>
+              </div>
+            </td>
+
+            <!-- 操作 -->
+            <td class="px-3 py-3 whitespace-nowrap text-sm font-medium">
+              <div class="flex items-center space-x-1">
                 <button
                   @click="$emit('view-details', order)"
-                  class="text-indigo-600 hover:text-indigo-900"
+                  class="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
                   title="查看详情"
                 >
                   <Eye class="h-4 w-4" />
@@ -93,18 +184,30 @@
                 <button
                   v-if="canUpdateStatus(order.status)"
                   @click="$emit('update-status', order)"
-                  class="text-green-600 hover:text-green-900"
+                  class="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
                   title="更新状态"
                 >
                   <Edit class="h-4 w-4" />
                 </button>
+                <!-- 查看支付交易 -->
                 <button
-                  v-if="order.payment_tx_hash"
-                  @click="viewTransaction(order.payment_tx_hash)"
-                  class="text-blue-600 hover:text-blue-900"
-                  title="查看交易"
+                  v-if="order.payment_tx_hash || order.tron_tx_hash"
+                  @click="viewTransaction(order.payment_tx_hash || order.tron_tx_hash, network)"
+                  class="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50 text-xs font-medium flex items-center space-x-1"
+                  title="查看支付交易"
                 >
-                  <ExternalLink class="h-4 w-4" />
+                  <CreditCard class="h-3 w-3" />
+                  <span>支付</span>
+                </button>
+                <!-- 查看委托交易 -->
+                <button
+                  v-if="order.delegation_tx_hash || order.delegate_tx_hash"
+                  @click="viewTransaction(order.delegation_tx_hash || order.delegate_tx_hash, network)"
+                  class="text-purple-600 hover:text-purple-900 px-2 py-1 rounded hover:bg-purple-50 text-xs font-medium flex items-center space-x-1"
+                  title="查看委托交易"
+                >
+                  <Zap class="h-3 w-3" />
+                  <span>委托</span>
                 </button>
               </div>
             </td>
@@ -154,76 +257,47 @@
 
 <script setup lang="ts">
 import {
-    Edit,
-    ExternalLink,
-    Eye,
-    Loader2,
-    ShoppingCart
+  CreditCard,
+  Edit,
+  Eye,
+  Loader2,
+  ShoppingCart,
+  Zap
 } from 'lucide-vue-next'
-import type { Order, OrderPagination } from '../types/order.types'
 
-interface Props {
-  orders: Order[]
-  isLoading: boolean
-  pagination: OrderPagination
-}
+// 导入分离的模块
+import type { OrderListEmits, OrderListProps } from '../composables/useOrderList'
+import { useOrderList } from '../composables/useOrderList'
+import {
+  calculateOrderCount,
+  formatAddress,
+  formatDateTime,
+  formatNumber,
+  viewTransaction
+} from '../utils/orderFormatters'
+import {
+  canUpdateStatus,
+  getDelegationStatusColor,
+  getDelegationStatusText,
+  getOrderTypeText,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getStatusColor,
+  getStatusText
+} from '../utils/orderStatus'
 
-interface Emits {
-  'view-details': [order: Order]
-  'update-status': [order: Order]
-  'page-change': [page: number]
-}
+// 使用类型定义
+interface Props extends OrderListProps {}
+interface Emits extends OrderListEmits {}
 
-defineProps<Props>()
-defineEmits<Emits>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-// 状态相关方法
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'processing': 'bg-blue-100 text-blue-800',
-    'completed': 'bg-green-100 text-green-800',
-    'failed': 'bg-red-100 text-red-800',
-    'cancelled': 'bg-gray-100 text-gray-800'
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
+// 解构props获取网络信息
+const { network } = props
 
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    'pending': '待处理',
-    'processing': '处理中',
-    'completed': '已完成',
-    'failed': '失败',
-    'cancelled': '已取消'
-  }
-  return texts[status] || status
-}
-
-const formatDateTime = (dateString: string) => {
-  return new Date(dateString).toLocaleString('zh-CN')
-}
-
-const canUpdateStatus = (status: string) => {
-  return ['pending', 'processing'].includes(status)
-}
-
-const viewTransaction = (txHash: string) => {
-  window.open(`https://tronscan.org/#/transaction/${txHash}`, '_blank')
-}
+// 使用composable
+const {} = useOrderList()
 </script>
 
-<style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>
+<style scoped src="./OrderList.css"></style>

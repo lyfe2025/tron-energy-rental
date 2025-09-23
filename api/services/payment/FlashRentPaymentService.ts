@@ -346,7 +346,7 @@ export class FlashRentPaymentService {
           0, // 初始创建时价格为0，后续处理时更新
           trxAmount,
           0, // 初始创建时计算单位为0，后续处理时更新
-          'pending', // 支付状态：待确认
+          'paid', // 支付状态：已支付（能检测到交易说明已付款）
           'pending', // 订单状态：待处理
           txID,
           fromAddress, // source_address: 支付来源地址

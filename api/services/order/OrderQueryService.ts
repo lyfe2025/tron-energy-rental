@@ -78,6 +78,7 @@ export class OrderQueryService {
       txHash?: string;
       dateFrom?: Date;
       dateTo?: Date;
+      networkId?: string;
     },
     limit: number = 20,
     offset: number = 0
@@ -120,6 +121,13 @@ export class OrderQueryService {
       if (searchQuery.dateTo) {
         conditions.push(`created_at <= $${paramIndex}`);
         values.push(searchQuery.dateTo);
+        paramIndex++;
+      }
+
+      // 添加网络ID筛选
+      if (searchQuery.networkId) {
+        conditions.push(`network_id = $${paramIndex}`);
+        values.push(searchQuery.networkId);
         paramIndex++;
       }
 

@@ -30,7 +30,14 @@ const router = createRouter({
         {
           path: 'orders',
           name: 'orders',
-          component: () => import('@/pages/Orders/index.vue')
+          component: () => import('@/pages/Orders/NetworkSelection.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
+        },
+        {
+          path: 'orders/:networkId',
+          name: 'orders-network',
+          component: () => import('@/pages/Orders/index.vue'),
+          meta: { roles: ['super_admin', 'admin'] }
         },
         {
           path: 'price-config',

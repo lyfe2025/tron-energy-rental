@@ -1,19 +1,18 @@
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ordersAPI, type OrderQueryParams as APIOrderQueryParams } from '@/services/api'
 import { debounce } from 'lodash-es'
-import { ordersAPI } from '@/services/api'
+import { computed, onMounted, reactive, ref } from 'vue'
 import type {
-  OrderStats,
-  OrderFilters,
-  OrderPagination,
-  OrderQueryParams,
-  OrderStatusUpdateData,
-  OrderListResponse,
-  OrderModalState,
-  OrderManagementState
+    Order,
+    OrderFilters,
+    OrderManagementState,
+    OrderQueryParams,
+    OrderStatusUpdateData
 } from '../types/order.types'
-import type { Order } from '@/types/api'
 
 export function useOrderManagement() {
+  // 当前网络ID
+  const currentNetworkId = ref<string>('')
+  
   // 状态管理
   const state = reactive<OrderManagementState>({
     orders: [],
@@ -77,6 +76,11 @@ export function useOrderManagement() {
       queryParams.append('page', String(params?.page || state.pagination.page))
       queryParams.append('limit', String(params?.limit || state.pagination.limit))
       
+      // 添加网络ID参数
+      if (currentNetworkId.value) {
+        queryParams.append('network_id', currentNetworkId.value)
+      }
+      
       // 添加搜索和过滤参数
       if (params?.search || state.filters.search) {
         queryParams.append('search', params?.search || state.filters.search)
@@ -91,14 +95,17 @@ export function useOrderManagement() {
         queryParams.append('end_date', params?.end_date || state.filters.dateRange.end)
       }
 
-      const response = await ordersAPI.getOrders({
+      const apiParams: APIOrderQueryParams = {
         page: params?.page || state.pagination.page,
         limit: params?.limit || state.pagination.limit,
         search: params?.search || state.filters.search || undefined,
         status: params?.status || state.filters.status || undefined,
         start_date: params?.start_date || state.filters.dateRange.start || undefined,
-        end_date: params?.end_date || state.filters.dateRange.end || undefined
-      })
+        end_date: params?.end_date || state.filters.dateRange.end || undefined,
+        network_id: currentNetworkId.value || undefined
+      }
+
+      const response = await ordersAPI.getOrders(apiParams)
       
       // 处理API响应数据结构
       if (response.data.success && response.data.data) {
@@ -235,9 +242,19 @@ export function useOrderManagement() {
     fetchOrders()
   }
 
+  // 初始化网络ID
+  const initializeWithNetworkId = async (networkId: string) => {
+    currentNetworkId.value = networkId
+    console.log('🔍 [useOrderManagement] 设置网络ID:', networkId)
+    await fetchOrders()
+  }
+
   // 初始化
   onMounted(() => {
-    fetchOrders()
+    // 只有在没有网络ID的情况下才自动加载
+    if (!currentNetworkId.value) {
+      fetchOrders()
+    }
   })
 
   return {
@@ -260,6 +277,7 @@ export function useOrderManagement() {
     closeDetailsModal,
     showStatusUpdateModal,
     closeStatusModal,
-    refreshOrders
+    refreshOrders,
+    initializeWithNetworkId
   }
 }
