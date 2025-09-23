@@ -85,10 +85,10 @@
             <td class="px-3 py-3 whitespace-nowrap">
               <div class="space-y-1">
                 <div class="text-sm font-medium text-gray-900">
-                  {{ order.price_trx || order.price || 0 }} TRX
+                  {{ formatPrice(order) }} TRX
                 </div>
                 <div class="text-xs text-indigo-600">
-                  <span class="font-medium">笔数:</span> {{ calculateOrderCount(order) }}
+                  <span class="font-medium">笔数:</span> {{ calculateOrderCount(order, flashRentConfig) }}
                 </div>
                 <div v-if="order.commission_amount" class="text-xs text-green-600">
                   <span class="font-medium">佣金:</span> {{ order.commission_amount }} TRX
@@ -100,7 +100,7 @@
             <td class="px-3 py-3 whitespace-nowrap">
               <div class="space-y-1">
                 <div class="text-sm font-medium text-blue-700">
-                  {{ formatNumber(order.energy_amount) }} 能量
+                  {{ formatEnergy(order, flashRentConfig) }} 能量
                 </div>
                 <div class="text-xs">
                   <span 
@@ -266,13 +266,16 @@ import {
 } from 'lucide-vue-next'
 
 // 导入分离的模块
+import { flashRentConfigApi } from '@/services/api/system/flashRentConfigAPI'
+import { onMounted, ref, watch } from 'vue'
 import type { OrderListEmits, OrderListProps } from '../composables/useOrderList'
 import { useOrderList } from '../composables/useOrderList'
 import {
   calculateOrderCount,
   formatAddress,
   formatDateTime,
-  formatNumber,
+  formatEnergy,
+  formatPrice,
   viewTransaction
 } from '../utils/orderFormatters'
 import {
@@ -298,6 +301,57 @@ const { network } = props
 
 // 使用composable
 const {} = useOrderList()
+
+// 闪租配置类型
+type SimpleFlashRentConfig = {
+  single_price: number
+  energy_per_unit: number
+  max_amount: number
+}
+
+// 闪租配置
+const flashRentConfig = ref<SimpleFlashRentConfig | null>(null)
+
+// 获取闪租配置
+const loadFlashRentConfig = async () => {
+  if (!network?.id) return
+
+  try {
+    // 同时获取闪租配置和能量消耗配置
+    const [config, energyConfig] = await Promise.all([
+      flashRentConfigApi.getFlashRentConfigByNetwork(network.id.toString()),
+      flashRentConfigApi.getEnergyConsumptionConfig()
+    ])
+    
+    if (config?.config) {
+      flashRentConfig.value = {
+        single_price: config.config.single_price,
+        energy_per_unit: energyConfig.calculated_energy_per_unit, // 使用动态计算的值
+        max_amount: config.config.max_amount || config.config.max_transactions || 999 // 兼容两种字段名
+      }
+      
+      console.log('🧮 能量消耗配置加载:', {
+        标准能量消耗: energyConfig.standard_energy,
+        缓冲百分比: energyConfig.buffer_percentage + '%',
+        计算公式: `${energyConfig.standard_energy} * (1 + ${energyConfig.buffer_percentage}/100)`,
+        单笔能量消耗: energyConfig.calculated_energy_per_unit
+      })
+    }
+  } catch (error) {
+    console.error('获取闪租配置失败:', error)
+    flashRentConfig.value = null
+  }
+}
+
+// 监听网络变化
+watch(() => network?.id, () => {
+  loadFlashRentConfig()
+}, { immediate: true })
+
+// 组件挂载时加载配置
+onMounted(() => {
+  loadFlashRentConfig()
+})
 </script>
 
 <style scoped src="./OrderList.css"></style>

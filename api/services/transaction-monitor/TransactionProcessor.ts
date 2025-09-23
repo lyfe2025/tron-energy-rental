@@ -4,18 +4,23 @@
  */
 import { Logger } from 'winston';
 import { orderLogger } from '../../utils/logger';
+import { FlashRentOrderService } from '../order-management/FlashRentOrderService';
 import { PaymentService } from '../payment';
 import { TransactionCache } from './TransactionCache';
 import { TransactionParser } from './TransactionParser';
 import type { MonitoredAddress } from './types';
 
 export class TransactionProcessor {
+  private flashRentService: FlashRentOrderService;
+
   constructor(
     private logger: Logger,
     private transactionCache: TransactionCache,
     private transactionParser: TransactionParser,
     private paymentService: PaymentService
-  ) {}
+  ) {
+    this.flashRentService = new FlashRentOrderService();
+  }
 
   /**
    * 处理单个交易
@@ -291,6 +296,45 @@ export class TransactionProcessor {
       toAddress,
       amount: `${amount} TRX`
     });
+
+    // 立即进行真正的订单计算和处理
+    try {
+      orderLogger.info(`   🧮 开始进行订单计算和能量委托`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        step: 'flash_rent_processing'
+      });
+
+      const flashRentParams = {
+        fromAddress: fromAddress,
+        trxAmount: amount,
+        networkId: networkId,
+        txId: txId
+      };
+
+      const processedOrder = await this.flashRentService.createNewFlashRentOrder(flashRentParams);
+
+      orderLogger.info(`   🎉 订单计算和处理完成`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        orderId: processedOrder.id,
+        status: processedOrder.status,
+        energyAmount: processedOrder.energy_amount,
+        calculatedUnits: processedOrder.calculated_units
+      });
+
+    } catch (flashRentError) {
+      orderLogger.error(`   ❌ 订单计算和处理失败`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        error: flashRentError.message,
+        step: 'flash_rent_processing_failed'
+      });
+      // 不抛出错误，因为基础订单已经创建成功
+    }
 
     return orderNumber;
   }

@@ -6,7 +6,7 @@ import { Logger } from 'winston';
 import { RedisService } from '../cache/RedisService';
 
 export class TransactionCache {
-  private readonly PROCESSED_TX_TTL = 86400; // 24小时
+  private readonly PROCESSED_TX_TTL = 180; // 3分钟（优化后：从24小时缩短，基于90秒交易检查窗口）
 
   constructor(
     private logger: Logger,

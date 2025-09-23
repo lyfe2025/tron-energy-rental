@@ -5,7 +5,9 @@
  * 提供完整的系统配置管理API接口
  */
 
+import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { query } from '../../database/index.js';
 import { authenticateToken } from '../../middleware/auth.js';
 import { auditConfigChanges, checkConfigPermission, validateConfig } from '../../middleware/configManagement.js';
 import {
@@ -59,6 +61,44 @@ router.get('/',
   logConfigOperation('获取配置列表'),
   rateLimit(50, 60000),
   getConfigs
+);
+
+// 获取特定键的配置值（用于前端API调用）
+router.get('/values', 
+  authenticateToken,
+  setCacheHeaders(300),
+  logConfigOperation('获取特定配置'),
+  rateLimit(100, 60000),
+  async (req: Request, res: Response) => {
+    try {
+      const keys = req.query.keys as string;
+      if (!keys) {
+        res.status(400).json({
+          success: false,
+          message: '缺少keys参数'
+        });
+        return;
+      }
+
+      const keyArray = keys.split(',').map(k => k.trim());
+      const result = await query(
+        `SELECT config_key, config_value FROM system_configs 
+         WHERE config_key = ANY($1)`,
+        [keyArray]
+      );
+
+      res.json({
+        success: true,
+        data: result.rows
+      });
+    } catch (error) {
+      console.error('获取配置失败:', error);
+      res.status(500).json({
+        success: false,
+        message: '获取配置失败'
+      });
+    }
+  }
 );
 
 // 获取所有设置相关的配置（用于设置页面）

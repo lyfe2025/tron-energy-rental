@@ -1,5 +1,5 @@
-import { createClient, type RedisClientType } from 'redis';
 import dotenv from 'dotenv';
+import { createClient, type RedisClientType } from 'redis';
 
 dotenv.config();
 
@@ -95,6 +95,31 @@ export const redisOperations = {
       await redisClient.setEx(key, expireInSeconds, value);
     } else {
       await redisClient.set(key, value);
+    }
+  },
+
+  // 当且仅当key不存在时设置键值对（分布式锁）
+  setNX: async (key: string, value: string, expireInSeconds?: number): Promise<boolean> => {
+    if (!(await ensureRedisConnection())) {
+      throw new Error('Redis connection unavailable');
+    }
+    
+    try {
+      if (expireInSeconds) {
+        // 使用SET命令的NX和EX选项实现原子操作
+        const result = await redisClient.set(key, value, {
+          NX: true,
+          EX: expireInSeconds
+        });
+        return result === 'OK';
+      } else {
+        // 如果没有过期时间，只使用NX选项
+        const result = await redisClient.set(key, value, { NX: true });
+        return result === 'OK';
+      }
+    } catch (error) {
+      console.error(`Redis SETNX error for key ${key}:`, error);
+      return false;
     }
   },
 

@@ -27,9 +27,127 @@ export const formatAddress = (address: string): string => {
 /**
  * 格式化数字显示
  */
-export const formatNumber = (num: number): string => {
+export const formatNumber = (num: number | string): string => {
   if (!num) return '0'
-  return num.toLocaleString()
+  const numValue = typeof num === 'string' ? parseFloat(num) : num
+  if (isNaN(numValue)) return '0'
+  return numValue.toLocaleString()
+}
+
+/**
+ * 格式化订单价格显示
+ */
+interface OrderForPrice {
+  payment_trx_amount?: string | number
+  price_trx?: number
+  price?: number | string
+}
+
+export const formatPrice = (order: OrderForPrice): string => {
+  // 优先使用实际支付金额
+  if (order.payment_trx_amount) {
+    const amount = typeof order.payment_trx_amount === 'string' 
+      ? parseFloat(order.payment_trx_amount) 
+      : order.payment_trx_amount
+    if (!isNaN(amount) && amount > 0) {
+      return amount.toFixed(2)
+    }
+  }
+  
+  // 其次使用price_trx
+  if (order.price_trx && order.price_trx > 0) {
+    return order.price_trx.toFixed(2)
+  }
+  
+  // 最后使用price
+  if (order.price) {
+    const price = typeof order.price === 'string' ? parseFloat(order.price) : order.price
+    if (!isNaN(price) && price > 0) {
+      return price.toFixed(2)
+    }
+  }
+  
+  return '0.00'
+}
+
+/**
+ * 闪租配置接口
+ */
+interface FlashRentConfig {
+  single_price: number
+  energy_per_unit: number
+  max_amount: number
+}
+
+/**
+ * 格式化能量数量显示
+ */
+interface OrderForEnergy {
+  energy_amount?: number | string
+  delegated_energy_amount?: number | string
+  payment_trx_amount?: string | number
+  calculated_units?: number  // 数据库存储的实际笔数
+}
+
+export const formatEnergy = (order: OrderForEnergy, config?: FlashRentConfig): string => {
+  // 优先使用已委托的能量数量
+  if (order.delegated_energy_amount) {
+    const amount = typeof order.delegated_energy_amount === 'string'
+      ? parseFloat(order.delegated_energy_amount)
+      : order.delegated_energy_amount
+    if (!isNaN(amount) && amount > 0) {
+      return formatNumber(amount)
+    }
+  }
+
+  // 其次使用数据库存储的能量数量
+  if (order.energy_amount) {
+    const amount = typeof order.energy_amount === 'string'
+      ? parseFloat(order.energy_amount)
+      : order.energy_amount
+    if (!isNaN(amount) && amount > 0) {
+      return formatNumber(amount)
+    }
+  }
+
+  // 根据数据库存储的笔数和配置计算能量
+  if (order.calculated_units && config) {
+    const totalEnergy = order.calculated_units * config.energy_per_unit
+    if (totalEnergy > 0) {
+      return formatNumber(totalEnergy) + ' (基于笔数)'
+    }
+  }
+
+  // 根据支付金额和配置精确计算
+  if (order.payment_trx_amount && config) {
+    const paymentAmount = typeof order.payment_trx_amount === 'string'
+      ? parseFloat(order.payment_trx_amount)
+      : order.payment_trx_amount
+      
+    if (!isNaN(paymentAmount) && paymentAmount > 0 && config.single_price > 0) {
+      // 根据真实配置计算笔数和能量
+      const calculatedUnits = Math.floor(paymentAmount / config.single_price)
+      const totalEnergy = calculatedUnits * config.energy_per_unit
+      
+      if (totalEnergy > 0) {
+        return formatNumber(totalEnergy) + ' (配置计算)'
+      }
+    }
+  }
+
+  // 如果没有配置，使用粗略估算
+  if (order.payment_trx_amount) {
+    const paymentAmount = typeof order.payment_trx_amount === 'string'
+      ? parseFloat(order.payment_trx_amount)
+      : order.payment_trx_amount
+    if (!isNaN(paymentAmount) && paymentAmount > 0) {
+      // 默认估算：1 TRX ≈ 65,000 能量
+      const estimatedEnergy = Math.round(paymentAmount * 65000)
+      return formatNumber(estimatedEnergy) + ' (估算)'
+    }
+  }
+
+  return '0'
 }
 
 /**
@@ -67,16 +185,22 @@ export const getOrderAmount = (order: OrderForAmount): string => {
 }
 
 /**
- * 计算订单笔数（根据能量闪租配置）
+ * 计算订单笔数（优先使用数据库存储的笔数）
  */
 interface OrderForCount {
   price_trx?: number
   price?: number
   payment_trx_amount?: string | number
+  calculated_units?: number  // 数据库存储的实际笔数
 }
 
-export const calculateOrderCount = (order: OrderForCount): number => {
-  // 首先尝试从payment_trx_amount获取价格
+export const calculateOrderCount = (order: OrderForCount, config?: FlashRentConfig): number => {
+  // 优先使用数据库中存储的实际笔数
+  if (order.calculated_units && order.calculated_units > 0) {
+    return order.calculated_units;
+  }
+  
+  // 如果没有存储的笔数，则根据支付金额计算
   let price = 0
   if (order.payment_trx_amount) {
     price = typeof order.payment_trx_amount === 'string' 
@@ -89,14 +213,17 @@ export const calculateOrderCount = (order: OrderForCount): number => {
   // 如果没有价格信息，默认为1笔
   if (!price) return 1
   
-  // 根据能量闪租配置计算笔数
-  // single_price通常为2-3 TRX每笔
-  // 常见配置: 2 TRX = 1笔, 4 TRX = 2笔, 6 TRX = 3笔...
-  const estimatedSinglePrice = 2 // 默认单笔价格2 TRX
-  const calculatedCount = Math.round(price / estimatedSinglePrice)
+  // 根据配置计算笔数
+  let singlePrice = 3 // 默认单笔价格3 TRX（与后端默认值保持一致）
+  if (config && config.single_price > 0) {
+    singlePrice = config.single_price
+  }
   
-  // 确保至少为1笔，最多不超过20笔（合理范围）
-  return Math.max(1, Math.min(20, calculatedCount))
+  const calculatedCount = Math.floor(price / singlePrice) // 使用floor确保不超过实际可购买笔数
+  
+  // 确保至少为1笔，最多不超过配置的最大笔数
+  const maxUnits = config?.max_amount || 20
+  return Math.max(1, Math.min(maxUnits, calculatedCount))
 }
 
 /**

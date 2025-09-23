@@ -28,6 +28,20 @@ export class RedisService {
     }
   }
 
+  async setNX(key: string, value: string, expireInSeconds?: number): Promise<boolean> {
+    try {
+      return await redisOperations.setNX(key, value, expireInSeconds);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('client is closed') || errorMessage.includes('connection unavailable')) {
+        console.warn(`Redis连接不可用，跳过SETNX操作 ${key}:`, errorMessage);
+      } else {
+        console.error(`Redis SETNX error for key ${key}:`, error);
+      }
+      return false;
+    }
+  }
+
   async del(key: string): Promise<number> {
     try {
       return await redisOperations.del(key);
