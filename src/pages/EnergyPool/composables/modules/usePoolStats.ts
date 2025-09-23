@@ -14,13 +14,9 @@ export function usePoolStats() {
   const statistics = reactive<EnergyPoolStatistics>({
     totalAccounts: 0,
     activeAccounts: 0,
-    totalEnergy: 0,
-    availableEnergy: 0,
-    totalBandwidth: 0,
-    availableBandwidth: 0,
-    averageCost: 0,
-    utilizationRate: 0,
-    bandwidthUtilizationRate: 0
+    // 注意：能量和带宽统计字段已移除，现在从TRON网络实时获取
+    averageCost: 0
+    // utilizationRate, bandwidthUtilizationRate 等指标需要基于实时数据计算
   })
 
   const todayConsumption = ref<TodayConsumption | null>(null)

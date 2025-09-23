@@ -1,9 +1,9 @@
 import { query } from '../../../database/index.ts';
 import type {
-  AddAccountResult,
-  BatchUpdateResult,
-  EnergyPoolAccount,
-  UpdateAccountResult
+    AddAccountResult,
+    BatchUpdateResult,
+    EnergyPoolAccount,
+    UpdateAccountResult
 } from '../types/account.types.ts';
 
 /**
@@ -244,20 +244,19 @@ export class AccountCRUDService {
       
       const sql = `
         INSERT INTO energy_pools (
-          name, tron_address, private_key_encrypted, total_energy, available_energy, 
+          name, tron_address, private_key_encrypted, 
           status, account_type, priority, cost_per_energy,
-          description, contact_info, daily_limit, monthly_limit,
-          total_bandwidth, available_bandwidth
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          description, contact_info, daily_limit, monthly_limit
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id
       `;
       
+      // 注意：已移除 total_energy, available_energy, total_bandwidth, available_bandwidth 字段
+      // 这些数据现在从TRON网络实时获取，不再存储在数据库中
       const values = [
         accountData.name,
         accountData.tron_address,
         accountData.private_key_encrypted,
-        accountData.total_energy,
-        accountData.available_energy,
         accountData.status,
         accountData.account_type || 'own_energy',
         accountData.priority || 1,
@@ -265,9 +264,7 @@ export class AccountCRUDService {
         accountData.description || null,
         accountData.contact_info || null,
         accountData.daily_limit || null,
-        accountData.monthly_limit || null,
-        accountData.total_bandwidth || 0, // total_bandwidth
-        accountData.available_bandwidth || 0 // available_bandwidth
+        accountData.monthly_limit || null
       ];
       
       console.log('📝 [AccountCRUD] 执行SQL:', sql);

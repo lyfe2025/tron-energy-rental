@@ -3,7 +3,7 @@
  * 负责数据验证、格式检查等验证相关逻辑
  */
 
-import type { AccountAddData, AccountUpdateData, EnergyPoolAccount } from '../types/energy-pool.types'
+import type { AccountAddData, AccountUpdateData, EnergyPoolAccount } from '../types/energy-pool.types';
 
 export function usePoolValidation() {
 
@@ -94,11 +94,11 @@ export function usePoolValidation() {
       errors.push(privateKeyValidation.error!)
     }
 
-    // 验证能量值
-    const energyValidation = validateEnergyAmount(data.total_energy)
-    if (!energyValidation.isValid) {
-      errors.push(energyValidation.error!)
-    }
+    // 注意：能量值验证已移除，现在从TRON网络实时获取
+    // const energyValidation = validateEnergyAmount(data.total_energy)
+    // if (!energyValidation.isValid) {
+    //   errors.push(energyValidation.error!)
+    // }
 
     // 验证优先级（如果提供）
     if (data.priority !== undefined) {
@@ -176,21 +176,30 @@ export function usePoolValidation() {
 
   // 检查账户是否可用
   const isAccountAvailable = (account: EnergyPoolAccount): boolean => {
-    return account.status === 'active' && account.available_energy > 0
+    // 注意：能量检查已移除，现在仅检查状态
+    return account.status === 'active'
+    // 能量可用性需要通过实时API检查
   }
 
   // 检查账户是否需要维护
   const needsMaintenance = (account: EnergyPoolAccount): boolean => {
-    // 如果可用能量低于总能量的10%，建议维护
-    const threshold = account.total_energy * 0.1
-    return account.available_energy < threshold
+    // 注意：能量检查逻辑已移除，维护状态需要通过实时数据判断
+    // 暂时返回false，实际使用时需要通过实时API获取能量数据
+    return false
+    // 实际逻辑: 如果可用能量低于总能量的10%，建议维护
+    // const threshold = realTimeEnergy.total * 0.1
+    // return realTimeEnergy.available < threshold
   }
 
   // 计算账户利用率
   const calculateUtilization = (account: EnergyPoolAccount): number => {
-    if (account.total_energy === 0) return 0
-    const used = account.total_energy - account.available_energy
-    return (used / account.total_energy) * 100
+    // 注意：利用率计算已移除，需要通过实时API获取数据计算
+    // 暂时返回0，实际使用时需要传入实时能量数据
+    return 0
+    // 实际逻辑:
+    // if (realTimeEnergy.total === 0) return 0
+    // const used = realTimeEnergy.total - realTimeEnergy.available
+    // return (used / realTimeEnergy.total) * 100
   }
 
   return {

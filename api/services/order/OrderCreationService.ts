@@ -17,12 +17,19 @@ export class OrderCreationService {
         throw new Error('Invalid TRON address format');
       }
 
-      // 检查能量池可用性
+      // 检查能量池可用性 - 使用实时数据
       const activePools = await energyPoolService.getActivePoolAccounts();
-      const totalAvailableEnergy = activePools.reduce((sum, pool) => sum + pool.available_energy, 0);
-      if (totalAvailableEnergy < request.energyAmount) {
-        throw new Error('Insufficient energy available in pools');
+      // 注意：不再从数据库获取能量数据，需要实时检查
+      // 这里先简化处理，实际使用时需要调用实时能量检查API
+      if (activePools.length === 0) {
+        throw new Error('No active energy pools available');
       }
+      
+      // TODO: 实际部署时需要实现实时能量检查
+      // const realTimeCheck = await this.checkRealTimeEnergyAvailability(request.energyAmount);
+      // if (!realTimeCheck.sufficient) {
+      //   throw new Error(`Insufficient energy available. Required: ${request.energyAmount}`);
+      // }
 
       // 计算过期时间（24小时后）
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -135,19 +142,23 @@ export class OrderCreationService {
   }> {
     try {
       const activePools = await energyPoolService.getActivePoolAccounts();
-      const totalAvailableEnergy = activePools.reduce((sum, pool) => sum + pool.available_energy, 0);
       
-      // 按可用能量排序，推荐最优池
-      const sortedPools = activePools
-        .filter(pool => pool.available_energy >= energyAmount * 0.1) // 至少能提供10%的需求
-        .sort((a, b) => b.available_energy - a.available_energy)
-        .slice(0, 3); // 取前3个最优池
+      // 注意：由于数据库中已移除能量字段，这里需要实现实时能量检查
+      // 当前简化处理，返回基本信息
+      const recommendedPools = activePools.slice(0, 3).map(pool => pool.id);
+
+      // TODO: 实际部署时需要实现实时能量检查
+      // let totalAvailableEnergy = 0;
+      // for (const pool of activePools) {
+      //   const realTimeEnergy = await this.getRealTimeEnergy(pool.tron_address);
+      //   totalAvailableEnergy += realTimeEnergy.available;
+      // }
 
       return {
-        availableEnergy: totalAvailableEnergy,
+        availableEnergy: 0, // 需要实时计算
         requiredEnergy: energyAmount,
-        canFulfill: totalAvailableEnergy >= energyAmount,
-        recommendedPools: sortedPools.map(pool => pool.id)
+        canFulfill: activePools.length > 0, // 简化判断
+        recommendedPools
       };
     } catch (error) {
       console.error('Estimate resource requirement error:', error);

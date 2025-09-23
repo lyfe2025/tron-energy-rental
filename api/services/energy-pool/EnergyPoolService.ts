@@ -1,6 +1,6 @@
 // 主服务入口，整合所有能量池相关服务
 import { accountManagementService, type EnergyPoolAccount } from './AccountManagementService';
-import { allocationService, type OptimizationResult } from './AllocationService';
+import { allocationService, type AllocationResult } from './AllocationService';
 
 export class EnergyPoolService {
   // 账户管理服务
@@ -42,25 +42,17 @@ export class EnergyPoolService {
   }
 
   /**
-   * 优化能量分配算法
+   * 基于优先级的能量分配
    */
-  async optimizeEnergyAllocation(requiredEnergy: number): Promise<OptimizationResult> {
-    return this.allocation.optimizeEnergyAllocation(requiredEnergy);
+  async allocateEnergyByPriority(requiredEnergy: number): Promise<AllocationResult> {
+    return this.allocation.allocateEnergyByPriority(requiredEnergy);
   }
 
   /**
-   * 智能能量分配
+   * 能量分配（基于优先级，兼容原接口）
    */
-  async smartEnergyAllocation(
-    requiredEnergy: number, 
-    options: {
-      preferLowCost?: boolean;
-      balanceLoad?: boolean;
-      excludeAccountIds?: string[];
-      maxAccountsUsed?: number;
-    } = {}
-  ): Promise<OptimizationResult> {
-    return this.allocation.smartEnergyAllocation(requiredEnergy, options);
+  async optimizeEnergyAllocation(requiredEnergy: number): Promise<AllocationResult> {
+    return this.allocation.allocateEnergyByPriority(requiredEnergy);
   }
 
   /**
@@ -99,18 +91,14 @@ export class EnergyPoolService {
 
   /**
    * 获取能量池统计信息
+   * 注意：由于移除了能量和带宽字段，统计信息现在简化了
    */
   async getPoolStatistics(networkId?: string): Promise<{
     success: boolean;
     data?: {
       totalAccounts: number;
       activeAccounts: number;
-      totalEnergy: number;
-      availableEnergy: number;
-      totalBandwidth: number;
-      availableBandwidth: number;
-      utilizationRate: number;
-      bandwidthUtilizationRate: number;
+      // 注意：能量和带宽统计字段已移除，现在从TRON网络实时获取
       averageCostPerEnergy: number;
       averageCostPerBandwidth: number;
     };
@@ -119,19 +107,6 @@ export class EnergyPoolService {
     return this.accountManagement.getPoolStatistics(networkId);
   }
 
-  /**
-   * 预测能量需求
-   */
-  async predictAndAllocate(
-    historicalData: { energy: number; timestamp: Date }[],
-    targetHours: number = 24
-  ): Promise<{
-    predictedEnergy: number;
-    recommendedAllocation: OptimizationResult;
-    confidence: number;
-  }> {
-    return this.allocation.predictAndAllocate(historicalData, targetHours);
-  }
 
   /**
    * 健康检查 - 检查所有服务是否正常
@@ -183,12 +158,13 @@ export class EnergyPoolService {
 
 // 导出类型，保持向后兼容
 export type {
-    EnergyPoolAccount
+  EnergyPoolAccount
 } from './AccountManagementService';
 
-export type {
-    EnergyAllocation, OptimizationResult
-} from './AllocationService';
+export type { AllocationResult, EnergyAllocation } from './AllocationService';
+
+// 保持向后兼容
+export type OptimizationResult = AllocationResult;
 
 // 创建默认实例
 export const energyPoolService = new EnergyPoolService();

@@ -83,20 +83,17 @@ router.post('/', async (req, res) => {
     }
     
     console.log(`✅ [EnergyPool] TRON账户信息获取成功:`, {
-      total_energy: energyLimit,
-      available_energy: availableEnergy,
+      total_energy: energyLimit, // 仅用于验证，不存储到数据库
+      available_energy: availableEnergy, // 仅用于验证，不存储到数据库
       cost_per_energy: costPerEnergy
     });
     
-    // 创建账户数据
+    // 创建账户数据 - 注意：已移除 total_energy, available_energy, total_bandwidth, available_bandwidth
+    // 这些数据现在从TRON网络实时获取，不再存储在数据库中
     const accountData = {
       name: name.trim(),
       tron_address,
       private_key_encrypted,
-      total_energy: energyLimit,
-      available_energy: availableEnergy,
-      total_bandwidth: resourceInfo.data.bandwidth.limit || 0,
-      available_bandwidth: resourceInfo.data.bandwidth.available || 0,
       cost_per_energy: costPerEnergy,
       status,
       account_type,
@@ -127,8 +124,11 @@ router.post('/', async (req, res) => {
       data: { 
         id: accountId,
         tronData: {
+          // 注意：这些数据仅用于API响应，不存储在数据库中
           total_energy: energyLimit,
           available_energy: availableEnergy,
+          total_bandwidth: resourceInfo.data.bandwidth.limit || 0,
+          available_bandwidth: resourceInfo.data.bandwidth.available || 0,
           cost_per_energy: costPerEnergy,
           balance: accountInfo.data.balance,
           frozen_balance: totalFrozen

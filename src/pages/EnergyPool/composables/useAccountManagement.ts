@@ -2,10 +2,10 @@ import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { computed, ref } from 'vue'
 import type {
-    AccountFormData,
-    AccountUpdateData,
-    EnergyPoolAccount,
-    FilterState
+  AccountFormData,
+  AccountUpdateData,
+  EnergyPoolAccount,
+  FilterState
 } from '../types/energy-pool.types'
 
 export function useAccountManagement() {
@@ -81,11 +81,12 @@ export function useAccountManagement() {
   const addAccount = async (accountData: AccountFormData) => {
     loading.value.operations = true
     try {
+      // 注意：已移除 total_energy, available_energy 等字段
+      // 这些数据现在从TRON网络实时获取，不再存储在数据库中
       const completeAccountData = {
         ...accountData,
-        status: accountData.status || 'active',
-        available_energy: accountData.total_energy,
-        reserved_energy: 0
+        status: accountData.status || 'active'
+        // available_energy 和 reserved_energy 字段已移除
       }
       const response = await energyPoolExtendedAPI.addAccount(completeAccountData)
       if (response.data.success) {

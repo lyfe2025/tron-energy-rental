@@ -102,7 +102,7 @@
             <span class="text-gray-600">总能量:</span>
             <div class="flex items-center space-x-2">
               <span class="font-medium text-gray-900">
-                {{ realTimeDataMap[account.id]?.energy?.total ? formatEnergy(realTimeDataMap[account.id].energy.total) : formatEnergy(account.total_energy) }}
+                {{ realTimeDataMap[account.id]?.energy?.total ? formatEnergy(realTimeDataMap[account.id].energy.total) : formatEnergy(0) }}
               </span>
               <div v-if="loadingMap[account.id]" class="w-3 h-3 animate-spin border border-blue-500 border-t-transparent rounded-full"></div>
             </div>
@@ -111,7 +111,7 @@
             <span class="text-gray-600">可用能量:</span>
             <div class="flex items-center space-x-2">
               <span class="font-medium text-gray-900">
-                {{ realTimeDataMap[account.id]?.energy?.available ? formatEnergy(realTimeDataMap[account.id].energy.available) : formatEnergy(account.available_energy) }}
+                {{ realTimeDataMap[account.id]?.energy?.available ? formatEnergy(realTimeDataMap[account.id].energy.available) : formatEnergy(0) }}
               </span>
               <span v-if="realTimeDataMap[account.id]" class="text-xs text-green-600 bg-green-50 px-1 py-0.5 rounded">实时</span>
             </div>
@@ -166,7 +166,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'select', account: EnergyPoolAccount): void
+  // 注意：账户类型现在使用更灵活的定义，因为某些能量字段已从数据库移除
+  (e: 'select', account: Partial<EnergyPoolAccount> & Pick<EnergyPoolAccount, 'id' | 'name' | 'tron_address' | 'status'>): void
 }
 
 const props = defineProps<Props>()
@@ -203,7 +204,8 @@ const formatTrx = (amount: number | undefined): string => {
 const error = ref<string | null>(null)
 
 // 获取单个账户的实时数据
-const fetchAccountRealTimeData = async (account: EnergyPoolAccount) => {
+// 注意：账户类型现在使用Partial，因为某些能量字段已从数据库移除
+const fetchAccountRealTimeData = async (account: Partial<EnergyPoolAccount> & { id: string; name: string; tron_address: string }) => {
   if (!account.tron_address || !props.network?.id) return
 
   console.log('🔍 [AccountSelector] 获取账户实时数据:', account.name)
@@ -251,7 +253,8 @@ const fetchAllAccountsRealTimeData = async () => {
 
 
 // 选择账户
-const selectAccount = async (account: EnergyPoolAccount) => {
+// 注意：账户类型现在使用Partial，因为某些能量字段已从数据库移除
+const selectAccount = async (account: Partial<EnergyPoolAccount> & Pick<EnergyPoolAccount, 'id' | 'name' | 'tron_address' | 'status'>) => {
   if (account.status !== 'active') {
     return
   }

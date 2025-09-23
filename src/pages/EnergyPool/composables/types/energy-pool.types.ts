@@ -7,10 +7,8 @@ export interface EnergyPoolAccount {
   name: string
   tron_address: string
   private_key_encrypted: string
-  total_energy: number
-  available_energy: number
-  total_bandwidth: number
-  available_bandwidth: number
+  // 注意：total_energy, available_energy, total_bandwidth, available_bandwidth 字段已移除
+  // 这些数据现在从TRON网络实时获取，不再存储在数据库中
   cost_per_energy: number
   status: 'active' | 'inactive' | 'maintenance'
   last_updated_at: string
@@ -35,13 +33,10 @@ export interface EnergyPoolAccount {
 export interface EnergyPoolStatistics {
   totalAccounts: number
   activeAccounts: number
-  totalEnergy: number
-  availableEnergy: number
-  totalBandwidth: number
-  availableBandwidth: number
+  // 注意：能量和带宽统计字段已移除，现在从TRON网络实时获取
+  // totalEnergy, availableEnergy, totalBandwidth, availableBandwidth 不再静态统计
+  // utilizationRate, bandwidthUtilizationRate 等利用率指标需要基于实时数据计算
   averageCost: number
-  utilizationRate: number
-  bandwidthUtilizationRate: number
 }
 
 export interface TodayConsumption {
@@ -73,7 +68,7 @@ export interface AccountAddData {
   name: string
   tron_address: string
   private_key_encrypted: string
-  total_energy: number
+  // 注意：total_energy 字段已移除，现在从TRON网络实时获取
   account_type?: string
   priority?: number
   description?: string

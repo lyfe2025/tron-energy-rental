@@ -60,19 +60,21 @@ export function usePoolAccounts() {
           const response = await energyPoolExtendedAPI.getAccountEnergyData(account.id, networkId)
           if (response.data.success && response.data.data) {
             const energyData = response.data.data
-            // 使用响应式更新方式更新账户的实时能量数据
+            // 注意：不再更新数据库中的能量字段，这些数据仅用于前端显示
+            // 实时数据存储在单独的状态中，不影响数据库账户记录
             accounts.value[index] = {
               ...accounts.value[index],
+              // 这些字段不再从数据库获取，而是从实时API获取
+              last_updated_at: energyData.lastUpdated
+            }
+            
+            // 存储实时数据到单独的状态或缓存中
+            console.log(`✅ [usePoolAccounts] 账户 ${account.name} 实时数据获取成功:`, {
               total_energy: energyData.energy.total,
               available_energy: energyData.energy.available,
               total_bandwidth: energyData.bandwidth.total,
               available_bandwidth: energyData.bandwidth.available,
-              last_updated_at: energyData.lastUpdated
-            }
-            
-            console.log(`✅ [usePoolAccounts] 账户 ${account.name} 实时数据更新:`, {
-              total_energy: energyData.energy.total,
-              available_energy: energyData.energy.available
+              note: '这些数据仅用于前端显示，不存储在数据库中'
             })
           }
         } catch (error) {
@@ -91,12 +93,12 @@ export function usePoolAccounts() {
   // 添加账户
   const addAccount = async (accountData: AccountAddData) => {
     try {
-      // 添加缺失的字段，使其符合EnergyPoolAccount类型
+      // 注意：已移除 total_energy, available_energy 等字段
+      // 这些数据现在从TRON网络实时获取，不再存储在数据库中
       const completeAccountData = {
         ...accountData,
-        status: accountData.status || 'active',
-        available_energy: accountData.total_energy,
-        reserved_energy: 0
+        status: accountData.status || 'active'
+        // reserved_energy: 0 // 这个字段也被移除了
       }
       const response = await energyPoolExtendedAPI.addAccount(completeAccountData)
       if (response.data.success) {

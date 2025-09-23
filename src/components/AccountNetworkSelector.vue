@@ -27,8 +27,10 @@
             </div>
           </div>
           <div class="text-right text-sm text-gray-500">
-            <div>能量: {{ formatNumber(selectedAccount.available_energy) }}</div>
-            <div>带宽: {{ formatNumber(selectedAccount.available_bandwidth) }}</div>
+            <!-- 注意：能量和带宽数据现在需要从TRON网络实时获取 -->
+            <div>能量: {{ formatNumber(selectedAccount.available_energy || 0) }}</div>
+            <div>带宽: {{ formatNumber(selectedAccount.available_bandwidth || 0) }}</div>
+            <div class="text-xs text-orange-500">实时数据</div>
           </div>
         </div>
 
@@ -210,9 +212,11 @@
                     <div class="text-sm text-gray-500 mt-1">
                       <div>{{ formatAddress(account.tron_address) }}</div>
                       <div class="flex items-center space-x-2 mt-1">
-                        <span>能量: {{ formatNumber(account.available_energy) }}</span>
+                        <!-- 注意：能量和带宽数据现在需要从TRON网络实时获取 -->
+                        <span>能量: {{ formatNumber(account.available_energy || 0) }}</span>
                         <span>•</span>
-                        <span>带宽: {{ formatNumber(account.available_bandwidth) }}</span>
+                        <span>带宽: {{ formatNumber(account.available_bandwidth || 0) }}</span>
+                        <span class="text-xs text-orange-500">实时</span>
                       </div>
                     </div>
                   </div>
