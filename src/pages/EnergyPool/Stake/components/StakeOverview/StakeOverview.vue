@@ -33,7 +33,6 @@
 <script setup lang="ts">
 import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData';
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI';
-import type { Network } from '@/stores/network';
 import { watch } from 'vue';
 
 import AccountInfoCard from './components/AccountInfoCard.vue';

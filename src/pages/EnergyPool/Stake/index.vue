@@ -27,7 +27,7 @@
     <div v-else-if="!stakeData.selectedAccount.value && stakeData.currentNetworkId.value" class="mb-8">
       <div v-if="stakeData.currentNetwork.value">
         <AccountSelector
-          :network="stakeData.currentNetwork.value as any"
+          :network="stakeData.currentNetwork.value"
           @select="stakeOperations.onAccountSelect"
         />
       </div>
@@ -142,7 +142,7 @@
               <div class="w-3 h-3 rounded-full" :class="network.is_active ? 'bg-green-500' : 'bg-red-500'"></div>
               <div>
                 <div class="font-medium text-gray-900">{{ network.name }}</div>
-                <div class="text-sm text-gray-500">{{ getNetworkTypeText(network.type) }}</div>
+                <div class="text-sm text-gray-500">{{ getNetworkTypeText(network.network_type || network.type) }}</div>
               </div>
             </div>
             <div v-if="network.id === stakeData.currentNetworkId.value" class="text-blue-600">
@@ -446,15 +446,15 @@ watch(
       oldNetworkId,
       newNetworkId,
       hasNetworks: stakeData.networkStore.networks.length > 0,
-      currentNetworkInStore: stakeData.networkStore.currentNetwork?.name,
+      currentNetworkInStore: stakeData.networkStore.selectedNetwork?.name,
       computedCurrentNetwork: stakeData.currentNetwork.value?.name
     })
     
     if (newNetworkId && stakeData.networkStore.networks.length > 0) {
       // 设置当前网络到store（如果不匹配）
-      if (String(stakeData.networkStore.currentNetwork?.id) !== String(newNetworkId)) {
+      if (String(stakeData.networkStore.selectedNetwork?.id) !== String(newNetworkId)) {
         console.log('🔌 [StakeIndex] 更新网络Store中的当前网络')
-        stakeData.networkStore.setCurrentNetwork(String(newNetworkId))
+        stakeData.networkStore.selectNetwork(String(newNetworkId))
       }
       
       // 重置账户选择（仅在网络实际变化时）
@@ -501,7 +501,7 @@ onMounted(async () => {
     // 优先加载网络信息
     if (!stakeData.networkStore.networks.length) {
       console.log('🔄 [StakeIndex] 加载网络列表...')
-      await stakeData.networkStore.loadNetworks()
+      await stakeData.networkStore.fetchNetworks()
       console.log('✅ [StakeIndex] 网络列表加载完成', {
         networkCount: stakeData.networkStore.networks.length,
         networks: stakeData.networkStore.networks.map(n => ({ id: n.id, name: n.name }))
@@ -511,10 +511,9 @@ onMounted(async () => {
     // 设置当前网络到store
     if (stakeData.currentNetworkId.value) {
       console.log('🔌 [StakeIndex] 设置当前网络:', stakeData.currentNetworkId.value)
-      const success = stakeData.networkStore.setCurrentNetwork(stakeData.currentNetworkId.value)
+      stakeData.networkStore.selectNetwork(stakeData.currentNetworkId.value)
       console.log('🔌 [StakeIndex] 网络设置结果:', {
-        success,
-        currentNetworkInStore: stakeData.networkStore.currentNetwork?.name,
+        currentNetworkInStore: stakeData.networkStore.selectedNetwork?.name,
         computedCurrentNetwork: stakeData.currentNetwork.value?.name
       })
     }

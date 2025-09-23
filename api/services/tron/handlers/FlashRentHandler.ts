@@ -34,6 +34,11 @@ export class FlashRentHandler {
         网络ID: networkId
       });
 
+      // 🔧 关键修复：参考质押管理成功实现，添加网络切换
+      console.log(`🌐 [闪租代理] 切换到目标网络: ${networkId}`);
+      await this.tronService.switchToNetwork(networkId);
+      console.log(`✅ [闪租代理] 网络切换完成`);
+
       // 1. 选择合适的能量池账户
       const selectedAccount = await this.selectEnergyPoolAccount(totalEnergy, networkId);
       if (!selectedAccount) {
@@ -56,27 +61,40 @@ export class FlashRentHandler {
 
       try {
         // 3. 执行能量代理
-        const delegationParams = {
-          ownerAddress: selectedAccount.address,
-          receiverAddress: toAddress,
-          balance: Math.ceil(totalEnergy / 1000), // 转换为TRX sun units 
-          resource: 'ENERGY' as 'ENERGY',
-          lock: durationHours > 0,
-          lockPeriod: durationHours > 0 ? Math.ceil(durationHours * 3600 / 3) : undefined // TRON锁定期以3秒为单位
+          // 🔧 正确的能量到TRX换算逻辑（参考能量池管理-质押管理-代理资源实现）
+          // 公式：能量数量 → TRX数量 → SUN单位
+          const energyPerTrx = 76.2; // 系统固定比例：76.2 ENERGY per TRX
+          const requiredTrx = totalEnergy / energyPerTrx; // ENERGY → TRX
+          const balanceInSun = Math.floor(requiredTrx * 1000000); // TRX → SUN (1 TRX = 1,000,000 SUN)
+          
+          const delegationParams = {
+            ownerAddress: selectedAccount.address,
+            receiverAddress: toAddress,
+            balance: balanceInSun, // 正确的SUN单位
+            resource: 'ENERGY' as 'ENERGY',
+            lock: durationHours > 0,
+            lockPeriod: durationHours > 0 ? durationHours : undefined // 🔧 修正：直接传递小时数，让DelegationService处理转换
         };
 
         console.log(`⚡ [闪租代理] 开始执行能量代理`, {
           委托方地址: delegationParams.ownerAddress,
           接收方地址: delegationParams.receiverAddress,
           代理能量: totalEnergy,
-          转换后TRX_Sun: delegationParams.balance,
+          换算详情: {
+            '能量数量': totalEnergy,
+            '换算比例': `${energyPerTrx} ENERGY/TRX`,
+            '需要TRX': requiredTrx.toFixed(6),
+            '转换为SUN': balanceInSun,
+            '公式': `${totalEnergy} ÷ ${energyPerTrx} × 1,000,000 = ${balanceInSun} SUN`
+          },
           资源类型: delegationParams.resource,
           是否锁定: delegationParams.lock,
-          锁定期: delegationParams.lockPeriod ? `${delegationParams.lockPeriod} 个3秒单位` : '无',
+          锁定期: delegationParams.lockPeriod ? `${delegationParams.lockPeriod} 小时` : '无',
           持续时间: durationHours + '小时'
         });
 
-        const delegationResult = await this.tronService.delegationService.delegateResource(delegationParams);
+        // 🔧 修复：使用和质押管理相同的调用方式（封装方法，包含waitForInitialization等关键步骤）
+        const delegationResult = await this.tronService.delegateResource(delegationParams);
 
         if (!delegationResult.success) {
           console.error(`❌ [闪租代理] 能量代理失败`, {
@@ -232,22 +250,52 @@ export class FlashRentHandler {
   }
 
   /**
-   * 检查账户可用能量（直接从TRON网络获取实时数据）
+   * 检查账户可用能量（按网络获取实时数据）
    */
   private async checkAvailableEnergy(address: string, networkId: string): Promise<number> {
     try {
       console.log(`🔍 [能量检查] 开始检查账户能量: ${address}`, {
         网络ID: networkId,
-        检查模式: '直接调用TRON服务获取实时数据'
+        检查模式: '按网络配置获取实时数据'
       });
       
-      // 直接调用TronService获取账户资源信息
-      const resourceResult = await this.tronService.getAccountResources(address);
+      // 1. 获取网络配置
+      const networkResult = await query(`
+        SELECT id, name, rpc_url, network_type, is_active 
+        FROM tron_networks 
+        WHERE id = $1 AND is_active = true
+      `, [networkId]);
+      
+      if (networkResult.rows.length === 0) {
+        console.error(`❌ [能量检查] 网络不存在或未激活: ${networkId}`);
+        return 0;
+      }
+      
+      const network = networkResult.rows[0];
+      
+      // 2. 创建基于指定网络的TronService实例
+      let networkTronService;
+      try {
+        const { TronService } = await import('../../tron/TronService');
+        networkTronService = new TronService({
+          fullHost: network.rpc_url,
+          privateKey: undefined, // 不需要私钥，只获取公开信息
+          solidityNode: network.rpc_url,
+          eventServer: network.rpc_url
+        });
+      } catch (error) {
+        console.error('❌ [能量检查] 创建TronService失败:', error);
+        return 0;
+      }
+      
+      // 3. 获取账户资源信息
+      const resourceResult = await networkTronService.getAccountResources(address);
       
       if (!resourceResult.success) {
         console.error(`❌ [能量检查] 获取账户资源失败: ${address}`, {
           错误: resourceResult.error,
-          网络ID: networkId
+          网络ID: networkId,
+          网络名称: network.name
         });
         return 0;
       }
@@ -260,21 +308,57 @@ export class FlashRentHandler {
       const usedEnergy = energyInfo.used || 0;
       const availableEnergy = energyInfo.available || (totalEnergyLimit - usedEnergy);
       const finalAvailableEnergy = Math.max(0, availableEnergy);
+      
+      // 🔧 关键：检查可代理余额（FreezeEnergyV2 balance）
+      // 计算账户的真实可代理TRX余额
+      const delegatedEnergyOut = energyInfo.delegatedOut || 0; // 已代理给别人的SUN
+      const directStaked = energyInfo.directStaked || 0; // 直接质押的SUN
+      const totalStaked = energyInfo.totalStaked || 0; // 总质押SUN
+      
+      // 可代理余额 = 总质押 - 已代理出去
+      const availableDelegateBalance = Math.max(0, totalStaked - delegatedEnergyOut); // SUN单位
+      const availableDelegateTrx = availableDelegateBalance / 1000000; // 转为TRX
 
-      console.log(`📊 [能量检查] 账户 ${address} 的能量详情:`, {
+      console.log(`📊 [能量检查] 账户 ${address} 在网络 ${network.name} 的能量详情:`, {
         账户地址: address,
-        网络ID: networkId,
+        网络信息: {
+          ID: network.id,
+          名称: network.name,
+          类型: network.network_type,
+          RPC: network.rpc_url
+        },
         总能量限制: totalEnergyLimit,
         已使用能量: usedEnergy,
         可用能量: finalAvailableEnergy,
         能量使用率: totalEnergyLimit > 0 ? `${((usedEnergy / totalEnergyLimit) * 100).toFixed(1)}%` : '0%',
+        '🔑 代理余额分析': {
+          '总质押TRX': (totalStaked / 1000000).toFixed(6),
+          '已代理TRX': (delegatedEnergyOut / 1000000).toFixed(6),
+          '可代理TRX': availableDelegateTrx.toFixed(6),
+          '可代理SUN': availableDelegateBalance,
+          '说明': '可代理余额 = 总质押 - 已代理'
+        },
         资源详情: {
           '🔋 能量': energyInfo,
           '📶 带宽': resourceData.bandwidth || {}
         }
       });
 
-      return finalAvailableEnergy;
+      // 🔧 重要：返回可代理余额对应的能量（而不是账户可用能量）
+      // 因为TRON代理检查的是FreezeEnergyV2余额，不是可用能量
+      const energyPerTrx = 76.2; // 能量换算比例
+      const maxDelegatableEnergy = Math.floor(availableDelegateTrx * energyPerTrx);
+      
+      console.log(`🎯 [代理限制] 账户 ${address} 代理能力分析:`, {
+        '可代理TRX余额': availableDelegateTrx.toFixed(6),
+        '对应最大可代理能量': maxDelegatableEnergy,
+        '当前可用能量': finalAvailableEnergy,
+        '实际可代理能量': Math.min(finalAvailableEnergy, maxDelegatableEnergy),
+        '限制因素': maxDelegatableEnergy < finalAvailableEnergy ? '代理余额不足' : '能量余额充足'
+      });
+
+      // 返回实际可代理的能量（取可用能量和可代理能量的最小值）
+      return Math.min(finalAvailableEnergy, maxDelegatableEnergy);
     } catch (error) {
       console.error(`❌ [能量检查] 检查地址 ${address} 可用能量失败:`, {
         错误消息: error.message,

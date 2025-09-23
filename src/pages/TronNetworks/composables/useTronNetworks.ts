@@ -1,23 +1,11 @@
 import { networkApi } from '@/api/network'
 import { useToast } from '@/composables/useToast'
+import type { TronNetwork } from '@/types/network'
 import { ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
-interface TronNetwork {
-  id: string
-  name: string
-  chain_id?: string
-  type: 'mainnet' | 'testnet' | 'private'
-  rpc_url: string
-  is_active: boolean
-  health_status: 'unknown' | 'healthy' | 'unhealthy'
-  timeout_ms: number
-  priority: number
-  retry_count: number
-  rate_limit: number
-  description?: string
-  created_at: string
-  updated_at: string
+// 扩展TronNetwork类型，添加前端UI状态字段
+interface TronNetworkWithUI extends TronNetwork {
   // 前端扩展字段
   connection_status?: 'connected' | 'connecting' | 'disconnected'
   latency?: number
@@ -38,8 +26,8 @@ export function useTronNetworks() {
   // 响应式数据
   const loading = ref(false)
   const testingAll = ref(false)
-  const networks = ref<TronNetwork[]>([])
-  const selectedNetworks = ref<TronNetwork[]>([])
+  const networks = ref<TronNetworkWithUI[]>([])
+  const selectedNetworks = ref<TronNetworkWithUI[]>([])
   const currentPage = ref(1)
   const pageSize = ref(20)
   const total = ref(0)
@@ -56,7 +44,7 @@ export function useTronNetworks() {
     const total = networks.value.length
     const online = networks.value.filter(n => n.health_status === 'healthy').length
     const connecting = networks.value.filter(n => n.health_status === 'unknown').length
-    const offline = networks.value.filter(n => n.health_status === 'unhealthy').length
+    const offline = networks.value.filter(n => n.health_status === 'unhealthy' || n.health_status === 'error').length
     
     return { total, online, connecting, offline }
   })
@@ -80,17 +68,26 @@ export function useTronNetworks() {
       const statusMap = {
         'connected': 'healthy',
         'connecting': 'unknown', 
-        'disconnected': 'unhealthy'
+        'disconnected': ['unhealthy', 'error']
       }
-      const healthStatus = statusMap[searchForm.value.status as keyof typeof statusMap]
-      if (healthStatus) {
-        result = result.filter(network => network.health_status === healthStatus)
+      const statusFilter = searchForm.value.status as keyof typeof statusMap
+      if (statusFilter === 'disconnected') {
+        result = result.filter(network => 
+          network.health_status === 'unhealthy' || network.health_status === 'error'
+        )
+      } else {
+        const healthStatus = statusMap[statusFilter]
+        if (healthStatus && typeof healthStatus === 'string') {
+          result = result.filter(network => network.health_status === healthStatus)
+        }
       }
     }
     
     // 类型筛选
     if (searchForm.value.type) {
-      result = result.filter(network => network.type === searchForm.value.type)
+      result = result.filter(network => 
+        network.network_type === searchForm.value.type || network.type === searchForm.value.type
+      )
     }
     
     return result
@@ -109,13 +106,23 @@ export function useTronNetworks() {
         const data = response.data
         
         if (data.networks && Array.isArray(data.networks)) {
-          // 标准格式: data.networks
-          networks.value = data.networks
+          // 标准格式: data.networks - 扩展为UI类型
+          networks.value = data.networks.map((net: TronNetwork) => ({
+            ...net,
+            // 添加前端UI状态字段的默认值
+            connection_status: 'disconnected',
+            updating: false
+          }))
           total.value = data.pagination?.total || data.networks.length
           console.log('✅ 成功获取网络数据, 网络数量:', data.networks.length)
         } else if (Array.isArray(data)) {
-          // data直接是数组
-          networks.value = data
+          // data直接是数组 - 扩展为UI类型
+          networks.value = data.map((net: TronNetwork) => ({
+            ...net,
+            // 添加前端UI状态字段的默认值
+            connection_status: 'disconnected',
+            updating: false
+          }))
           total.value = data.length
           console.log('✅ 成功获取网络数据（数组格式）, 网络数量:', data.length)
         } else {
@@ -198,7 +205,7 @@ export function useTronNetworks() {
     handleSearch()
   }
 
-  const handleTest = async (network: TronNetwork) => {
+  const handleTest = async (network: TronNetworkWithUI) => {
     try {
       network.connection_status = 'connecting'
       console.log('🔍 开始测试网络连接:', network.id)
@@ -235,7 +242,7 @@ export function useTronNetworks() {
     }
   }
 
-  const handleToggleStatus = async (network: TronNetwork) => {
+  const handleToggleStatus = async (network: TronNetworkWithUI) => {
     try {
       network.updating = true
       await networkApi.toggleNetworkStatus(network.id)
@@ -250,7 +257,7 @@ export function useTronNetworks() {
     }
   }
 
-  const handleSelectionChange = (selection: TronNetwork[]) => {
+  const handleSelectionChange = (selection: TronNetworkWithUI[]) => {
     selectedNetworks.value = selection
   }
 
@@ -324,7 +331,7 @@ export function useTronNetworks() {
     }
   }
 
-  const handleDelete = async (network: TronNetwork) => {
+  const handleDelete = async (network: TronNetworkWithUI) => {
     try {
       await ElMessageBox.confirm(
         `确定要删除网络 "${network.name}" 吗？此操作不可恢复。`,

@@ -213,21 +213,19 @@
                 <button
                   v-if="order.payment_tx_hash || order.tron_tx_hash"
                   @click="viewTransaction(order.payment_tx_hash || order.tron_tx_hash, props.network)"
-                  class="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50 text-xs font-medium flex items-center space-x-1"
+                  class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
                   title="查看支付交易"
                 >
-                  <CreditCard class="h-3 w-3" />
-                  <span>支付</span>
+                  <CreditCard class="h-4 w-4" />
                 </button>
                 <!-- 查看委托交易 -->
                 <button
                   v-if="order.delegation_tx_hash || order.delegate_tx_hash"
                   @click="viewTransaction(order.delegation_tx_hash || order.delegate_tx_hash, props.network)"
-                  class="text-purple-600 hover:text-purple-900 px-2 py-1 rounded hover:bg-purple-50 text-xs font-medium flex items-center space-x-1"
+                  class="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
                   title="查看委托交易"
                 >
-                  <Zap class="h-3 w-3" />
-                  <span>委托</span>
+                  <Zap class="h-4 w-4" />
                 </button>
               </div>
             </td>

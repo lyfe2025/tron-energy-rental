@@ -21,8 +21,8 @@
     <div v-if="network" class="mb-6">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div class="flex items-center space-x-3">
-          <div :class="['w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold', getNetworkIconClass(network.type)]">
-            {{ getNetworkIcon(network.type) }}
+          <div :class="['w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold', getNetworkIconClass(network.network_type || network.type)]">
+            {{ getNetworkIcon(network.network_type || network.type) }}
           </div>
           <div>
             <h3 class="text-lg font-semibold text-gray-900">{{ network.name }}</h3>
@@ -30,7 +30,7 @@
               <span :class="['px-2 py-1 text-xs font-medium rounded-full', getNetworkStatusClass(network.is_active)]">
                 {{ getNetworkStatusText(network.is_active) }}
               </span>
-              <span class="text-sm text-gray-500">{{ getNetworkTypeText(network.type) }}</span>
+              <span class="text-sm text-gray-500">{{ getNetworkTypeText(network.network_type || network.type) }}</span>
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@
 <script setup lang="ts">
 import { useRealTimeAccountData, type RealTimeAccountData } from '@/composables/useRealTimeAccountData'
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import type { Network } from '@/stores/network'
+import type { TronNetwork } from '@/types/network'
 import { getNetworkIcon, getNetworkIconClass, getNetworkStatusClass, getNetworkStatusText, getNetworkTypeText } from '@/utils/network'
 import { AlertCircle, ExternalLink, Wallet } from 'lucide-vue-next'
 import { onMounted, reactive, ref, watch } from 'vue'
@@ -162,7 +162,7 @@ import { useRouter } from 'vue-router'
 import { useEnergyPool } from '../composables/useEnergyPool'
 
 interface Props {
-  network: Network
+  network: TronNetwork
 }
 
 interface Emits {

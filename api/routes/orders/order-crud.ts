@@ -88,7 +88,7 @@ router.get('/',
       .withMessage('Limit must be between 1 and 100'),
     query('status')
       .optional()
-      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'manually_completed', 'failed', 'cancelled', 'expired'])
       .withMessage('Invalid status value'),
     query('search')
       .optional()

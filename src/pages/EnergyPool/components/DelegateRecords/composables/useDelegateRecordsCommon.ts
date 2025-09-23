@@ -1,13 +1,13 @@
-import { useNetworkStore } from '@/stores/network'
+import { useNetworkStore } from '@/stores/useNetworkStore'
 import { computed, reactive, ref, watch } from 'vue'
 import { useEnergyPool } from '../../../composables/useEnergyPool'
 import type { DelegateRecord } from '../../../composables/useStake'
 import { useStake } from '../../../composables/useStake'
 import type {
-  DelegateDirection,
-  DelegateFilters,
-  DelegateRecordsBaseProps,
-  DelegateRecordsTextConfig
+    DelegateDirection,
+    DelegateFilters,
+    DelegateRecordsBaseProps,
+    DelegateRecordsTextConfig
 } from '../types/delegate-records.types'
 
 /**

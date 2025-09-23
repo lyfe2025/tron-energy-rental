@@ -2,10 +2,10 @@
  * StakeOverview 相关类型定义
  */
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI';
-import type { Network } from '@/stores/network';
+import type { TronNetwork } from '@/types/network';
 
 // 继承网络store的类型
-export type NetworkStoreNetwork = Network;
+export type NetworkStoreNetwork = TronNetwork;
 
 // 组件Props类型
 export interface StakeOverviewProps {

@@ -11,6 +11,7 @@ export const getStatusColor = (status: string): string => {
     'processing': 'bg-indigo-100 text-indigo-800',
     'active': 'bg-green-100 text-green-800',
     'completed': 'bg-green-100 text-green-800',
+    'manually_completed': 'bg-emerald-100 text-emerald-800', // 手动补单完成，使用不同的绿色
     'failed': 'bg-red-100 text-red-800',
     'cancelled': 'bg-gray-100 text-gray-800',
     'expired': 'bg-orange-100 text-orange-800'
@@ -25,6 +26,7 @@ export const getStatusText = (status: string): string => {
     'processing': '处理中',
     'active': '进行中',
     'completed': '已完成',
+    'manually_completed': '已手动补单', // 手动补单完成状态
     'failed': '失败',
     'cancelled': '已取消',
     'expired': '已过期'
@@ -109,5 +111,16 @@ export const getDelegationStatusText = (order: DelegationStatusOrder): string =>
 
 // 状态操作相关
 export const canUpdateStatus = (status: string): boolean => {
-  return ['pending', 'paid', 'processing'].includes(status)
+  // 允许更新状态的订单类型：
+  // - pending: 待处理订单
+  // - paid: 已支付但未处理的订单
+  // - processing: 处理中的订单
+  // - failed: 失败的订单（允许手动补单后更新状态）
+  // - pending_delegation: 等待委托的订单
+  // 
+  // 不允许更新的状态：
+  // - completed: 自动完成的订单
+  // - manually_completed: 已手动补单的订单
+  // - cancelled, refunded: 已取消/退款的订单
+  return ['pending', 'paid', 'processing', 'failed', 'pending_delegation'].includes(status)
 }

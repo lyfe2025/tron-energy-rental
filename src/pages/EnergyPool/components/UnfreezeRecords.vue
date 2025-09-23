@@ -239,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNetworkStore } from '@/stores/network';
+import { useNetworkStore } from '@/stores/useNetworkStore';
 import { onMounted, reactive, ref, watch } from 'vue';
 import { useEnergyPool } from '../composables/useEnergyPool';
 import type { UnfreezeRecord } from '../composables/useStake';

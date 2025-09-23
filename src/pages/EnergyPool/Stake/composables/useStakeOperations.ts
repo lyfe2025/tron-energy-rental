@@ -4,10 +4,9 @@
  */
 
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-// 使用网络store的实际类型
-import type { Network } from '@/stores/network'
+import type { TronNetwork } from '@/types/network'
 import type { useStakeData } from './useStakeData'
-type NetworkStoreNetwork = Network
+type NetworkStoreNetwork = TronNetwork
 
 type StakeDataState = ReturnType<typeof useStakeData>
 
@@ -123,11 +122,8 @@ export function useStakeOperations(stakeData: StakeDataState): StakeOperationsSt
     stakeData.showNetworkSwitcher.value = false
     
     // 设置当前网络到store
-    const success = stakeData.networkStore.setCurrentNetwork(String(networkId))
-    if (!success) {
-      console.error('❌ [StakeOperations] 网络设置失败')
-      return
-    }
+    stakeData.networkStore.selectNetwork(String(networkId))
+    console.log('✅ [StakeOperations] 网络设置成功:', networkId)
     
     // 导航到新的网络路由
     const targetPath = `/energy-pool/${networkId}/stake`

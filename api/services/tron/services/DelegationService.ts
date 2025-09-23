@@ -67,7 +67,7 @@ export class DelegationService {
       });
 
       // 构建交易 - 统一使用Base58地址格式 (T开头格式，如TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g)
-      const balanceStr = balance.toString();          // 确保 balance 是字符串格式
+      // 🔧 修复：直接使用数字balance，避免字符串转换和parseInt的精度丢失
       
       // 🔧 修正：保持 lockPeriod 的原始状态，不强制转换为0
       const lockPeriodNum = lockPeriod;  // 保持 undefined/null/number 的原始状态
@@ -79,8 +79,8 @@ export class DelegationService {
       console.log('🔍 [DelegationService] TronWeb参数详情:', {
         ownerAddressBase58: ownerBase58,
         receiverAddressBase58: receiverBase58,
-        balanceStr: balanceStr,
-        balanceType: typeof balanceStr,
+        balance: balance,
+        balanceType: typeof balance,
         resource: resource,
         lock: lock,
         lockPeriod: lockPeriodNum,
@@ -104,9 +104,9 @@ export class DelegationService {
           转换公式: 'hours × 1200 = blocks'
         });
         
-        // 限期代理 - 正确的参数顺序
+        // 限期代理 - 修复精度问题：直接传递数字而不是parseInt
         transaction = await this.tronWeb.transactionBuilder.delegateResource(
-          parseInt(balanceStr),                         // amount (number) - 金额，单位为SUN
+          balance,                                      // amount (number) - 金额，单位为SUN，保持精度
           receiverBase58,                               // receiverAddress (string) - 接收方地址，Base58格式
           resource,                                     // resource (string) - ENERGY 或 BANDWIDTH  
           ownerBase58,                                  // address (string) - 委托方地址，Base58格式
@@ -121,7 +121,7 @@ export class DelegationService {
         // 根据TronWeb源码，方法签名：delegateResource(amount, receiverAddress, resource, address, lock, lockPeriod?, options)
         // 必须明确传递 undefined 作为 lockPeriod，然后传递 options
         transaction = await this.tronWeb.transactionBuilder.delegateResource(
-          parseInt(balanceStr),                         // amount (number) - 金额，单位为SUN
+          balance,                                      // amount (number) - 金额，单位为SUN，保持精度
           receiverBase58,                               // receiverAddress (string) - 接收方地址，Base58格式
           resource,                                     // resource (string) - ENERGY 或 BANDWIDTH  
           ownerBase58,                                  // address (string) - 委托方地址，Base58格式
@@ -190,7 +190,7 @@ export class DelegationService {
       });
 
       // 统一使用Base58地址格式 (T开头格式，如TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g)
-      const balanceStr = balance.toString();          // 确保 balance 是字符串格式
+      // 🔧 修复：直接使用数字balance，避免字符串转换导致的问题
 
       // 确保地址为Base58格式
       const ownerBase58 = this.convertToBase58Address(ownerAddress);
@@ -199,15 +199,15 @@ export class DelegationService {
       console.log('🔍 [DelegationService] UndelegateResource TronWeb参数详情:', {
         ownerAddressBase58: ownerBase58,
         receiverAddressBase58: receiverBase58,
-        balanceStr: balanceStr,
-        balanceType: typeof balanceStr,
+        balance: balance,
+        balanceType: typeof balance,
         resource: resource
       });
 
       // 根据TronWeb官方文档，undelegateResource的正确参数顺序是：
       // undelegateResource(amount, receiverAddress, resource, address, options)
       const transaction = await this.tronWeb.transactionBuilder.undelegateResource(
-        balanceStr,                                   // amount (string) - 金额，单位为SUN
+        balance,                                      // amount (number) - 金额，单位为SUN，保持精度
         receiverBase58,                               // receiverAddress (string) - 接收方地址，Base58格式
         resource,                                     // resource (string) - ENERGY 或 BANDWIDTH
         ownerBase58,                                  // address (string) - 委托方地址，Base58格式

@@ -156,7 +156,7 @@ export class FlashRentOrderRepository {
       `UPDATE orders SET 
         status = $1,
         delegated_energy_amount = $2,
-        delegation_tx_id = $3,
+        delegate_tx_hash = $3,
         completed_at = $4,
         delegation_started_at = $5,
         processing_details = $6,
@@ -173,7 +173,7 @@ export class FlashRentOrderRepository {
           step: 'order_completed',
           delegation_info: {
             status: 'success',
-            delegation_tx_id: delegationTxId,
+            delegate_tx_hash: delegationTxId,
             delegated_energy: totalEnergy,
             completed_at: new Date().toISOString()
           },

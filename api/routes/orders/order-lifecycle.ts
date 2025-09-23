@@ -17,7 +17,7 @@ router.put('/:id/status',
       .isInt({ min: 1 })
       .withMessage('Valid order ID is required'),
     body('status')
-      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'manually_completed', 'failed', 'cancelled', 'expired'])
       .withMessage('Invalid status value')
   ],
   handleValidationErrors,

@@ -139,38 +139,12 @@
 </template>
 
 <script setup lang="ts">
+import type { TronNetwork } from '@/types/network'
 import { formatDate } from '@/utils/date'
 import { Edit, MoreHorizontal, Network, Plus, Zap } from 'lucide-vue-next'
 
-interface TronNetwork {
-  id: string
-  name: string
-  chain_id?: string
-  network_type: 'mainnet' | 'testnet' | 'private'
-  rpc_url: string
-  is_active: boolean
-  health_status: 'unknown' | 'healthy' | 'unhealthy'
-  timeout_ms: number
-  priority: number
-  retry_count: number
-  rate_limit: number
-  description?: string
-  created_at: string
-  updated_at: string
-  // 合约地址配置
-  config?: {
-    contract_addresses?: {
-      [key: string]: {
-        address: string
-        symbol: string
-        name: string
-        decimals: number
-        type: string
-        is_active: boolean
-        description?: string
-      }
-    }
-  }
+// 扩展TronNetwork类型，添加前端UI状态字段
+interface TronNetworkWithUI extends TronNetwork {
   // 前端扩展字段
   connection_status?: 'connected' | 'connecting' | 'disconnected'
   latency?: number
@@ -179,23 +153,23 @@ interface TronNetwork {
 }
 
 const props = defineProps<{
-  networks: TronNetwork[]
-  selectedNetworks: TronNetwork[]
+  networks: TronNetworkWithUI[]
+  selectedNetworks: TronNetworkWithUI[]
   loading: boolean
 }>()
 
 const emit = defineEmits<{
-  'selection-change': [selection: TronNetwork[]]
+  'selection-change': [selection: TronNetworkWithUI[]]
   'batch-enable': []
   'batch-disable': []
-  'toggle-status': [network: TronNetwork]
-  'test': [network: TronNetwork]
-  'edit': [network: TronNetwork]
-  'dropdown-command': [command: string, network: TronNetwork]
+  'toggle-status': [network: TronNetworkWithUI]
+  'test': [network: TronNetworkWithUI]
+  'edit': [network: TronNetworkWithUI]
+  'dropdown-command': [command: string, network: TronNetworkWithUI]
   'create': []
 }>()
 
-const handleSelectionChange = (selection: TronNetwork[]) => {
+const handleSelectionChange = (selection: TronNetworkWithUI[]) => {
   emit('selection-change', selection)
 }
 
@@ -235,7 +209,7 @@ const getStatusLabel = (status: string) => {
   }
 }
 
-const getUSDTContract = (network: TronNetwork) => {
+const getUSDTContract = (network: TronNetworkWithUI) => {
   if (!network.config?.contract_addresses?.USDT) {
     return null
   }

@@ -20,7 +20,7 @@ export interface Order {
   duration_hours?: number;   // 可选，因为闪租订单可能不需要
   price_trx: number;
   recipient_address: string;
-  status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired' | 'pending_delegation';
+  status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'manually_completed' | 'failed' | 'cancelled' | 'expired' | 'pending_delegation';
   payment_address?: string;
   payment_amount?: number;
   payment_tx_hash?: string;
@@ -34,7 +34,7 @@ export interface Order {
   order_type?: 'energy_flash' | 'transaction_package' | 'trx_exchange';  // 订单类型：能量闪租、笔数套餐、TRX闪兑
   payment_trx_amount?: number;   // 支付的TRX数量
   delegated_energy_amount?: number;  // 已委托的能量数量
-  delegation_tx_id?: string;     // 委托交易ID
+  delegate_tx_hash?: string;     // 委托交易哈希（与前端字段名保持一致）
   source_address?: string;       // 支付来源地址
   flash_rent_duration?: number;  // 闪租持续时间（小时）
   energy_pool_account_used?: string;  // 使用的能量池账户

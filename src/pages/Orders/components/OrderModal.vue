@@ -249,10 +249,10 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import {
-  Copy,
-  ExternalLink,
-  Loader2,
-  X
+    Copy,
+    ExternalLink,
+    Loader2,
+    X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
@@ -289,6 +289,7 @@ const copyStates = ref<Record<string, 'idle' | 'copying' | 'success'>>({})
 const availableStatuses = computed(() => [
   { value: 'processing', label: '处理中' },
   { value: 'completed', label: '已完成' },
+  { value: 'manually_completed', label: '已手动补单' },
   { value: 'failed', label: '失败' },
   { value: 'cancelled', label: '已取消' }
 ])
@@ -299,6 +300,7 @@ const getStatusColor = (status: string) => {
     'pending': 'bg-yellow-100 text-yellow-800',
     'processing': 'bg-blue-100 text-blue-800',
     'completed': 'bg-green-100 text-green-800',
+    'manually_completed': 'bg-emerald-100 text-emerald-800',
     'failed': 'bg-red-100 text-red-800',
     'cancelled': 'bg-gray-100 text-gray-800'
   }
@@ -310,6 +312,7 @@ const getStatusText = (status: string) => {
     'pending': '待处理',
     'processing': '处理中',
     'completed': '已完成',
+    'manually_completed': '已手动补单',
     'failed': '失败',
     'cancelled': '已取消'
   }

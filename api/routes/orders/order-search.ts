@@ -19,7 +19,7 @@ router.get('/search',
       .withMessage('User ID must be a positive integer'),
     query('status')
       .optional()
-      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'failed', 'cancelled', 'expired'])
+      .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'manually_completed', 'failed', 'cancelled', 'expired'])
       .withMessage('Invalid status value'),
     query('recipientAddress')
       .optional()

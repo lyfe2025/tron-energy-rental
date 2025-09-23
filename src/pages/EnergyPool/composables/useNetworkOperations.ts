@@ -1,9 +1,9 @@
 import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import { useNetworkStore } from '@/stores/network'
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import type { TronNetwork } from '@/types/network'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Network } from '../types/energy-pool.types'
 
 export function useNetworkOperations() {
   const route = useRoute()
@@ -37,9 +37,7 @@ export function useNetworkOperations() {
     }
     
     // 确保网络ID类型匹配（支持字符串和数字类型的比较）
-    const network = networkStore.networks.find(network => {
-      return String(network.id) === String(networkId)
-    })
+    const network = networkStore.getNetworkById(networkId)
     
     console.log('🔍 [useNetworkOperations] 查找网络:', {
       currentNetworkId: networkId,
@@ -53,7 +51,7 @@ export function useNetworkOperations() {
   })
 
   const availableNetworks = computed(() => 
-    networkStore.networks.filter(network => network.is_active)
+    networkStore.activeNetworks
   )
 
   // 网络加载
@@ -75,8 +73,8 @@ export function useNetworkOperations() {
         return networks
       }
       return []
-    } catch (error) {
-      console.error('Failed to load networks:', error)
+    } catch (err) {
+      console.error('Failed to load networks:', err)
       error('加载网络列表失败')
       return []
     } finally {
@@ -102,11 +100,11 @@ export function useNetworkOperations() {
         }
         
         // 更新store中的当前网络
-        networkStore.setCurrentNetwork(networkId)
+        networkStore.selectNetwork(networkId)
         success(`已切换到网络: ${getNetworkName(networkId)}`)
       }
-    } catch (error) {
-      console.error('Failed to switch network:', error)
+    } catch (err) {
+      console.error('Failed to switch network:', err)
       error('网络切换失败')
     } finally {
       loading.value.switching = false
@@ -120,10 +118,10 @@ export function useNetworkOperations() {
 
     try {
       // 由于API中没有checkNetworkHealth方法，暂时返回活跃状态
-      const network = networkStore.networks.find(n => n.id === targetNetworkId)
+      const network = networkStore.getNetworkById(targetNetworkId)
       return network?.is_active || false
-    } catch (error) {
-      console.error('Failed to check network health:', error)
+    } catch (err) {
+      console.error('Failed to check network health:', err)
       return false
     }
   }
@@ -131,32 +129,33 @@ export function useNetworkOperations() {
   // 初始化网络状态
   const initializeNetworks = async () => {
     try {
-      await networkStore.loadNetworks()
+      // 使用 networkStore 的 fetchNetworks 方法加载网络数据
+      await networkStore.fetchNetworks()
       
       // 如果有当前网络ID，设置为当前网络
       if (currentNetworkId.value) {
-        networkStore.setCurrentNetwork(currentNetworkId.value)
+        networkStore.selectNetwork(currentNetworkId.value)
       }
-    } catch (error) {
-      console.error('Failed to initialize networks:', error)
+    } catch (err) {
+      console.error('Failed to initialize networks:', err)
       error('网络初始化失败')
     }
   }
 
   // 获取网络名称
   const getNetworkName = (networkId: string): string => {
-    const network = networkStore.networks.find(n => n.id === networkId)
+    const network = networkStore.getNetworkById(networkId)
     return network?.name || '未知网络'
   }
 
   // 获取网络状态文本
-  const getNetworkStatusText = (network: Network): string => {
+  const getNetworkStatusText = (network: TronNetwork): string => {
     if (!network.is_active) return '已停用'
     
     switch (network.health_status) {
       case 'healthy':
         return '正常'
-      case 'warning':
+      case 'unhealthy':
         return '警告'
       case 'error':
         return '错误'
@@ -166,13 +165,13 @@ export function useNetworkOperations() {
   }
 
   // 获取网络状态样式类
-  const getNetworkStatusClass = (network: Network): string => {
+  const getNetworkStatusClass = (network: TronNetwork): string => {
     if (!network.is_active) return 'bg-gray-100 text-gray-800'
     
     switch (network.health_status) {
       case 'healthy':
         return 'bg-green-100 text-green-800'
-      case 'warning':
+      case 'unhealthy':
         return 'bg-yellow-100 text-yellow-800'
       case 'error':
         return 'bg-red-100 text-red-800'
@@ -185,10 +184,10 @@ export function useNetworkOperations() {
   const validateNetworkConnection = async (networkId: string): Promise<boolean> => {
     try {
       // 由于API中没有validateNetworkConnection方法，暂时返回网络是否活跃
-      const network = networkStore.networks.find(n => n.id === networkId)
+      const network = networkStore.getNetworkById(networkId)
       return network?.is_active || false
-    } catch (error) {
-      console.error('Failed to validate network connection:', error)
+    } catch (err) {
+      console.error('Failed to validate network connection:', err)
       return false
     }
   }
@@ -200,17 +199,17 @@ export function useNetworkOperations() {
 
     try {
       // 由于API中没有getNetworkStats方法，返回基本网络信息
-      const network = networkStore.networks.find(n => n.id === targetNetworkId)
+      const network = networkStore.getNetworkById(targetNetworkId)
       if (network) {
         return {
           networkId: network.id,
           name: network.name,
           isActive: network.is_active,
-          healthStatus: 'unknown' // health_status property not available in network store
+          healthStatus: network.health_status || 'unknown'
         }
       }
-    } catch (error) {
-      console.error('Failed to get network stats:', error)
+    } catch (err) {
+      console.error('Failed to get network stats:', err)
     }
     return null
   }
@@ -221,12 +220,12 @@ export function useNetworkOperations() {
     if (!targetNetworkId) return false
 
     try {
-      // 由于API中没有reconnectNetwork方法，暂时重新加载网络列表
-      await networkStore.loadNetworks()
+      // 重新加载网络数据
+      await networkStore.fetchNetworks()
       success('网络重连成功')
       return true
-    } catch (error) {
-      console.error('Failed to reconnect network:', error)
+    } catch (err) {
+      console.error('Failed to reconnect network:', err)
       error('网络重连失败')
     }
     return false

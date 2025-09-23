@@ -42,8 +42,8 @@
 
 <script setup lang="ts">
 // 使用网络store的实际类型
-import type { Network } from '@/stores/network';
-type NetworkStoreNetwork = Network
+import type { TronNetwork } from '@/types/network';
+type NetworkStoreNetwork = TronNetwork
 
 // Props
 defineProps<{

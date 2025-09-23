@@ -4,14 +4,14 @@
  */
 
 import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import { useNetworkStore } from '@/stores/network'
+import { useNetworkStore } from '@/stores/useNetworkStore'
+import type { TronNetwork } from '@/types/network'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEnergyPool } from '../../composables/useEnergyPool'
 import { useStake } from '../../composables/useStake'
-// 使用网络store的实际类型
-import type { Network } from '@/stores/network'
-type NetworkStoreNetwork = Network
+// 使用正确的网络类型
+type NetworkStoreNetwork = TronNetwork
 
 interface StakeDataState {
   // 路由和网络
@@ -75,24 +75,15 @@ export function useStakeData(): StakeDataState {
       return null
     }
     
-    // 确保网络ID类型匹配（支持字符串和数字类型的比较）
-    const network = networkStore.networks.find(n => {
-      return String(n.id) === String(networkId)
-    })
+    // 使用新store的getNetworkById方法
+    const network = networkStore.getNetworkById(networkId)
     
-    console.log('🔍 [useStakeData] 查找当前网络:', {
-      networkId,
-      availableNetworks: networkStore.networks.length,
-      allNetworks: networkStore.networks.map(n => ({ id: n.id, name: n.name, type: String(n.id) })),
-      foundNetwork: !!network,
-      networkName: network?.name
-    })
     
     return network || null
   })
 
   const availableNetworks = computed(() => {
-    return networkStore.networks.filter(n => n.is_active)
+    return networkStore.activeNetworks
   })
 
   // 组合式函数

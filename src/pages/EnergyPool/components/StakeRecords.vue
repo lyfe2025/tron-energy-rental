@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNetworkStore } from '@/stores/network';
+import { useNetworkStore } from '@/stores/useNetworkStore';
 import { onMounted, reactive, watch } from 'vue';
 import { useEnergyPool } from '../composables/useEnergyPool';
 import { useStake } from '../composables/useStake';
