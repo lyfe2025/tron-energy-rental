@@ -31,10 +31,10 @@
       
       <el-table-column prop="name" label="网络名称" min-width="150" />
       
-      <el-table-column prop="type" label="网络类型" width="100">
+      <el-table-column prop="network_type" label="网络类型" width="100">
         <template #default="{ row }">
-          <el-tag :type="getTypeTagType(row.type)" size="small">
-            {{ getTypeLabel(row.type) }}
+          <el-tag :type="getTypeTagType(row.network_type)" size="small">
+            {{ getTypeLabel(row.network_type) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -146,7 +146,7 @@ interface TronNetwork {
   id: string
   name: string
   chain_id?: string
-  type: 'mainnet' | 'testnet' | 'private'
+  network_type: 'mainnet' | 'testnet' | 'private'
   rpc_url: string
   is_active: boolean
   health_status: 'unknown' | 'healthy' | 'unhealthy'
