@@ -3,7 +3,7 @@
  * 包含：创建、更新、删除等操作
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 import { 
   validateBasicFields, 
   validateNetworkNameUniqueness, 
@@ -11,7 +11,7 @@ import {
   validateNetworkDeletable,
   validateAndMapFields,
   validateUpdateFields
-} from './NetworkValidationController.js';
+} from './NetworkValidationController.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

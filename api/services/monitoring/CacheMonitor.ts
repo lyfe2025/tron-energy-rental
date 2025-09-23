@@ -2,8 +2,8 @@
  * 缓存监控模块
  * 负责Redis缓存的监控和管理
  */
-import { logger } from '../../utils/logger.js';
-import type { CacheInfo } from './types/monitoring.types.js';
+import { logger } from '../../utils/logger.ts';
+import type { CacheInfo } from './types/monitoring.types.ts';
 
 // 动态导入Redis客户端
 let redisClient: any = null;

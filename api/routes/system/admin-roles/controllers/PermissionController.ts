@@ -3,7 +3,7 @@
  * 处理权限相关的操作和配置
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class PermissionController {
   /**

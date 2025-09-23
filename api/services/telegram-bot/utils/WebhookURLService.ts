@@ -3,7 +3,7 @@
  * 为所有 Telegram 机器人组件提供统一的 webhook URL 获取和资源 URL 构建功能
  * 消除代码重复，提供一致的实现
  */
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 
 export class WebhookURLService {
   /**

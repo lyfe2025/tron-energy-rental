@@ -2,8 +2,8 @@
  * 数据库连接测试路由
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../config/database.js';
-import { UserAuthService } from '../services/user/modules/UserAuthService.js';
+import { query } from '../config/database.ts';
+import { UserAuthService } from '../services/user/modules/UserAuthService.ts';
 
 const router: Router = Router();
 

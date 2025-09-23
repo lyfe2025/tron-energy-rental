@@ -6,7 +6,7 @@
  */
 
 import type { Request, Response } from 'express';
-import { SystemConfigsService } from '../services/systemConfigsService.js';
+import { SystemConfigsService } from '../services/systemConfigsService.ts';
 import type {
     ApiResponse,
     BatchUpdateRequest,
@@ -15,7 +15,7 @@ import type {
     ResetConfigRequest,
     SystemConfigQuery,
     UpdateSystemConfigRequest
-} from '../types/systemConfigs.types.js';
+} from '../types/systemConfigs.types.ts';
 
 export class SystemConfigsController {
   private service: SystemConfigsService;

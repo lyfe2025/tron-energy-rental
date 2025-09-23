@@ -6,7 +6,7 @@ import { type Request, type Response } from 'express';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

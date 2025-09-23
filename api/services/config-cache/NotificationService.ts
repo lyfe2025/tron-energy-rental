@@ -1,8 +1,8 @@
 /**
  * 配置变更通知服务
  */
-import { CacheManager } from './CacheManager.js';
-import { NOTIFICATION_CHANNELS, type ConfigChangeData } from './types.js';
+import { CacheManager } from './CacheManager.ts';
+import { NOTIFICATION_CHANNELS, type ConfigChangeData } from './types.ts';
 
 export class NotificationService extends CacheManager {
   constructor() {

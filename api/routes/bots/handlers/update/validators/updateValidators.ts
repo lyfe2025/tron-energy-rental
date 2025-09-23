@@ -2,9 +2,9 @@
  * 机器人更新验证器
  * 负责验证更新机器人时的输入数据
  */
-import { query } from '../../../../../config/database.js';
-import { isValidBotToken } from '../../../middleware.js';
-import type { UpdateBotData } from '../../../types.js';
+import { query } from '../../../../../config/database.ts';
+import { isValidBotToken } from '../../../middleware.ts';
+import type { UpdateBotData } from '../../../types.ts';
 
 export class UpdateValidators {
   /**

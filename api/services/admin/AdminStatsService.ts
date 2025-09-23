@@ -4,7 +4,7 @@
  * 负责管理员数据统计、分析和报表功能
  */
 
-import pool from '../../config/database.js';
+import pool from '../../config/database.ts';
 
 export interface AdminStats {
   total: number;

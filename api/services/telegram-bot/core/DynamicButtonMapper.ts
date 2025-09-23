@@ -2,7 +2,7 @@
  * 动态按钮映射器
  * 从数据库读取按钮配置，支持动态映射按钮文本到回调数据
  */
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 
 export interface ButtonMapping {
   text: string;

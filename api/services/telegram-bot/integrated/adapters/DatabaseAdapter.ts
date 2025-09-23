@@ -2,7 +2,7 @@
  * 数据库适配器
  * 负责数据库操作的封装和抽象
  */
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class DatabaseAdapter {
   private static instance: DatabaseAdapter;

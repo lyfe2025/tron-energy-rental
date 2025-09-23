@@ -5,7 +5,7 @@
  * 提供统一的缓存管理接口
  */
 
-import configCacheService from '../../../../services/config-cache.js';
+import configCacheService from '../../../../services/config-cache.ts';
 
 export class ConfigCacheService {
   /**

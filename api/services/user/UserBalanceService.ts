@@ -4,8 +4,8 @@
  * 负责用户余额的更新、增减等操作
  */
 
-import pool from '../../config/database.js';
-import type { User } from './UserService.js';
+import pool from '../../config/database.ts';
+import type { User } from './UserService.ts';
 
 export class UserBalanceService {
   /**

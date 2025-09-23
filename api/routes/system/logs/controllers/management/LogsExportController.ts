@@ -3,12 +3,12 @@
  * 负责处理日志导出相关功能
  */
 import type { Request, Response } from 'express';
-import { query as dbQuery } from '../../../../../database/index.js';
+import { query as dbQuery } from '../../../../../database/index.ts';
 import type {
     ExportLogsRequest,
     ExportResponse,
     RouteHandler
-} from '../../types/logs.types.js';
+} from '../../types/logs.types.ts';
 
 export class LogsExportController {
   /**

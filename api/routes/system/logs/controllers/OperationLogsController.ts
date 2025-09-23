@@ -2,7 +2,7 @@
  * 操作日志控制器
  */
 import type { Request, Response } from 'express';
-import { query as dbQuery } from '../../../../database/index.js';
+import { query as dbQuery } from '../../../../database/index.ts';
 import type {
     ApiResponse,
     BatchDeleteRequest,
@@ -12,7 +12,7 @@ import type {
     PaginatedResponse,
     RouteHandler,
     UserOperationLogsParams
-} from '../types/logs.types.js';
+} from '../types/logs.types.ts';
 
 export class OperationLogsController {
   /**

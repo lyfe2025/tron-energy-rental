@@ -5,8 +5,8 @@
  * 包括获取、创建、更新、删除等基本功能
  */
 
-import { query } from '../../../../config/database.js';
-import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.js';
+import { query } from '../../../../config/database.ts';
+import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.ts';
 import type {
     ConfigCategoryStats,
     CreateSystemConfigRequest,
@@ -15,8 +15,8 @@ import type {
     SystemConfig,
     SystemConfigQuery,
     UpdateSystemConfigRequest
-} from '../../types/systemConfigs.types.js';
-import { SystemConfigsRepository } from '../systemConfigsRepository.js';
+} from '../../types/systemConfigs.types.ts';
+import { SystemConfigsRepository } from '../systemConfigsRepository.ts';
 
 export class ConfigCRUDService {
   private repository: SystemConfigsRepository;

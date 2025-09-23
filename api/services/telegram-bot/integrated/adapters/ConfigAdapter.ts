@@ -2,8 +2,8 @@
  * 配置适配器
  * 负责配置的加载、转换和管理
  */
-import type { TronNetworkConfig } from '../../../config/ConfigService.js';
-import type { BotConfig } from '../types/bot.types.js';
+import type { TronNetworkConfig } from '../../../config/ConfigService.ts';
+import type { BotConfig } from '../types/bot.types.ts';
 
 export class ConfigAdapter {
   private configCache: Map<string, any> = new Map();

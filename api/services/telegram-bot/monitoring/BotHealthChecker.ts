@@ -3,11 +3,11 @@
  * 负责检查机器人各个组件的健康状态
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { BotLifecycleManager } from '../core/BotLifecycleManager.js';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from '../integrated/components/BotOrchestrator.js';
-import { ModuleManager } from '../integrated/components/ModuleManager.js';
-import { WebhookManager } from '../webhook/WebhookManager.js';
+import { BotLifecycleManager } from '../core/BotLifecycleManager.ts';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from '../integrated/components/BotOrchestrator.ts';
+import { ModuleManager } from '../integrated/components/ModuleManager.ts';
+import { WebhookManager } from '../webhook/WebhookManager.ts';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'unhealthy' | 'warning';

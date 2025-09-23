@@ -4,14 +4,14 @@
  */
 
 import { Router } from 'express';
-import adminRoleRoutes from './admin-roles.js';
-import departmentRoutes from './departments.js';
-import flashRentConfigRoutes from './flash-rent-config.js';
-import logRoutes from './logs.js';
-import menuRoutes from './menus.js';
-import permissionRoutes from './permissions.js';
-import positionRoutes from './positions.js';
-import roleRoutes from './roles.js';
+import adminRoleRoutes from './admin-roles.ts';
+import departmentRoutes from './departments.ts';
+import flashRentConfigRoutes from './flash-rent-config.ts';
+import logRoutes from './logs/index.ts';
+import menuRoutes from './menus.ts';
+import permissionRoutes from './permissions.ts';
+import positionRoutes from './positions.ts';
+import roleRoutes from './roles.ts';
 
 const router: Router = Router();
 

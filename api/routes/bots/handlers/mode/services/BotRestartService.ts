@@ -2,7 +2,7 @@
  * 机器人重启服务
  * 处理机器人模式切换后的重启和状态管理
  */
-import { query } from '../../../../../config/database.js';
+import { query } from '../../../../../config/database.ts';
 
 export interface RestartResult {
   success: boolean;

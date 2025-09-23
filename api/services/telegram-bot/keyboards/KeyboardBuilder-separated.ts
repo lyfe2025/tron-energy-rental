@@ -3,12 +3,12 @@
  * 集成各个分离的模块，保持原有接口不变
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { EnergyPackage, InlineKeyboard, OrderInfo } from '../types/bot.types.js';
+import type { EnergyPackage, InlineKeyboard, OrderInfo } from '../types/bot.types.ts';
 
 // 导入分离的模块
-import { BaseKeyboardBuilder } from './builders/BaseKeyboardBuilder.js';
-import { PriceConfigMessageBuilder } from './builders/PriceConfigMessageBuilder.js';
-import { DatabaseKeyboardManager } from './managers/DatabaseKeyboardManager.js';
+import { BaseKeyboardBuilder } from './builders/BaseKeyboardBuilder.ts';
+import { PriceConfigMessageBuilder } from './builders/PriceConfigMessageBuilder.ts';
+import { DatabaseKeyboardManager } from './managers/DatabaseKeyboardManager.ts';
 
 export class KeyboardBuilder {
   private bot: TelegramBot;

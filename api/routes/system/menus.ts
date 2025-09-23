@@ -5,9 +5,9 @@
 
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticateToken, logOperation, requirePermission } from '../../middleware/rbac.js';
-import { handleValidationErrors } from '../../middleware/validation.js';
-import { MenuService } from '../../services/system/menu.js';
+import { authenticateToken, logOperation, requirePermission } from '../../middleware/rbac.ts';
+import { handleValidationErrors } from '../../middleware/validation.ts';
+import { MenuService } from '../../services/system/menu.ts';
 
 const router: Router = Router();
 

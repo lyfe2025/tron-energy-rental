@@ -5,9 +5,9 @@
 
 import { type NextFunction, type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { MenuService } from '../services/system/menu.js';
-import { query } from '../config/database.js';
-import { verifyToken } from '../utils/jwt.js';
+import { MenuService } from '../services/system/menu.ts';
+import { query } from '../config/database.ts';
+import { verifyToken } from '../utils/jwt.ts';
 
 // Request接口扩展已在auth.ts中定义
 

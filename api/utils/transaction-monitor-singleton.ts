@@ -1,7 +1,7 @@
-import { DatabaseService } from '../database/DatabaseService.js';
-import { RedisService } from '../services/cache/RedisService.js';
-import { paymentService } from '../services/payment.js';
-import { TransactionMonitorService } from '../services/transaction-monitor.js';
+import { DatabaseService } from '../database/DatabaseService.ts';
+import { RedisService } from '../services/cache/RedisService.ts';
+import { paymentService } from '../services/payment.ts';
+import { TransactionMonitorService } from '../services/transaction-monitor.ts';
 
 // 单例实例
 let transactionMonitorInstance: TransactionMonitorService | null = null;

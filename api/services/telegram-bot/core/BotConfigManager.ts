@@ -2,9 +2,9 @@
  * 机器人配置管理器
  * 负责配置的获取、更新、验证和变更检测
  */
-import { ConfigAdapter } from '../integrated/adapters/ConfigAdapter.js';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
-import type { BotConfig } from '../integrated/types/bot.types.js';
+import { ConfigAdapter } from '../integrated/adapters/ConfigAdapter.ts';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
+import type { BotConfig } from '../integrated/types/bot.types.ts';
 
 export interface ConfigChange {
   hasChanges: boolean;

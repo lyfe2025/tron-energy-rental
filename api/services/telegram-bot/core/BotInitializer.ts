@@ -3,11 +3,11 @@
  * 负责机器人的初始化流程，包括配置加载、验证、实例创建等
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { ConfigAdapter } from '../integrated/adapters/ConfigAdapter.js';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from '../integrated/components/BotOrchestrator.js';
-import { ModuleManager } from '../integrated/components/ModuleManager.js';
-import type { BotConfig } from '../integrated/types/bot.types.js';
+import { ConfigAdapter } from '../integrated/adapters/ConfigAdapter.ts';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from '../integrated/components/BotOrchestrator.ts';
+import { ModuleManager } from '../integrated/components/ModuleManager.ts';
+import type { BotConfig } from '../integrated/types/bot.types.ts';
 
 export interface InitializationResult {
   success: boolean;

@@ -3,8 +3,8 @@
  * 负责处理缓存预热和通知相关的请求
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../config/database.js';
-import configCacheService from '../../../services/config-cache.js';
+import { query } from '../../../config/database.ts';
+import configCacheService from '../../../services/config-cache.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

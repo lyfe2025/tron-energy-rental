@@ -5,11 +5,11 @@
  * 提供配置变更的完整历史追踪
  */
 
-import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.js';
+import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.ts';
 import type {
     PaginatedConfigHistory
-} from '../../types/systemConfigs.types.js';
-import { SystemConfigsRepository } from '../systemConfigsRepository.js';
+} from '../../types/systemConfigs.types.ts';
+import { SystemConfigsRepository } from '../systemConfigsRepository.ts';
 
 export class ConfigHistoryService {
   private repository: SystemConfigsRepository;

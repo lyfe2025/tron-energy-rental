@@ -14,8 +14,8 @@ import type {
   SystemConfig,
   SystemConfigQuery,
   UpdateSystemConfigRequest
-} from '../types/systemConfigs.types.js';
-import { SystemConfigsService } from './systemConfigsService.js';
+} from '../types/systemConfigs.types.ts';
+import { SystemConfigsService } from './systemConfigsService.ts';
 
 /**
  * 资源消耗配置类型定义

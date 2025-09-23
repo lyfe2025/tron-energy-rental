@@ -6,7 +6,7 @@ import type {
     CommandHandler as ICommandHandler,
     MessageProcessResult,
     ProcessorDependencies
-} from './types.js';
+} from './types.ts';
 
 export class CommandProcessor implements ICommandHandler {
   private dependencies: ProcessorDependencies;

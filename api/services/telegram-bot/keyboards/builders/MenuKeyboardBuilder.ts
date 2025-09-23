@@ -2,8 +2,8 @@
  * 菜单键盘构建器
  * 负责构建各种菜单相关的键盘
  */
-import { query } from '../../../../config/database.js';
-import type { InlineKeyboard } from '../../types/bot.types.js';
+import { query } from '../../../../config/database.ts';
+import type { InlineKeyboard } from '../../types/bot.types.ts';
 
 export class MenuKeyboardBuilder {
   /**

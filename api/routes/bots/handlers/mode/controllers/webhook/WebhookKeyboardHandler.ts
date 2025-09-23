@@ -2,7 +2,7 @@
  * Webhook模式键盘处理器
  * 处理Webhook模式特有的键盘同步逻辑（只验证，不发送）
  */
-import { KeyboardSyncService } from '../shared/KeyboardSyncService.js';
+import { KeyboardSyncService } from '../shared/KeyboardSyncService.ts';
 
 export class WebhookKeyboardHandler {
   /**

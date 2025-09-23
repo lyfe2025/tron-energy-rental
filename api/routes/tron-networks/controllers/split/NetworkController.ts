@@ -7,14 +7,14 @@
 export { 
   getNetworksList, 
   getNetworkDetails 
-} from './NetworkQueryController.js';
+} from './NetworkQueryController.ts';
 
 // 从CRUD控制器导入
 export { 
   createNetwork, 
   updateNetwork, 
   deleteNetwork 
-} from './NetworkCRUDController.js';
+} from './NetworkCRUDController.ts';
 
 // 从验证控制器导入（如果需要在路由中直接使用）
 export {
@@ -24,4 +24,4 @@ export {
   validateNetworkDeletable,
   validateAndMapFields,
   validateUpdateFields
-} from './NetworkValidationController.js';
+} from './NetworkValidationController.ts';

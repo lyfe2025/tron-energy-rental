@@ -3,7 +3,7 @@
  * 负责处理配置变更历史查询相关的请求
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

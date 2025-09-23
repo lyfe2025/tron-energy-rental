@@ -42,10 +42,50 @@ export function createOrderLogger(): winston.Logger {
           format: winston.format.combine(
             winston.format.colorize(),
             winston.format.timestamp({ format: 'HH:mm:ss' }),
-            winston.format.printf(({ timestamp, level, message, orderId, orderNumber, txId }) => {
+            winston.format.printf(({ timestamp, level, message, orderId, orderNumber, txId, errorReason, validationFailure, txInfoAnalysis, validationDetails, ...meta }) => {
               const orderInfo = orderId ? `[${orderNumber || orderId}]` : 
                                (txId && typeof txId === 'string') ? `[${txId.substring(0, 8)}...]` : '';
-              return `${timestamp} ${level}: 📦 ${orderInfo} ${message}`;
+              
+              let logMessage = `${timestamp} ${level}: 📦 ${orderInfo} ${message}`;
+              
+              // 如果有错误原因，显示详细信息
+              if (errorReason) {
+                logMessage += `\n  🔍 错误原因: ${errorReason}`;
+              }
+              
+              // 如果有验证失败信息，显示详细信息
+              if (validationFailure && typeof validationFailure === 'object') {
+                const failure = validationFailure as any;
+                logMessage += `\n  ❌ 验证失败: ${failure.reason || 'Unknown'}`;
+              }
+              
+              // 如果有交易信息分析，显示关键信息
+              if (txInfoAnalysis && typeof txInfoAnalysis === 'object') {
+                const analysis = txInfoAnalysis as any;
+                logMessage += `\n  📊 交易分析: txInfo存在=${analysis.txInfoExists}, 类型=${analysis.txInfoType}`;
+                if (analysis.txInfoKeys && Array.isArray(analysis.txInfoKeys) && analysis.txInfoKeys.length > 0) {
+                  logMessage += `, 字段=[${analysis.txInfoKeys.slice(0, 5).join(', ')}${analysis.txInfoKeys.length > 5 ? '...' : ''}]`;
+                }
+              }
+              
+              // 如果有验证详细信息，显示关键信息
+              if (validationDetails && typeof validationDetails === 'object') {
+                const details = validationDetails as any;
+                logMessage += `\n  🔧 验证详情: 网络=${details.networkName}, TronWeb可用=${details.tronWebInstanceAvailable}`;
+                if (details.validationMethod) {
+                  logMessage += `, 验证方法=${details.validationMethod}`;
+                }
+              }
+              
+              // 显示其他重要的元数据
+              const importantKeys = ['processStep', 'step', 'networkName', 'orderNumber'];
+              const importantMeta = Object.entries(meta).filter(([key]) => importantKeys.includes(key));
+              if (importantMeta.length > 0) {
+                const metaStr = importantMeta.map(([key, value]) => `${key}=${value}`).join(', ');
+                logMessage += `\n  ℹ️  其他信息: ${metaStr}`;
+              }
+              
+              return logMessage;
             })
           )
         })

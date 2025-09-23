@@ -3,8 +3,8 @@
  * 包含：单网络模式的获取和设置功能
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
-import type { RouteHandler } from '../../types.js';
+import { query } from '../../../../config/database.ts';
+import type { RouteHandler } from '../../types.ts';
 
 /**
  * 获取机器人当前网络配置（单网络模式）

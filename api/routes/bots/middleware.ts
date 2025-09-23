@@ -1,7 +1,7 @@
 /**
  * 机器人路由中间件和服务初始化
  */
-import { TelegramBotService } from '../../services/telegram-bot.js';
+import { TelegramBotService } from '../../services/telegram-bot.ts';
 
 // Telegram机器人服务实例
 let telegramBotService: TelegramBotService | null = null;

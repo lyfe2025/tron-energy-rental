@@ -4,9 +4,9 @@
  * 负责机器人和TRON网络关联配置的查询和管理
  */
 
-import { query } from '../../../database/index.js';
-import type { BotNetworkConfig } from '../ConfigService.js';
-import { ConfigCacheService } from './ConfigCacheService.js';
+import { query } from '../../../database/index.ts';
+import type { BotNetworkConfig } from '../ConfigService.ts';
+import { ConfigCacheService } from './ConfigCacheService.ts';
 
 export class BotNetworkConfigService {
   private cacheService: ConfigCacheService;

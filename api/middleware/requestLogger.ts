@@ -3,7 +3,7 @@
  * 统一记录API请求响应日志，减少日志噪音
  */
 import type { NextFunction, Request, Response } from 'express';
-import { logPerformance, structuredLogger } from '../utils/logger.js';
+import { logPerformance, structuredLogger } from '../utils/logger.ts';
 
 // 需要跳过日志记录的路径
 const SKIP_PATHS = [

@@ -3,7 +3,7 @@
  * 处理批量角色分配、导入导出、审批等操作
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class BatchOperationController {
   /**

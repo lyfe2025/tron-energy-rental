@@ -3,9 +3,9 @@
  * 负责更新和删除历史记录的查询功能
  */
 import type { Request, Response } from 'express';
-import { ConfigUpdateService } from '../services/ConfigUpdateService.js';
-import { DeleteService } from '../services/DeleteService.js';
-import { UpdateUtils } from '../utils/updateUtils.js';
+import { ConfigUpdateService } from '../services/ConfigUpdateService.ts';
+import { DeleteService } from '../services/DeleteService.ts';
+import { UpdateUtils } from '../utils/updateUtils.ts';
 
 export class HistoryController {
   /**

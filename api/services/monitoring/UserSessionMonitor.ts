@@ -2,9 +2,9 @@
  * 用户会话监控模块
  * 负责在线用户管理和会话控制
  */
-import { query } from '../../config/database.js';
-import { logger } from '../../utils/logger.js';
-import type { OnlineUser, OnlineUsersResponse, PaginationInfo } from './types/monitoring.types.js';
+import { query } from '../../config/database.ts';
+import { logger } from '../../utils/logger.ts';
+import type { OnlineUser, OnlineUsersResponse, PaginationInfo } from './types/monitoring.types.ts';
 
 export class UserSessionMonitor {
   /**

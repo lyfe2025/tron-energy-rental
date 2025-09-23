@@ -3,10 +3,10 @@
  * 整合各个分离的订单服务模块，提供统一的订单管理接口
  * 保持原有的公共接口不变，确保向后兼容
  */
-import { orderCreationService } from '../order/OrderCreationService.js';
-import { orderLifecycleService } from '../order/OrderLifecycleService.js';
-import { orderQueryService } from '../order/OrderQueryService.js';
-import type { CreateOrderRequest, Order, OrderStats } from '../order/types.js';
+import { orderCreationService } from '../order/OrderCreationService.ts';
+import { orderLifecycleService } from '../order/OrderLifecycleService.ts';
+import { orderQueryService } from '../order/OrderQueryService.ts';
+import type { CreateOrderRequest, Order, OrderStats } from '../order/types.ts';
 import { FlashRentOrderService } from './FlashRentOrderService';
 import type { FlashRentOrderParams } from './types';
 

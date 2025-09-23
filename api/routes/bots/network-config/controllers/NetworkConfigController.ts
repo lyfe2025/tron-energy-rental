@@ -3,8 +3,8 @@
  * 包含：获取、添加、更新、删除网络配置
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
-import type { RouteHandler } from '../../types.js';
+import { query } from '../../../../config/database.ts';
+import type { RouteHandler } from '../../types.ts';
 
 /**
  * 获取机器人的网络配置列表

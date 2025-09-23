@@ -3,9 +3,9 @@
  * 负责处理Telegram消息和回调查询的路由和分发
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { CallbackHandler } from '../callbacks/CallbackHandler.js';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
+import { CallbackHandler } from '../callbacks/CallbackHandler.ts';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
 
 export class MessageProcessor {
   private commandHandler: CommandHandler;

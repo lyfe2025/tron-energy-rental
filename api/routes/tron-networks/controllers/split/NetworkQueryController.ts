@@ -3,7 +3,7 @@
  * 包含：网络列表查询、详情获取等查询操作
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

@@ -3,7 +3,7 @@
  * 负责构建各种内嵌键盘（InlineKeyboard）
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { EnergyPackage, InlineKeyboard } from '../../types/bot.types.js';
+import type { EnergyPackage, InlineKeyboard } from '../../types/bot.types.ts';
 
 export class InlineKeyboardBuilder {
   /**

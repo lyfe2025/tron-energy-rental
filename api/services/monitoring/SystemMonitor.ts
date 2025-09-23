@@ -3,8 +3,8 @@
  * 负责CPU、内存、磁盘等系统资源监控
  */
 import * as si from 'systeminformation';
-import { logger } from '../../utils/logger.js';
-import type { DiskUsage, MemoryUsage, Performance, SystemInfo } from './types/monitoring.types.js';
+import { logger } from '../../utils/logger.ts';
+import type { DiskUsage, MemoryUsage, Performance, SystemInfo } from './types/monitoring.types.ts';
 
 export class SystemMonitor {
   /**

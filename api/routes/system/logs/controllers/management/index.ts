@@ -4,9 +4,9 @@
  */
 
 // 导入拆分后的控制器
-import { LogsCleanupController } from './LogsCleanupController.js';
-import { LogsConfigController } from './LogsConfigController.js';
-import { LogsExportController } from './LogsExportController.js';
+import { LogsCleanupController } from './LogsCleanupController.ts';
+import { LogsConfigController } from './LogsConfigController.ts';
+import { LogsExportController } from './LogsExportController.ts';
 
 /**
  * 日志管理控制器 - 模块化版本

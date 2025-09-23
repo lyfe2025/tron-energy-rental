@@ -3,8 +3,8 @@
  * 负责根据数据库配置和用户状态动态构建键盘
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
-import type { InlineKeyboard } from '../../types/bot.types.js';
+import { query } from '../../../../config/database.ts';
+import type { InlineKeyboard } from '../../types/bot.types.ts';
 
 export class DynamicKeyboardBuilder {
   /**

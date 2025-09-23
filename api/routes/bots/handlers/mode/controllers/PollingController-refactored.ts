@@ -4,12 +4,12 @@
  * 重构后只保留路由处理逻辑，具体实现委托给专用服务
  */
 import { type Request, type Response } from 'express';
-import type { RouteHandler } from '../../../types.js';
-import { ModeValidationService } from '../services/ModeValidationService.js';
-import { WebhookSetupService } from '../services/WebhookSetupService.js';
-import { PollingKeyboardHandler } from './polling/PollingKeyboardHandler.js';
-import { BasicSyncService } from './shared/BasicSyncService.js';
-import { ConfigValidationService } from './shared/ConfigValidationService.js';
+import type { RouteHandler } from '../../../types.ts';
+import { ModeValidationService } from '../services/ModeValidationService.ts';
+import { WebhookSetupService } from '../services/WebhookSetupService.ts';
+import { PollingKeyboardHandler } from './polling/PollingKeyboardHandler.ts';
+import { BasicSyncService } from './shared/BasicSyncService.ts';
+import { ConfigValidationService } from './shared/ConfigValidationService.ts';
 
 /**
  * 轮询控制器类

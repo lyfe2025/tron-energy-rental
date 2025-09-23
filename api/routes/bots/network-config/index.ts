@@ -3,7 +3,7 @@
  * 整合所有网络配置相关的控制器
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../../../middleware/auth.ts';
 
 // 导入控制器
 import {
@@ -11,16 +11,16 @@ import {
     deleteBotNetwork,
     getBotNetworks,
     updateBotNetwork
-} from './controllers/NetworkConfigController.js';
+} from './controllers/NetworkConfigController.ts';
 
 import {
     setPrimaryNetwork
-} from './controllers/NetworkManagementController.js';
+} from './controllers/NetworkManagementController.ts';
 
 import {
     getBotCurrentNetwork,
     setBotNetwork
-} from './controllers/SingleNetworkController.js';
+} from './controllers/SingleNetworkController.ts';
 
 const router: Router = Router();
 

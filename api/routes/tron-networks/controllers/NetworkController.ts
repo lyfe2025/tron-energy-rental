@@ -7,14 +7,14 @@
 export { 
   getNetworksList, 
   getNetworkDetails 
-} from './split/NetworkQueryController.js';
+} from './split/NetworkQueryController.ts';
 
 // 从CRUD控制器导入
 export { 
   createNetwork, 
   updateNetwork, 
   deleteNetwork 
-} from './split/NetworkCRUDController.js';
+} from './split/NetworkCRUDController.ts';
 
 // 从验证控制器导入（如果需要在路由中直接使用）
 export {
@@ -24,4 +24,4 @@ export {
   validateNetworkDeletable,
   validateAndMapFields,
   validateUpdateFields
-} from './split/NetworkValidationController.js';
+} from './split/NetworkValidationController.ts';

@@ -2,7 +2,7 @@
  * 菜单模板
  * 定义各种标准菜单配置模板
  */
-import type { InlineKeyboard } from '../../types/bot.types.js';
+import type { InlineKeyboard } from '../../types/bot.types.ts';
 
 /**
  * 主菜单模板

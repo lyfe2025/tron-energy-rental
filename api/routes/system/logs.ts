@@ -5,8 +5,8 @@
 import express, { Router } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
-import { authenticateToken } from '../../middleware/auth.js';
-import { LogRotationManager, structuredLogger } from '../../utils/logger.js';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { LogRotationManager, structuredLogger } from '../../utils/logger.ts';
 
 const router: Router = express.Router();
 

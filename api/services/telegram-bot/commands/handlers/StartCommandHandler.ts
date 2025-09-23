@@ -3,13 +3,13 @@
  * 处理/start命令，用户注册和欢迎消息
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
-import { UserAuthService } from '../../../user/modules/UserAuthService.js';
-import { CommandValidator } from '../middleware/CommandValidator.js';
-import { UserContextManager } from '../middleware/UserContextManager.js';
-import type { BotConfig, CommandHandlerDependencies } from '../types/command.types.js';
-import { MessageFormatter } from '../utils/MessageFormatter.js';
-import { PlaceholderReplacer } from '../utils/PlaceholderReplacer.js';
+import { query } from '../../../../config/database.ts';
+import { UserAuthService } from '../../../user/modules/UserAuthService.ts';
+import { CommandValidator } from '../middleware/CommandValidator.ts';
+import { UserContextManager } from '../middleware/UserContextManager.ts';
+import type { BotConfig, CommandHandlerDependencies } from '../types/command.types.ts';
+import { MessageFormatter } from '../utils/MessageFormatter.ts';
+import { PlaceholderReplacer } from '../utils/PlaceholderReplacer.ts';
 
 export class StartCommandHandler {
   private bot: TelegramBot;

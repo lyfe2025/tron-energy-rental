@@ -4,7 +4,7 @@
  */
 import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
-import type { BotConfig } from '../types/bot.types.js';
+import type { BotConfig } from '../types/bot.types.ts';
 
 export class BotAPIHandler {
   private bot: TelegramBot;

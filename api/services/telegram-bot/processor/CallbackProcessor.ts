@@ -6,7 +6,7 @@ import type {
     CallbackHandler as ICallbackHandler,
     MessageProcessResult,
     ProcessorDependencies
-} from './types.js';
+} from './types.ts';
 
 export class CallbackProcessor implements ICallbackHandler {
   private dependencies: ProcessorDependencies;

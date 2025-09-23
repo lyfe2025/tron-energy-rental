@@ -3,9 +3,9 @@
  * 包含：获取统计概览信息
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../config/database.js';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
-import type { RouteHandler } from './types.js';
+import { query } from '../../config/database.ts';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
+import type { RouteHandler } from './types.ts';
 
 const router: Router = Router();
 
@@ -80,7 +80,7 @@ import {
     getBotOrders,
     getBotStatistics,
     getBotUsers
-} from './statistics/BotStatisticsController.js';
+} from './statistics/BotStatisticsController.ts';
 
 // 注册路由
 router.get('/stats/overview', authenticateToken, requireAdmin, getBotStatsOverview);

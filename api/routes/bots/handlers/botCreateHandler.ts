@@ -2,8 +2,8 @@
  * 机器人创建处理器
  * 重构后的入口文件，使用模块化结构
  */
-import type { RouteHandler } from '../types.js';
-import { BotCreateHandler } from './create/index.js';
+import type { RouteHandler } from '../types.ts';
+import { BotCreateHandler } from './create/index.ts';
 
 /**
  * 创建新机器人

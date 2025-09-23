@@ -3,7 +3,7 @@
  * 负责所有类型的消息发送功能，包括文本、图片、文档等
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
 
 export interface MessageResult {
   success: boolean;

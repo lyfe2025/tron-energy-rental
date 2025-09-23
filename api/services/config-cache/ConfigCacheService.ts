@@ -2,12 +2,12 @@
  * 主配置缓存服务 - 整合所有缓存功能
  */
 import { EventEmitter } from 'events';
-import { BotConfigCache } from './BotConfigCache.js';
-import { NetworkConfigCache } from './NetworkConfigCache.js';
-import { PoolConfigCache } from './PoolConfigCache.js';
-import { SystemConfigCache } from './SystemConfigCache.js';
-import { NotificationService } from './NotificationService.js';
-import type { CacheStats } from './types.js';
+import { BotConfigCache } from './BotConfigCache.ts';
+import { NetworkConfigCache } from './NetworkConfigCache.ts';
+import { PoolConfigCache } from './PoolConfigCache.ts';
+import { SystemConfigCache } from './SystemConfigCache.ts';
+import { NotificationService } from './NotificationService.ts';
+import type { CacheStats } from './types.ts';
 
 export class ConfigCacheService extends EventEmitter {
   private botCache: BotConfigCache;

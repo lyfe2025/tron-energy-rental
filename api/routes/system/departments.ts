@@ -5,10 +5,10 @@
 
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticateToken } from '../../middleware/auth.js';
-import { logOperation, requirePermission } from '../../middleware/rbac.js';
-import { handleValidationErrors } from '../../middleware/validation.js';
-import { DepartmentService } from '../../services/system/department.js';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { logOperation, requirePermission } from '../../middleware/rbac.ts';
+import { handleValidationErrors } from '../../middleware/validation.ts';
+import { DepartmentService } from '../../services/system/department.ts';
 
 const router: Router = Router();
 

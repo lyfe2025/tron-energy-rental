@@ -3,9 +3,9 @@
  * 负责与Telegram API的同步操作和连接性检查
  */
 import type { Request, Response } from 'express';
-import { SynchronizationService } from '../services/SynchronizationService.js';
-import { UpdateUtils } from '../utils/updateUtils.js';
-import { UpdateValidators } from '../validators/updateValidators.js';
+import { SynchronizationService } from '../services/SynchronizationService.ts';
+import { UpdateUtils } from '../utils/updateUtils.ts';
+import { UpdateValidators } from '../validators/updateValidators.ts';
 
 export class SyncController {
   /**

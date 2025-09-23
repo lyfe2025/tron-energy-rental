@@ -3,7 +3,7 @@
  * 处理角色相关的业务逻辑
  */
 
-import { query } from '../../config/database.js';
+import { query } from '../../config/database.ts';
 
 export interface Role {
   id: number;

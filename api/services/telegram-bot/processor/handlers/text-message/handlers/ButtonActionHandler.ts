@@ -5,9 +5,9 @@
 import type {
   ProcessorDependencies,
   ButtonHandlerResult
-} from '../types/index.js';
-import { MessageMatcher } from '../utils/MessageMatcher.js';
-import { PriceConfigHandler } from './PriceConfigHandler.js';
+} from '../types/index.ts';
+import { MessageMatcher } from '../utils/MessageMatcher.ts';
+import { PriceConfigHandler } from './PriceConfigHandler.ts';
 
 export class ButtonActionHandler {
   private dependencies: ProcessorDependencies;

@@ -3,17 +3,17 @@
  * 整合所有分离的代理商服务模块，保持原有API接口不变
  */
 
-import { AgentService as BaseAgentService } from './agent/AgentService.js';
-import { AgentStatsService } from './agent/AgentStatsService.js';
+import { AgentService as BaseAgentService } from './agent/AgentService.ts';
+import { AgentStatsService } from './agent/AgentStatsService.ts';
 
 // 导出所有类型定义
 export type {
     Agent, AgentCreateData, AgentSearchParams, AgentUpdateData
-} from './agent/AgentService.js';
+} from './agent/AgentService.ts';
 
 export type {
     AgentPerformanceStats, AgentStats
-} from './agent/AgentStatsService.js';
+} from './agent/AgentStatsService.ts';
 
 /**
  * 代理商服务类 - 主入口
@@ -259,4 +259,4 @@ export {
 };
 
 // 添加数据库连接引用
-    import pool from '../config/database.js';
+    import pool from '../config/database.ts';

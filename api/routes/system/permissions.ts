@@ -4,11 +4,11 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { MenuService } from '../../services/system/menu.js';
-import { authenticateToken } from '../../middleware/auth.js';
-import { handleValidationErrors } from '../../middleware/validation.js';
+import { MenuService } from '../../services/system/menu.ts';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { handleValidationErrors } from '../../middleware/validation.ts';
 import { query } from 'express-validator';
-import { requirePermission } from '../../middleware/rbac.js';
+import { requirePermission } from '../../middleware/rbac.ts';
 
 const router: Router = Router();
 

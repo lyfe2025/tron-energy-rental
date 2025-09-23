@@ -3,9 +3,9 @@
  * 处理解冻记录相关的业务逻辑
  */
 import type { Request, Response } from 'express';
-import { tronService } from '../../../../services/tron.js';
-import type { UnfreezeRecord } from '../../types/stake.types.js';
-import { BaseRecordsHandler } from './BaseRecordsHandler.js';
+import { tronService } from '../../../../services/tron.ts';
+import type { UnfreezeRecord } from '../../types/stake.types.ts';
+import { BaseRecordsHandler } from './BaseRecordsHandler.ts';
 
 export class UnfreezeRecordsHandler extends BaseRecordsHandler {
   /**

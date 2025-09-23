@@ -50,9 +50,9 @@ export interface AgentUpdateData {
 }
 
 // 导入分离后的服务
-import { AgentCRUDService } from './AgentCRUDService.js';
-import { AgentCodeService } from './AgentCodeService.js';
-import { AgentStatsService } from './AgentStatsService.js';
+import { AgentCRUDService } from './AgentCRUDService.ts';
+import { AgentCodeService } from './AgentCodeService.ts';
+import { AgentStatsService } from './AgentStatsService.ts';
 
 /**
  * 代理商服务门面类

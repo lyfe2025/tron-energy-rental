@@ -3,7 +3,7 @@
  * 包含：单个网络状态切换、批量状态更新等功能
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

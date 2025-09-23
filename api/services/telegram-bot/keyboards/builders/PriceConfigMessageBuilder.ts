@@ -3,8 +3,8 @@
  * 负责构建和发送价格配置相关消息
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
-import { WebhookURLService } from '../../utils/WebhookURLService.js';
+import { query } from '../../../../config/database.ts';
+import { WebhookURLService } from '../../utils/WebhookURLService.ts';
 
 export class PriceConfigMessageBuilder {
   private bot: TelegramBot;

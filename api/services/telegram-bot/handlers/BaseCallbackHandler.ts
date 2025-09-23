@@ -3,9 +3,9 @@
  * 为所有回调处理器提供通用功能，特别是webhook URL获取
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
-import type { CallbackHandler } from '../core/CallbackDispatcher.js';
-import { WebhookURLService } from '../utils/WebhookURLService.js';
+import { query } from '../../../config/database.ts';
+import type { CallbackHandler } from '../core/CallbackDispatcher.ts';
+import { WebhookURLService } from '../utils/WebhookURLService.ts';
 
 export abstract class BaseCallbackHandler implements CallbackHandler {
   protected bot: TelegramBot;

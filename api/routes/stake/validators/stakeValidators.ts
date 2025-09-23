@@ -5,7 +5,7 @@ import type {
     DelegateOperationRequest,
     StakeOperationRequest,
     WithdrawRequest
-} from '../types/stake.types.js';
+} from '../types/stake.types.ts';
 
 export class StakeValidators {
   /**

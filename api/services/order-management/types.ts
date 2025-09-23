@@ -3,7 +3,7 @@
  */
 
 // 重新导出现有的类型，保持向后兼容
-export type { CreateOrderRequest, Order, OrderStats } from '../order/types.js';
+export type { CreateOrderRequest, Order, OrderStats } from '../order/types.ts';
 
 // 闪租订单特有类型
 export interface FlashRentConfig {

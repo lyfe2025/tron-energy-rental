@@ -3,9 +3,9 @@
  * 提供日志轮转、清理和统计功能
  */
 import { Router, type Request, type Response } from 'express';
-import { LogRotationManager, cleanupOldLogs, appLogger } from '../../../utils/logger.js';
-import { authenticateToken, requireAdmin } from '../../../middleware/auth.js';
-import type { RouteHandler } from '../../bots/types.js';
+import { LogRotationManager, cleanupOldLogs, appLogger } from '../../../utils/logger.ts';
+import { authenticateToken, requireAdmin } from '../../../middleware/auth.ts';
+import type { RouteHandler } from '../../bots/types.ts';
 
 const router: Router = Router();
 

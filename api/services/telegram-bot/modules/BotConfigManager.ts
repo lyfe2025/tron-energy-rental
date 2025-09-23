@@ -2,7 +2,7 @@
  * 机器人配置管理模块
  * 负责配置的加载、重载和变更监听
  */
-import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.js';
+import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.ts';
 
 export class BotConfigManager {
   private botConfig: TelegramBotConfig | null = null;

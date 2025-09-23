@@ -4,14 +4,14 @@
  */
 
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     BotNotificationConfig,
     ManualNotificationData,
     SendResult
-} from '../types/notification.types.js';
-import { BusinessNotificationService } from './services/BusinessNotificationService.js';
-import { SystemNotificationService } from './services/SystemNotificationService.js';
+} from '../types/notification.types.ts';
+import { BusinessNotificationService } from './services/BusinessNotificationService.ts';
+import { SystemNotificationService } from './services/SystemNotificationService.ts';
 
 export class TelegramNotificationService {
   private bot: TelegramBot;

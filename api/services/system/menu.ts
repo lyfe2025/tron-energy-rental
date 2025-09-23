@@ -3,7 +3,7 @@
  * 处理菜单相关的业务逻辑
  */
 
-import { query } from '../../config/database.js';
+import { query } from '../../config/database.ts';
 
 export interface Menu {
   id: number;

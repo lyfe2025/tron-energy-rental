@@ -2,7 +2,7 @@
  * 订单计算服务
  * 负责所有订单相关的计算逻辑
  */
-import { query } from '../../database/index.js';
+import { query } from '../../database/index.ts';
 import type { FlashRentConfig, OrderCalculationResult } from './types';
 
 export class OrderCalculationService {

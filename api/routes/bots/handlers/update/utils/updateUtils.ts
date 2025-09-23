@@ -2,7 +2,7 @@
  * 更新工具类
  * 提供机器人更新过程中的辅助功能
  */
-import type { Bot, UpdateBotData } from '../../../types.js';
+import type { Bot, UpdateBotData } from '../../../types.ts';
 
 export class UpdateUtils {
   /**

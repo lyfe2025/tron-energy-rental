@@ -94,10 +94,10 @@ export interface UserUpdateData {
 }
 
 // 导入分离后的服务
-import { UserAuthService } from './UserAuthService.js';
-import { UserBalanceService } from './UserBalanceService.js';
-import { UserCRUDService } from './UserCRUDService.js';
-import { UserStatsService } from './UserStatsService.js';
+import { UserAuthService } from './UserAuthService.ts';
+import { UserBalanceService } from './UserBalanceService.ts';
+import { UserCRUDService } from './UserCRUDService.ts';
+import { UserStatsService } from './UserStatsService.ts';
 
 /**
  * 用户服务门面类

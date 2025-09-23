@@ -3,7 +3,7 @@
  * 从 admin.ts 中安全分离的操作日志记录功能
  */
 
-import pool from '../../config/database.js';
+import pool from '../../config/database.ts';
 
 export class AdminLogService {
   /**

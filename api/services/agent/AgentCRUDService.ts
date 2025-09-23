@@ -4,8 +4,8 @@
  * 负责代理商的创建、读取、更新、删除等基础操作
  */
 
-import pool from '../../config/database.js';
-import type { Agent, AgentCreateData, AgentSearchParams, AgentUpdateData } from './AgentService.js';
+import pool from '../../config/database.ts';
+import type { Agent, AgentCreateData, AgentSearchParams, AgentUpdateData } from './AgentService.ts';
 
 export class AgentCRUDService {
   /**

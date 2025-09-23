@@ -4,12 +4,12 @@
  */
 import TelegramBot from 'node-telegram-bot-api';
 import { createBotLogger } from '../../../utils/logger';
-import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.js';
-import { CallbackHandler } from '../callbacks/CallbackHandler.js';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import type { BotConfig } from '../types/bot.types.js';
-import { BotUtils } from '../utils/BotUtils.js';
+import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.ts';
+import { CallbackHandler } from '../callbacks/CallbackHandler.ts';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
+import type { BotConfig } from '../types/bot.types.ts';
+import { BotUtils } from '../utils/BotUtils.ts';
 
 export class TelegramBotInitializer {
   /**

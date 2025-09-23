@@ -6,15 +6,15 @@
 import { Router } from 'express';
 
 // 导入各个功能模块路由
-import configRoutes from './config.js';
-import crudRoutes from './crud.js';
-import extendedConfigRoutes from './extended-config/index.js';
-import logsRoutes from './logs.js';
-import networkConfigRoutes from './network-config.js';
-import statsRoutes from './stats.js';
-import statusRoutes from './status.js';
-import testRoutes from './test.js';
-import usersRoutes from './users.js';
+import configRoutes from './config.ts';
+import crudRoutes from './crud.ts';
+import extendedConfigRoutes from './extended-config/index.ts';
+import logsRoutes from './logs.ts';
+import networkConfigRoutes from './network-config.ts';
+import statsRoutes from './stats.ts';
+import statusRoutes from './status.ts';
+import testRoutes from './test.ts';
+import usersRoutes from './users.ts';
 // 初始化Telegram机器人服务 - 临时禁用以减少日志噪音
 // initializeTelegramBotService();
 

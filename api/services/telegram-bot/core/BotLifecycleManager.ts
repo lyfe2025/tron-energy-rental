@@ -2,10 +2,10 @@
  * 机器人生命周期管理器
  * 负责机器人的启动、停止、重启等生命周期操作
  */
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from '../integrated/components/BotOrchestrator.js';
-import { ModuleManager } from '../integrated/components/ModuleManager.js';
-import type { BotConfig } from '../integrated/types/bot.types.js';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from '../integrated/components/BotOrchestrator.ts';
+import { ModuleManager } from '../integrated/components/ModuleManager.ts';
+import type { BotConfig } from '../integrated/types/bot.types.ts';
 
 export type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error' | 'restarting';
 

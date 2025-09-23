@@ -2,13 +2,13 @@
  * 更新路由分发器
  * 负责识别和分发不同类型的 Telegram 更新
  */
-import { CallbackProcessor } from './CallbackProcessor.js';
-import { MessageProcessor } from './MessageProcessor.js';
+import { CallbackProcessor } from './CallbackProcessor.ts';
+import { MessageProcessor } from './MessageProcessor.ts';
 import type {
     UpdateRouter as IUpdateRouter,
     MessageProcessResult,
     ProcessorDependencies
-} from './types.js';
+} from './types.ts';
 
 export class UpdateRouter implements IUpdateRouter {
   private messageProcessor: MessageProcessor;

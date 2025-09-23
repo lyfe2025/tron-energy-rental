@@ -3,7 +3,7 @@
  * 负责与 Telegram API 的数据同步功能
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
 
 export interface SyncData {
   name: string | null;

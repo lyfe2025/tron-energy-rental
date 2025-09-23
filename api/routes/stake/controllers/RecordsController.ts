@@ -3,13 +3,13 @@
  * 委托具体实现给专门的处理器，保持接口不变
  */
 import type { Request, Response } from 'express';
-import type { RouteHandler } from '../types/stake.types.js';
+import type { RouteHandler } from '../types/stake.types.ts';
 
 // 导入专门的处理器
-import { DelegateRecordsHandler } from './handlers/DelegateRecordsHandler.js';
-import { RecordsSummaryHandler } from './handlers/RecordsSummaryHandler.js';
-import { StakeRecordsHandler } from './handlers/StakeRecordsHandler.js';
-import { UnfreezeRecordsHandler } from './handlers/UnfreezeRecordsHandler.js';
+import { DelegateRecordsHandler } from './handlers/DelegateRecordsHandler.ts';
+import { RecordsSummaryHandler } from './handlers/RecordsSummaryHandler.ts';
+import { StakeRecordsHandler } from './handlers/StakeRecordsHandler.ts';
+import { UnfreezeRecordsHandler } from './handlers/UnfreezeRecordsHandler.ts';
 
 export class RecordsController {
   // 初始化处理器实例

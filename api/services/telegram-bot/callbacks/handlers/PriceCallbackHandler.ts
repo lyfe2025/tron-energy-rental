@@ -3,9 +3,9 @@
  * 处理价格配置相关的回调查询
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { CallbackHandlerDependencies } from '../types/callback.types.js';
-import { CallbackValidator } from '../utils/CallbackValidator.js';
-import { ResponseFormatter } from '../utils/ResponseFormatter.js';
+import type { CallbackHandlerDependencies } from '../types/callback.types.ts';
+import { CallbackValidator } from '../utils/CallbackValidator.ts';
+import { ResponseFormatter } from '../utils/ResponseFormatter.ts';
 
 export class PriceCallbackHandler {
   private bot: TelegramBot;

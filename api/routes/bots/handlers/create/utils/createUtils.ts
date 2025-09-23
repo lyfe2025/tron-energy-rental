@@ -2,7 +2,7 @@
  * 创建工具类
  * 提供机器人创建过程中的辅助功能
  */
-import type { Bot, CreateBotData } from '../../../types.js';
+import type { Bot, CreateBotData } from '../../../types.ts';
 
 export class CreateUtils {
   /**

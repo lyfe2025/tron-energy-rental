@@ -3,7 +3,7 @@
  * 管理用户会话状态和上下文信息
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { UserRegistrationData } from '../types/command.types.js';
+import type { UserRegistrationData } from '../types/command.types.ts';
 
 export interface UserContext {
   telegramId: number;

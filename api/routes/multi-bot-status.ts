@@ -3,7 +3,7 @@
  * 提供多机器人管理器的状态查询和控制接口
  */
 import { Router, type Request, type Response } from 'express';
-import { multiBotManager } from '../services/telegram-bot.js';
+import { multiBotManager } from '../services/telegram-bot.ts';
 
 const router = Router();
 

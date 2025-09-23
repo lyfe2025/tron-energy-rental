@@ -3,9 +3,9 @@
  * 负责机器人删除、批量删除、恢复和清理功能
  */
 import type { Request, Response } from 'express';
-import { DeleteService } from '../services/DeleteService.js';
-import { UpdateUtils } from '../utils/updateUtils.js';
-import { UpdateValidators } from '../validators/updateValidators.js';
+import { DeleteService } from '../services/DeleteService.ts';
+import { UpdateUtils } from '../utils/updateUtils.ts';
+import { UpdateValidators } from '../validators/updateValidators.ts';
 
 export class DeleteController {
   /**

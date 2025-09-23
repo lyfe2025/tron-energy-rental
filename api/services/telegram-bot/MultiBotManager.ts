@@ -3,9 +3,9 @@
  * 管理多个 Telegram 机器人实例的生命周期
  * 支持并发运行、动态添加/删除、状态监控
  */
-import { createBotLogger, logOnce, structuredLogger } from '../../utils/logger.js';
-import { configService, type TelegramBotConfig } from '../config/ConfigService.js';
-import { TelegramBotService } from './TelegramBotService.js';
+import { createBotLogger, logOnce, structuredLogger } from '../../utils/logger.ts';
+import { configService, type TelegramBotConfig } from '../config/ConfigService.ts';
+import { TelegramBotService } from './TelegramBotService.ts';
 
 export interface BotInstance {
   id: string;

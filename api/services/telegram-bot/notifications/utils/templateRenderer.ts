@@ -3,7 +3,7 @@
  * 负责消息模板的渲染和变量替换
  */
 
-import type { MessageTemplate } from '../../types/notification.types.js';
+import type { MessageTemplate } from '../../types/notification.types.ts';
 
 /**
  * 渲染模板内容

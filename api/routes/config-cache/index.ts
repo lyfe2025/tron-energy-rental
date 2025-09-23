@@ -3,7 +3,7 @@
  * 提供缓存状态查询、手动清除缓存、配置预热等功能
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
 
 // 导入控制器
 import {
@@ -12,13 +12,13 @@ import {
     clearNetworkCache,
     clearPoolCache,
     clearSystemCache
-} from './controllers/CacheClearController.js';
-import { getCacheStatus } from './controllers/CacheStatusController.js';
+} from './controllers/CacheClearController.ts';
+import { getCacheStatus } from './controllers/CacheStatusController.ts';
 import {
     publishNotification,
     warmupCache
-} from './controllers/CacheWarmupController.js';
-import { getConfigHistory } from './controllers/ConfigHistoryController.js';
+} from './controllers/CacheWarmupController.ts';
+import { getConfigHistory } from './controllers/ConfigHistoryController.ts';
 
 const router: Router = Router();
 

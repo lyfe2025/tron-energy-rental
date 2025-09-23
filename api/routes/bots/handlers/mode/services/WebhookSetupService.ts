@@ -2,7 +2,7 @@
  * Webhook设置服务
  * 处理Telegram Bot Webhook的设置、获取状态和管理
  */
-import { query } from '../../../../../config/database.js';
+import { query } from '../../../../../config/database.ts';
 
 export interface WebhookInfo {
   url: string;

@@ -4,12 +4,12 @@
  * 保持原有API接口完全不变，确保外部调用兼容性
  */
 
-import type { User, UserCreateData, UserSearchParams, UserUpdateData } from './UserService.js';
+import type { User, UserCreateData, UserSearchParams, UserUpdateData } from './UserService.ts';
 
 // 导入分离后的子服务模块
-import { UserAuthService } from './modules/UserAuthService.js';
-import { UserOperationService } from './modules/UserOperationService.js';
-import { UserQueryService } from './modules/UserQueryService.js';
+import { UserAuthService } from './modules/UserAuthService.ts';
+import { UserOperationService } from './modules/UserOperationService.ts';
+import { UserQueryService } from './modules/UserQueryService.ts';
 
 export class UserCRUDService {
   /**

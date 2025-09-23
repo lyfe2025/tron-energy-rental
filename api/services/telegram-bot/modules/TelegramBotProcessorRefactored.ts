@@ -3,16 +3,16 @@
  * 使用动态回调调度系统，支持灵活的按钮配置
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
-import { orderService } from '../../order.js';
-import { UserService } from '../../user.js';
-import { MenuCallbackHandler } from '../callbacks/handlers/MenuCallbackHandler.js';
-import { PriceCallbackHandler } from '../callbacks/handlers/PriceCallbackHandler.js';
-import type { CallbackHandlerDependencies } from '../callbacks/types/callback.types.js';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { CallbackDispatcher } from '../core/CallbackDispatcher.js';
-import { DynamicButtonMapper } from '../core/DynamicButtonMapper.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
+import { query } from '../../../config/database.ts';
+import { orderService } from '../../order.ts';
+import { UserService } from '../../user.ts';
+import { MenuCallbackHandler } from '../callbacks/handlers/MenuCallbackHandler.ts';
+import { PriceCallbackHandler } from '../callbacks/handlers/PriceCallbackHandler.ts';
+import type { CallbackHandlerDependencies } from '../callbacks/types/callback.types.ts';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { CallbackDispatcher } from '../core/CallbackDispatcher.ts';
+import { DynamicButtonMapper } from '../core/DynamicButtonMapper.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
 
 export class TelegramBotProcessorRefactored {
   private callbackDispatcher: CallbackDispatcher;

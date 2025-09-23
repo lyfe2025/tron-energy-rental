@@ -4,17 +4,17 @@
  */
 
 // 基础处理器
-export { BaseRecordsHandler } from './BaseRecordsHandler.js';
+export { BaseRecordsHandler } from './BaseRecordsHandler.ts';
 
 // 具体业务处理器
-export { DelegateRecordsHandler } from './DelegateRecordsHandler.js';
-export { RecordsSummaryHandler } from './RecordsSummaryHandler.js';
-export { StakeRecordsHandler } from './StakeRecordsHandler.js';
-export { UnfreezeRecordsHandler } from './UnfreezeRecordsHandler.js';
+export { DelegateRecordsHandler } from './DelegateRecordsHandler.ts';
+export { RecordsSummaryHandler } from './RecordsSummaryHandler.ts';
+export { StakeRecordsHandler } from './StakeRecordsHandler.ts';
+export { UnfreezeRecordsHandler } from './UnfreezeRecordsHandler.ts';
 
 // 类型定义
-export type { PaginationParams, ProcessedAddress } from './BaseRecordsHandler.js';
-export type { RecordsSummary } from './RecordsSummaryHandler.js';
+export type { PaginationParams, ProcessedAddress } from './BaseRecordsHandler.ts';
+export type { RecordsSummary } from './RecordsSummaryHandler.ts';
 
 /*
  * 💡 使用说明：
@@ -23,7 +23,7 @@ export type { RecordsSummary } from './RecordsSummaryHandler.js';
  *    import { StakeRecordsHandler, DelegateRecordsHandler } from './handlers';
  * 
  * 2. 单独导入：
- *    import { StakeRecordsHandler } from './handlers/StakeRecordsHandler.js';
+ *    import { StakeRecordsHandler } from './handlers/StakeRecordsHandler.ts';
  * 
  * 3. 扩展处理器：
  *    - 继承 BaseRecordsHandler

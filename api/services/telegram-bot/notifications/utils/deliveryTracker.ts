@@ -3,7 +3,7 @@
  * 负责消息发送状态的跟踪和监控
  */
 
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export interface DeliveryResult {
   success: boolean;

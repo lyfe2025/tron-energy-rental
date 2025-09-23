@@ -3,7 +3,7 @@
  * 负责订单数据的查询、搜索和统计功能
  */
 import { query } from '../../database/index';
-import type { Order, OrderStats } from './types.js';
+import type { Order, OrderStats } from './types.ts';
 
 export class OrderQueryService {
   /**

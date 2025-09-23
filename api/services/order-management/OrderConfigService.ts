@@ -2,7 +2,7 @@
  * 订单配置服务
  * 负责获取和管理各种订单配置
  */
-import { query } from '../../database/index.js';
+import { query } from '../../database/index.ts';
 import type { FlashRentConfig } from './types';
 
 export class OrderConfigService {

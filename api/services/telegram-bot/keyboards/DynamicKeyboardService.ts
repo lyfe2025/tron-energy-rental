@@ -3,15 +3,15 @@
  * 根据价格配置状态动态生成Telegram机器人键盘
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { logger } from '../../../utils/logger.js';
-import { PriceConfigService } from '../../PriceConfigService.js';
+import { logger } from '../../../utils/logger.ts';
+import { PriceConfigService } from '../../PriceConfigService.ts';
 import type {
   BotKeyboardConfiguration,
   InlineKeyboard,
   KeyboardButtonConfig,
   KeyboardRowConfig,
   MessageWithInlineKeyboard
-} from '../types/bot.types.js';
+} from '../types/bot.types.ts';
 
 export class DynamicKeyboardService {
   private priceConfigService: PriceConfigService;

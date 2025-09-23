@@ -4,8 +4,8 @@
  * 负责用户的各种查询操作
  */
 
-import pool from '../../../config/database.js';
-import type { User, UserSearchParams } from '../UserService.js';
+import pool from '../../../config/database.ts';
+import type { User, UserSearchParams } from '../UserService.ts';
 
 export class UserQueryService {
   /**

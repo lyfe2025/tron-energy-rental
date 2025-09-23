@@ -5,11 +5,11 @@
 
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticateToken } from '../middleware/auth.js';
-import { logOperation, requirePermission } from '../middleware/rbac.js';
-import { handleValidationErrors } from '../middleware/validation.js';
-import { AdminRoleService } from '../services/admin/AdminRoleService.js';
-import { AdminService } from '../services/admin/AdminService.js';
+import { authenticateToken } from '../middleware/auth.ts';
+import { logOperation, requirePermission } from '../middleware/rbac.ts';
+import { handleValidationErrors } from '../middleware/validation.ts';
+import { AdminRoleService } from '../services/admin/AdminRoleService.ts';
+import { AdminService } from '../services/admin/AdminService.ts';
 
 const router: Router = Router();
 

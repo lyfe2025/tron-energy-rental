@@ -1,11 +1,11 @@
 /**
  * Telegram机器人服务 - 统一的模块化架构
  */
-export { MultiBotManager, multiBotManager } from './telegram-bot/MultiBotManager.js';
-export { TelegramBotService } from './telegram-bot/TelegramBotService.js';
-export * from './telegram-bot/types/bot.types.js';
+export { MultiBotManager, multiBotManager } from './telegram-bot/MultiBotManager.ts';
+export { TelegramBotService } from './telegram-bot/TelegramBotService.ts';
+export * from './telegram-bot/types/bot.types.ts';
 
-import { multiBotManager } from './telegram-bot/MultiBotManager.js';
+import { multiBotManager } from './telegram-bot/MultiBotManager.ts';
 
 // 使用多机器人管理器作为默认导出
 export default multiBotManager;

@@ -3,7 +3,7 @@
  * 包含错误处理、消息格式化等通用功能
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { BotError } from '../types/bot.types.js';
+import type { BotError } from '../types/bot.types.ts';
 
 export class BotUtils {
   private bot: TelegramBot;

@@ -2,9 +2,9 @@
  * 提取操作控制器
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../database/index.js';
-import { tronService } from '../../../services/tron.js';
-import type { RouteHandler, WithdrawRequest } from '../types/stake.types.js';
+import { query } from '../../../database/index.ts';
+import { tronService } from '../../../services/tron.ts';
+import type { RouteHandler, WithdrawRequest } from '../types/stake.types.ts';
 
 export class WithdrawController {
   /**

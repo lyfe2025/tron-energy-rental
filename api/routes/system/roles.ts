@@ -4,11 +4,11 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { RoleService } from '../../services/system/role.js';
-import { authenticateToken } from '../../middleware/auth.js';
-import { handleValidationErrors } from '../../middleware/validation.js';
+import { RoleService } from '../../services/system/role.ts';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { handleValidationErrors } from '../../middleware/validation.ts';
 import { body, query, param } from 'express-validator';
-import { requirePermission, logOperation } from '../../middleware/rbac.js';
+import { requirePermission, logOperation } from '../../middleware/rbac.ts';
 
 const router: Router = Router();
 

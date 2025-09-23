@@ -3,8 +3,8 @@
  * 获取机器人的用户数和订单数统计
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
-import type { RouteHandler } from '../types.js';
+import { query } from '../../../config/database.ts';
+import type { RouteHandler } from '../types.ts';
 
 /**
  * 获取单个机器人的统计信息

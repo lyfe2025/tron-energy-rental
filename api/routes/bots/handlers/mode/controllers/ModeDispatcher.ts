@@ -3,10 +3,10 @@
  * 根据机器人的工作模式自动路由到对应的控制器
  */
 import { type Request, type Response } from 'express';
-import type { RouteHandler } from '../../../types.js';
-import { ModeValidationService } from '../services/ModeValidationService.js';
-import { PollingController } from './PollingController.js';
-import { WebhookController } from './WebhookController.js';
+import type { RouteHandler } from '../../../types.ts';
+import { ModeValidationService } from '../services/ModeValidationService.ts';
+import { PollingController } from './PollingController.ts';
+import { WebhookController } from './WebhookController.ts';
 
 /**
  * 模式分发器类
@@ -70,7 +70,7 @@ export class ModeDispatcher {
   static getDispatcherStatus: RouteHandler = async (req: Request, res: Response) => {
     try {
       // 统计不同工作模式的机器人数量
-      const { query } = await import('../../../../../config/database.js');
+      const { query } = await import('../../../../../config/database.ts');
       const result = await query(
         'SELECT work_mode, COUNT(*) as count FROM telegram_bots WHERE is_active = true GROUP BY work_mode'
       );
@@ -129,7 +129,7 @@ export class ModeDispatcher {
    */
   static checkModeDistribution: RouteHandler = async (req: Request, res: Response) => {
     try {
-      const { query } = await import('../../../../../config/database.js');
+      const { query } = await import('../../../../../config/database.ts');
       
       // 获取详细的机器人模式分布
       const detailResult = await query(`

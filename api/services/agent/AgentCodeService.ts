@@ -4,7 +4,7 @@
  * 负责代理商代码的生成、验证和管理
  */
 
-import pool from '../../config/database.js';
+import pool from '../../config/database.ts';
 
 export class AgentCodeService {
   /**

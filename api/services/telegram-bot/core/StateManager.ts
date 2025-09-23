@@ -2,7 +2,7 @@
  * 状态管理器
  * 负责管理机器人的运行状态、配置状态和用户会话状态
  */
-import type { TelegramBotConfig, TronNetworkConfig } from '../../config/ConfigService.js';
+import type { TelegramBotConfig, TronNetworkConfig } from '../../config/ConfigService.ts';
 
 export interface BotState {
   isInitialized: boolean;

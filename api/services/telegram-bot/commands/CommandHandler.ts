@@ -3,17 +3,17 @@
  * 整合所有分离的命令处理器，保持原有接口不变
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { orderService } from '../../order.js';
-import { UserService } from '../../user.js';
-import { HelpCommandHandler } from './handlers/HelpCommandHandler.js';
-import { MenuCommandHandler } from './handlers/MenuCommandHandler.js';
-import { OrderCommandHandler } from './handlers/OrderCommandHandler.js';
-import { StartCommandHandler } from './handlers/StartCommandHandler.js';
-import { StatsCommandHandler } from './handlers/StatsCommandHandler.js';
-import { CommandValidator } from './middleware/CommandValidator.js';
-import { UserContextManager } from './middleware/UserContextManager.js';
-import type { CommandHandlerConstructorParams, CommandHandlerDependencies } from './types/command.types.js';
-import { MessageFormatter } from './utils/MessageFormatter.js';
+import { orderService } from '../../order.ts';
+import { UserService } from '../../user.ts';
+import { HelpCommandHandler } from './handlers/HelpCommandHandler.ts';
+import { MenuCommandHandler } from './handlers/MenuCommandHandler.ts';
+import { OrderCommandHandler } from './handlers/OrderCommandHandler.ts';
+import { StartCommandHandler } from './handlers/StartCommandHandler.ts';
+import { StatsCommandHandler } from './handlers/StatsCommandHandler.ts';
+import { CommandValidator } from './middleware/CommandValidator.ts';
+import { UserContextManager } from './middleware/UserContextManager.ts';
+import type { CommandHandlerConstructorParams, CommandHandlerDependencies } from './types/command.types.ts';
+import { MessageFormatter } from './utils/MessageFormatter.ts';
 
 export class CommandHandler {
   private bot: TelegramBot;

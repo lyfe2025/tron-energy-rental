@@ -3,8 +3,8 @@
  * 包含：设置主要网络等网络管理功能
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
-import type { RouteHandler } from '../../types.js';
+import { query } from '../../../../config/database.ts';
+import type { RouteHandler } from '../../types.ts';
 
 /**
  * 设置主要网络

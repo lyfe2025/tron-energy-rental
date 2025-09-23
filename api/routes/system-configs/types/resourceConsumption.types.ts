@@ -12,7 +12,7 @@ import type {
   BatchOperationResult,
   PaginatedSystemConfigs,
   PaginatedConfigHistory
-} from './systemConfigs.types.js';
+} from './systemConfigs.types.ts';
 
 // 资源类型枚举
 export type ResourceType = 'energy' | 'bandwidth';

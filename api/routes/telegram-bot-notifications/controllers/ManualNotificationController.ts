@@ -5,13 +5,13 @@
 
 import { type Request, type Response } from 'express';
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
-import { TelegramNotificationService } from '../../../services/telegram-bot/NotificationService.js';
+import { query } from '../../../config/database.ts';
+import { TelegramNotificationService } from '../../../services/telegram-bot/NotificationService.ts';
 import type {
     ManualNotificationData,
     SendManualNotificationRequest,
     SendManualNotificationResponse
-} from '../../../services/telegram-bot/types/notification.types.js';
+} from '../../../services/telegram-bot/types/notification.types.ts';
 
 /**
  * 发送手动通知

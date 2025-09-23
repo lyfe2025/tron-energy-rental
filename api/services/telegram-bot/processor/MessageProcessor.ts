@@ -2,13 +2,13 @@
  * 消息处理器核心
  * 负责处理所有类型的消息并路由到相应的处理器
  */
-import { CommandProcessor } from './CommandProcessor.js';
-import { TextMessageHandler } from './handlers/TextMessageHandler.js';
+import { CommandProcessor } from './CommandProcessor.ts';
+import { TextMessageHandler } from './handlers/TextMessageHandler.ts';
 import type {
     MessageHandler,
     MessageProcessResult,
     ProcessorDependencies
-} from './types.js';
+} from './types.ts';
 
 export class MessageProcessor implements MessageHandler {
   private commandProcessor: CommandProcessor;

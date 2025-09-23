@@ -3,9 +3,9 @@
  * 包含：获取机器人用户列表
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../config/database.js';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
-import type { RouteHandler, PaginationParams } from './types.js';
+import { query } from '../../config/database.ts';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
+import type { RouteHandler, PaginationParams } from './types.ts';
 
 const router: Router = Router();
 

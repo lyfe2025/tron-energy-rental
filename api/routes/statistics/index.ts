@@ -2,7 +2,7 @@
  * 统计分析主路由文件
  */
 import { Router } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
+import { authenticateToken } from '../../middleware/auth.ts';
 import {
     getBots,
     getBotStatus,
@@ -11,13 +11,13 @@ import {
     getRealtime,
     getRevenue,
     getUsers
-} from './controllers/statisticsController.js';
+} from './controllers/statisticsController.ts';
 import {
     logAccess,
     requireAdmin,
     setCacheHeaders,
     validateStatsParams
-} from './middleware/statisticsMiddleware.js';
+} from './middleware/statisticsMiddleware.ts';
 
 const router: Router = Router();
 

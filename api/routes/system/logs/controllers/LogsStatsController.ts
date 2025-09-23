@@ -2,12 +2,12 @@
  * 日志统计控制器
  */
 import type { Request, Response } from 'express';
-import { query as dbQuery } from '../../../../database/index.js';
+import { query as dbQuery } from '../../../../database/index.ts';
 import type {
   LogsStats,
   RouteHandler,
   StatsResponse
-} from '../types/logs.types.js';
+} from '../types/logs.types.ts';
 
 export class LogsStatsController {
   /**

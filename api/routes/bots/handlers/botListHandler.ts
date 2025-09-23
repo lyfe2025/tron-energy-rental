@@ -3,9 +3,9 @@
  * 包含：列表查询、详情获取、选择器列表
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
-import { buildWhereClause } from '../middleware.js';
-import type { PaginationParams, RouteHandler } from '../types.js';
+import { query } from '../../../config/database.ts';
+import { buildWhereClause } from '../middleware.ts';
+import type { PaginationParams, RouteHandler } from '../types.ts';
 
 /**
  * 获取机器人列表

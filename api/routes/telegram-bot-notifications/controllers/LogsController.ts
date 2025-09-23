@@ -4,10 +4,10 @@
  */
 
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     GetNotificationLogsResponse
-} from '../../../services/telegram-bot/types/notification.types.js';
+} from '../../../services/telegram-bot/types/notification.types.ts';
 
 /**
  * 获取通知发送记录

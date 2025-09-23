@@ -3,18 +3,18 @@
  * 整合所有分离的回调处理器，保持原有接口不变
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { orderService } from '../../order.js';
-import { UserService } from '../../user.js';
-import { EnergyCallbackHandler } from './handlers/EnergyCallbackHandler.js';
-import { MenuCallbackHandler } from './handlers/MenuCallbackHandler.js';
-import { OrderCallbackHandler } from './handlers/OrderCallbackHandler.js';
-import { PriceCallbackHandler } from './handlers/PriceCallbackHandler.js';
+import { orderService } from '../../order.ts';
+import { UserService } from '../../user.ts';
+import { EnergyCallbackHandler } from './handlers/EnergyCallbackHandler.ts';
+import { MenuCallbackHandler } from './handlers/MenuCallbackHandler.ts';
+import { OrderCallbackHandler } from './handlers/OrderCallbackHandler.ts';
+import { PriceCallbackHandler } from './handlers/PriceCallbackHandler.ts';
 import type {
   CallbackHandlerConstructorParams,
   CallbackHandlerDependencies
-} from './types/callback.types.js';
-import { CallbackValidator } from './utils/CallbackValidator.js';
-import { ResponseFormatter } from './utils/ResponseFormatter.js';
+} from './types/callback.types.ts';
+import { CallbackValidator } from './utils/CallbackValidator.ts';
+import { ResponseFormatter } from './utils/ResponseFormatter.ts';
 
 export class CallbackHandler {
   private bot: TelegramBot;

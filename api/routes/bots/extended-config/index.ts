@@ -4,10 +4,10 @@
  * 重构后的模块化架构，保持原有API接口不变
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../../middleware/auth.js';
-import { ConfigHistoryController } from './controllers/ConfigHistoryController.js';
-import { ExtendedConfigController } from './controllers/ExtendedConfigController.js';
-import { HealthCheckController } from './controllers/HealthCheckController.js';
+import { authenticateToken, requireAdmin } from '../../../middleware/auth.ts';
+import { ConfigHistoryController } from './controllers/ConfigHistoryController.ts';
+import { ExtendedConfigController } from './controllers/ExtendedConfigController.ts';
+import { HealthCheckController } from './controllers/HealthCheckController.ts';
 
 const router: Router = Router();
 
@@ -27,5 +27,5 @@ export {
 };
 
 // 导出服务层
-    export { ExtendedConfigService } from './services/ExtendedConfigService.js';
+    export { ExtendedConfigService } from './services/ExtendedConfigService.ts';
 

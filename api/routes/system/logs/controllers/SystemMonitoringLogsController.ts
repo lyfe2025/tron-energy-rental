@@ -2,7 +2,7 @@
  * 系统监控日志控制器
  */
 import type { Request, Response } from 'express';
-import pool from '../../../../config/database.js';
+import pool from '../../../../config/database.ts';
 
 export class SystemMonitoringLogsController {
   /**

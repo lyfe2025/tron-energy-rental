@@ -3,11 +3,11 @@
  * 现在是一个轻量级适配器，委托给新的模块化架构
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { UpdateRouter } from './UpdateRouter.js';
+import { UpdateRouter } from './UpdateRouter.ts';
 import type {
     MessageProcessResult,
     ProcessorDependencies
-} from './types.js';
+} from './types.ts';
 
 export class TelegramBotProcessor {
   private updateRouter: UpdateRouter;

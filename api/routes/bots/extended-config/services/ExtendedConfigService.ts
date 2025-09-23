@@ -2,8 +2,8 @@
  * 扩展配置服务
  * 提供机器人扩展配置的业务逻辑处理
  */
-import { query } from '../../../../config/database.js';
-import type { ExtendedBotConfigData } from '../../types.js';
+import { query } from '../../../../config/database.ts';
+import type { ExtendedBotConfigData } from '../../types.ts';
 
 export class ExtendedConfigService {
   /**

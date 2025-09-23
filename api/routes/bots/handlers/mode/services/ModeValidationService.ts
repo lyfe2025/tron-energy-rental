@@ -2,10 +2,10 @@
  * 模式验证服务
  * 提供机器人模式切换相关的验证服务
  */
-import { query } from '../../../../../config/database.js';
-import type { BotModeSwitchData } from '../../../types.js';
-import { ModeDataValidator, type ValidationResult } from '../validators/ModeDataValidator.js';
-import { WebhookValidator, type WebhookValidationResult } from '../validators/WebhookValidator.js';
+import { query } from '../../../../../config/database.ts';
+import type { BotModeSwitchData } from '../../../types.ts';
+import { ModeDataValidator, type ValidationResult } from '../validators/ModeDataValidator.ts';
+import { WebhookValidator, type WebhookValidationResult } from '../validators/WebhookValidator.ts';
 
 export interface BotValidationResult {
   isValid: boolean;

@@ -4,7 +4,7 @@
  */
 import { query } from '../../database/index';
 import { energyPoolService } from '../energy-pool';
-import type { CreateOrderRequest, Order } from './types.js';
+import type { CreateOrderRequest, Order } from './types.ts';
 
 export class OrderCreationService {
   /**

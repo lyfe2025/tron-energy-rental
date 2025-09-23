@@ -3,8 +3,8 @@
  */
 import { EventEmitter } from 'events';
 import Redis from 'ioredis';
-import type { CacheConfig, CacheStats } from './types.js';
-import { CACHE_KEYS } from './types.js';
+import type { CacheConfig, CacheStats } from './types.ts';
+import { CACHE_KEYS } from './types.ts';
 
 export class CacheManager extends EventEmitter {
   protected redis: Redis;

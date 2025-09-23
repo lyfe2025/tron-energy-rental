@@ -2,9 +2,9 @@
  * 机器人创建验证器
  * 负责验证创建机器人时的输入数据
  */
-import { query } from '../../../../../config/database.js';
-import { isValidBotToken } from '../../../middleware.js';
-import type { CreateBotData } from '../../../types.js';
+import { query } from '../../../../../config/database.ts';
+import { isValidBotToken } from '../../../middleware.ts';
+import type { CreateBotData } from '../../../types.ts';
 
 export class CreateValidators {
   /**

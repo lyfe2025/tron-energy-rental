@@ -2,7 +2,7 @@
  * 响应格式化工具
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { MessageSendOptions } from '../types/callback.types.js';
+import type { MessageSendOptions } from '../types/callback.types.ts';
 
 export class ResponseFormatter {
   /**

@@ -3,10 +3,10 @@
  * 整合所有分离的管理员服务模块，保持原有API接口不变
  */
 
-import { AdminService as AdminServiceCore } from './admin/AdminService.js';
-import { AdminStatsService } from './admin/AdminStatsService.js';
-import { AdminRoleService } from './admin/AdminRoleService.js';
-import { AdminLogService } from './admin/AdminLogService.js';
+import { AdminService as AdminServiceCore } from './admin/AdminService.ts';
+import { AdminStatsService } from './admin/AdminStatsService.ts';
+import { AdminRoleService } from './admin/AdminRoleService.ts';
+import { AdminLogService } from './admin/AdminLogService.ts';
 
 // 导出所有类型定义
 export type {
@@ -14,16 +14,16 @@ export type {
   AdminSearchParams,
   AdminCreateData,
   AdminUpdateData
-} from './admin/AdminService.js';
+} from './admin/AdminService.ts';
 
 export type {
   AdminStats
-} from './admin/AdminStatsService.js';
+} from './admin/AdminStatsService.ts';
 
 export type {
   Role,
   Permission
-} from './admin/AdminRoleService.js';
+} from './admin/AdminRoleService.ts';
 
 /**
  * 管理员服务类 - 主入口

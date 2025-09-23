@@ -1,9 +1,9 @@
 /**
  * 能量池配置缓存服务
  */
-import { query } from '../../config/database.js';
-import { CacheManager } from './CacheManager.js';
-import { CACHE_KEYS, CACHE_TTL } from './types.js';
+import { query } from '../../config/database.ts';
+import { CacheManager } from './CacheManager.ts';
+import { CACHE_KEYS, CACHE_TTL } from './types.ts';
 
 export class PoolConfigCache extends CacheManager {
   /**

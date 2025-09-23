@@ -6,7 +6,7 @@ import { query } from '../../database/index';
 import { orderLogger } from '../../utils/logger';
 import { energyDelegationService } from '../energy-delegation';
 import { paymentService } from '../payment';
-import type { Order } from './types.js';
+import type { Order } from './types.ts';
 
 export class OrderLifecycleService {
   /**

@@ -4,18 +4,18 @@
  * 确保功能完整性和向后兼容性
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../config/database.js';
-import type { EnergyPackage, InlineKeyboard, OrderInfo } from '../types/bot.types.js';
+import { query } from '../../../config/database.ts';
+import type { EnergyPackage, InlineKeyboard, OrderInfo } from '../types/bot.types.ts';
 
 // 导入分离的构建器模块
-import { DynamicKeyboardBuilder } from './builders/DynamicKeyboardBuilder.js';
-import { InlineKeyboardBuilder } from './builders/InlineKeyboardBuilder.js';
-import { MenuKeyboardBuilder } from './builders/MenuKeyboardBuilder.js';
-import { ReplyKeyboardBuilder } from './builders/ReplyKeyboardBuilder.js';
+import { DynamicKeyboardBuilder } from './builders/DynamicKeyboardBuilder.ts';
+import { InlineKeyboardBuilder } from './builders/InlineKeyboardBuilder.ts';
+import { MenuKeyboardBuilder } from './builders/MenuKeyboardBuilder.ts';
+import { ReplyKeyboardBuilder } from './builders/ReplyKeyboardBuilder.ts';
 
 // 导入模板和工具
-import { ButtonFactory } from './templates/buttonTemplates.js';
-import { KeyboardOptimizer, KeyboardValidator } from './utils/keyboardUtils.js';
+import { ButtonFactory } from './templates/buttonTemplates.ts';
+import { KeyboardOptimizer, KeyboardValidator } from './utils/keyboardUtils.ts';
 
 export class KeyboardBuilder {
   private bot: TelegramBot;

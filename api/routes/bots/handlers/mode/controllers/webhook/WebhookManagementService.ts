@@ -2,9 +2,9 @@
  * Webhook管理服务
  * 提供Webhook特有的管理功能
  */
-import { ModeValidationService } from '../../services/ModeValidationService.js';
-import { WebhookSetupService } from '../../services/WebhookSetupService.js';
-import { WebhookValidator } from '../../validators/WebhookValidator.js';
+import { ModeValidationService } from '../../services/ModeValidationService.ts';
+import { WebhookSetupService } from '../../services/WebhookSetupService.ts';
+import { WebhookValidator } from '../../validators/WebhookValidator.ts';
 
 export class WebhookManagementService {
   /**

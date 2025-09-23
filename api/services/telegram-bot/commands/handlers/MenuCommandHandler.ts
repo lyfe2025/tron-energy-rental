@@ -3,11 +3,11 @@
  * 处理/menu命令和菜单刷新
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
-import { CommandValidator } from '../middleware/CommandValidator.js';
-import { UserContextManager } from '../middleware/UserContextManager.js';
-import type { BotConfig, CommandHandlerDependencies } from '../types/command.types.js';
-import { MessageFormatter } from '../utils/MessageFormatter.js';
+import { query } from '../../../../config/database.ts';
+import { CommandValidator } from '../middleware/CommandValidator.ts';
+import { UserContextManager } from '../middleware/UserContextManager.ts';
+import type { BotConfig, CommandHandlerDependencies } from '../types/command.types.ts';
+import { MessageFormatter } from '../utils/MessageFormatter.ts';
 
 export class MenuCommandHandler {
   private bot: TelegramBot;

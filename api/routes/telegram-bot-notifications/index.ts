@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
+import { authenticateToken } from '../../middleware/auth.ts';
 
 // 导入控制器
 import {

@@ -3,7 +3,7 @@
  * 负责机器人健康状态检查和监控
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class HealthCheckController {
   /**

@@ -3,8 +3,8 @@
  * 处理用户等级变更、等级历史记录等功能
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../config/database.js';
-import { authenticateToken, requireAdmin, requireRole } from '../middleware/auth.js';
+import { query } from '../config/database.ts';
+import { authenticateToken, requireAdmin, requireRole } from '../middleware/auth.ts';
 
 const router: Router = Router();
 

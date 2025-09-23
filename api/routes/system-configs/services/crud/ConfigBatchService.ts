@@ -5,13 +5,13 @@
  * 支持事务处理和详细的操作日志
  */
 
-import { getClient } from '../../../../config/database.js';
-import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.js';
+import { getClient } from '../../../../config/database.ts';
+import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.ts';
 import type {
     BatchOperationResult,
     BatchUpdateRequest
-} from '../../types/systemConfigs.types.js';
-import { SystemConfigsRepository } from '../systemConfigsRepository.js';
+} from '../../types/systemConfigs.types.ts';
+import { SystemConfigsRepository } from '../systemConfigsRepository.ts';
 
 export class ConfigBatchService {
   private repository: SystemConfigsRepository;

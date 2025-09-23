@@ -4,7 +4,7 @@
  * 此版本将复杂逻辑拆分到专门的子服务中，提高可维护性
  */
 import { orderLogger } from '../../utils/logger';
-import type { Order } from '../order/types.js';
+import type { Order } from '../order/types.ts';
 import { FlashRentOrderProcessor } from './flash-rent/FlashRentOrderProcessor';
 import { FlashRentOrderUpdater } from './flash-rent/FlashRentOrderUpdater';
 import type { FlashRentOrderParams } from './types';

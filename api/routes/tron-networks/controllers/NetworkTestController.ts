@@ -3,7 +3,7 @@
  * 包含：单个网络连接测试、批量网络测试、批量健康检查等功能
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import { NetworkLogService } from '../../../services/NetworkLogService';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;

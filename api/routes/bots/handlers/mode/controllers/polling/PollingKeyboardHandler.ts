@@ -2,7 +2,7 @@
  * Polling模式键盘处理器
  * 处理Polling模式特有的键盘同步逻辑
  */
-import { KeyboardSyncService } from '../shared/KeyboardSyncService.js';
+import { KeyboardSyncService } from '../shared/KeyboardSyncService.ts';
 
 export class PollingKeyboardHandler {
   /**

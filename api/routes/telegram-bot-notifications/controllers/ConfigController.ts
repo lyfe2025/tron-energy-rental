@@ -4,12 +4,12 @@
  */
 
 import { type Request, type Response } from 'express';
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     GetNotificationConfigResponse,
     UpdateNotificationConfigRequest,
     UpdateNotificationConfigResponse
-} from '../../../services/telegram-bot/types/notification.types.js';
+} from '../../../services/telegram-bot/types/notification.types.ts';
 
 /**
  * 获取机器人通知配置

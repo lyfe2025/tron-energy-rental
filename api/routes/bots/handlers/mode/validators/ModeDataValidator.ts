@@ -2,7 +2,7 @@
  * 机器人模式数据验证器
  * 验证工作模式切换相关的数据
  */
-import type { BotModeSwitchData } from '../../../types.js';
+import type { BotModeSwitchData } from '../../../types.ts';
 
 export interface ValidationResult {
   isValid: boolean;

@@ -2,7 +2,7 @@
  * TRON网络验证控制器
  * 包含：网络配置验证、字段校验等验证逻辑
  */
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 interface ValidationResult {
   isValid: boolean;

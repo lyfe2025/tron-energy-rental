@@ -4,46 +4,46 @@
  */
 
 // 导入所有模块
-import { ModeDispatcher } from './controllers/ModeDispatcher.js';
-import { ModeSwitchController } from './controllers/ModeSwitchController.js';
-import { PollingController } from './controllers/PollingController.js';
-import { WebhookController } from './controllers/WebhookController.js';
-import { PollingKeyboardHandler } from './controllers/polling/PollingKeyboardHandler.js';
-import { BasicSyncService } from './controllers/shared/BasicSyncService.js';
-import { ConfigValidationService } from './controllers/shared/ConfigValidationService.js';
-import { KeyboardSyncService } from './controllers/shared/KeyboardSyncService.js';
-import { WebhookKeyboardHandler } from './controllers/webhook/WebhookKeyboardHandler.js';
-import { WebhookManagementService } from './controllers/webhook/WebhookManagementService.js';
-import { BotRestartService } from './services/BotRestartService.js';
-import { ModeValidationService } from './services/ModeValidationService.js';
-import { WebhookSetupService } from './services/WebhookSetupService.js';
-import { ModeDataValidator } from './validators/ModeDataValidator.js';
-import { WebhookValidator } from './validators/WebhookValidator.js';
+import { ModeDispatcher } from './controllers/ModeDispatcher.ts';
+import { ModeSwitchController } from './controllers/ModeSwitchController.ts';
+import { PollingController } from './controllers/PollingController.ts';
+import { WebhookController } from './controllers/WebhookController.ts';
+import { PollingKeyboardHandler } from './controllers/polling/PollingKeyboardHandler.ts';
+import { BasicSyncService } from './controllers/shared/BasicSyncService.ts';
+import { ConfigValidationService } from './controllers/shared/ConfigValidationService.ts';
+import { KeyboardSyncService } from './controllers/shared/KeyboardSyncService.ts';
+import { WebhookKeyboardHandler } from './controllers/webhook/WebhookKeyboardHandler.ts';
+import { WebhookManagementService } from './controllers/webhook/WebhookManagementService.ts';
+import { BotRestartService } from './services/BotRestartService.ts';
+import { ModeValidationService } from './services/ModeValidationService.ts';
+import { WebhookSetupService } from './services/WebhookSetupService.ts';
+import { ModeDataValidator } from './validators/ModeDataValidator.ts';
+import { WebhookValidator } from './validators/WebhookValidator.ts';
 
 // 控制器导出
-export { ModeDispatcher } from './controllers/ModeDispatcher.js';
-export { ModeSwitchController } from './controllers/ModeSwitchController.js';
-export { PollingController } from './controllers/PollingController.js';
-export { WebhookController } from './controllers/WebhookController.js';
+export { ModeDispatcher } from './controllers/ModeDispatcher.ts';
+export { ModeSwitchController } from './controllers/ModeSwitchController.ts';
+export { PollingController } from './controllers/PollingController.ts';
+export { WebhookController } from './controllers/WebhookController.ts';
 
 // 共享服务导出
-export { BasicSyncService } from './controllers/shared/BasicSyncService.js';
-export { ConfigValidationService } from './controllers/shared/ConfigValidationService.js';
-export { KeyboardSyncService } from './controllers/shared/KeyboardSyncService.js';
+export { BasicSyncService } from './controllers/shared/BasicSyncService.ts';
+export { ConfigValidationService } from './controllers/shared/ConfigValidationService.ts';
+export { KeyboardSyncService } from './controllers/shared/KeyboardSyncService.ts';
 
 // 专用处理器导出
-export { PollingKeyboardHandler } from './controllers/polling/PollingKeyboardHandler.js';
-export { WebhookKeyboardHandler } from './controllers/webhook/WebhookKeyboardHandler.js';
-export { WebhookManagementService } from './controllers/webhook/WebhookManagementService.js';
+export { PollingKeyboardHandler } from './controllers/polling/PollingKeyboardHandler.ts';
+export { WebhookKeyboardHandler } from './controllers/webhook/WebhookKeyboardHandler.ts';
+export { WebhookManagementService } from './controllers/webhook/WebhookManagementService.ts';
 
 // 服务层导出
-export { BotRestartService } from './services/BotRestartService.js';
-export { ModeValidationService } from './services/ModeValidationService.js';
-export { WebhookSetupService } from './services/WebhookSetupService.js';
+export { BotRestartService } from './services/BotRestartService.ts';
+export { ModeValidationService } from './services/ModeValidationService.ts';
+export { WebhookSetupService } from './services/WebhookSetupService.ts';
 
 // 验证器导出
-export { ModeDataValidator } from './validators/ModeDataValidator.js';
-export { WebhookValidator } from './validators/WebhookValidator.js';
+export { ModeDataValidator } from './validators/ModeDataValidator.ts';
+export { WebhookValidator } from './validators/WebhookValidator.ts';
 
 // 向后兼容接口 - 保持原有的函数签名
 
@@ -55,24 +55,24 @@ export const manualSyncToTelegram = ModeDispatcher.manualSyncToTelegram;
 // 类型定义重导出
 export type {
   ValidationResult
-} from './validators/ModeDataValidator.js';
+} from './validators/ModeDataValidator.ts';
 
 export type {
   WebhookValidationResult
-} from './validators/WebhookValidator.js';
+} from './validators/WebhookValidator.ts';
 
 export type {
   BotValidationResult
-} from './services/ModeValidationService.js';
+} from './services/ModeValidationService.ts';
 
 export type {
   WebhookInfo,
   WebhookSetupResult
-} from './services/WebhookSetupService.js';
+} from './services/WebhookSetupService.ts';
 
 export type {
   RestartResult
-} from './services/BotRestartService.js';
+} from './services/BotRestartService.ts';
 
 /**
  * 模块信息
@@ -171,7 +171,7 @@ export const quickAccess = {
 export const usageExamples = {
   // 基本模式切换
   basicModeSwitch: `
-    import { switchBotMode } from './mode/index.js';
+    import { switchBotMode } from './mode/index.ts';
     
     // 在路由中使用
     router.post('/bots/:id/switch-mode', switchBotMode);
@@ -179,7 +179,7 @@ export const usageExamples = {
   
   // 使用新架构
   newArchitecture: `
-    import { ModeSwitchController, ModeValidationService } from './mode/index.js';
+    import { ModeSwitchController, ModeValidationService } from './mode/index.ts';
     
     // 验证然后切换
     const validation = await ModeValidationService.validateBotExists(botId);
@@ -190,7 +190,7 @@ export const usageExamples = {
   
   // 批量操作
   batchOperation: `
-    import { quickAccess } from './mode/index.js';
+    import { quickAccess } from './mode/index.ts';
     
     // 批量切换模式
     router.post('/bots/batch-switch', quickAccess.batchSwitchMode);

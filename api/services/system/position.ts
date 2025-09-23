@@ -3,7 +3,7 @@
  * 处理岗位相关的业务逻辑
  */
 
-import { query } from '../../config/database.js';
+import { query } from '../../config/database.ts';
 
 export interface Position {
   id: number;

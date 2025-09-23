@@ -2,17 +2,17 @@
  * 监控服务主入口
  * 整合各个监控模块，提供统一的监控服务接口
  */
-import { logger } from '../../utils/logger.js';
-import { CacheMonitor } from './CacheMonitor.js';
-import { DatabaseMonitor } from './DatabaseMonitor.js';
-import { ScheduledTaskMonitor } from './ScheduledTaskMonitor.js';
-import { SystemMonitor } from './SystemMonitor.js';
+import { logger } from '../../utils/logger.ts';
+import { CacheMonitor } from './CacheMonitor.ts';
+import { DatabaseMonitor } from './DatabaseMonitor.ts';
+import { ScheduledTaskMonitor } from './ScheduledTaskMonitor.ts';
+import { SystemMonitor } from './SystemMonitor.ts';
 import type {
     MonitoringOverview,
     OnlineUsersResponse,
     ServiceStatus
-} from './types/monitoring.types.js';
-import { UserSessionMonitor } from './UserSessionMonitor.js';
+} from './types/monitoring.types.ts';
+import { UserSessionMonitor } from './UserSessionMonitor.ts';
 
 export class MonitoringService {
   private systemMonitor: SystemMonitor;

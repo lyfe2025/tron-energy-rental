@@ -6,8 +6,8 @@ import type {
     TextMessageHandler as ITextMessageHandler,
     MessageProcessResult,
     ProcessorDependencies
-} from '../../types.js';
-import { ButtonActionHandler } from './handlers/ButtonActionHandler.js';
+} from '../../types.ts';
+import { ButtonActionHandler } from './handlers/ButtonActionHandler.ts';
 
 export class TextMessageHandler implements ITextMessageHandler {
   private dependencies: ProcessorDependencies;

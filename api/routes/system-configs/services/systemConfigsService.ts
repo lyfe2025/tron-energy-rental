@@ -6,7 +6,7 @@
  * 重构后作为各个专业服务的统一入口
  */
 
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
   BatchOperationResult,
   BatchUpdateRequest,
@@ -18,15 +18,15 @@ import type {
   SystemConfig,
   SystemConfigQuery,
   UpdateSystemConfigRequest
-} from '../types/systemConfigs.types.js';
+} from '../types/systemConfigs.types.ts';
 
 // 导入各个专业服务
-import { ConfigCacheService } from './cache/ConfigCacheService.js';
-import { ConfigBatchService } from './crud/ConfigBatchService.js';
-import { ConfigCRUDService } from './crud/ConfigCRUDService.js';
-import { ConfigHistoryService } from './crud/ConfigHistoryService.js';
-import { SystemConfigsRepository } from './systemConfigsRepository.js';
-import { ConfigValidationService } from './validation/ConfigValidationService.js';
+import { ConfigCacheService } from './cache/ConfigCacheService.ts';
+import { ConfigBatchService } from './crud/ConfigBatchService.ts';
+import { ConfigCRUDService } from './crud/ConfigCRUDService.ts';
+import { ConfigHistoryService } from './crud/ConfigHistoryService.ts';
+import { SystemConfigsRepository } from './systemConfigsRepository.ts';
+import { ConfigValidationService } from './validation/ConfigValidationService.ts';
 
 export class SystemConfigsService {
   // 子服务实例

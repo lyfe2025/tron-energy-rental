@@ -4,9 +4,9 @@
  */
 
 import TelegramBot from 'node-telegram-bot-api';
-import { CallbackDispatcher } from '../core/CallbackDispatcher.js';
-import type { CallbackContext, CallbackHandler } from '../core/CallbackDispatcher.js';
-import { DynamicButtonMapper } from '../core/DynamicButtonMapper.js';
+import { CallbackDispatcher } from '../core/CallbackDispatcher.ts';
+import type { CallbackContext, CallbackHandler } from '../core/CallbackDispatcher.ts';
+import { DynamicButtonMapper } from '../core/DynamicButtonMapper.ts';
 
 // 示例：创建自定义回调处理器
 class CustomOrderHandler implements CallbackHandler {

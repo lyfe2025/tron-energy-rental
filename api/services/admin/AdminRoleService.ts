@@ -3,7 +3,7 @@
  * 从 admin.ts 中安全分离的角色权限管理功能
  */
 
-import pool from '../../config/database.js';
+import pool from '../../config/database.ts';
 
 // 角色信息接口
 export interface Role {

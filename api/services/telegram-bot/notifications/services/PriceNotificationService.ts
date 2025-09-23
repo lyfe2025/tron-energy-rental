@@ -4,7 +4,7 @@
  */
 
 import TelegramBot from 'node-telegram-bot-api';
-import type { BotNotificationConfig, SendResult } from '../../types/notification.types.js';
+import type { BotNotificationConfig, SendResult } from '../../types/notification.types.ts';
 
 export class PriceNotificationService {
   private bot: TelegramBot;

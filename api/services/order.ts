@@ -4,4 +4,4 @@
  */
 // 重新导出分离后的服务
 export { orderService as default, orderService } from './order-management/OrderService';
-export type { CreateOrderRequest, Order, OrderStats } from './order/types.js';
+export type { CreateOrderRequest, Order, OrderStats } from './order/types.ts';

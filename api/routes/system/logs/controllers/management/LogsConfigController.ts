@@ -3,11 +3,11 @@
  * 负责处理日志清理配置相关功能
  */
 import type { Request, Response } from 'express';
-import { query as dbQuery } from '../../../../../database/index.js';
+import { query as dbQuery } from '../../../../../database/index.ts';
 import type {
     CleanupConfig,
     RouteHandler
-} from '../../types/logs.types.js';
+} from '../../types/logs.types.ts';
 
 export class LogsConfigController {
   /**

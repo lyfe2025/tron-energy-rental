@@ -3,12 +3,12 @@
  * 包含：获取机器人运行日志、记录日志等功能
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../config/database.js';
-import { authenticateToken } from '../../middleware/auth.js';
-import { requirePermission } from '../../middleware/rbac.js';
-import type { RouteHandler } from './types.js';
-import { getBotLogFiles, readLogFile } from '../../utils/logger.js';
-import type { LogLevel } from '../../utils/logger.js';
+import { query } from '../../config/database.ts';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { requirePermission } from '../../middleware/rbac.ts';
+import type { RouteHandler } from './types.ts';
+import { getBotLogFiles, readLogFile } from '../../utils/logger.ts';
+import type { LogLevel } from '../../utils/logger.ts';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

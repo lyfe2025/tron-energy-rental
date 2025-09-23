@@ -6,7 +6,7 @@
  * 保持所有原有功能和API接口不变，仅将代码按功能模块分离以提升可维护性
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../middleware/rbac.js';
+import { authenticateToken, requireAdmin } from '../../middleware/rbac.ts';
 
 // 导入各功能模块的控制器
 import {
@@ -15,28 +15,28 @@ import {
     getNetworkDetails,
     getNetworksList,
     updateNetwork
-} from './controllers/NetworkController.js';
+} from './controllers/NetworkController.ts';
 
 import {
     batchHealthCheck,
     testAllNetworks,
     testNetworkConnection
-} from './controllers/NetworkTestController.js';
+} from './controllers/NetworkTestController.ts';
 
 import {
     getBlockInfo,
     getChainParameters,
     getNetworkStats,
     getNodeInfo
-} from './controllers/NetworkStatsController.js';
+} from './controllers/NetworkStatsController.ts';
 
 import {
     batchUpdateNetworkStatus,
     toggleNetworkStatus
-} from './controllers/NetworkHealthController.js';
+} from './controllers/NetworkHealthController.ts';
 
 // 导入网络参数路由
-import networkParametersRouter from './network-parameters.js';
+import networkParametersRouter from './network-parameters.ts';
 
 const router: Router = Router();
 

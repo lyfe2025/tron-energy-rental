@@ -3,9 +3,9 @@
  * 处理菜单相关的回调操作
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { CallbackContext } from '../core/CallbackDispatcher.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import { BaseCallbackHandler } from './BaseCallbackHandler.js';
+import type { CallbackContext } from '../core/CallbackDispatcher.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
+import { BaseCallbackHandler } from './BaseCallbackHandler.ts';
 
 export class MenuCallbackHandler extends BaseCallbackHandler {
   private keyboardBuilder: KeyboardBuilder;

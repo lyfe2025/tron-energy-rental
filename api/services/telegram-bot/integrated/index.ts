@@ -3,11 +3,11 @@
  * 整合所有模块，提供统一的服务接口
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { ConfigAdapter } from './adapters/ConfigAdapter.js';
-import { DatabaseAdapter } from './adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from './components/BotOrchestrator.js';
-import { ModuleManager } from './components/ModuleManager.js';
-import type { BotConfig } from './types/bot.types.js';
+import { ConfigAdapter } from './adapters/ConfigAdapter.ts';
+import { DatabaseAdapter } from './adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from './components/BotOrchestrator.ts';
+import { ModuleManager } from './components/ModuleManager.ts';
+import type { BotConfig } from './types/bot.types.ts';
 
 export class TelegramBotServiceIntegrated {
   private bot: TelegramBot;

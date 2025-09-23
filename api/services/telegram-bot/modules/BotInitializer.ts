@@ -3,9 +3,9 @@
  * 负责机器人的初始化和配置加载
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { createBotLogger } from '../../../utils/logger.js';
-import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.js';
-import type { BotConfig } from '../types/bot.types.js';
+import { createBotLogger } from '../../../utils/logger.ts';
+import { configService, type TelegramBotConfig, type TronNetworkConfig } from '../../config/ConfigService.ts';
+import type { BotConfig } from '../types/bot.types.ts';
 
 export class BotInitializer {
   private botConfig: TelegramBotConfig | null = null;

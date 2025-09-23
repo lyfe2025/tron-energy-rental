@@ -2,13 +2,13 @@
  * 监控中心服务 - 兼容性入口
  * 重新导出拆分后的监控服务，保持向后兼容
  */
-import { MonitoringService } from './monitoring/MonitoringService.js';
+import { MonitoringService } from './monitoring/MonitoringService.ts';
 
 // 创建监控服务实例
 const monitoringService = new MonitoringService();
 
 // 导出监控服务类和实例
-export { MonitoringService } from './monitoring/MonitoringService.js';
+export { MonitoringService } from './monitoring/MonitoringService.ts';
 export default monitoringService;
 
 // 为了向后兼容，也导出实例的方法
@@ -47,4 +47,4 @@ export const getCacheKeyInfo = monitoringService.getCacheKeyInfo.bind(monitoring
 export const setCacheExpiry = monitoringService.setCacheExpiry.bind(monitoringService);
 
 // 导出类型定义
-export type * from './monitoring/types/monitoring.types.js';
+export type * from './monitoring/types/monitoring.types.ts';

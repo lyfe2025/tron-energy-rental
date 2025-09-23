@@ -3,7 +3,7 @@
  * 提供键盘相关的实用工具函数
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { InlineKeyboard } from '../../types/bot.types.js';
+import type { InlineKeyboard } from '../../types/bot.types.ts';
 
 /**
  * 键盘验证工具

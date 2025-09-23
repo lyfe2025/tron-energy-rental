@@ -3,11 +3,11 @@
  * 负责工作模式的切换和Webhook管理
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { CallbackHandler } from '../callbacks/CallbackHandler.js';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import type { BotConfig } from '../types/bot.types.js';
-import { BotUtils } from '../utils/BotUtils.js';
+import { CallbackHandler } from '../callbacks/CallbackHandler.ts';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
+import type { BotConfig } from '../types/bot.types.ts';
+import { BotUtils } from '../utils/BotUtils.ts';
 
 export class BotWorkModeManager {
   private config: BotConfig;

@@ -1,6 +1,6 @@
-import { query } from '../database/index.js';
-import { configService, type TronNetworkConfig } from './config/ConfigService.js';
-import { FlashRentHandler } from './tron/handlers/FlashRentHandler.js';
+import { query } from '../database/index.ts';
+import { configService, type TronNetworkConfig } from './config/ConfigService.ts';
+import { FlashRentHandler } from './tron/handlers/FlashRentHandler.ts';
 import { AccountService } from './tron/services/AccountService';
 import { DelegationService } from './tron/services/DelegationService';
 import { StakingService } from './tron/services/StakingService';

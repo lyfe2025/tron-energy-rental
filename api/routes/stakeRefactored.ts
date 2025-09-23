@@ -4,7 +4,7 @@
  */
 
 // 重新导出拆分后的路由模块
-export { default } from './stake/index.js';
+export { default } from './stake/index.ts';
 
 // 导出类型定义
-export type * from './stake/types/stake.types.js';
+export type * from './stake/types/stake.types.ts';

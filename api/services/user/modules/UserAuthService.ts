@@ -4,9 +4,9 @@
  * 负责用户的Telegram注册等认证相关功能
  */
 
-import pool from '../../../config/database.js';
-import type { User } from '../UserService.js';
-import { UserQueryService } from './UserQueryService.js';
+import pool from '../../../config/database.ts';
+import type { User } from '../UserService.ts';
+import { UserQueryService } from './UserQueryService.ts';
 
 export class UserAuthService {
   /**

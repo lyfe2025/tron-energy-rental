@@ -4,11 +4,11 @@
  */
 
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
-import type { BotNotificationConfig, SendResult } from '../../types/notification.types.js';
-import { recordDeliveryResult } from '../utils/deliveryTracker.js';
-import { formatAmount, formatEnergyAmount, formatTimestamp, formatTransactionHash, getStatusIcon } from '../utils/messageFormatter.js';
-import { renderTemplate } from '../utils/templateRenderer.js';
+import { query } from '../../../../config/database.ts';
+import type { BotNotificationConfig, SendResult } from '../../types/notification.types.ts';
+import { recordDeliveryResult } from '../utils/deliveryTracker.ts';
+import { formatAmount, formatEnergyAmount, formatTimestamp, formatTransactionHash, getStatusIcon } from '../utils/messageFormatter.ts';
+import { renderTemplate } from '../utils/templateRenderer.ts';
 
 export class BusinessNotificationService {
   private bot: TelegramBot;

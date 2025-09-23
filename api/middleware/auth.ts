@@ -3,7 +3,7 @@
  * 验证JWT token并保护API端点
  */
 import { type NextFunction, type Request, type Response } from 'express';
-import { extractTokenFromHeader, verifyToken } from '../utils/jwt.js';
+import { extractTokenFromHeader, verifyToken } from '../utils/jwt.ts';
 
 // JWT载荷接口定义
 interface JWTPayload {
@@ -177,7 +177,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
  * 验证用户是否被强制下线
  */
 async function checkSessionStatus(userId: string): Promise<boolean> {
-  const { query } = await import('../config/database.js');
+  const { query } = await import('../config/database.ts');
   
   try {
     // 查询用户的活跃会话
@@ -200,7 +200,7 @@ async function checkSessionStatus(userId: string): Promise<boolean> {
  * 获取用户完整信息和权限
  */
 async function getUserWithPermissions(userId: string) {
-  const { query } = await import('../config/database.js');
+  const { query } = await import('../config/database.ts');
   
   const sql = `
     SELECT 

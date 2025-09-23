@@ -2,13 +2,13 @@
  * 价格配置处理器
  * 负责处理价格配置相关按钮和消息格式化
  */
-import { query } from '../../../../../../config/database.js';
-import { WebhookURLService } from '../../../../utils/WebhookURLService.js';
+import { query } from '../../../../../../config/database.ts';
+import { WebhookURLService } from '../../../../utils/WebhookURLService.ts';
 import type {
     PriceConfig,
     ProcessorDependencies,
     TemplateVariables
-} from '../types/index.js';
+} from '../types/index.ts';
 
 export class PriceConfigHandler {
   private dependencies: ProcessorDependencies;

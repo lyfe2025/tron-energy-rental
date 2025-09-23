@@ -71,10 +71,10 @@ export interface BotNetworkConfig {
 }
 
 // 导入分离后的子服务模块
-import { BotNetworkConfigService } from './modules/BotNetworkConfigService.js';
-import { ConfigCacheService } from './modules/ConfigCacheService.js';
-import { TelegramBotConfigService } from './modules/TelegramBotConfigService.js';
-import { TronNetworkConfigService } from './modules/TronNetworkConfigService.js';
+import { BotNetworkConfigService } from './modules/BotNetworkConfigService.ts';
+import { ConfigCacheService } from './modules/ConfigCacheService.ts';
+import { TelegramBotConfigService } from './modules/TelegramBotConfigService.ts';
+import { TronNetworkConfigService } from './modules/TronNetworkConfigService.ts';
 
 /**
  * 配置服务类（安全分离版本）

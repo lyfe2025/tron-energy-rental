@@ -3,13 +3,13 @@
  * 整合拆分后的控制器模块
  */
 import { Router } from 'express';
-import { authenticateToken, requirePermission } from '../../../middleware/rbac.js';
-import { handleValidationErrors } from '../../../middleware/validation.js';
+import { authenticateToken, requirePermission } from '../../../middleware/rbac.ts';
+import { handleValidationErrors } from '../../../middleware/validation.ts';
 
-import { AdminRoleController } from './controllers/AdminRoleController.js';
-import { BatchOperationController } from './controllers/BatchOperationController.js';
-import { PermissionController } from './controllers/PermissionController.js';
-import { adminRoleValidators } from './validators/adminRoleValidators.js';
+import { AdminRoleController } from './controllers/AdminRoleController.ts';
+import { BatchOperationController } from './controllers/BatchOperationController.ts';
+import { PermissionController } from './controllers/PermissionController.ts';
+import { adminRoleValidators } from './validators/adminRoleValidators.ts';
 
 const router: Router = Router();
 

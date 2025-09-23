@@ -3,9 +3,9 @@
  * 负责定时任务的管理、执行和日志记录
  */
 import * as cron from 'node-cron';
-import { query } from '../../config/database.js';
-import { logger } from '../../utils/logger.js';
-import type { ScheduledTask } from './types/monitoring.types.js';
+import { query } from '../../config/database.ts';
+import { logger } from '../../utils/logger.ts';
+import type { ScheduledTask } from './types/monitoring.types.ts';
 
 export class ScheduledTaskMonitor {
   /**

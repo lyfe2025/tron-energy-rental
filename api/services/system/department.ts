@@ -3,7 +3,7 @@
  * 处理部门相关的业务逻辑
  */
 
-import { query } from '../../config/database.js';
+import { query } from '../../config/database.ts';
 
 export interface Department {
   id: number;

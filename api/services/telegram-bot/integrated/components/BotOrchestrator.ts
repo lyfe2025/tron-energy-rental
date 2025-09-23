@@ -3,17 +3,17 @@
  * 负责协调各个模块之间的交互和工作流程
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { CallbackHandler } from '../../callbacks/CallbackHandler.js';
-import { CommandHandler } from '../../commands/CommandHandler.js';
-import { PriceConfigMessageHandler } from '../../handlers/PriceConfigMessageHandler.js';
-import { KeyboardBuilder } from '../../keyboards/KeyboardBuilder.js';
-import { BotAPIHandler } from '../../modules/BotAPIHandler.js';
-import { BotConfigManager } from '../../modules/BotConfigManager.js';
-import { BotInitializer } from '../../modules/BotInitializer.js';
-import { BotLogger } from '../../modules/BotLogger.js';
-import { BotWorkModeManager } from '../../modules/BotWorkModeManager.js';
-import { BotUtils } from '../../utils/BotUtils.js';
-import type { BotConfig } from '../types/bot.types.js';
+import { CallbackHandler } from '../../callbacks/CallbackHandler.ts';
+import { CommandHandler } from '../../commands/CommandHandler.ts';
+import { PriceConfigMessageHandler } from '../../handlers/PriceConfigMessageHandler.ts';
+import { KeyboardBuilder } from '../../keyboards/KeyboardBuilder.ts';
+import { BotAPIHandler } from '../../modules/BotAPIHandler.ts';
+import { BotConfigManager } from '../../modules/BotConfigManager.ts';
+import { BotInitializer } from '../../modules/BotInitializer.ts';
+import { BotLogger } from '../../modules/BotLogger.ts';
+import { BotWorkModeManager } from '../../modules/BotWorkModeManager.ts';
+import { BotUtils } from '../../utils/BotUtils.ts';
+import type { BotConfig } from '../types/bot.types.ts';
 
 export class BotOrchestrator {
   private bot: TelegramBot;

@@ -2,7 +2,7 @@
  * 配置验证服务
  * 提供键盘类型和价格配置的验证方法
  */
-import { KeyboardSyncService } from './KeyboardSyncService.js';
+import { KeyboardSyncService } from './KeyboardSyncService.ts';
 
 export class ConfigValidationService {
   /**
@@ -58,7 +58,7 @@ export class ConfigValidationService {
     try {
       logs.push(`🎯 ${modePrefix} 开始验证价格配置`);
       
-      const { PriceConfigService } = await import('../../../../../../services/PriceConfigService.js');
+      const { PriceConfigService } = await import('../../../../../../services/PriceConfigService.ts');
       const priceConfigService = new PriceConfigService();
       
       // 获取所有价格配置

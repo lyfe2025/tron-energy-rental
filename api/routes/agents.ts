@@ -5,9 +5,9 @@
 
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticateToken } from '../middleware/auth.js';
-import { handleValidationErrors } from '../middleware/validation.js';
-import { AgentService } from '../services/agent.js';
+import { authenticateToken } from '../middleware/auth.ts';
+import { handleValidationErrors } from '../middleware/validation.ts';
+import { AgentService } from '../services/agent.ts';
 
 const router: Router = Router();
 

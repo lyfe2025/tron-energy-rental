@@ -3,7 +3,7 @@
  * 负责管理从数据库读取的键盘配置
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class DatabaseKeyboardManager {
   private bot: TelegramBot;

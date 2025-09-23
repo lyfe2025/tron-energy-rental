@@ -3,7 +3,7 @@
  * 负责机器人配置变更历史记录的查询
  */
 import type { Request, Response } from 'express';
-import { ExtendedConfigService } from '../services/ExtendedConfigService.js';
+import { ExtendedConfigService } from '../services/ExtendedConfigService.ts';
 
 export class ConfigHistoryController {
   /**

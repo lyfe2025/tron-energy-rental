@@ -2,7 +2,7 @@
  * Telegram机器人日志记录模块
  * 负责处理机器人活动日志记录
  */
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type { LogLevel } from '../../../utils/logger';
 import { isBusinessEvent } from '../../../utils/logger';
 

@@ -3,19 +3,19 @@
  * 整合所有分离的用户服务模块，保持原有API接口不变
  */
 
-import pool from '../config/database.js';
-import { UserCRUDService } from './user/UserCRUDService.js';
-import { UserService as BaseUserService } from './user/UserService.js';
-import { UserStatsService } from './user/UserStatsService.js';
+import pool from '../config/database.ts';
+import { UserCRUDService } from './user/UserCRUDService.ts';
+import { UserService as BaseUserService } from './user/UserService.ts';
+import { UserStatsService } from './user/UserStatsService.ts';
 
 // 导出所有类型定义
 export type {
   User, UserCreateData, UserSearchParams, UserUpdateData
-} from './user/UserService.js';
+} from './user/UserService.ts';
 
 export type {
   UserStats
-} from './user/UserStatsService.js';
+} from './user/UserStatsService.ts';
 
 /**
  * 用户服务类 - 主入口

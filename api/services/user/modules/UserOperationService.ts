@@ -5,9 +5,9 @@
  */
 
 import bcrypt from 'bcrypt';
-import pool from '../../../config/database.js';
-import type { User, UserCreateData, UserUpdateData } from '../UserService.js';
-import { UserQueryService } from './UserQueryService.js';
+import pool from '../../../config/database.ts';
+import type { User, UserCreateData, UserUpdateData } from '../UserService.ts';
+import { UserQueryService } from './UserQueryService.ts';
 
 export class UserOperationService {
   /**

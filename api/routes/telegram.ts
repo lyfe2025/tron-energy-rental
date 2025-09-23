@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { multiBotManager, telegramBotService } from '../services/telegram-bot.js';
+import { multiBotManager, telegramBotService } from '../services/telegram-bot.ts';
 
 const router: Router = Router();
 

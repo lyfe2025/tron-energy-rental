@@ -2,8 +2,8 @@
  * 回调查询类型定义
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { orderService } from '../../../order.js';
-import { UserService } from '../../../user.js';
+import { orderService } from '../../../order.ts';
+import { UserService } from '../../../user.ts';
 
 export interface CallbackHandlerDependencies {
   bot: TelegramBot;

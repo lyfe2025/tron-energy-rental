@@ -3,12 +3,12 @@
  * 负责机器人基础信息更新和健康检查
  */
 import type { Request, Response } from 'express';
-import { configService } from '../../../../../services/config/ConfigService.js';
-import { multiBotManager } from '../../../../../services/telegram-bot.js';
-import type { UpdateBotData } from '../../../types.js';
-import { ConfigUpdateService } from '../services/ConfigUpdateService.js';
-import { UpdateUtils } from '../utils/updateUtils.js';
-import { UpdateValidators } from '../validators/updateValidators.js';
+import { configService } from '../../../../../services/config/ConfigService.ts';
+import { multiBotManager } from '../../../../../services/telegram-bot.ts';
+import type { UpdateBotData } from '../../../types.ts';
+import { ConfigUpdateService } from '../services/ConfigUpdateService.ts';
+import { UpdateUtils } from '../utils/updateUtils.ts';
+import { UpdateValidators } from '../validators/updateValidators.ts';
 
 export class BotUpdateController {
   /**
@@ -172,7 +172,7 @@ export class BotUpdateController {
 
         // 11. 通知配置变更
         try {
-          const { configService } = await import('../../../../../services/config/ConfigService.js');
+          const { configService } = await import('../../../../../services/config/ConfigService.ts');
           configService.emit('cache:refreshed', {
             type: 'telegram_bots',
             botId: id,

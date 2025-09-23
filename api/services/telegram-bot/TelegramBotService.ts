@@ -5,21 +5,21 @@
 import TelegramBot from 'node-telegram-bot-api';
 
 // 核心模块
-import { BotConfigManager } from './core/BotConfigManager.js';
-import { BotInitializer, type InitializationResult } from './core/BotInitializer.js';
-import { BotLifecycleManager } from './core/BotLifecycleManager.js';
+import { BotConfigManager } from './core/BotConfigManager.ts';
+import { BotInitializer, type InitializationResult } from './core/BotInitializer.ts';
+import { BotLifecycleManager } from './core/BotLifecycleManager.ts';
 
 // 功能模块
-import { MessageSender } from './communication/MessageSender.js';
-import { BotHealthChecker } from './monitoring/BotHealthChecker.js';
-import { TelegramSyncService } from './sync/TelegramSyncService.js';
-import { WebhookManager } from './webhook/WebhookManager.js';
+import { MessageSender } from './communication/MessageSender.ts';
+import { BotHealthChecker } from './monitoring/BotHealthChecker.ts';
+import { TelegramSyncService } from './sync/TelegramSyncService.ts';
+import { WebhookManager } from './webhook/WebhookManager.ts';
 
 // 集成组件
-import { DatabaseAdapter } from './integrated/adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from './integrated/components/BotOrchestrator.js';
-import { ModuleManager } from './integrated/components/ModuleManager.js';
-import type { BotConfig } from './integrated/types/bot.types.js';
+import { DatabaseAdapter } from './integrated/adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from './integrated/components/BotOrchestrator.ts';
+import { ModuleManager } from './integrated/components/ModuleManager.ts';
+import type { BotConfig } from './integrated/types/bot.types.ts';
 
 export class TelegramBotService {
   // 基础状态

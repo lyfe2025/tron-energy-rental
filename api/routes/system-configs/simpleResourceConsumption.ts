@@ -6,9 +6,9 @@
 
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
-import { SystemConfigsService } from './services/systemConfigsService.js';
-import type { ApiResponse } from './types/systemConfigs.types.js';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { SystemConfigsService } from './services/systemConfigsService.ts';
+import type { ApiResponse } from './types/systemConfigs.types.ts';
 
 const router: Router = Router();
 const configService = new SystemConfigsService();

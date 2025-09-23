@@ -4,10 +4,10 @@
  */
 import bcrypt from 'bcryptjs';
 import { Router, type Request, type Response } from 'express';
-import { query } from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
-import { AdminServiceMain as AdminService } from '../services/admin.js';
-import { generateToken, refreshToken } from '../utils/jwt.js';
+import { query } from '../config/database.ts';
+import { authenticateToken } from '../middleware/auth.ts';
+import { AdminServiceMain as AdminService } from '../services/admin.ts';
+import { generateToken, refreshToken } from '../utils/jwt.ts';
 
 const router: Router = Router();
 

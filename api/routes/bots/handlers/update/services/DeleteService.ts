@@ -2,7 +2,7 @@
  * 删除服务
  * 负责机器人的删除操作和相关清理工作
  */
-import { query } from '../../../../../config/database.js';
+import { query } from '../../../../../config/database.ts';
 
 export class DeleteService {
   /**

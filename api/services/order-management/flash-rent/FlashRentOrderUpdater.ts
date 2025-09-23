@@ -3,7 +3,7 @@
  * 负责更新现有的闪租订单
  */
 import { orderLogger } from '../../../utils/logger';
-import type { Order } from '../../order/types.js';
+import type { Order } from '../../order/types.ts';
 import { OrderCalculationService } from '../OrderCalculationService';
 import { OrderConfigService } from '../OrderConfigService';
 import type { FlashRentOrderParams } from '../types';

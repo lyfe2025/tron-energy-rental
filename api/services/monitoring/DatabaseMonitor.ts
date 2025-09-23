@@ -2,8 +2,8 @@
  * 数据库监控模块
  * 负责数据库性能监控和统计分析
  */
-import { query } from '../../config/database.js';
-import { logger } from '../../utils/logger.js';
+import { query } from '../../config/database.ts';
+import { logger } from '../../utils/logger.ts';
 
 export class DatabaseMonitor {
   /**

@@ -7,4 +7,4 @@
  */
 
 // 直接导入并重新导出分离后的模块化路由
-export { default } from './network-config/index.js';
+export { default } from './network-config/index.ts';

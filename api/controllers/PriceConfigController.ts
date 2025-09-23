@@ -222,7 +222,7 @@ export class PriceConfigController {
   private async handleEnergyFlashEnable(logPrefix: string) {
     try {
       // 导入TransactionMonitorService - 延迟导入避免循环依赖
-      const { getTransactionMonitorInstance } = await import('../utils/transaction-monitor-singleton.js')
+      const { getTransactionMonitorInstance } = await import('../utils/transaction-monitor-singleton.ts')
       const transactionMonitor = getTransactionMonitorInstance()
       
       logger.info(`🔄 ${logPrefix}能量闪租已启用，重新加载交易监听地址...`)

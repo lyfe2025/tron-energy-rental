@@ -3,10 +3,10 @@
  * 包含：更新机器人欢迎语和菜单配置
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../config/database.js';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
-import { validateConfig, auditConfigChanges, checkConfigPermission } from '../../middleware/configManagement.js';
-import type { RouteHandler, BotConfigData } from './types.js';
+import { query } from '../../config/database.ts';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
+import { validateConfig, auditConfigChanges, checkConfigPermission } from '../../middleware/configManagement.ts';
+import type { RouteHandler, BotConfigData } from './types.ts';
 
 const router: Router = Router();
 

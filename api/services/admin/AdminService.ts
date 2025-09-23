@@ -58,9 +58,9 @@ export interface AdminUpdateData {
 }
 
 // 导入分离后的服务
-import { AdminAuthService } from './AdminAuthService.js';
-import { AdminCRUDService } from './AdminCRUDService.js';
-import { AdminStatsService } from './AdminStatsService.js';
+import { AdminAuthService } from './AdminAuthService.ts';
+import { AdminCRUDService } from './AdminCRUDService.ts';
+import { AdminStatsService } from './AdminStatsService.ts';
 
 /**
  * 管理员服务门面类
@@ -248,7 +248,7 @@ export class AdminService {
       ORDER BY role
     `;
     
-    const pool = (await import('../../config/database.js')).default;
+    const pool = (await import('../../config/database.ts')).default;
     const result = await pool.query(query);
     return result.rows;
   }
@@ -264,7 +264,7 @@ export class AdminService {
       ORDER BY permission
     `;
     
-    const pool = (await import('../../config/database.js')).default;
+    const pool = (await import('../../config/database.ts')).default;
     const result = await pool.query(query);
     return result.rows;
   }

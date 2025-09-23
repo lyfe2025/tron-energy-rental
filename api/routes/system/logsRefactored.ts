@@ -4,7 +4,7 @@
  */
 
 // 重新导出拆分后的路由模块
-export { default } from './logs/index.js';
+export { default } from './logs/index.ts';
 
 // 导出类型定义
-export type * from './logs/types/logs.types.js';
+export type * from './logs/types/logs.types.ts';

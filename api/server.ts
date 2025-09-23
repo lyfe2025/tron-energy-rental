@@ -1,15 +1,15 @@
 /**
  * local server entry file, for local development
  */
-import app from './app.js';
-import { connectRedis } from './config/redis.js';
+import app from './app.ts';
+import { connectRedis } from './config/redis.ts';
 import { DatabaseService } from './database/DatabaseService';
 import { RedisService } from './services/cache/RedisService';
 import { paymentService } from './services/payment';
-import { schedulerService } from './services/scheduler.js';
-import { multiBotManager } from './services/telegram-bot.js';
-import { TransactionMonitorService } from './services/transaction-monitor.js';
-import { LogRotationManager, appLogger } from './utils/logger.js';
+import { schedulerService } from './services/scheduler.ts';
+import { multiBotManager } from './services/telegram-bot.ts';
+import { TransactionMonitorService } from './services/transaction-monitor.ts';
+import { LogRotationManager, appLogger } from './utils/logger.ts';
 
 /**
  * start server with port
@@ -27,7 +27,7 @@ const transactionMonitor = new TransactionMonitorService(
 );
 
 // 设置全局单例实例，供其他模块使用
-import { setTransactionMonitorInstance } from './utils/transaction-monitor-singleton.js';
+import { setTransactionMonitorInstance } from './utils/transaction-monitor-singleton.ts';
 setTransactionMonitorInstance(transactionMonitor);
 
 const server = app.listen(PORT, HOST_ADDRESS, async () => {

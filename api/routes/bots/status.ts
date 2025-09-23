@@ -3,10 +3,10 @@
  * 包含：获取可用机器人列表、更新机器人状态
  */
 import { Router, type Request, type Response } from 'express';
-import { query } from '../../config/database.js';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
-import { isValidBotStatus } from './middleware.js';
-import type { RouteHandler, BotStatusData } from './types.js';
+import { query } from '../../config/database.ts';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
+import { isValidBotStatus } from './middleware.ts';
+import type { RouteHandler, BotStatusData } from './types.ts';
 
 const router: Router = Router();
 

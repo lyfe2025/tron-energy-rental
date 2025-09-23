@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { body, param, query } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation.js';
-import { UserService } from '../services/user.js';
+import { handleValidationErrors } from '../middleware/validation.ts';
+import { UserService } from '../services/user.ts';
 
 const router: Router = Router();
 

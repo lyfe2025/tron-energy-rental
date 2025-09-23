@@ -85,7 +85,7 @@ export class FreezeOperation {
    */
   async getStakeOverview(address: string): Promise<ServiceResponse<StakeOverview>> {
     try {
-      const { logger } = await import('../../../../../utils/logger.js');
+      const { logger } = await import('../../../../../utils/logger.ts');
       logger.info(`[FreezeOperation] 开始获取质押概览 - 地址: ${address}`);
       logger.info(`[FreezeOperation] TronWeb实例: ${!!this.tronWeb}`);
       logger.info(`[FreezeOperation] TronWeb网络: ${this.tronWeb?.fullNode?.host}`);

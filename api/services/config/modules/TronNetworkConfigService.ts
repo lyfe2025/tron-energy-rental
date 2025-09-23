@@ -4,9 +4,9 @@
  * 负责TRON网络配置的查询和管理
  */
 
-import { query } from '../../../database/index.js';
-import type { TronNetworkConfig } from '../ConfigService.js';
-import { ConfigCacheService } from './ConfigCacheService.js';
+import { query } from '../../../database/index.ts';
+import type { TronNetworkConfig } from '../ConfigService.ts';
+import { ConfigCacheService } from './ConfigCacheService.ts';
 
 export class TronNetworkConfigService {
   private cacheService: ConfigCacheService;

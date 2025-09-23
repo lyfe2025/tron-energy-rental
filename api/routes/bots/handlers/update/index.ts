@@ -3,10 +3,10 @@
  * 统一管理机器人更新、删除、同步和历史查询等功能
  * 重构后的模块化架构，保持原有API接口不变
  */
-import { BotUpdateController } from './controllers/BotUpdateController.js';
-import { DeleteController } from './controllers/DeleteController.js';
-import { HistoryController } from './controllers/HistoryController.js';
-import { SyncController } from './controllers/SyncController.js';
+import { BotUpdateController } from './controllers/BotUpdateController.ts';
+import { DeleteController } from './controllers/DeleteController.ts';
+import { HistoryController } from './controllers/HistoryController.ts';
+import { SyncController } from './controllers/SyncController.ts';
 
 /**
  * 主要的机器人更新处理器类

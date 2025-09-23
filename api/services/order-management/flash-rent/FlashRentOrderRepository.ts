@@ -2,9 +2,9 @@
  * 闪租订单数据仓库
  * 负责所有闪租订单相关的数据库操作
  */
-import { query } from '../../../database/index.js';
+import { query } from '../../../database/index.ts';
 import { orderLogger } from '../../../utils/logger';
-import type { Order } from '../../order/types.js';
+import type { Order } from '../../order/types.ts';
 
 export class FlashRentOrderRepository {
   /**

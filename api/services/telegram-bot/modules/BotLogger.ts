@@ -2,9 +2,9 @@
  * 机器人日志处理模块
  * 负责日志记录和业务事件跟踪
  */
-import { query } from '../../../config/database.js';
-import type { LogLevel } from '../../../utils/logger.js';
-import { isBusinessEvent } from '../../../utils/logger.js';
+import { query } from '../../../config/database.ts';
+import type { LogLevel } from '../../../utils/logger.ts';
+import { isBusinessEvent } from '../../../utils/logger.ts';
 
 export class BotLogger {
   private botId: string | null;

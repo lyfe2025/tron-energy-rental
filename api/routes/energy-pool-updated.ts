@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../config/database.js';
+import { query } from '../config/database.ts';
 import { getTronGridHeaders } from '../utils/database-api-key';
 
 const router = Router();

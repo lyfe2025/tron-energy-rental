@@ -3,14 +3,14 @@
  * 处理订单相关的回调查询
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { energyDelegationService } from '../../../energy-delegation.js';
-import { orderService, type CreateOrderRequest } from '../../../order.js';
-import { paymentService } from '../../../payment.js';
-import { UserService } from '../../../user.js';
-import type { EnergyPackage } from '../../types/bot.types.js';
-import type { CallbackHandlerDependencies } from '../types/callback.types.js';
-import { CallbackValidator } from '../utils/CallbackValidator.js';
-import { ResponseFormatter } from '../utils/ResponseFormatter.js';
+import { energyDelegationService } from '../../../energy-delegation.ts';
+import { orderService, type CreateOrderRequest } from '../../../order.ts';
+import { paymentService } from '../../../payment.ts';
+import { UserService } from '../../../user.ts';
+import type { EnergyPackage } from '../../types/bot.types.ts';
+import type { CallbackHandlerDependencies } from '../types/callback.types.ts';
+import { CallbackValidator } from '../utils/CallbackValidator.ts';
+import { ResponseFormatter } from '../utils/ResponseFormatter.ts';
 
 export class OrderCallbackHandler {
   private bot: TelegramBot;

@@ -5,8 +5,8 @@
  */
 
 import bcrypt from 'bcrypt';
-import pool from '../../config/database.js';
-import type { Admin, AdminCreateData, AdminSearchParams, AdminUpdateData } from './AdminService.js';
+import pool from '../../config/database.ts';
+import type { Admin, AdminCreateData, AdminSearchParams, AdminUpdateData } from './AdminService.ts';
 
 export class AdminCRUDService {
   /**
@@ -192,7 +192,7 @@ export class AdminCRUDService {
     
     // 处理角色分配
     if (role_id) {
-      const { AdminRoleService } = await import('./AdminRoleService.js');
+      const { AdminRoleService } = await import('./AdminRoleService.ts');
       // 为新创建的管理员分配角色
       await AdminRoleService.assignRole(newAdmin.id, role_id.toString());
     }
@@ -296,7 +296,7 @@ export class AdminCRUDService {
       
       try {
         // 导入AdminRoleService
-        const { AdminRoleService } = await import('./AdminRoleService.js');
+        const { AdminRoleService } = await import('./AdminRoleService.ts');
         await AdminRoleService.assignRole(id, role_id);
         console.log('✅ [AdminCRUDService] 角色分配成功')
       } catch (roleError) {

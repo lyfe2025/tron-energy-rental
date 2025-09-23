@@ -3,7 +3,7 @@
  * 处理管理员角色相关的CRUD操作
  */
 import { type Request, type Response } from 'express';
-import { query } from '../../../../config/database.js';
+import { query } from '../../../../config/database.ts';
 
 export class AdminRoleController {
   /**

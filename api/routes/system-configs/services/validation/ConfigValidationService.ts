@@ -5,7 +5,7 @@
  * 封装SystemConfigsValidation的验证功能
  */
 
-import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.js';
+import { SystemConfigsValidation } from '../../controllers/systemConfigsValidation.ts';
 
 export class ConfigValidationService {
   /**

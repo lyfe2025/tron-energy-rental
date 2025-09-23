@@ -3,7 +3,7 @@
  * 负责单个交易的完整处理流程
  */
 import { Logger } from 'winston';
-import { query } from '../../database/index.js';
+import { query } from '../../database/index.ts';
 import { orderLogger } from '../../utils/logger';
 import { FlashRentOrderService } from '../order-management/FlashRentOrderService';
 import { PaymentService } from '../payment';

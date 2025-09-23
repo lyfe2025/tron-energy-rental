@@ -3,8 +3,8 @@
  * 负责机器人扩展配置的获取和更新操作
  */
 import type { Request, Response } from 'express';
-import type { ExtendedBotConfigData } from '../../types.js';
-import { ExtendedConfigService } from '../services/ExtendedConfigService.js';
+import type { ExtendedBotConfigData } from '../../types.ts';
+import { ExtendedConfigService } from '../services/ExtendedConfigService.ts';
 
 export class ExtendedConfigController {
   /**

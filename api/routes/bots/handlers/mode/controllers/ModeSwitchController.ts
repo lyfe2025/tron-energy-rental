@@ -3,10 +3,10 @@
  * 处理机器人工作模式的切换逻辑
  */
 import { type Request, type Response } from 'express';
-import type { BotModeSwitchData, RouteHandler } from '../../../types.js';
-import { BotRestartService } from '../services/BotRestartService.js';
-import { ModeValidationService } from '../services/ModeValidationService.js';
-import { WebhookSetupService } from '../services/WebhookSetupService.js';
+import type { BotModeSwitchData, RouteHandler } from '../../../types.ts';
+import { BotRestartService } from '../services/BotRestartService.ts';
+import { ModeValidationService } from '../services/ModeValidationService.ts';
+import { WebhookSetupService } from '../services/WebhookSetupService.ts';
 
 /**
  * 模式切换控制器类

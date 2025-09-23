@@ -7,38 +7,38 @@
 
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { query } from '../../database/index.js';
-import { authenticateToken } from '../../middleware/auth.js';
-import { auditConfigChanges, checkConfigPermission, validateConfig } from '../../middleware/configManagement.js';
+import { query } from '../../database/index.ts';
+import { authenticateToken } from '../../middleware/auth.ts';
+import { auditConfigChanges, checkConfigPermission, validateConfig } from '../../middleware/configManagement.ts';
 import {
-  batchUpdateConfigs,
-  createConfig,
-  deleteConfig,
-  getAllSettingsConfigs,
-  getConfigByKey,
-  getConfigCategories,
-  getConfigHistory,
-  getConfigs,
-  getConfigStats,
-  resetConfig,
-  updateConfig,
-  validateConfigValue
-} from './controllers/systemConfigsController.js';
+    batchUpdateConfigs,
+    createConfig,
+    deleteConfig,
+    getAllSettingsConfigs,
+    getConfigByKey,
+    getConfigCategories,
+    getConfigHistory,
+    getConfigs,
+    getConfigStats,
+    resetConfig,
+    updateConfig,
+    validateConfigValue
+} from './controllers/systemConfigsController.ts';
 import {
-  logConfigOperation,
-  rateLimit,
-  requireAdmin,
-  setCacheHeaders,
-  validateBatchUpdateRequest,
-  validateConfigAccess,
-  validateConfigEditable,
-  validateConfigExists,
-  validateConfigKeyQuery,
-  validateCreateRequest,
-  validatePaginationParams,
-  validateSearchParams,
-  validateUpdateRequest
-} from './middleware/systemConfigsMiddleware.js';
+    logConfigOperation,
+    rateLimit,
+    requireAdmin,
+    setCacheHeaders,
+    validateBatchUpdateRequest,
+    validateConfigAccess,
+    validateConfigEditable,
+    validateConfigExists,
+    validateConfigKeyQuery,
+    validateCreateRequest,
+    validatePaginationParams,
+    validateSearchParams,
+    validateUpdateRequest
+} from './middleware/systemConfigsMiddleware.ts';
 
 const router: Router = Router();
 
@@ -49,7 +49,7 @@ const router: Router = Router();
 
 
 // 简化的资源消耗配置路由
-import simpleResourceConsumptionRoutes from './simpleResourceConsumption.js';
+import simpleResourceConsumptionRoutes from './simpleResourceConsumption.ts';
 router.use('/configs', simpleResourceConsumptionRoutes);
 
 // 获取系统配置列表

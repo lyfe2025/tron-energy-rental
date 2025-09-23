@@ -3,7 +3,7 @@
  * 负责处理缓存状态查询相关的请求
  */
 import type { Request, Response } from 'express';
-import configCacheService from '../../../services/config-cache.js';
+import configCacheService from '../../../services/config-cache.ts';
 
 type RouteHandler = (req: Request, res: Response) => Promise<Response | void>;
 

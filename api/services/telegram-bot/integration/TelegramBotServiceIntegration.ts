@@ -4,9 +4,9 @@
  * 确保每个机器人使用自己的 webhook URL
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import { TelegramBotProcessor } from '../modules/TelegramBotProcessor.js';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
+import { TelegramBotProcessor } from '../modules/TelegramBotProcessor.ts';
 
 /**
  * 扩展现有的 TelegramBotService 以支持新的重构处理器

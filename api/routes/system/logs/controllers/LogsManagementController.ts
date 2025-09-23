@@ -9,4 +9,4 @@
  */
 
 // 直接导入并重新导出分离后的模块化控制器
-export { LogsManagementController } from './management/index.js';
+export { LogsManagementController } from './management/index.ts';

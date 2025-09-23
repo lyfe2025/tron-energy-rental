@@ -1,7 +1,7 @@
 /**
  * 统计分析业务逻辑服务
  */
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     BotStatistics,
     BotStatusStats,
@@ -11,7 +11,7 @@ import type {
     RevenueStatistics,
     StatisticsQuery,
     UserStatistics
-} from '../types/statistics.types.js';
+} from '../types/statistics.types.ts';
 
 export class StatisticsService {
   /**

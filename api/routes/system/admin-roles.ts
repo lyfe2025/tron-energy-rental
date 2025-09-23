@@ -3,6 +3,6 @@
  * 重新导出拆分后的路由模块
  */
 
-import adminRolesRouter from './admin-roles/index.js';
+import adminRolesRouter from './admin-roles/index.ts';
 
 export default adminRolesRouter;

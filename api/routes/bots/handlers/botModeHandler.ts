@@ -15,5 +15,5 @@
 // 从新的模块化架构中导入向后兼容的函数
 export {
     applyWebhookSettings, getBotWebhookStatus, manualSyncToTelegram, switchBotMode
-} from './mode/index.js';
+} from './mode/index.ts';
 

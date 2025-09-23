@@ -5,7 +5,7 @@
  * 封装SQL查询逻辑，提供统一的数据访问接口
  */
 
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     BatchConfigItem,
     ConfigCategoryStats,
@@ -16,7 +16,7 @@ import type {
     SystemConfig,
     SystemConfigQuery,
     UpdateSystemConfigRequest
-} from '../types/systemConfigs.types.js';
+} from '../types/systemConfigs.types.ts';
 
 export class SystemConfigsRepository {
   /**

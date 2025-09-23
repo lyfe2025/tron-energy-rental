@@ -3,8 +3,8 @@
  * 负责 Webhook 的设置、获取、删除和处理
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.js';
-import { BotOrchestrator } from '../integrated/components/BotOrchestrator.js';
+import { DatabaseAdapter } from '../integrated/adapters/DatabaseAdapter.ts';
+import { BotOrchestrator } from '../integrated/components/BotOrchestrator.ts';
 
 export interface WebhookInfo {
   url: string;

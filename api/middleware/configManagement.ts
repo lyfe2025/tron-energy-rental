@@ -7,7 +7,7 @@
 
 import crypto from 'crypto';
 import { type NextFunction, type Request, type Response } from 'express';
-import { query } from '../config/database.js';
+import { query } from '../config/database.ts';
 
 // 配置类型定义
 interface ConfigValidationRule {

@@ -2,12 +2,12 @@
  * 代理操作控制器
  */
 import type { Request, Response } from 'express';
-import { tronService } from '../../../services/tron.js';
-import { networkParametersService } from '../../../services/tron/services/NetworkParametersService.js';
+import { tronService } from '../../../services/tron.ts';
+import { networkParametersService } from '../../../services/tron/services/NetworkParametersService.ts';
 import type {
     DelegateOperationRequest,
     RouteHandler
-} from '../types/stake.types.js';
+} from '../types/stake.types.ts';
 
 export class DelegateController {
   /**

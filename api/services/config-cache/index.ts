@@ -4,19 +4,19 @@
  */
 
 // 导出新的分离版本
-export { ConfigCacheService } from './ConfigCacheService.js';
-export { BotConfigCache } from './BotConfigCache.js';
-export { NetworkConfigCache } from './NetworkConfigCache.js';
-export { PoolConfigCache } from './PoolConfigCache.js';
-export { SystemConfigCache } from './SystemConfigCache.js';
-export { NotificationService } from './NotificationService.js';
-export { CacheManager } from './CacheManager.js';
+export { ConfigCacheService } from './ConfigCacheService.ts';
+export { BotConfigCache } from './BotConfigCache.ts';
+export { NetworkConfigCache } from './NetworkConfigCache.ts';
+export { PoolConfigCache } from './PoolConfigCache.ts';
+export { SystemConfigCache } from './SystemConfigCache.ts';
+export { NotificationService } from './NotificationService.ts';
+export { CacheManager } from './CacheManager.ts';
 
 // 导出类型和常量
-export * from './types.js';
+export * from './types.ts';
 
 // 创建单例实例（向后兼容）
-import { ConfigCacheService } from './ConfigCacheService.js';
+import { ConfigCacheService } from './ConfigCacheService.ts';
 const configCacheService = new ConfigCacheService();
 
 export default configCacheService;

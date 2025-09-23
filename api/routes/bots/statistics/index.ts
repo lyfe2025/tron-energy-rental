@@ -2,13 +2,13 @@
  * 机器人统计路由
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../../../middleware/auth.ts';
 import {
     getAllBotStatistics,
     getBotOrders,
     getBotStatistics,
     getBotUsers
-} from './BotStatisticsController.js';
+} from './BotStatisticsController.ts';
 
 const router = Router();
 

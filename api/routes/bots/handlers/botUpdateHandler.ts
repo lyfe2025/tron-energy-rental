@@ -2,8 +2,8 @@
  * 机器人更新处理器
  * 重构后的入口文件，使用模块化结构
  */
-import type { RouteHandler } from '../types.js';
-import { BotUpdateHandler } from './update/index.js';
+import type { RouteHandler } from '../types.ts';
+import { BotUpdateHandler } from './update/index.ts';
 
 /**
  * 更新机器人信息

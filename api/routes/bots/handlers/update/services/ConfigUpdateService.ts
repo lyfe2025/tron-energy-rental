@@ -2,9 +2,9 @@
  * 配置更新服务
  * 负责更新机器人配置到数据库
  */
-import { query } from '../../../../../config/database.js';
-import { buildUpdateFields } from '../../../middleware.js';
-import type { Bot, UpdateBotData } from '../../../types.js';
+import { query } from '../../../../../config/database.ts';
+import { buildUpdateFields } from '../../../middleware.ts';
+import type { Bot, UpdateBotData } from '../../../types.ts';
 
 export class ConfigUpdateService {
   /**

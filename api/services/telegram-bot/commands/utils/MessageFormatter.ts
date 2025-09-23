@@ -2,7 +2,7 @@
  * 消息格式化工具
  */
 import TelegramBot from 'node-telegram-bot-api';
-import type { BotConfig, MessageOptions } from '../types/command.types.js';
+import type { BotConfig, MessageOptions } from '../types/command.types.ts';
 
 export class MessageFormatter {
   /**

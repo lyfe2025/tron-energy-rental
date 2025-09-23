@@ -2,7 +2,7 @@
  * 统计分析控制器
  */
 import type { Request, Response } from 'express';
-import { StatisticsService } from '../services/statisticsService.js';
+import { StatisticsService } from '../services/statisticsService.ts';
 
 export class StatisticsController {
   private service: StatisticsService;

@@ -6,7 +6,7 @@
  */
 
 import { type NextFunction, type Request, type Response } from 'express';
-import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.js';
+import { SystemConfigsValidation } from '../controllers/systemConfigsValidation.ts';
 
 /**
  * 验证配置键查询参数

@@ -2,8 +2,8 @@
  * 命令处理器类型定义
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { orderService } from '../../../order.js';
-import { UserService } from '../../../user.js';
+import { orderService } from '../../../order.ts';
+import { UserService } from '../../../user.ts';
 
 export interface CommandHandlerDependencies {
   bot: TelegramBot;

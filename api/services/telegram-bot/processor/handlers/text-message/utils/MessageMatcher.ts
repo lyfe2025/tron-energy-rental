@@ -2,7 +2,7 @@
  * 消息匹配工具类
  * 负责动态查找按钮文本对应的callback_data
  */
-import { query } from '../../../../../../config/database.js';
+import { query } from '../../../../../../config/database.ts';
 
 export class MessageMatcher {
   private botId: number | string | undefined;

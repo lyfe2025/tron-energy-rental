@@ -3,8 +3,8 @@
  * 处理记录摘要相关的业务逻辑
  */
 import type { Request, Response } from 'express';
-import type { StakeQueryParams } from '../../types/stake.types.js';
-import { BaseRecordsHandler } from './BaseRecordsHandler.js';
+import type { StakeQueryParams } from '../../types/stake.types.ts';
+import { BaseRecordsHandler } from './BaseRecordsHandler.ts';
 
 export interface RecordsSummary {
   staking: {

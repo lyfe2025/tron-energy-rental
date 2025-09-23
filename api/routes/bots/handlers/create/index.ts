@@ -3,14 +3,14 @@
  * 统一管理机器人创建流程
  */
 import type { Request, Response } from 'express';
-import { configService } from '../../../../services/config/ConfigService.js';
-import { multiBotManager } from '../../../../services/telegram-bot.js';
-import type { CreateBotData } from '../../types.js';
-import { ConfigProcessor } from './services/ConfigProcessor.js';
-import { InitializationService } from './services/InitializationService.js';
-import { NetworkSetup } from './services/NetworkSetup.js';
-import { CreateUtils } from './utils/createUtils.js';
-import { CreateValidators } from './validators/createValidators.js';
+import { configService } from '../../../../services/config/ConfigService.ts';
+import { multiBotManager } from '../../../../services/telegram-bot.ts';
+import type { CreateBotData } from '../../types.ts';
+import { ConfigProcessor } from './services/ConfigProcessor.ts';
+import { InitializationService } from './services/InitializationService.ts';
+import { NetworkSetup } from './services/NetworkSetup.ts';
+import { CreateUtils } from './utils/createUtils.ts';
+import { CreateValidators } from './validators/createValidators.ts';
 
 export class BotCreateHandler {
   /**

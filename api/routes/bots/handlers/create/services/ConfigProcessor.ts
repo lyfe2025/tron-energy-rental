@@ -2,8 +2,8 @@
  * 配置处理器
  * 负责处理机器人创建时的各种配置生成和处理
  */
-import { query } from '../../../../../config/database.js';
-import type { CreateBotData } from '../../../types.js';
+import { query } from '../../../../../config/database.ts';
+import type { CreateBotData } from '../../../types.ts';
 
 export class ConfigProcessor {
   /**

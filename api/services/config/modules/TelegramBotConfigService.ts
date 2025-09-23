@@ -4,9 +4,9 @@
  * 负责Telegram机器人配置的查询和管理
  */
 
-import { query } from '../../../database/index.js';
-import type { TelegramBotConfig, TronNetworkConfig } from '../ConfigService.js';
-import { ConfigCacheService } from './ConfigCacheService.js';
+import { query } from '../../../database/index.ts';
+import type { TelegramBotConfig, TronNetworkConfig } from '../ConfigService.ts';
+import { ConfigCacheService } from './ConfigCacheService.ts';
 
 export class TelegramBotConfigService {
   private cacheService: ConfigCacheService;

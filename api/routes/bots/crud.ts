@@ -8,18 +8,18 @@
  * - 确保功能完整性和向后兼容性
  */
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../../middleware/auth.ts';
 
 // 导入分离后的处理器
-import { createBot, verifyBotToken } from './handlers/botCreateHandler.js';
-import { getBotDetails, getBotsList, getBotsSelector } from './handlers/botListHandler.js';
+import { createBot, verifyBotToken } from './handlers/botCreateHandler.ts';
+import { getBotDetails, getBotsList, getBotsSelector } from './handlers/botListHandler.ts';
 import {
     applyWebhookSettings,
     getBotWebhookStatus,
     manualSyncToTelegram,
     switchBotMode
-} from './handlers/botModeHandler.js';
-import { checkTelegramApiConnectivity, deleteBot, restoreBot, updateBot } from './handlers/botUpdateHandler.js';
+} from './handlers/botModeHandler.ts';
+import { checkTelegramApiConnectivity, deleteBot, restoreBot, updateBot } from './handlers/botUpdateHandler.ts';
 
 const router: Router = Router();
 

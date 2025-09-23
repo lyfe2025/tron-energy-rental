@@ -2,8 +2,8 @@
  * 初始化服务
  * 负责机器人创建过程中的数据库操作和初始化流程
  */
-import { query } from '../../../../../config/database.js';
-import type { Bot, CreateBotData } from '../../../types.js';
+import { query } from '../../../../../config/database.ts';
+import type { Bot, CreateBotData } from '../../../types.ts';
 
 export class InitializationService {
   /**

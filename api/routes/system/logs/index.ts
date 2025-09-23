@@ -4,18 +4,18 @@
  */
 import { Router } from 'express';
 import { param, query } from 'express-validator';
-import { authenticateToken, requirePermission } from '../../../middleware/rbac.js';
-import { handleValidationErrors } from '../../../middleware/validation.js';
+import { authenticateToken, requirePermission } from '../../../middleware/rbac.ts';
+import { handleValidationErrors } from '../../../middleware/validation.ts';
 
 // 导入控制器
-import { LoginLogsController } from './controllers/LoginLogsController.js';
-import { LogsManagementController } from './controllers/LogsManagementController.js';
-import { LogsStatsController } from './controllers/LogsStatsController.js';
-import { OperationLogsController } from './controllers/OperationLogsController.js';
-import { SystemMonitoringLogsController } from './controllers/SystemMonitoringLogsController.js';
+import { LoginLogsController } from './controllers/LoginLogsController.ts';
+import { LogsManagementController } from './controllers/LogsManagementController.ts';
+import { LogsStatsController } from './controllers/LogsStatsController.ts';
+import { OperationLogsController } from './controllers/OperationLogsController.ts';
+import { SystemMonitoringLogsController } from './controllers/SystemMonitoringLogsController.ts';
 
 // 导入日志轮转管理路由
-import logRotationRouter from './management.js';
+import logRotationRouter from './management.ts';
 
 const router: Router = Router();
 

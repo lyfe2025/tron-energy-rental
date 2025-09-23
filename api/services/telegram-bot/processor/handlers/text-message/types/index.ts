@@ -6,7 +6,7 @@ import type {
   PriceConfig,
   ProcessorDependencies,
   TemplateVariables
-} from '../../../types.js';
+} from '../../../types.ts';
 
 // 从主类型文件导出已有类型
 export type {

@@ -2,9 +2,9 @@
  * 价格配置回调处理器
  * 处理价格配置相关的回调操作
  */
-import { query } from '../../../config/database.js';
-import type { CallbackContext } from '../core/CallbackDispatcher.js';
-import { BaseCallbackHandler } from './BaseCallbackHandler.js';
+import { query } from '../../../config/database.ts';
+import type { CallbackContext } from '../core/CallbackDispatcher.ts';
+import { BaseCallbackHandler } from './BaseCallbackHandler.ts';
 
 export class PriceCallbackHandler extends BaseCallbackHandler {
 

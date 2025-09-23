@@ -3,14 +3,14 @@
  * 重新导出拆分后的路由模块
  */
 import { Router, type Router as ExpressRouter } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
+import { authenticateToken } from '../../middleware/auth.ts';
 
 // 导入控制器
-import { DelegateController } from './controllers/DelegateController.js';
-import { OverviewController } from './controllers/OverviewController.js';
-import { RecordsController } from './controllers/RecordsController.js';
-import { StakeController } from './controllers/StakeController.js';
-import { WithdrawController } from './controllers/WithdrawController.js';
+import { DelegateController } from './controllers/DelegateController.ts';
+import { OverviewController } from './controllers/OverviewController.ts';
+import { RecordsController } from './controllers/RecordsController.ts';
+import { StakeController } from './controllers/StakeController.ts';
+import { WithdrawController } from './controllers/WithdrawController.ts';
 
 const router: ExpressRouter = Router();
 

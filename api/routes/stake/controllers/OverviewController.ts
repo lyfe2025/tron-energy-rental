@@ -2,13 +2,13 @@
  * 质押概览和统计控制器
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../database/index.js';
-import { tronService } from '../../../services/tron.js';
+import { query } from '../../../database/index.ts';
+import { tronService } from '../../../services/tron.ts';
 import type {
     RouteHandler,
     StakeQueryParams,
     StakeStatistics
-} from '../types/stake.types.js';
+} from '../types/stake.types.ts';
 
 export class OverviewController {
   /**

@@ -3,9 +3,9 @@
  * 提供通用的参数解析、验证和分页处理逻辑
  */
 import type { Request, Response } from 'express';
-import { query } from '../../../../database/index.js';
-import { tronService } from '../../../../services/tron.js';
-import type { PaginatedResponse, StakeQueryParams } from '../../types/stake.types.js';
+import { query } from '../../../../database/index.ts';
+import { tronService } from '../../../../services/tron.ts';
+import type { PaginatedResponse, StakeQueryParams } from '../../types/stake.types.ts';
 
 export interface ProcessedAddress {
   targetAddress: string;

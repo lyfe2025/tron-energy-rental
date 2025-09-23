@@ -3,8 +3,8 @@
  * 负责处理能量代理相关的逻辑
  */
 import { orderLogger } from '../../../utils/logger';
-import type { Order } from '../../order/types.js';
-import { tronService } from '../../tron.js';
+import type { Order } from '../../order/types.ts';
+import { tronService } from '../../tron.ts';
 import { FlashRentOrderRepository } from './FlashRentOrderRepository';
 
 export class FlashRentOrderDelegator {

@@ -3,16 +3,16 @@
  * 处理统计相关命令，如余额查询、用户统计等
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { UserService } from '../../../user.js';
-import { CommandValidator } from '../middleware/CommandValidator.js';
-import { UserContextManager } from '../middleware/UserContextManager.js';
-import type { CommandHandlerDependencies } from '../types/command.types.js';
-import { MessageFormatter } from '../utils/MessageFormatter.js';
+import { UserService } from '../../../user.ts';
+import { CommandValidator } from '../middleware/CommandValidator.ts';
+import { UserContextManager } from '../middleware/UserContextManager.ts';
+import type { CommandHandlerDependencies } from '../types/command.types.ts';
+import { MessageFormatter } from '../utils/MessageFormatter.ts';
 
 export class StatsCommandHandler {
   private bot: TelegramBot;
   private userService: UserService;
-  private orderService: typeof import('../../../order.js').orderService;
+  private orderService: typeof import('../../../order.ts').orderService;
 
   constructor(dependencies: CommandHandlerDependencies) {
     this.bot = dependencies.bot;

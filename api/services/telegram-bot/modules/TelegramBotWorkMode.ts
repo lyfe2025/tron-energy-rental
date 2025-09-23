@@ -3,10 +3,10 @@
  * 负责处理工作模式切换和管理
  */
 import TelegramBot from 'node-telegram-bot-api';
-import { CallbackHandler } from '../callbacks/CallbackHandler.js';
-import { CommandHandler } from '../commands/CommandHandler.js';
-import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.js';
-import { BotUtils } from '../utils/BotUtils.js';
+import { CallbackHandler } from '../callbacks/CallbackHandler.ts';
+import { CommandHandler } from '../commands/CommandHandler.ts';
+import { KeyboardBuilder } from '../keyboards/KeyboardBuilder.ts';
+import { BotUtils } from '../utils/BotUtils.ts';
 
 export class TelegramBotWorkMode {
   constructor(

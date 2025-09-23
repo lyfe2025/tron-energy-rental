@@ -2,7 +2,7 @@
  * 闪租功能处理器
  * 专门处理闪租相关的能量池选择、能量检查、能量代理等功能
  */
-import { query } from '../../../database/index.js';
+import { query } from '../../../database/index.ts';
 
 export class FlashRentHandler {
   private tronService: any;
@@ -232,68 +232,45 @@ export class FlashRentHandler {
   }
 
   /**
-   * 检查账户可用能量（根据指定网络获取实时数据）
+   * 检查账户可用能量（直接从TRON网络获取实时数据）
    */
   private async checkAvailableEnergy(address: string, networkId: string): Promise<number> {
     try {
       console.log(`🔍 [能量检查] 开始检查账户能量: ${address}`, {
         网络ID: networkId,
-        检查模式: '指定网络实时获取'
+        检查模式: '直接调用TRON服务获取实时数据'
       });
       
-      // 使用能量池管理中已实现的网络特定实时数据获取接口
-      const response = await fetch('/api/energy-pool/accounts/validate-address', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          address: address,
-          network_id: networkId
-        })
-      });
-
-      if (!response.ok) {
-        console.error(`❌ [能量检查] 网络请求失败: ${response.status} ${response.statusText}`);
-        return 0;
-      }
-
-      const result = await response.json();
+      // 直接调用TronService获取账户资源信息
+      const resourceResult = await this.tronService.getAccountResources(address);
       
-      if (!result.success || !result.data) {
+      if (!resourceResult.success) {
         console.error(`❌ [能量检查] 获取账户资源失败: ${address}`, {
-          错误: result.message || '未知错误',
+          错误: resourceResult.error,
           网络ID: networkId
         });
         return 0;
       }
 
-      const accountData = result.data;
-      const energy = accountData.energy;
+      const resourceData = resourceResult.data;
       
       // 从实时数据中获取可用能量
-      const totalEnergyLimit = energy?.total || energy?.limit || 0;
-      const usedEnergy = energy?.used || 0;
-      const availableEnergy = energy?.available || (totalEnergyLimit - usedEnergy);
+      const energyInfo = resourceData.energy || {};
+      const totalEnergyLimit = energyInfo.limit || 0;
+      const usedEnergy = energyInfo.used || 0;
+      const availableEnergy = energyInfo.available || (totalEnergyLimit - usedEnergy);
       const finalAvailableEnergy = Math.max(0, availableEnergy);
 
-      console.log(`📊 [能量检查] 账户 ${address} 在 ${accountData.networkInfo?.name || '指定网络'} 的能量详情:`, {
-        网络信息: {
-          ID: accountData.networkInfo?.id,
-          名称: accountData.networkInfo?.name,
-          类型: accountData.networkInfo?.type,
-          RPC: accountData.networkInfo?.rpcUrl
-        },
+      console.log(`📊 [能量检查] 账户 ${address} 的能量详情:`, {
         账户地址: address,
+        网络ID: networkId,
         总能量限制: totalEnergyLimit,
         已使用能量: usedEnergy,
         可用能量: finalAvailableEnergy,
         能量使用率: totalEnergyLimit > 0 ? `${((usedEnergy / totalEnergyLimit) * 100).toFixed(1)}%` : '0%',
-        TRX余额: (accountData.balance / 1000000).toFixed(6) + ' TRX',
-        USDT余额: accountData.usdtBalance || 0,
         资源详情: {
-          '🔋 能量': energy,
-          '📶 带宽': accountData.bandwidth
+          '🔋 能量': energyInfo,
+          '📶 带宽': resourceData.bandwidth || {}
         }
       });
 

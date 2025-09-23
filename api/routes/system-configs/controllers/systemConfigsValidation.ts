@@ -5,14 +5,14 @@
  * 包括参数验证、数据格式验证和业务规则验证
  */
 
-import { query } from '../../../config/database.js';
+import { query } from '../../../config/database.ts';
 import type {
     BatchUpdateRequest,
     ConfigType,
     ConfigValidationResult,
     CreateSystemConfigRequest,
     UpdateSystemConfigRequest
-} from '../types/systemConfigs.types.js';
+} from '../types/systemConfigs.types.ts';
 
 export class SystemConfigsValidation {
   /**
