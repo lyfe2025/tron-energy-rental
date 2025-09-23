@@ -105,7 +105,8 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 - **样式框架**: Tailwind CSS 3.4+
 - **图表库**: ECharts 6.0+ / Recharts 3.1+
 - **HTTP 客户端**: Axios 1.6+
-- **图标库**: Lucide Vue Next
+- **图标库**: Lucide Vue Next 0.511+
+- **工具库**: Lodash ES 4.17+, Clsx 2.1+
 
 ### 后端技术栈
 
@@ -116,10 +117,12 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 - **区块链**: TronWeb 6.0+ SDK
 - **身份验证**: JWT (jsonwebtoken 9.0+)
 - **数据验证**: Joi 17.11+ + Express Validator 7.2+
-- **日志系统**: Winston 3.17+ (日志轮转支持)
-- **进程管理**: PM2 / Docker
+- **日志系统**: Winston 3.17+ (winston-daily-rotate-file 5.0+)
+- **进程管理**: PM2 (ecosystem.config.cjs)
 - **定时任务**: Node-cron 4.2+
 - **消息推送**: Telegram Bot API (node-telegram-bot-api 0.66+)
+- **系统监控**: Systeminformation 5.27+
+- **加密安全**: Bcrypt 6.0+, Bcryptjs 2.4+
 
 ### 基础设施
 
@@ -132,11 +135,23 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 
 ### 环境要求
 
-- Node.js >= 18.0.0
-- PostgreSQL >= 12.0
-- Redis >= 6.0
-- Git
-- pnpm >= 8.0.0 (推荐) 或 npm >= 9.0.0
+#### 基础环境
+- **Node.js** >= 18.0.0 (推荐 18.19+ LTS)
+- **PostgreSQL** >= 12.0 (推荐 13+，无需额外扩展)
+- **Redis** >= 6.0 (用于缓存和会话存储)
+- **Git** (用于代码管理)
+- **pnpm** >= 8.0.0 (推荐) 或 **npm** >= 9.0.0
+
+#### 系统要求
+- **内存**: 最小 2GB，推荐 4GB+
+- **磁盘空间**: 最小 10GB 可用空间
+- **网络**: 稳定的网络连接（用于TRON区块链API调用）
+
+#### 生产环境推荐
+- **操作系统**: Ubuntu 20.04+ / CentOS 8+ / Debian 11+
+- **进程管理器**: PM2 (已包含配置)
+- **反向代理**: Nginx (配置文件已提供)
+- **SSL证书**: Let's Encrypt 或商业证书
 
 ### 镜像源配置
 
@@ -172,21 +187,44 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
 
 4. **配置环境变量**
    ```bash
-   # 复制生产环境配置模板
-   cp deployment/templates/env.production.template .env
-   # 或复制开发环境配置模板
-   cp deployment/templates/env.development.template .env.development
-   # 编辑配置文件，设置数据库、Redis、TRON网络等参数
+   # 复制环境变量配置文件
+   cp .env .env.local  # 用于本地开发
+   
+   # 编辑配置文件，根据你的环境修改以下关键配置：
+   # - 数据库连接信息
+   # - Redis配置
+   # - JWT密钥
+   # - 管理员账户信息
+   # - TRON网络配置
+   ```
+   
+   **重要配置项说明：**
+   ```bash
+   # 数据库配置（必须修改）
+   DATABASE_URL=postgresql://postgres:your_password@localhost:5432/tron_energy_rental
+   
+   # 安全配置（生产环境必须修改）
+   JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
+   ADMIN_PASSWORD=your-secure-admin-password
+   
+   # 服务端口配置
+   PORT=3001          # 后端API端口
+   VITE_PORT=5173     # 前端开发服务器端口
    ```
 
 5. **数据库初始化**
    ```bash
-   # 创建数据库
+   # 创建数据库（自动创建）
    pnpm run db:create
    
-   # 运行迁移
+   # 运行数据库迁移
    pnpm run migrate
+   
+   # 验证数据库连接
+   psql postgresql://postgres:postgres@localhost:5432/tron_energy_rental -c "SELECT version();"
    ```
+   
+   **注意**: 本项目的PostgreSQL配置**不需要任何扩展**，使用标准PostgreSQL功能即可。
 
 6. **启动开发服务**
    ```bash
@@ -199,34 +237,57 @@ TRON 能量租赁系统是一个基于 TRON 2.0 质押机制的专业能量租�
    ```
 
 7. **访问应用**
-   - 前端界面: http://localhost:5173
-   - 后端 API: http://localhost:3001
-   - 管理员账户: admin@tronrental.com / admin123456
+   - **前端界面**: http://localhost:5173
+   - **后端 API**: http://localhost:3001/api
+   - **API文档**: http://localhost:3001/api (显示所有可用端点)
+   - **健康检查**: http://localhost:3001/api/health
+   - **管理员账户**: admin@tronrental.com / admin123456
+   
+   **首次登录后建议：**
+   ```bash
+   # 测试API连接
+   curl -s -X POST http://localhost:3001/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"admin@tronrental.com","password":"admin123456"}' | jq .
+   
+   # 检查系统状态
+   curl http://localhost:3001/api/health
+   ```
 
-### 快速重启
+### 🔄 快速重启
 
 ```bash
-# 一键重启所有服务
+# 一键重启所有服务（自动清理进程）
 pnpm run restart
+
+# 手动停止现有服务后重启
+ps aux | grep -E 'tron-energy-rental|tsx.*server\.ts|vite.*5173' | grep -v grep | awk '{print $2}' | xargs kill -9 2>/dev/null || true
+pnpm run dev
 ```
 
-### 镜像源管理
+### 📦 镜像源管理
 
-如果遇到网络问题或需要切换镜像源：
+项目已预配置国内镜像源以加速依赖安装。如需切换镜像源：
 
 ```bash
 # 检查当前镜像源
 npm run registry:check
 
-# 切换到淘宝镜像源（国内推荐）
+# 切换到淘宝镜像源（国内推荐，默认配置）
 npm run registry:taobao
 
 # 切换到npm官方镜像源（海外或公司环境）
 npm run registry:npm
 
-# 重置镜像源配置
+# 重置镜像源配置到系统默认
 npm run registry:reset
 ```
+
+**镜像源说明：**
+- **淘宝镜像源**: `https://registry.npmmirror.com/` (国内网络优化)
+- **官方镜像源**: `https://registry.npmjs.org/` (海外网络)
+- **自动重试**: 内置网络超时重试机制
+- **缓存优化**: 支持本地缓存加速后续安装
 
 ## 📚 API 文档
 
@@ -273,37 +334,151 @@ curl -X GET http://localhost:3001/api
 
 ## 🐳 部署指南
 
-### 传统部署
+### 🚀 生产环境部署（推荐）
 
-1. **环境检查**
+#### 方式一：PM2部署（推荐）
+
+1. **环境准备**
    ```bash
-   ./deployment/scripts/check-environment.sh
+   # 安装全局依赖
+   npm install -g pm2 pnpm
+   
+   # 克隆项目
+   git clone <your-repo-url> /var/www/tron-energy-rental
+   cd /var/www/tron-energy-rental
    ```
 
-2. **一键部署**
+2. **安装依赖和构建**
    ```bash
-   ./deployment/scripts/deploy.sh
+   # 安装依赖
+   pnpm install
+   
+   # 构建前端
+   pnpm run build
+   
+   # 配置环境变量（重要！）
+   cp .env .env.production
+   nano .env.production  # 修改生产环境配置
    ```
 
-### Docker 部署
-
-1. **快速启动**
+3. **数据库初始化**
    ```bash
-   ./deployment/scripts/docker-deploy.sh up
+   # 创建数据库
+   pnpm run db:create
+   
+   # 运行迁移
+   pnpm run migrate
    ```
 
-2. **生产环境部署**
+4. **启动服务（PM2）**
    ```bash
-   # 构建并启动所有服务
-   docker-compose -f deployment/docker/docker-compose.yml up -d
+   # 使用PM2启动服务
+   pm2 start ecosystem.config.cjs --env production
+   
+   # 保存PM2配置
+   pm2 save
+   pm2 startup
+   
+   # 查看服务状态
+   pm2 status
+   pm2 logs
    ```
 
-### 部署配置
+#### 方式二：宝塔面板部署
 
-- **Nginx 配置**: `deployment/configs/nginx.conf`
-- **PM2 配置**: `deployment/configs/pm2.config.js`
-- **Docker 配置**: `deployment/docker/`
-- **环境模板**: `deployment/templates/`
+1. **一键安装脚本**
+   ```bash
+   # 下载并运行宝塔安装脚本
+   wget https://raw.githubusercontent.com/your-repo/main/deployment/scripts/install.sh
+   chmod +x install.sh
+   sudo ./install.sh
+   ```
+
+2. **手动部署步骤**
+   - 参考: [deployment/宝塔面板部署指南.md](./deployment/宝塔面板部署指南.md)
+   - 包含完整的宝塔面板配置说明
+
+### 🔧 Nginx配置
+
+项目提供了完整的Nginx配置文件：
+
+```bash
+# 复制Nginx配置
+cp deployment/configs/nginx-same-server.conf /etc/nginx/sites-available/tron-energy-rental
+ln -s /etc/nginx/sites-available/tron-energy-rental /etc/nginx/sites-enabled/
+
+# 修改配置中的域名
+nano /etc/nginx/sites-available/tron-energy-rental
+
+# 测试并重载Nginx
+nginx -t
+systemctl reload nginx
+```
+
+### 📊 PM2配置说明
+
+项目使用优化的PM2配置 (`ecosystem.config.cjs`)：
+
+- **执行模式**: Fork模式，单实例优化
+- **内存管理**: 自动重启当内存超过1.5GB
+- **日志管理**: 分离的错误和输出日志
+- **健康检查**: 30秒间隔的应用监控
+- **性能优化**: Node.js运行时参数调优
+
+**常用PM2命令：**
+```bash
+# 服务管理
+pm2 start ecosystem.config.cjs --env production
+pm2 restart tron-energy-api
+pm2 stop tron-energy-api
+pm2 delete tron-energy-api
+
+# 监控和日志
+pm2 status
+pm2 monit
+pm2 logs tron-energy-api
+pm2 logs tron-energy-api --lines 100
+
+# 配置管理
+pm2 save
+pm2 startup  # 开机自启
+pm2 reload ecosystem.config.cjs  # 零停机重载
+```
+
+### 🛡️ 安全配置
+
+**生产环境必须修改的配置：**
+```bash
+# .env.production 中的关键配置
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+SESSION_SECRET=your-session-secret-change-this-to-random-string
+CSRF_SECRET=your-csrf-secret-change-this-to-random-string
+ADMIN_PASSWORD=change-this-default-password
+DB_PASSWORD=change-this-database-password
+REDIS_PASSWORD=set-redis-password-if-needed
+```
+
+### 📁 部署配置文件
+
+- **PM2配置**: `ecosystem.config.cjs` (已优化的生产配置)
+- **Nginx配置**: `deployment/configs/nginx-same-server.conf`
+- **环境模板**: 项目根目录的 `.env` 文件
+- **安装脚本**: `deployment/scripts/install.sh` (宝塔面板)
+- **部署脚本**: `deployment/scripts/deploy.sh`
+
+### 🔍 部署验证
+
+```bash
+# 检查服务状态
+pm2 status
+curl http://localhost:3001/api/health
+
+# 检查前端访问
+curl -I http://your-domain.com
+
+# 运行健康检查脚本
+./deployment/scripts/health-check.sh
+```
 
 详细部署说明请参考: [deployment/README.md](./deployment/README.md)
 
@@ -367,50 +542,59 @@ tron-energy-rental/
 ### 开发脚本
 
 ```bash
-# 开发服务
-pnpm run dev               # 同时启动前端和后端
-pnpm run client:dev        # 启动前端开发服务器
-pnpm run server:dev        # 启动后端开发服务器
-pnpm run restart           # 一键重启所有服务
+# 🚀 开发服务
+pnpm run dev               # 同时启动前端和后端开发服务器
+pnpm run client:dev        # 仅启动前端开发服务器 (端口 5173)
+pnpm run server:dev        # 仅启动后端开发服务器 (端口 3001)
+pnpm run restart           # 一键重启所有服务（自动杀死旧进程）
 
-# 镜像源管理
+# 📦 镜像源管理（加速国内依赖安装）
 pnpm run registry:check    # 检查当前镜像源配置
-pnpm run registry:taobao   # 切换到淘宝镜像源（推荐）
-pnpm run registry:npm      # 切换到npm官方镜像源
-pnpm run registry:reset    # 重置镜像源配置
+pnpm run registry:taobao   # 切换到淘宝镜像源（国内推荐）
+pnpm run registry:npm      # 切换到npm官方镜像源（海外推荐）
+pnpm run registry:reset    # 重置镜像源配置到默认
 
-# 代码检查和类型检查
-pnpm run lint              # ESLint 检查
+# 🔍 代码质量检查
+pnpm run lint              # ESLint 代码检查
 pnpm run lint:fix          # 自动修复ESLint错误
 pnpm run type-check        # 前端TypeScript类型检查
 pnpm run type-check:api    # 后端TypeScript类型检查
-pnpm run check             # Vue组件类型检查
+pnpm run check             # Vue组件类型检查和编译验证
 
-# 测试
-pnpm run test              # 运行测试
-pnpm run test:run          # 运行测试（非监听模式）
-pnpm run test:ui           # 测试 UI界面
-pnpm run test:coverage     # 测试覆盖率报告
+# 🧪 测试相关
+pnpm run test              # 运行所有测试（监听模式）
+pnpm run test:run          # 运行所有测试（单次执行）
+pnpm run test:ui           # 启动测试UI界面
+pnpm run test:coverage     # 生成测试覆盖率报告
 pnpm run test:unit         # 运行单元测试
 pnpm run test:integration  # 运行集成测试
 pnpm run test:watch        # 监听模式运行测试
 
-# 数据库管理
+# 🗄️ 数据库管理
 pnpm run db:create         # 创建数据库
-pnpm run db:setup          # 创建数据库并运行迁移
-pnpm run migrate           # 运行迁移
-pnpm run migrate:status    # 迁移状态
-pnpm run migrate:rollback  # 回滚迁移
+pnpm run db:setup          # 创建数据库并运行所有迁移
+pnpm run migrate           # 运行待执行的迁移
+pnpm run migrate:status    # 查看迁移状态
+pnpm run migrate:rollback  # 回滚最后一次迁移
 pnpm run migrate:sync      # 同步迁移文件
-pnpm run migrate:sync:dry  # 干运行同步迁移
+pnpm run migrate:sync:dry  # 干运行同步迁移（不执行）
 
-# 构建和预览
+# 🏗️ 构建和预览
 pnpm run build             # 构建生产版本
 pnpm run preview           # 预览构建结果
 
-# 代码注释管理
+# 🎯 PM2生产环境管理
+pnpm run pm2:start         # 启动PM2服务
+pnpm run pm2:stop          # 停止PM2服务
+pnpm run pm2:restart       # 重启PM2服务
+pnpm run pm2:reload        # 零停机重载PM2服务
+pnpm run pm2:status        # 查看PM2状态
+pnpm run pm2:logs          # 查看PM2日志
+pnpm run pm2:monit         # PM2监控界面
+
+# 📝 代码注释管理
 pnpm run comments:apply    # 应用中文注释
-pnpm run comments:verify   # 验证注释
+pnpm run comments:verify   # 验证注释完整性
 pnpm run comments:setup    # 设置注释系统
 ```
 
@@ -424,7 +608,7 @@ pnpm run comments:setup    # 设置注释系统
 
 ## 🧪 测试
 
-### 运行测试
+#### 运行测试
 
 ```bash
 # 运行所有测试
@@ -441,6 +625,9 @@ pnpm run test:watch
 
 # 生成覆盖率报告
 pnpm run test:coverage
+
+# 测试UI界面
+pnpm run test:ui
 ```
 
 ### 测试结构
@@ -506,6 +693,145 @@ tests/
   - 机器人服务状态
   - 订单处理效率
   - TRON网络连接状态
+
+## 🚀 生产环境最佳实践
+
+### 🔒 安全配置清单
+
+#### 必须修改的配置
+```bash
+# 1. 数据库安全
+DB_PASSWORD="complex-password-with-symbols"
+REDIS_PASSWORD="redis-secure-password"
+
+# 2. 应用密钥（必须32字符以上）
+JWT_SECRET="your-super-secure-jwt-secret-key-at-least-32-chars"
+SESSION_SECRET="your-session-secret-change-this-random-string"
+CSRF_SECRET="your-csrf-secret-change-this-random-string"
+
+# 3. 管理员账户
+ADMIN_EMAIL="your-admin@yourdomain.com"
+ADMIN_PASSWORD="complex-admin-password"
+
+# 4. 生产环境标识
+NODE_ENV=production
+
+# 5. 限制访问主机
+VITE_ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com,api.yourdomain.com"
+```
+
+#### 防火墙配置
+```bash
+# 安装并配置ufw
+sudo ufw enable
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp      # SSH
+sudo ufw allow 80/tcp      # HTTP
+sudo ufw allow 443/tcp     # HTTPS
+sudo ufw deny 3001/tcp     # 禁止直接访问API端口
+sudo ufw deny 5432/tcp     # 禁止直接访问数据库
+sudo ufw deny 6379/tcp     # 禁止直接访问Redis
+```
+
+### 📈 性能优化建议
+
+#### PM2优化配置
+当前项目的PM2配置已经优化，包括：
+- **内存管理**: 1.5GB内存限制自动重启
+- **进程优化**: Node.js运行时参数调优
+- **健康检查**: 30秒间隔监控
+- **日志管理**: 分离的错误和输出日志
+- **Zero-downtime**: 零停机重载功能
+
+#### 扩展配置（高负载环境）
+```bash
+# 多实例配置（需要Nginx负载均衡）
+# 修改 ecosystem.config.cjs 中的 instances: 2-4
+# 配置不同端口：3001, 3002, 3003, 3004
+```
+
+### 🔍 监控告警
+
+#### 系统监控
+```bash
+# 设置定时健康检查
+crontab -e
+# 添加以下行：
+*/5 * * * * /var/www/tron-energy-rental/deployment/scripts/health-check.sh -q -r
+0 2 * * * find /var/www/tron-energy-rental/logs -name "*.log" -mtime +7 -delete
+```
+
+#### 关键指标监控
+- **API响应时间**: < 2秒
+- **内存使用率**: < 80%
+- **CPU使用率**: < 70%
+- **磁盘使用率**: < 85%
+- **数据库连接数**: < 80% 最大连接数
+- **Redis内存使用**: < 80%
+
+### 🔄 备份策略
+
+#### 自动化数据库备份
+```bash
+# 添加到crontab
+0 2 * * * /var/www/tron-energy-rental/scripts/database/backup-database.sh
+0 0 * * 0 find /var/www/tron-energy-rental/backups -name "*.sql" -mtime +30 -delete
+```
+
+#### 备份文件结构
+```
+backups/
+├── daily/                 # 每日备份
+├── weekly/                # 每周备份
+└── monthly/               # 每月备份
+```
+
+### 🚨 故障排查指南
+
+#### 常见问题诊断
+```bash
+# 1. 检查服务状态
+pm2 status
+systemctl status nginx postgresql redis
+
+# 2. 检查端口占用
+ss -tlnp | grep -E ":80|:443|:3001|:5432|:6379"
+
+# 3. 检查日志错误
+pm2 logs tron-energy-api --lines 50
+tail -f /var/log/nginx/error.log
+
+# 4. 数据库连接测试
+psql postgresql://username:password@localhost:5432/tron_energy_rental -c "SELECT 1;"
+
+# 5. Redis连接测试
+redis-cli ping
+```
+
+#### 应急响应流程
+1. **服务异常**: 检查PM2状态 → 查看错误日志 → 重启服务
+2. **数据库问题**: 检查连接 → 查看慢查询 → 重启数据库服务
+3. **网络问题**: 检查Nginx配置 → 验证SSL证书 → 重载配置
+4. **内存泄漏**: 监控内存使用 → 分析heap dump → 优化代码
+
+### 📋 生产部署检查清单
+
+- [ ] 环境变量安全配置完成
+- [ ] 数据库密码已修改
+- [ ] JWT密钥已更换（32字符以上）
+- [ ] 管理员密码已修改
+- [ ] 防火墙规则配置完成
+- [ ] SSL证书安装完成
+- [ ] Nginx配置优化完成
+- [ ] PM2服务正常运行
+- [ ] 数据库备份策略设置
+- [ ] 日志轮转配置完成
+- [ ] 监控告警设置完成
+- [ ] 健康检查脚本配置
+- [ ] 性能基准测试完成
+
+---
 
 ## 🤝 贡献指南
 
