@@ -5,23 +5,23 @@
  */
 import { orderLogger } from '../../utils/logger';
 import type { Order } from '../order/types.js';
-import { FlashRentOrderCreator } from './flash-rent/FlashRentOrderCreator';
+import { FlashRentOrderProcessor } from './flash-rent/FlashRentOrderProcessor';
 import { FlashRentOrderUpdater } from './flash-rent/FlashRentOrderUpdater';
 import type { FlashRentOrderParams } from './types';
 
 export class FlashRentOrderService {
-  private orderCreator: FlashRentOrderCreator;
+  private orderProcessor: FlashRentOrderProcessor;
   private orderUpdater: FlashRentOrderUpdater;
 
   constructor() {
-    this.orderCreator = new FlashRentOrderCreator();
+    this.orderProcessor = new FlashRentOrderProcessor();
     this.orderUpdater = new FlashRentOrderUpdater();
   }
 
   /**
-   * 创建新的闪租订单
+   * 处理闪租订单（对已存在的订单执行业务逻辑）
    */
-  async createNewFlashRentOrder(params: FlashRentOrderParams): Promise<Order> {
+  async processExistingFlashRentOrder(params: FlashRentOrderParams): Promise<Order> {
     const { fromAddress, trxAmount, networkId, txId } = params;
 
     orderLogger.info(`🆕 开始创建新的闪租订单`, {
@@ -33,7 +33,7 @@ export class FlashRentOrderService {
     });
 
     try {
-      const result = await this.orderCreator.createNewFlashRentOrder(params);
+      const result = await this.orderProcessor.processFlashRentOrder(params);
       
       orderLogger.info(`✅ 新闪租订单创建完成`, {
         txId: txId,
@@ -110,7 +110,7 @@ export class FlashRentOrderService {
         txId: txId,
         operation: 'smart_process'
       });
-      return await this.createNewFlashRentOrder(params);
+      return await this.processExistingFlashRentOrder(params);
     }
   }
 

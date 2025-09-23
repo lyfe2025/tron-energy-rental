@@ -155,10 +155,28 @@ router.post('/login', async (req: Request, res: Response) => {
     });
     
   } catch (error) {
+    // 记录详细错误信息到服务器日志
     console.error('登录错误:', error);
+    
+    // 返回详细错误信息方便排查问题
+    let errorMessage = '服务器内部错误';
+    let errorDetails = '';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || '';
+      
+      // 提供更具体的错误信息
+      if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+        errorMessage = `数据库约束错误: ${error.message}`;
+      }
+    }
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: errorMessage,
+      details: errorDetails,
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -233,10 +251,23 @@ router.post('/register', authenticateToken, async (req: Request, res: Response) 
     });
     
   } catch (error) {
+    // 记录详细错误信息到服务器日志
     console.error('注册错误:', error);
+    
+    // 返回详细错误信息
+    let errorMessage = '服务器内部错误';
+    let errorDetails = '';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || '';
+    }
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: errorMessage,
+      details: errorDetails,
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -256,10 +287,23 @@ router.get('/verify', authenticateToken, async (req: Request, res: Response) => 
       }
     });
   } catch (error) {
+    // 记录详细错误信息到服务器日志
     console.error('Token验证错误:', error);
+    
+    // 返回详细错误信息
+    let errorMessage = '服务器内部错误';
+    let errorDetails = '';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || '';
+    }
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: errorMessage,
+      details: errorDetails,
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -299,10 +343,12 @@ router.post('/refresh', async (req: Request, res: Response) => {
     });
     
   } catch (error) {
+    // 记录详细错误信息到服务器日志，但不暴露给客户端
     console.error('Token刷新错误:', error);
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: '服务器内部错误，请稍后重试'
     });
   }
 });
@@ -328,10 +374,12 @@ router.post('/logout', authenticateToken, async (req: Request, res: Response) =>
       message: '登出成功'
     });
   } catch (error) {
+    // 记录详细错误信息到服务器日志，但不暴露给客户端
     console.error('登出错误:', error);
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: '服务器内部错误，请稍后重试'
     });
   }
 });
@@ -403,10 +451,12 @@ router.post('/change-password', authenticateToken, async (req: Request, res: Res
     });
     
   } catch (error) {
+    // 记录详细错误信息到服务器日志，但不暴露给客户端
     console.error('修改密码错误:', error);
+    
     res.status(500).json({
       success: false,
-      message: '服务器内部错误'
+      message: '服务器内部错误，请稍后重试'
     });
   }
 });

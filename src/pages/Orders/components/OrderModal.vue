@@ -40,13 +40,13 @@
         
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">用户ID</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.user_id }}</p>
+            <label class="block text-sm font-medium text-gray-700">订单号</label>
+            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedOrder.order_number || '未生成' }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">用户地址</label>
+            <label class="block text-sm font-medium text-gray-700">地址</label>
             <p class="mt-1 text-sm text-gray-900 font-mono break-all">
-              {{ selectedOrder.recipient_address || '未设置' }}
+              {{ selectedOrder.target_address || selectedOrder.recipient_address || '未设置' }}
             </p>
           </div>
         </div>
@@ -54,14 +54,31 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">能量数量</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.energy_amount }} TRX</p>
+            <p class="mt-1 text-sm text-gray-900">{{ formatNumber(selectedOrder.energy_amount) }} 能量</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">订单金额</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.price_trx }} TRX</p>
+            <p class="mt-1 text-sm text-gray-900">{{ formatPrice(selectedOrder) }} TRX</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">计算笔数</label>
+            <p class="mt-1 text-sm text-gray-900">{{ selectedOrder.calculated_units || 0 }} 笔</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">闪租时长</label>
+            <p class="mt-1 text-sm text-gray-900">
+              <span v-if="selectedOrder.flash_rent_duration">
+                {{ Math.round(selectedOrder.flash_rent_duration / 60 * 10) / 10 }} 小时
+              </span>
+              <span v-else class="text-gray-500">未设置</span>
+            </p>
           </div>
         </div>
         
+
         <div v-if="selectedOrder.payment_tx_hash">
           <label class="block text-sm font-medium text-gray-700">交易哈希</label>
           <div class="mt-1 flex items-center space-x-2">
@@ -193,12 +210,13 @@
 
 <script setup lang="ts">
 import {
-    ExternalLink,
-    Loader2,
-    X
+  ExternalLink,
+  Loader2,
+  X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
+import { formatNumber, formatPrice } from '../utils/orderFormatters'
 
 interface Props {
   showDetailsModal: boolean

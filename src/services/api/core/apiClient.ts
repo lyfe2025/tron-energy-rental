@@ -63,12 +63,16 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 始终显示详细错误信息，方便排查问题
     console.error('🔍 [API Client] 响应拦截器错误:', {
       status: error.response?.status,
       statusText: error.response?.statusText,
-      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
       code: error.code,
-      message: error.message
+      data: error.response?.data, // 显示完整错误数据
+      message: error.message,
+      stack: error.stack
     });
     
     // 超时错误处理
@@ -169,16 +173,18 @@ apiClient.interceptors.response.use(
       // 为错误对象添加友好的错误信息
       error.friendlyMessage = clientMessage;
     } else if (error.response?.status === 500) {
-      // 服务器内部错误处理
+      // 服务器内部错误处理 - 显示详细错误信息
       const serverMessage = error.response?.data?.details || error.response?.data?.message || error.response?.data?.error || '服务器内部错误';
+      
       console.error('🔍 [API Client] 服务器错误:', {
         url: error.config?.url,
         method: error.config?.method,
         message: serverMessage,
-        data: error.response?.data
+        data: error.response?.data,
+        fullError: error
       });
       
-      // 为错误对象添加友好的错误信息
+      // 显示详细错误信息
       error.friendlyMessage = serverMessage;
       
       // 触发服务器错误事件，供全局错误处理使用
@@ -187,7 +193,8 @@ apiClient.interceptors.response.use(
           status: 500,
           message: serverMessage,
           url: error.config?.url,
-          method: error.config?.method
+          method: error.config?.method,
+          data: error.response?.data
         }
       }));
     }

@@ -11,6 +11,7 @@ export interface Order {
   price_config_id?: number  // 替换package_id为price_config_id，关联price_configs表
   package_id?: number  // 兼容字段
   energy_amount: number
+  calculated_units?: number
   duration_hours?: number
   flash_rent_duration?: number
   price_trx?: number
@@ -40,6 +41,13 @@ export interface Order {
   delegation_started_at?: string
   created_at: string
   updated_at: string
+  
+  // 用户信息字段 (通过JOIN users表获取)
+  telegram_id?: number
+  username?: string
+  first_name?: string
+  last_name?: string
+  email?: string
 }
 
 // 订单统计接口 - 与后端保持一致

@@ -63,11 +63,11 @@ export class OrderCalculationService {
       }
 
       // 如果获取配置失败，使用默认值（与系统配置默认值一致）
-      return Math.round(65000 * (1 + 1 / 100)); // 65650
+      return Math.round(65000 * (1 + 2 / 100)); // 66300
     } catch (error) {
       console.error('获取能量消耗配置失败:', error);
       // 错误情况下使用默认值
-      return Math.round(65000 * (1 + 1 / 100)); // 65650
+      return Math.round(65000 * (1 + 2 / 100)); // 66300
     }
   }
 

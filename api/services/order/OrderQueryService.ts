@@ -12,7 +12,16 @@ export class OrderQueryService {
   async getOrderById(orderId: number): Promise<Order | null> {
     try {
       const result = await query(
-        'SELECT * FROM orders WHERE id = $1',
+        `SELECT 
+           o.*,
+           u.telegram_id,
+           u.username,
+           u.first_name,
+           u.last_name,
+           u.email
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         WHERE o.id = $1`,
         [orderId]
       );
 
@@ -33,9 +42,17 @@ export class OrderQueryService {
   ): Promise<Order[]> {
     try {
       const result = await query(
-        `SELECT * FROM orders 
-         WHERE user_id = $1 
-         ORDER BY created_at DESC 
+        `SELECT 
+           o.*,
+           u.telegram_id,
+           u.username,
+           u.first_name,
+           u.last_name,
+           u.email
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         WHERE o.user_id = $1 
+         ORDER BY o.created_at DESC 
          LIMIT $2 OFFSET $3`,
         [userId, limit, offset]
       );
@@ -53,9 +70,17 @@ export class OrderQueryService {
   async getActiveOrders(limit: number = 100): Promise<Order[]> {
     try {
       const result = await query(
-        `SELECT * FROM orders 
-         WHERE status IN ('paid', 'processing', 'active') 
-         ORDER BY created_at DESC 
+        `SELECT 
+           o.*,
+           u.telegram_id,
+           u.username,
+           u.first_name,
+           u.last_name,
+           u.email
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         WHERE o.status IN ('paid', 'processing', 'active') 
+         ORDER BY o.created_at DESC 
          LIMIT $1`,
         [limit]
       );
@@ -140,10 +165,19 @@ export class OrderQueryService {
       );
       const total = parseInt(countResult.rows[0].total);
 
-      // 获取订单列表
+      // 获取订单列表，JOIN users表获取用户信息
       const ordersResult = await query(
-        `SELECT * FROM orders ${whereClause} 
-         ORDER BY created_at DESC 
+        `SELECT 
+           o.*,
+           u.telegram_id,
+           u.username,
+           u.first_name,
+           u.last_name,
+           u.email
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         ${whereClause} 
+         ORDER BY o.created_at DESC 
          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, limit, offset]
       );

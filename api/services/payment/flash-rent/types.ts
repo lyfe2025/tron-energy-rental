@@ -38,6 +38,8 @@ export interface FlashRentConfig {
   energy_per_unit?: number;
   max_amount?: number;
   max_transactions?: number;
+  expiry_hours?: number;
+  payment_address?: string;
 }
 
 export interface EnergyConfig {

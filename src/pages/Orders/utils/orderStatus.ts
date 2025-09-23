@@ -53,12 +53,17 @@ export const getPaymentStatusText = (paymentStatus: string): string => {
 
 // 订单类型相关
 export const getOrderTypeText = (orderType: string): string => {
-  if (!orderType) return '常规'
+  if (!orderType) return '常规订单'
   const texts: Record<string, string> = {
-    'REGULAR': '常规',
-    'FLASH_RENT': '闪租',
-    'BULK': '批量',
-    'PREMIUM': '高级'
+    // 新的具体类型
+    'energy_flash': '能量闪租',
+    'transaction_package': '笔数套餐',
+    'trx_exchange': 'TRX闪兑',
+    // 保留旧的类型兼容
+    'REGULAR': '常规订单',
+    'FLASH_RENT': '闪租订单',
+    'BULK': '批量订单',
+    'PREMIUM': '高级订单'
   }
   return texts[orderType] || orderType
 }

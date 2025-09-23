@@ -51,12 +51,13 @@
                   <span v-if="order.order_number">#{{ order.order_number }}</span>
                   <span v-else>ID:{{ order.id }}</span>
                 </div>
-                <div class="text-xs text-purple-600 font-medium">
-                  {{ getOrderTypeText(order.order_type) }}
+                <div class="text-xs text-gray-900">
+                  <span class="font-medium">类型:</span> 
+                  <span class="text-purple-600">{{ getOrderTypeText(order.order_type) }}</span>
                 </div>
                 <div class="text-xs text-gray-600">
                   <span class="font-medium">时长:</span>
-                  <span v-if="order.flash_rent_duration">{{ order.flash_rent_duration }}小时</span>
+                  <span v-if="order.flash_rent_duration">{{ Math.round(order.flash_rent_duration / 60 * 10) / 10 }}小时</span>
                   <span v-else-if="order.duration_hours">{{ order.duration_hours }}小时</span>
                   <span v-else class="text-orange-500">未设置</span>
                 </div>
@@ -69,14 +70,27 @@
             <!-- 用户/地址 -->
             <td class="px-3 py-3 whitespace-nowrap">
               <div class="space-y-1">
-                <div class="text-sm text-gray-900">
-                  <span class="font-medium">用户:</span> {{ order.user_id }}
+                <!-- 用户信息显示 -->
+                <div v-if="order.username || order.first_name" class="text-sm text-gray-900">
+                  <span class="font-medium">用户:</span>
+                  <span v-if="order.username" class="text-indigo-600">@{{ order.username }}</span>
+                  <span v-else-if="order.first_name" class="text-indigo-600">{{ order.first_name }}{{ order.last_name ? ' ' + order.last_name : '' }}</span>
                 </div>
+                <!-- Telegram ID -->
+                <div v-if="order.telegram_id" class="text-xs text-purple-600">
+                  <span class="font-medium">TG:</span> {{ order.telegram_id }}
+                </div>
+                <!-- 地址信息 -->
                 <div v-if="order.recipient_address || order.target_address" class="text-xs text-gray-600 font-mono">
-                  <span class="font-medium">目标:</span> {{ formatAddress(order.recipient_address || order.target_address) }}
+                  <span class="font-medium">地址:</span> {{ formatAddress(order.recipient_address || order.target_address) }}
                 </div>
-                <div v-if="order.source_address" class="text-xs text-blue-600 font-mono">
+                <!-- 只有当来源地址与目标地址不同时才显示来源地址 -->
+                <div v-if="order.source_address && order.source_address !== (order.recipient_address || order.target_address)" class="text-xs text-blue-600 font-mono">
                   <span class="font-medium">来源:</span> {{ formatAddress(order.source_address) }}
+                </div>
+                <!-- 当没有用户信息时的提示 -->
+                <div v-if="!order.username && !order.first_name && !order.telegram_id" class="text-xs text-gray-400 italic">
+                  监听交易创建
                 </div>
               </div>
             </td>

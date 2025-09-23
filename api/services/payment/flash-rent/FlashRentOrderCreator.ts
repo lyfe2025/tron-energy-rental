@@ -6,10 +6,10 @@
 import { query } from '../../../database/index';
 import { orderLogger } from '../../../utils/logger';
 import type {
-    EnergyConfig,
-    FlashRentConfig,
-    FlashRentTransaction,
-    OrderCalculation
+  EnergyConfig,
+  FlashRentConfig,
+  FlashRentTransaction,
+  OrderCalculation
 } from './types';
 
 export class FlashRentOrderCreator {
@@ -36,20 +36,24 @@ export class FlashRentOrderCreator {
       // 计算订单参数
       const calculation = await this.calculateOrderParameters(txID, trxAmount, networkId);
 
+      // 获取闪租时长配置
+      const flashRentConfig = await this.getFlashRentConfig(networkId);
+      const flashRentDuration = Math.round((flashRentConfig?.expiry_hours || 1.1) * 60); // 转换为分钟
+
       await query(
         `INSERT INTO orders (
           order_number, user_id, network_id, order_type, target_address,
           energy_amount, price, payment_trx_amount, calculated_units,
           payment_status, status, tron_tx_hash, 
-          source_address, error_message, processing_started_at,
+          source_address, flash_rent_duration, error_message, processing_started_at,
           processing_details, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
         [
           orderNumber,
           tempUserId,
           networkId,
           'energy_flash',
-          fromAddress,
+          fromAddress, // target_address: 接收能量的地址（支付地址）
           calculation.totalEnergy, // 立即计算的能量数量
           calculation.orderPrice, // 立即计算的订单价格
           trxAmount,
@@ -58,6 +62,7 @@ export class FlashRentOrderCreator {
           'pending', // 订单状态：待处理
           txID,
           fromAddress, // source_address: 支付来源地址
+          flashRentDuration, // flash_rent_duration: 闪租时长（分钟）
           null, // 初始创建时无错误信息
           new Date(), // processing_started_at: 处理开始时间
           JSON.stringify({ // processing_details: 处理详情
@@ -132,9 +137,9 @@ export class FlashRentOrderCreator {
           order_number, user_id, network_id, order_type, target_address,
           energy_amount, price, payment_trx_amount, calculated_units,
           payment_status, status, tron_tx_hash, 
-          source_address, error_message, processing_started_at,
+          source_address, flash_rent_duration, error_message, processing_started_at,
           processing_details, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
         [
           orderNumber,
           tempUserId,
@@ -149,6 +154,7 @@ export class FlashRentOrderCreator {
           'failed', // 订单状态为失败
           txID,
           fromAddress, // source_address: 支付来源地址
+          null, // flash_rent_duration: 失败订单没有时长
           `Processing failed: ${error.message}`, // error_message: 详细错误信息
           new Date(), // processing_started_at: 处理开始时间
           JSON.stringify({ // processing_details: 处理详情
@@ -255,7 +261,7 @@ export class FlashRentOrderCreator {
     let totalEnergy = 0;
     let orderPrice = 0;
     let singlePrice = 3; // 默认值
-    let energyPerUnit = 32000; // 默认值
+    let energyPerUnit = 66300; // 默认值（与系统配置默认值一致：65000 * 1.02）
 
     try {
       // 获取网络的闪租配置
@@ -264,18 +270,24 @@ export class FlashRentOrderCreator {
         singlePrice = flashRentConfig.single_price || flashRentConfig.price_per_unit || 3;
         const maxAmount = flashRentConfig.max_amount || flashRentConfig.max_transactions || 999;
 
-        // 从系统配置获取能量消耗参数
+        // 始终从系统配置获取能量消耗参数（忽略price_configs中的硬编码值）
         const energyConfig = await this.getEnergyConfig();
         if (energyConfig) {
           // 计算：单笔需要消耗的能量 = 标准转账能量消耗 * (1 + 安全缓冲百分比)
           energyPerUnit = Math.round(energyConfig.standard_energy * (1 + energyConfig.buffer_percentage / 100));
 
-          orderLogger.info(`   🧮 动态计算单笔能量消耗`, {
+          orderLogger.info(`   🧮 动态计算单笔能量消耗 (忽略配置硬编码)`, {
             txId: txID,
             标准能量消耗: energyConfig.standard_energy,
             缓冲百分比: energyConfig.buffer_percentage + '%',
             计算公式: `${energyConfig.standard_energy} * (1 + ${energyConfig.buffer_percentage}/100)`,
-            单笔能量消耗: energyPerUnit
+            单笔能量消耗: energyPerUnit,
+            忽略的配置值: flashRentConfig.energy_per_unit || 'null'
+          });
+        } else {
+          orderLogger.warn(`   ⚠️ 无法获取系统配置，使用默认值`, {
+            txId: txID,
+            默认energyPerUnit: energyPerUnit
           });
         }
 

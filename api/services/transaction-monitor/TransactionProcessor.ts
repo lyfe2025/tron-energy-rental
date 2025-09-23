@@ -3,6 +3,7 @@
  * 负责单个交易的完整处理流程
  */
 import { Logger } from 'winston';
+import { query } from '../../database/index.js';
 import { orderLogger } from '../../utils/logger';
 import { FlashRentOrderService } from '../order-management/FlashRentOrderService';
 import { PaymentService } from '../payment';
@@ -312,14 +313,43 @@ export class TransactionProcessor {
         step: 'flash_rent_processing'
       });
 
-      const flashRentParams = {
-        fromAddress: fromAddress,
-        trxAmount: amount,
-        networkId: networkId,
-        txId: txId
-      };
-
-      const processedOrder = await this.flashRentService.createNewFlashRentOrder(flashRentParams);
+      // 先检查是否已存在订单（避免重复创建和计算）
+      let processedOrder;
+      try {
+        // 尝试根据交易哈希获取已存在的订单
+        const existingOrderQuery = await this.getExistingOrderByTxHash(txId);
+        if (existingOrderQuery) {
+          orderLogger.info(`   📋 使用已存在的订单`, {
+            txId: txId,
+            orderId: existingOrderQuery.id,
+            orderNumber: existingOrderQuery.order_number,
+            energyAmount: existingOrderQuery.energy_amount,
+            step: 'reuse_existing_order'
+          });
+          processedOrder = existingOrderQuery;
+        } else {
+          // 如果不存在，才创建新订单
+          const flashRentParams = {
+            fromAddress: fromAddress,
+            trxAmount: amount,
+            networkId: networkId,
+            txId: txId
+          };
+          processedOrder = await this.flashRentService.processExistingFlashRentOrder(flashRentParams);
+        }
+      } catch (error) {
+        orderLogger.warn(`   ⚠️ 获取已存在订单失败，创建新订单`, {
+          txId: txId,
+          error: error.message
+        });
+        const flashRentParams = {
+          fromAddress: fromAddress,
+          trxAmount: amount,
+          networkId: networkId,
+          txId: txId
+        };
+        processedOrder = await this.flashRentService.processExistingFlashRentOrder(flashRentParams);
+      }
 
       orderLogger.info(`   🎉 订单计算和处理完成`, {
         txId: txId,
@@ -388,6 +418,33 @@ export class TransactionProcessor {
         error: error.message,
         originalFailure: failureReason
       });
+    }
+  }
+
+  /**
+   * 根据交易哈希获取已存在的订单
+   */
+  private async getExistingOrderByTxHash(txHash: string): Promise<any | null> {
+    try {
+      const result = await query(
+        `SELECT 
+          id, order_number, user_id, network_id, order_type, 
+          target_address, energy_amount, price, payment_trx_amount, 
+          calculated_units, payment_status, status, tron_tx_hash,
+          source_address, created_at, updated_at
+         FROM orders 
+         WHERE tron_tx_hash = $1 OR payment_tx_hash = $1
+         LIMIT 1`,
+        [txHash]
+      );
+
+      return result.rows.length > 0 ? result.rows[0] : null;
+    } catch (error) {
+      orderLogger.error(`获取已存在订单失败`, {
+        txHash,
+        error: error.message
+      });
+      return null;
     }
   }
 }

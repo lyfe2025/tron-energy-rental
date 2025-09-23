@@ -4,9 +4,9 @@
  */
 
 // 核心服务类
-export { FlashRentOrderCreator } from './FlashRentOrderCreator';
 export { FlashRentOrderDelegator } from './FlashRentOrderDelegator';
 export { FlashRentOrderNumberGenerator } from './FlashRentOrderNumberGenerator';
+export { FlashRentOrderProcessor } from './FlashRentOrderProcessor';
 export { FlashRentOrderRepository } from './FlashRentOrderRepository';
 export { FlashRentOrderUpdater } from './FlashRentOrderUpdater';
 

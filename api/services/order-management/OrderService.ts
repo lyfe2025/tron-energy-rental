@@ -137,7 +137,7 @@ class OrderService {
     if (existingOrderId) {
       return await this.flashRentService.updateExistingFlashRentOrder(params);
     } else {
-      return await this.flashRentService.createNewFlashRentOrder(params);
+      return await this.flashRentService.processExistingFlashRentOrder(params);
     }
   }
 }
