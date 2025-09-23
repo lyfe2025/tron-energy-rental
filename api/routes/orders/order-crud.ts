@@ -23,10 +23,10 @@ router.post('/',
   authenticateToken,
   [
     body('userId')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid user ID is required'),
     body('packageId')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid package ID is required'),
     body('energyAmount')
       .isInt({ min: 1000 })
@@ -80,7 +80,7 @@ router.get('/',
   [
     query('page')
       .optional()
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Page must be a positive integer'),
     query('limit')
       .optional()
@@ -161,13 +161,13 @@ router.get('/:id',
   authenticateToken,
   [
     param('id')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid order ID is required')
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = req.params.id;
       const order = await orderService.getOrderById(orderId);
 
       if (!order) {
@@ -202,7 +202,7 @@ router.get('/user/:userId',
   authenticateToken,
   [
     param('userId')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid user ID is required'),
     query('limit')
       .optional()

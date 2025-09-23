@@ -165,6 +165,39 @@ export class OrderLifecycleService {
     }
   }
 
+  /**
+   * 手动更新订单状态
+   * 用于管理员手动操作，如标记订单为已手动补单
+   */
+  async updateOrderStatusManually(
+    orderId: string, 
+    status: Order['status'], 
+    additionalData?: Partial<Order>
+  ): Promise<Order> {
+    try {
+      // 对于手动更新，我们需要支持UUID格式的orderId
+      const order = await this.getOrderByUUID(orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      orderLogger.info(`管理员手动更新订单状态`, {
+        orderId: orderId,
+        statusChange: {
+          from: order.status,
+          to: status
+        },
+        additionalData: additionalData || {},
+        timestamp: new Date().toISOString()
+      });
+
+      return await this.updateOrderStatusByUUID(orderId, status, additionalData);
+    } catch (error) {
+      console.error('Manual order status update error:', error);
+      throw error;
+    }
+  }
+
   private async getOrderById(orderId: number): Promise<Order | null> {
     try {
       const result = await query(
@@ -176,6 +209,20 @@ export class OrderLifecycleService {
     } catch (error) {
       console.error('Get order error:', error);
       throw error;
+    }
+  }
+
+  private async getOrderByUUID(orderId: string): Promise<Order | null> {
+    try {
+      const result = await query(
+        'SELECT * FROM orders WHERE id = $1',
+        [orderId]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Get order by UUID error:', error);
+      return null;
     }
   }
 
@@ -261,6 +308,77 @@ export class OrderLifecycleService {
           stack: error.stack
         },
         additionalData: additionalData || {}
+      });
+      throw error;
+    }
+  }
+
+  private async updateOrderStatusByUUID(
+    orderId: string, 
+    status: Order['status'], 
+    additionalData?: Partial<Order>
+  ): Promise<Order> {
+    try {
+      // 获取当前订单状态用于日志对比
+      const currentOrder = await this.getOrderByUUID(orderId);
+      const previousStatus = currentOrder?.status || 'unknown';
+
+      orderLogger.info(`订单状态更新开始 (UUID)`, {
+        orderId: orderId,
+        statusChange: {
+          from: previousStatus,
+          to: status
+        },
+        additionalData: additionalData || {},
+        timestamp: new Date().toISOString()
+      });
+
+      const updateFields = ['status = $2', 'updated_at = NOW()'];
+      const values = [orderId, status];
+      let paramIndex = 3;
+
+      // 添加额外字段
+      if (additionalData) {
+        Object.entries(additionalData).forEach(([key, value]) => {
+          if (value !== undefined && key !== 'id' && key !== 'created_at') {
+            updateFields.push(`${key} = $${paramIndex}`);
+            values.push(value);
+            paramIndex++;
+          }
+        });
+      }
+
+      const sql = `
+        UPDATE orders 
+        SET ${updateFields.join(', ')}
+        WHERE id = $1
+        RETURNING *
+      `;
+
+      const result = await query(sql, values);
+      const updatedOrder = result.rows[0];
+
+      if (!updatedOrder) {
+        throw new Error('Failed to update order status');
+      }
+
+      orderLogger.info(`订单状态更新成功 (UUID)`, {
+        orderId: orderId,
+        statusChange: {
+          from: previousStatus,
+          to: updatedOrder.status
+        },
+        additionalData: additionalData || {},
+        timestamp: new Date().toISOString()
+      });
+
+      return updatedOrder;
+    } catch (error) {
+      orderLogger.error(`订单状态更新失败 (UUID)`, {
+        orderId: orderId,
+        targetStatus: status,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       });
       throw error;
     }

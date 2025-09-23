@@ -14,7 +14,7 @@ router.post('/:id/payment-confirmed',
   authenticateToken,
   [
     param('id')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid order ID is required'),
     body('txHash')
       .isString()
@@ -27,7 +27,7 @@ router.post('/:id/payment-confirmed',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = req.params.id;
       const { txHash, amount } = req.body;
 
       await orderService.handlePaymentConfirmed(orderId, txHash, amount);

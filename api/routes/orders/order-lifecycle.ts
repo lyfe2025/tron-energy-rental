@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../../middleware/auth';
 import { handleValidationErrors } from '../../middleware/validation';
 import { orderService } from '../../services/order';
+import { orderLifecycleService } from '../../services/order/OrderLifecycleService';
 
 const router: Router = Router();
 
@@ -14,7 +15,7 @@ router.put('/:id/status',
   authenticateToken,
   [
     param('id')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid order ID is required'),
     body('status')
       .isIn(['pending', 'paid', 'processing', 'active', 'completed', 'manually_completed', 'failed', 'cancelled', 'expired'])
@@ -23,10 +24,10 @@ router.put('/:id/status',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = req.params.id;
       const { status, ...additionalData } = req.body;
 
-      const order = await orderService.updateOrderStatus(orderId, status, additionalData);
+      const order = await orderLifecycleService.updateOrderStatusManually(orderId, status, additionalData);
 
       res.json({
         success: true,
@@ -52,7 +53,7 @@ router.post('/:id/cancel',
   authenticateToken,
   [
     param('id')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid order ID is required'),
     body('reason')
       .optional()
@@ -63,7 +64,7 @@ router.post('/:id/cancel',
   handleValidationErrors,
   async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = req.params.id;
       const { reason } = req.body;
 
       const order = await orderService.cancelOrder(orderId, reason);
@@ -92,13 +93,13 @@ router.post('/:id/process-delegation',
   authenticateToken,
   [
     param('id')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid order ID is required')
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = req.params.id;
 
       await orderService.processEnergyDelegation(orderId);
 
