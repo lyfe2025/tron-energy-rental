@@ -62,11 +62,35 @@ export class FlashRentOrderUpdater {
       );
 
     } catch (error) {
-      orderLogger.error(`   ❌ 更新现有闪租订单失败`, {
+      const shortTxId = txId.substring(0, 8) + '...';
+      orderLogger.error(`📦 [${shortTxId}]    ❌ 更新现有闪租订单失败 - 详细错误信息`, {
         txId: txId,
         existingOrderId: existingOrderId,
-        error: error.message,
-        stack: error.stack
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '更新现有闪租订单时发生异常',
+        inputParameters: {
+          fromAddress: fromAddress,
+          trxAmount: trxAmount,
+          networkId: networkId,
+          hasExistingOrderId: !!existingOrderId
+        },
+        processingSteps: [
+          '1. 获取现有订单信息',
+          '2. 获取和验证闪租配置',
+          '3. 重新计算订单参数',
+          '4. 更新订单记录',
+          '5. 执行能量代理'
+        ],
+        serviceState: {
+          calculationServiceAvailable: !!this.calculationService,
+          configServiceAvailable: !!this.configService,
+          repositoryAvailable: !!this.repository,
+          delegatorAvailable: !!this.delegator
+        },
+        errorContext: '在处理现有闪租订单更新流程中发生异常'
       });
       throw error;
     }

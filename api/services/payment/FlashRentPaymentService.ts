@@ -176,14 +176,43 @@ export class FlashRentPaymentService {
         });
         
       } catch (processingError) {
-        orderLogger.error(`❌ 闪租支付处理失败`, {
+        const shortTxId = flashRentTransaction.txID.substring(0, 8) + '...';
+        orderLogger.error(`📦 [${shortTxId}] ❌ 闪租支付处理失败 - 详细错误信息`, {
           txId: flashRentTransaction.txID,
           networkName,
-          error: processingError.message,
-          stack: processingError.stack,
-          fromAddress: flashRentTransaction.from,
-          amount: `${flashRentTransaction.amount} TRX`,
-          status: 'processing_failed'
+          errorMessage: processingError.message,
+          errorStack: processingError.stack,
+          errorName: processingError.name,
+          errorCode: processingError.code,
+          processStep: '闪租支付处理服务层发生异常',
+          transactionDetails: {
+            fromAddress: flashRentTransaction.from,
+            toAddress: flashRentTransaction.to,
+            amount: `${flashRentTransaction.amount} TRX`,
+            confirmed: flashRentTransaction.confirmed,
+            timestamp: flashRentTransaction.timestamp
+          },
+          processingContext: {
+            hasExistingOrderId: !!flashRentTransaction._existingOrderId,
+            existingOrderId: flashRentTransaction._existingOrderId || null,
+            isInitialCreation: !!flashRentTransaction._isInitialCreation,
+            isOrderUpdate: !!flashRentTransaction._isOrderUpdate,
+            networkId: networkId
+          },
+          serviceState: {
+            orderServiceAvailable: 'attempted to get OrderService',
+            method: 'createFlashRentOrder',
+            serviceLayer: 'FlashRentPaymentService'
+          },
+          processingSteps: [
+            '1. 严格去重检查（并发安全）',
+            '2. 数据库去重检查',
+            '3. 记录日志和基础数据',
+            '4. 验证交易有效性',
+            '5. 创建闪租订单'
+          ],
+          status: 'processing_failed',
+          errorContext: '在处理闪租支付创建订单时发生异常'
         });
         
         // 检查是否已经有订单记录了，如果有就不再创建失败记录
@@ -214,11 +243,40 @@ export class FlashRentPaymentService {
       }
       
     } catch (error) {
-      orderLogger.error(`❌ 整体处理失败（含锁操作）`, {
+      const shortTxId = flashRentTransaction.txID.substring(0, 8) + '...';
+      orderLogger.error(`📦 [${shortTxId}] ❌ 整体处理失败（含锁操作） - 详细错误信息`, {
         txId: flashRentTransaction.txID,
         networkName,
-        error: error.message,
-        status: 'overall_processing_failed'
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '闪租支付处理整体流程发生异常',
+        transactionDetails: {
+          fromAddress: flashRentTransaction.from,
+          toAddress: flashRentTransaction.to,
+          amount: `${flashRentTransaction.amount} TRX`,
+          confirmed: flashRentTransaction.confirmed,
+          timestamp: flashRentTransaction.timestamp
+        },
+        lockManagement: {
+          lockKey: `flash_rent_lock:${flashRentTransaction.txID}`,
+          lockAcquisitionAttempted: true,
+          lockReleaseAttempted: true
+        },
+        processingContext: {
+          isInitialCreation: !!flashRentTransaction._isInitialCreation,
+          isOrderUpdate: !!flashRentTransaction._isOrderUpdate,
+          networkId: networkId,
+          networkName: networkName
+        },
+        serviceState: {
+          validatorAvailable: !!this.validator,
+          serviceLayer: 'FlashRentPaymentService',
+          method: 'handleFlashRentPayment'
+        },
+        status: 'overall_processing_failed',
+        errorContext: '在闪租支付处理的最外层发生异常，包含锁管理操作'
       });
     }
   }

@@ -82,11 +82,29 @@ export class FlashRentOrderService {
 
       return result;
     } catch (error) {
-      orderLogger.error(`❌ 现有闪租订单更新失败`, {
+      const shortTxId = txId.substring(0, 8) + '...';
+      orderLogger.error(`📦 [${shortTxId}] ❌ 现有闪租订单更新失败 - 详细错误信息`, {
         txId: txId,
         existingOrderId: existingOrderId,
-        error: error.message,
-        operation: 'update_existing_order'
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '现有闪租订单更新服务层发生异常',
+        operation: 'update_existing_order',
+        inputParameters: {
+          fromAddress: fromAddress,
+          trxAmount: trxAmount,
+          networkId: networkId,
+          hasExistingOrderId: !!existingOrderId
+        },
+        serviceContext: {
+          orderUpdaterAvailable: !!this.orderUpdater,
+          method: 'updateExistingFlashRentOrder',
+          serviceLayer: 'FlashRentOrderService'
+        },
+        delegatedTo: 'FlashRentOrderUpdater.updateExistingFlashRentOrder',
+        errorContext: '在调用订单更新器时发生异常'
       });
       throw error;
     }

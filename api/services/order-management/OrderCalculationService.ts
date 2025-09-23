@@ -8,6 +8,23 @@ import type { FlashRentConfig, OrderCalculationResult } from './types';
 export class OrderCalculationService {
   /**
    * 计算可购买的笔数
+   * 
+   * 重要说明：
+   * 1. 当支付金额不足购买1笔时，返回0笔（不强制最小为1笔）
+   * 2. 当支付金额超过最大笔数允许的金额时，系统会：
+   *    - 将笔数限制在最大值（maxUnits）
+   *    - 按最大笔数计算能量分配
+   *    - 用户支付的多余金额不会获得额外能量
+   * 
+   * 例如1：单价3TRX，用户支付2TRX：
+   * - 计算结果：2÷3=0笔（向下取整）
+   * - 实际获得：0笔，0能量
+   * 
+   * 例如2：单价3TRX，最大5笔，用户支付25TRX：
+   * - 理论可买：25÷3=8笔
+   * - 实际获得：5笔（受最大限制）
+   * - 能量分配：5笔对应的能量
+   * - 实际使用：15TRX（多支付10TRX不获得额外收益）
    */
   calculateUnits(amount: number, config: FlashRentConfig): number {
     const pricePerUnit = config.single_price || config.price_per_unit || 0;
@@ -18,6 +35,7 @@ export class OrderCalculationService {
     }
 
     const calculatedUnits = Math.floor(amount / pricePerUnit);
+    // 关键逻辑：限制笔数不超过最大值，允许0笔（支付金额不足时）
     return Math.min(calculatedUnits, maxUnits);
   }
 
@@ -71,18 +89,21 @@ export class OrderCalculationService {
 
   /**
    * 验证计算结果
+   * 
+   * 注意：0笔被认为是有效结果（表示支付金额不足，但仍可创建订单记录）
    */
   validateCalculationResult(
     trxAmount: number,
     calculatedUnits: number,
     totalEnergy: number
   ): OrderCalculationResult {
+    // 0笔是有效结果，表示支付金额不足购买1笔，但仍应创建订单记录
     if (calculatedUnits === 0) {
       return {
         calculatedUnits,
         totalEnergy,
-        isValid: false,
-        reason: `Insufficient payment amount: ${trxAmount} TRX`
+        isValid: true,
+        reason: `Payment amount ${trxAmount} TRX is insufficient to purchase 1 unit, processed as 0 units`
       };
     }
 

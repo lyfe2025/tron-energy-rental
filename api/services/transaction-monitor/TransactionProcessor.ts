@@ -33,10 +33,11 @@ export class TransactionProcessor {
     tronWebInstance: any
   ): Promise<void> {
     const txId = rawTx.txID;
+    const shortTxId = txId.substring(0, 8) + '...';
 
     // 检查是否已处理过
     if (await this.transactionCache.isTransactionProcessed(txId)) {
-      orderLogger.info(`   ⏭️ 交易已处理过，跳过`, {
+      orderLogger.info(`📦 [${shortTxId}] ⏭️ 交易已处理过，跳过`, {
         txId: txId,
         networkName,
         reason: 'already_processed'
@@ -46,34 +47,55 @@ export class TransactionProcessor {
 
     // 立即标记交易为正在处理（防止并发）
     await this.transactionCache.markTransactionProcessed(txId);
-    orderLogger.info(`   🔒 交易已标记为处理中`, {
+    orderLogger.info(`📦 [${shortTxId}] 🔒 交易已标记为处理中`, {
       txId: txId,
       networkName,
       step: 'mark_processing'
     });
 
-    // 首先创建订单记录
+    // 1. 创建初始订单记录
     let orderNumber: string | null = null;
     try {
+      orderLogger.info(`📦 [${shortTxId}] 1. 创建初始订单记录`, {
+        txId: txId,
+        networkName,
+        step: 1
+      });
       orderNumber = await this.createInitialOrderRecord(rawTx, networkId, networkName);
-      orderLogger.info(`   ✅ 初始订单记录已创建: ${orderNumber}`, {
+      orderLogger.info(`📦 [${shortTxId}] ✅ 初始订单记录已创建: ${orderNumber}`, {
         txId: txId,
         networkName,
         orderNumber,
-        step: 2.5
+        step: 1
       });
     } catch (createOrderError) {
-      orderLogger.error(`   ❌ 创建初始订单记录失败`, {
+      orderLogger.error(`📦 [${shortTxId}] ❌ 创建初始订单记录失败 - 详细错误信息`, {
         txId: txId,
         networkName,
-        error: createOrderError.message
+        step: 1,
+        errorMessage: createOrderError.message,
+        errorStack: createOrderError.stack,
+        errorName: createOrderError.name,
+        errorCode: createOrderError.code,
+        processStep: '创建初始订单记录时发生异常',
+        transactionData: {
+          timestamp: rawTx.raw_data?.timestamp,
+          contractType: rawTx.raw_data?.contract?.[0]?.type,
+          contractCount: rawTx.raw_data?.contract?.length || 0,
+          hasParameter: !!rawTx.raw_data?.contract?.[0]?.parameter?.value
+        }
       });
-      // 创建订单失败时，也保持交易标记为已处理（避免重复尝试）
       return;
     }
 
     try {
-      // 验证交易确认状态
+      // 2. 验证交易确认状态
+      orderLogger.info(`📦 [${shortTxId}] 2. 验证交易确认状态`, {
+        txId: txId,
+        networkName,
+        step: 2
+      });
+
       const txInfo = await this.transactionParser.validateAndGetTransactionInfo(
         txId,
         networkName,
@@ -81,13 +103,37 @@ export class TransactionProcessor {
       );
 
       if (!txInfo) {
-        // 交易验证失败，更新订单为失败
+        orderLogger.error(`📦 [${shortTxId}] ❌ 交易验证失败 - 详细错误信息`, {
+          txId: txId,
+          networkName,
+          step: 2,
+          orderNumber: orderNumber,
+          errorReason: 'Transaction validation failed - txInfo not found',
+          processStep: '验证交易确认状态时失败',
+          validationDetails: {
+            txInfoResult: txInfo,
+            tronWebInstanceAvailable: !!tronWebInstance,
+            networkName: networkName,
+            validationMethod: 'validateAndGetTransactionInfo'
+          },
+          transactionData: {
+            timestamp: rawTx.raw_data?.timestamp,
+            contractType: rawTx.raw_data?.contract?.[0]?.type,
+            contractCount: rawTx.raw_data?.contract?.length || 0
+          }
+        });
         await this.updateOrderToFailed(orderNumber!, networkId, 'Transaction validation failed - txInfo not found');
         return;
       }
 
-      // 解析交易详情
-      orderLogger.info(`   3. 解析交易详情`, {
+      orderLogger.info(`📦 [${shortTxId}] ✅ 交易验证成功`, {
+        txId: txId,
+        networkName,
+        step: 2
+      });
+
+      // 3. 解析交易详情
+      orderLogger.info(`📦 [${shortTxId}] 3. 解析交易详情`, {
         txId: txId,
         networkName,
         step: 3
@@ -96,18 +142,35 @@ export class TransactionProcessor {
       const transaction = await this.transactionParser.parseTransaction(rawTx, txInfo, tronWebInstance);
 
       if (!transaction) {
-        orderLogger.warn(`   ❌ 交易解析失败，更新订单状态`, {
+        orderLogger.error(`📦 [${shortTxId}] ❌ 交易解析失败 - 详细错误信息`, {
           txId: txId,
           networkName,
           step: 3,
-          reason: '解析结果为null'
+          orderNumber: orderNumber,
+          errorReason: 'Transaction parsing failed - invalid transaction format',
+          processStep: '解析交易详情时失败',
+          parsingDetails: {
+            transactionResult: transaction,
+            txInfoAvailable: !!txInfo,
+            tronWebInstanceAvailable: !!tronWebInstance,
+            parsingMethod: 'parseTransaction'
+          },
+          inputData: {
+            rawTxStructure: {
+              hasRawData: !!rawTx.raw_data,
+              hasContract: !!rawTx.raw_data?.contract,
+              contractCount: rawTx.raw_data?.contract?.length || 0,
+              contractType: rawTx.raw_data?.contract?.[0]?.type,
+              hasParameter: !!rawTx.raw_data?.contract?.[0]?.parameter
+            },
+            txInfoStructure: typeof txInfo === 'object' ? Object.keys(txInfo || {}) : 'not_object'
+          }
         });
-        // 交易解析失败，更新订单为失败
         await this.updateOrderToFailed(orderNumber!, networkId, 'Transaction parsing failed - invalid transaction format');
         return;
       }
 
-      orderLogger.info(`   ✅ 交易解析成功`, {
+      orderLogger.info(`📦 [${shortTxId}] ✅ 交易解析成功`, {
         txId: transaction.txID,
         networkName,
         step: 3,
@@ -117,8 +180,8 @@ export class TransactionProcessor {
         confirmed: transaction.confirmed
       });
 
-      // 4. 检测到新的TRX转账
-      orderLogger.info(`   4. 检测到TRX转账: ${transaction.amount} TRX`, {
+      // 4. 检测到TRX转账，转交给PaymentService处理
+      orderLogger.info(`📦 [${shortTxId}] 4. 检测到TRX转账: ${transaction.amount} TRX，转交给PaymentService处理`, {
         txId: transaction.txID,
         amount: `${transaction.amount} TRX`,
         from: transaction.from,
@@ -127,20 +190,12 @@ export class TransactionProcessor {
         step: 4
       });
 
-      // 5. 转交给PaymentService处理
-      orderLogger.info(`   5. 转交给PaymentService处理`, {
-        txId: transaction.txID,
-        networkName,
-        step: 5
-      });
-
       await this.paymentService.handleFlashRentPayment(transaction, networkId);
 
-      orderLogger.info(`   ✅ 交易处理完成`, {
+      orderLogger.info(`📦 [${shortTxId}] ✅ 交易处理完成`, {
         txId: transaction.txID,
         networkName,
-        status: 'completed',
-        step: 6
+        status: 'completed'
       });
 
     } catch (error) {
@@ -151,14 +206,27 @@ export class TransactionProcessor {
         await this.updateOrderToFailed(orderNumber, networkId, `Processing error: ${error.message}`);
       }
       
-      orderLogger.info(`   ❌ 交易处理失败（已标记为已处理）`, {
+      orderLogger.error(`📦 [${shortTxId}] ❌ 交易处理失败 - 详细错误信息`, {
         txId: txId,
         networkName,
-        step: 6,
-        status: 'failed_but_already_marked',
-        reason: error.message
+        status: 'failed',
+        orderNumber: orderNumber || 'N/A',
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '处理交易时发生异常',
+        transactionData: {
+          timestamp: rawTx.raw_data?.timestamp,
+          contractType: rawTx.raw_data?.contract?.[0]?.type,
+          contractCount: rawTx.raw_data?.contract?.length || 0
+        },
+        systemState: {
+          networkId: networkId,
+          tronWebAvailable: !!tronWebInstance,
+          paymentServiceAvailable: !!this.paymentService
+        }
       });
-      // 注意：交易已在开始时标记为已处理，无需重复标记
     }
   }
 
@@ -213,17 +281,34 @@ export class TransactionProcessor {
         for (const tx of recentTransactions) {
           try {
             processedCount++;
-            orderLogger.info(`${processedCount}. 处理交易: ${tx.txID}`, {
+            const shortTxId = tx.txID.substring(0, 8) + '...';
+            orderLogger.info(`📦 [${shortTxId}] ${processedCount}. 处理交易: ${tx.txID}`, {
               txId: tx.txID,
               networkName,
               step: 1
             });
             await this.processSingleTransaction(tx, networkId, networkName, tronWebInstance);
           } catch (error) {
-            orderLogger.error(`❌ 处理交易失败 ${tx.txID}`, {
+            const shortTxId = tx.txID.substring(0, 8) + '...';
+            orderLogger.error(`📦 [${shortTxId}] ❌ 处理交易失败 - 详细错误信息`, {
               txId: tx.txID,
               networkName,
-              error: error.message
+              errorMessage: error.message,
+              errorStack: error.stack,
+              errorName: error.name,
+              errorCode: error.code,
+              processStep: '批量处理交易时发生异常',
+              transactionData: {
+                timestamp: tx.raw_data?.timestamp,
+                contractType: tx.raw_data?.contract?.[0]?.type,
+                contractCount: tx.raw_data?.contract?.length || 0,
+                hasParameter: !!tx.raw_data?.contract?.[0]?.parameter?.value
+              },
+              batchInfo: {
+                currentIndex: processedCount,
+                totalTransactions: recentTransactions.length,
+                networkId: networkId
+              }
             });
           }
         }
@@ -249,8 +334,9 @@ export class TransactionProcessor {
     networkName: string
   ): Promise<string> {
     const txId = rawTx.txID;
+    const shortTxId = txId.substring(0, 8) + '...';
     
-    orderLogger.info(`   📝 创建初始订单记录`, {
+    orderLogger.info(`📦 [${shortTxId}]    📝 创建初始订单记录`, {
       txId: txId,
       networkName,
       step: 'create_initial_order'
@@ -269,9 +355,28 @@ export class TransactionProcessor {
         amount = (parameter.amount || 0) / 1000000; // 转换为TRX
       }
     } catch (extractError) {
-      orderLogger.warn(`   提取交易信息失败，使用默认值`, {
+      orderLogger.warn(`📦 [${shortTxId}]    ⚠️ 提取交易信息失败，使用默认值 - 详细警告信息`, {
         txId: txId,
-        error: extractError.message
+        networkName,
+        warningMessage: extractError.message,
+        warningStack: extractError.stack,
+        warningName: extractError.name,
+        warningCode: extractError.code,
+        processStep: '提取交易基本信息时发生异常',
+        extractionAttempt: {
+          hasRawData: !!rawTx?.raw_data,
+          hasContract: !!rawTx?.raw_data?.contract,
+          contractArray: Array.isArray(rawTx?.raw_data?.contract),
+          contractLength: rawTx?.raw_data?.contract?.length || 0,
+          firstContractType: rawTx?.raw_data?.contract?.[0]?.type,
+          hasParameter: !!rawTx?.raw_data?.contract?.[0]?.parameter,
+          hasParameterValue: !!rawTx?.raw_data?.contract?.[0]?.parameter?.value
+        },
+        fallbackValues: {
+          fromAddress: 'unknown',
+          toAddress: 'unknown',
+          amount: 0
+        }
       });
     }
 
@@ -295,7 +400,7 @@ export class TransactionProcessor {
 
     await this.paymentService.handleFlashRentPayment(initialTransaction, networkId);
 
-    orderLogger.info(`   ✅ 初始订单记录创建完成`, {
+    orderLogger.info(`📦 [${shortTxId}]    ✅ 初始订单记录创建完成`, {
       txId: txId,
       networkName,
       orderNumber,
@@ -306,7 +411,7 @@ export class TransactionProcessor {
 
     // 立即进行真正的订单计算和处理
     try {
-      orderLogger.info(`   🧮 开始进行订单计算和能量委托`, {
+      orderLogger.info(`📦 [${shortTxId}]    🧮 开始进行订单计算和能量委托`, {
         txId: txId,
         networkName,
         orderNumber,
@@ -319,7 +424,7 @@ export class TransactionProcessor {
         // 尝试根据交易哈希获取已存在的订单
         const existingOrderQuery = await this.getExistingOrderByTxHash(txId);
         if (existingOrderQuery) {
-          orderLogger.info(`   📋 使用已存在的订单`, {
+          orderLogger.info(`📦 [${shortTxId}]    📋 使用已存在的订单`, {
             txId: txId,
             orderId: existingOrderQuery.id,
             orderNumber: existingOrderQuery.order_number,
@@ -338,9 +443,21 @@ export class TransactionProcessor {
           processedOrder = await this.flashRentService.processExistingFlashRentOrder(flashRentParams);
         }
       } catch (error) {
-        orderLogger.warn(`   ⚠️ 获取已存在订单失败，创建新订单`, {
+        orderLogger.warn(`📦 [${shortTxId}]    ⚠️ 获取已存在订单失败，创建新订单 - 详细警告信息`, {
           txId: txId,
-          error: error.message
+          networkName,
+          orderNumber,
+          warningMessage: error.message,
+          warningStack: error.stack,
+          warningName: error.name,
+          warningCode: error.code,
+          processStep: '获取已存在订单时发生异常',
+          fallbackAction: '将创建新的闪租订单',
+          queryAttempt: {
+            method: 'getExistingOrderByTxHash',
+            txHash: txId,
+            networkId: networkId
+          }
         });
         const flashRentParams = {
           fromAddress: fromAddress,
@@ -351,7 +468,7 @@ export class TransactionProcessor {
         processedOrder = await this.flashRentService.processExistingFlashRentOrder(flashRentParams);
       }
 
-      orderLogger.info(`   🎉 订单计算和处理完成`, {
+      orderLogger.info(`📦 [${shortTxId}]    🎉 订单计算和处理完成`, {
         txId: txId,
         networkName,
         orderNumber,
@@ -362,12 +479,27 @@ export class TransactionProcessor {
       });
 
     } catch (flashRentError) {
-      orderLogger.error(`   ❌ 订单计算和处理失败`, {
+      orderLogger.error(`📦 [${shortTxId}]    ❌ 订单计算和处理失败 - 详细错误信息`, {
         txId: txId,
         networkName,
         orderNumber,
-        error: flashRentError.message,
-        step: 'flash_rent_processing_failed'
+        errorMessage: flashRentError.message,
+        errorStack: flashRentError.stack,
+        errorName: flashRentError.name,
+        errorCode: flashRentError.code,
+        processStep: '闪租订单计算和处理时发生异常',
+        orderCreationContext: {
+          fromAddress: fromAddress,
+          toAddress: toAddress,
+          amount: `${amount} TRX`,
+          networkId: networkId,
+          orderNumber: orderNumber
+        },
+        serviceState: {
+          flashRentServiceAvailable: !!this.flashRentService,
+          method: 'processExistingFlashRentOrder'
+        },
+        note: '基础订单已经创建成功，但闪租处理失败'
       });
       // 不抛出错误，因为基础订单已经创建成功
     }
@@ -384,7 +516,7 @@ export class TransactionProcessor {
     failureReason: string
   ): Promise<void> {
     try {
-      orderLogger.info(`   📝 更新订单为失败状态`, {
+      orderLogger.info(`📦 [${orderNumber}] 📝 更新订单为失败状态`, {
         orderNumber: orderNumber,
         reason: failureReason,
         step: 'update_order_failed'
@@ -406,17 +538,34 @@ export class TransactionProcessor {
 
       await this.paymentService.handleFlashRentPayment(updateTransaction, networkId);
 
-      orderLogger.info(`   ✅ 订单状态更新完成`, {
+      orderLogger.info(`📦 [${orderNumber}] ✅ 订单状态更新完成`, {
         orderNumber: orderNumber,
         status: 'failed',
         reason: failureReason
       });
 
     } catch (error) {
-      orderLogger.error(`   ❌ 更新订单状态失败`, {
+      orderLogger.error(`📦 [${orderNumber}] ❌ 更新订单状态失败 - 详细错误信息`, {
         orderNumber: orderNumber,
-        error: error.message,
-        originalFailure: failureReason
+        networkId: networkId,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '更新订单为失败状态时发生异常',
+        originalFailure: failureReason,
+        updateAttempt: {
+          method: 'handleFlashRentPayment',
+          updateType: 'failed',
+          paymentServiceAvailable: !!this.paymentService
+        },
+        updateTransaction: {
+          txID: 'update-failed',
+          from: 'system',
+          to: 'system',
+          amount: 0,
+          isOrderUpdate: true
+        }
       });
     }
   }
@@ -425,6 +574,7 @@ export class TransactionProcessor {
    * 根据交易哈希获取已存在的订单
    */
   private async getExistingOrderByTxHash(txHash: string): Promise<any | null> {
+    const shortTxId = txHash.substring(0, 8) + '...';
     try {
       const result = await query(
         `SELECT 
@@ -440,9 +590,20 @@ export class TransactionProcessor {
 
       return result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      orderLogger.error(`获取已存在订单失败`, {
-        txHash,
-        error: error.message
+      orderLogger.error(`📦 [${shortTxId}] ❌ 获取已存在订单失败 - 详细错误信息`, {
+        txHash: txHash,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        errorCode: error.code,
+        processStep: '数据库查询已存在订单时发生异常',
+        queryDetails: {
+          method: 'query',
+          table: 'orders',
+          condition: 'tron_tx_hash = $1',
+          parameter: txHash
+        },
+        querySQL: 'SELECT id, order_number, user_id... FROM orders WHERE tron_tx_hash = $1 LIMIT 1'
       });
       return null;
     }

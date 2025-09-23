@@ -6,10 +6,10 @@
 import { query } from '../../../database/index';
 import { orderLogger } from '../../../utils/logger';
 import type {
-    EnergyConfig,
-    FlashRentConfig,
-    FlashRentTransaction,
-    OrderCalculation
+  EnergyConfig,
+  FlashRentConfig,
+  FlashRentTransaction,
+  OrderCalculation
 } from './types';
 
 export class FlashRentOrderCreator {
@@ -293,8 +293,8 @@ export class FlashRentOrderCreator {
 
         // 计算笔数（向下取整，确保不超过用户支付能力）
         calculatedUnits = Math.floor(trxAmount / singlePrice);
-        // 限制在最大笔数范围内
-        calculatedUnits = Math.max(1, Math.min(maxAmount, calculatedUnits));
+        // 限制在最大笔数范围内 - 重要：允许0笔（支付金额不足时），限制最大笔数
+        calculatedUnits = Math.min(maxAmount, calculatedUnits);
         // 计算总能量
         totalEnergy = calculatedUnits * energyPerUnit;
         // 计算订单价格（实际使用的价格，可能少于支付金额）
@@ -317,9 +317,9 @@ export class FlashRentOrderCreator {
     }
 
     // 如果没有获取到配置或计算失败，使用默认配置
-    if (calculatedUnits === 0) {
+    if (calculatedUnits === 0 && trxAmount >= singlePrice) {
       calculatedUnits = Math.floor(trxAmount / singlePrice);
-      calculatedUnits = Math.max(1, Math.min(13, calculatedUnits));
+      calculatedUnits = Math.min(13, calculatedUnits); // 允许0笔，限制最大13笔
       totalEnergy = calculatedUnits * energyPerUnit;
       orderPrice = calculatedUnits * singlePrice;
       
