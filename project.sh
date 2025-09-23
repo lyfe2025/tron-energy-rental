@@ -41,6 +41,11 @@ load_module "log-manager" || {
     exit 1
 }
 
+load_module "log-table-cleaner" || {
+    echo "日志表清理模块加载失败"
+    exit 1
+}
+
 load_module "database-manager" || {
     echo "数据库管理模块加载失败"
     exit 1
@@ -57,6 +62,7 @@ show_help() {
     echo -e "  ${GREEN}${ARROW}${NC} 安全重启所有服务（带进程验证）"
     echo -e "  ${GREEN}${ARROW}${NC} 智能服务状态检查"
     echo -e "  ${GREEN}${ARROW}${NC} 管理日志文件（查看、清理、统计）"
+    echo -e "  ${GREEN}${ARROW}${NC} 清理数据库日志表（按需清理）"
     echo -e "  ${GREEN}${ARROW}${NC} 数据库完整备份（结构+数据）"
     echo -e "  ${GREEN}${ARROW}${NC} 数据库恢复和验证"
     echo ""
@@ -69,6 +75,7 @@ show_help() {
     echo -e "  ${GREEN}${ARROW}${NC} 工具函数: ${YELLOW}scripts/core/utils.sh${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 服务管理: ${YELLOW}scripts/core/service-manager.sh${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 日志管理: ${YELLOW}scripts/core/log-manager.sh${NC}"
+    echo -e "  ${GREEN}${ARROW}${NC} 日志表清理: ${YELLOW}scripts/core/log-table-cleaner.sh${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 数据库管理: ${YELLOW}scripts/core/database-manager.sh${NC}"
     echo ""
     echo -e "${BOLD}独立脚本:${NC}"
@@ -106,10 +113,11 @@ show_menu() {
     echo ""
     echo -e "${BOLD}系统管理:${NC}"
     echo -e "  ${BOLD}5)${NC} 日志管理"
-    echo -e "  ${BOLD}6)${NC} 数据库管理"
+    echo -e "  ${BOLD}6)${NC} 清理日志表"
+    echo -e "  ${BOLD}7)${NC} 数据库管理"
     echo ""
     echo -e "${BOLD}其他:${NC}"
-    echo -e "  ${BOLD}7)${NC} 帮助信息"
+    echo -e "  ${BOLD}8)${NC} 帮助信息"
     echo -e "  ${BOLD}0)${NC} 退出"
     echo ""
 }
@@ -142,9 +150,12 @@ main() {
                 manage_logs || true
                 ;;
             6)
-                manage_database || true
+                manage_log_table_cleanup || true
                 ;;
             7)
+                manage_database || true
+                ;;
+            8)
                 show_help || true
                 ;;
             0)
