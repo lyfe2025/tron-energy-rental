@@ -6,7 +6,7 @@
 import { useToast } from '../../../composables/useToast'
 
 export function useSettingsIO() {
-  const toast = useToast()
+  const { success, error } = useToast()
 
   /**
    * 导出设置
@@ -37,10 +37,10 @@ export function useSettingsIO() {
       link.click()
       
       URL.revokeObjectURL(url)
-      toast.success('设置导出成功')
+      success('设置导出成功')
     } catch (error) {
       console.error('导出设置失败:', error)
-      toast.error('导出设置失败，请稍后重试')
+      error('导出设置失败，请稍后重试')
     }
   }
 
@@ -69,14 +69,14 @@ export function useSettingsIO() {
         if (settings.advanced) Object.assign(advancedModule.advancedSettings, settings.advanced)
         
         setDirty(true)
-        toast.success('设置导入成功')
+        success('设置导入成功')
       } catch (error) {
         console.error('Failed to import settings:', error)
-        toast.error('设置导入失败：文件格式不正确')
+        error('设置导入失败：文件格式不正确')
       }
     }
     reader.onerror = () => {
-      toast.error('文件读取失败，请检查文件是否损坏')
+      error('文件读取失败，请检查文件是否损坏')
     }
     reader.readAsText(file)
   }

@@ -10,7 +10,7 @@ import { useAdminStore } from './useAdminStore'
 
 export function useAdminForm() {
   const adminStore = useAdminStore()
-  const toast = useToast()
+  const { success } = useToast()
   const { handleApiError } = useAdminNetwork()
 
   // 处理表单提交
@@ -37,7 +37,7 @@ export function useAdminForm() {
         return
       }
       
-      toast.success(isEdit ? '管理员更新成功' : '管理员创建成功')
+      success(isEdit ? '管理员更新成功' : '管理员创建成功')
       closeModal()
       
       // 刷新数据
@@ -56,7 +56,7 @@ export function useAdminForm() {
   // 处理权限保存
   const handlePermissionSaved = async () => {
     try {
-      toast.success('权限配置保存成功')
+      success('权限配置保存成功')
       await adminStore.fetchAdmins()
       
       if (adminStore.error.value) {
@@ -77,7 +77,7 @@ export function useAdminForm() {
         return
       }
       
-      toast.success('角色分配成功')
+      success('角色分配成功')
       
       // 刷新数据
       await Promise.all([
@@ -92,7 +92,7 @@ export function useAdminForm() {
   // 处理角色分配保存
   const handleRoleAssignSaved = async () => {
     try {
-      toast.success('角色分配成功')
+      success('角色分配成功')
       await adminStore.fetchAdmins()
       
       if (adminStore.error.value) {

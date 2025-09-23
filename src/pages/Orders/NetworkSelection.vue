@@ -19,12 +19,12 @@
             <!-- 网络图标和名称 -->
             <div class="flex items-center mb-4">
               <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4"
-                   :class="getNetworkIconClass(network.type)">
-                <span class="text-white font-bold text-lg">{{ getNetworkIcon(network.type) }}</span>
+                   :class="getNetworkIconClass(network.network_type || network.type)">
+                <span class="text-white font-bold text-lg">{{ getNetworkIcon(network.network_type || network.type) }}</span>
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900">{{ network.name }}</h3>
-                <p class="text-sm text-gray-500">{{ getNetworkTypeText(network.type) }}</p>
+                <p class="text-sm text-gray-500">{{ getNetworkTypeText(network.network_type || network.type) }}</p>
               </div>
             </div>
 
@@ -95,14 +95,15 @@
 
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
+import { useToast } from '@/composables/useToast'
 import { getNetworkIcon, getNetworkIconClass, getNetworkTypeText } from '@/utils/network'
-import { toast } from 'sonner'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface Network {
   id: number
   name: string
+  network_type?: string
   type?: string
   rpc_url: string
   explorer_url?: string
@@ -110,13 +111,14 @@ interface Network {
 }
 
 const router = useRouter()
+const { error } = useToast()
 const loading = ref(true)
 const networks = ref<Network[]>([])
 
 // 处理网络卡片点击
 const handleNetworkClick = (network: Network) => {
   if (!network.is_active) {
-    toast.error('该网络当前不可用')
+    error('该网络当前不可用')
     return
   }
   goToOrderManagement(network)
@@ -125,7 +127,7 @@ const handleNetworkClick = (network: Network) => {
 // 跳转到订单管理
 const goToOrderManagement = (network: Network) => {
   if (!network.is_active) {
-    toast.error('该网络当前不可用')
+    error('该网络当前不可用')
     return
   }
   router.push({
@@ -157,7 +159,7 @@ const loadNetworks = async () => {
     })
   } catch (error: any) {
     console.error('❌ [Orders NetworkSelection] 加载网络列表失败:', error)
-    toast.error(error.message || '加载网络列表失败')
+    error(error.message || '加载网络列表失败')
   } finally {
     loading.value = false
   }

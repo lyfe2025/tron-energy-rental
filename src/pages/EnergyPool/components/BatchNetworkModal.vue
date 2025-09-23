@@ -82,12 +82,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { networkApi } from '@/api/network'
-import { energyPoolAPI } from '@/services/api/energy-pool/energyPoolAPI'
-import { batchValidateNetworkConfig, formatValidationResult } from '@/utils/networkValidation'
+import { useToast } from '@/composables/useToast'
 import type { TronNetwork } from '@/types/network'
+import { batchValidateNetworkConfig } from '@/utils/networkValidation'
+import { ref, watch } from 'vue'
 
 interface Props {
   visible: boolean
@@ -101,6 +100,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error, warning } = useToast()
 
 const selectedNetworkId = ref('')
 const networks = ref<TronNetwork[]>([])
@@ -130,7 +131,7 @@ const loadNetworks = async () => {
     }
   } catch (error) {
     console.error('加载网络列表失败:', error)
-    ElMessage.error('加载网络列表失败')
+    error('加载网络列表失败')
   }
 }
 
@@ -167,13 +168,13 @@ const validateBatchNetworkSelection = async (networkId: string) => {
     const warningCount = results.filter(r => r.isValid && r.warnings.length > 0).length
     
     if (failedCount > 0) {
-      ElMessage.error(`${failedCount} 个账户的网络配置验证失败`)
+      error(`${failedCount} 个账户的网络配置验证失败`)
     } else if (warningCount > 0) {
-      ElMessage.warning(`${warningCount} 个账户的网络配置存在警告`)
+      warning(`${warningCount} 个账户的网络配置存在警告`)
     }
   } catch (error: any) {
     console.error('Batch network validation error:', error)
-    ElMessage.error('批量网络验证失败')
+    error('批量网络验证失败')
   } finally {
     isValidatingNetwork.value = false
   }
@@ -182,7 +183,7 @@ const validateBatchNetworkSelection = async (networkId: string) => {
 // 处理提交
 const handleSubmit = async () => {
   if (!selectedNetworkId.value || props.selectedAccounts.length === 0) {
-    ElMessage.warning('请选择网络和账户')
+    warning('请选择网络和账户')
     return
   }
   
@@ -191,7 +192,7 @@ const handleSubmit = async () => {
   
   const failedValidations = validationResults.value.filter(r => !r.isValid)
   if (failedValidations.length > 0) {
-    ElMessage.error(`部分账户网络配置验证失败，无法继续。${failedValidations.length} 个账户验证失败`)
+    error(`部分账户网络配置验证失败，无法继续。${failedValidations.length} 个账户验证失败`)
     return
   }
   
@@ -201,12 +202,12 @@ const handleSubmit = async () => {
     // 直接返回成功，因为账户不再需要绑定特定网络
     console.log('批量网络设置已跳过，因为不再需要network_id字段')
     
-    ElMessage.success(`成功为 ${props.selectedAccounts.length} 个账户设置网络`)
+    success(`成功为 ${props.selectedAccounts.length} 个账户设置网络`)
     emit('success')
     handleClose()
   } catch (error) {
     console.error('批量设置失败:', error)
-    ElMessage.error('批量设置失败，请重试')
+    error('批量设置失败，请重试')
   } finally {
     loading.value = false
   }

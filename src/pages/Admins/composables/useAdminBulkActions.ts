@@ -11,7 +11,7 @@ import { useAdminStore } from './useAdminStore'
 
 export function useAdminBulkActions() {
   const adminStore = useAdminStore()
-  const toast = useToast()
+  const { success } = useToast()
   const { handleApiError } = useAdminNetwork()
 
   // 选中的管理员
@@ -49,7 +49,7 @@ export function useAdminBulkActions() {
             return
           }
           
-          toast.success(`管理员 "${admin.username}" 删除成功`)
+          success(`管理员 "${admin.username}" 删除成功`)
           
           await Promise.all([
             adminStore.fetchAdmins(),
@@ -116,7 +116,7 @@ export function useAdminBulkActions() {
             delete: `成功删除 ${adminIds.length} 个管理员`
           }
           
-          toast.success(actionMessages[action] || '批量操作完成')
+          success(actionMessages[action] || '批量操作完成')
           
           await Promise.all([
             adminStore.fetchAdmins(),

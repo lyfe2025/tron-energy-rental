@@ -70,9 +70,9 @@
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import NetworkSelector from '@/components/NetworkSelector.vue'
 import NetworkStatus from '@/components/NetworkStatus.vue'
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
 import { validateAccountNetworkConfig } from '@/utils/networkValidation'
-import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 
 // 实体类型定义
@@ -97,6 +97,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error, warning, info } = useToast()
 
 const selectedNetworkId = ref<string | null>(null)
 const loading = ref(false)
@@ -145,13 +147,13 @@ const validateNetworkSelection = async (networkId: string) => {
     networkValidationResult.value = result
     
     if (!result.isValid) {
-      ElMessage.error('网络配置验证失败: ' + result.errors.join('; '))
+      error('网络配置验证失败: ' + result.errors.join('; '))
     } else if (result.warnings.length > 0) {
-      ElMessage.warning('网络配置警告: ' + result.warnings.join('; '))
+      warning('网络配置警告: ' + result.warnings.join('; '))
     }
   } catch (error: any) {
     console.error('Network validation error:', error)
-    ElMessage.error('网络验证失败: ' + error.message)
+    error('网络验证失败: ' + error.message)
   } finally {
     isValidatingNetwork.value = false
   }
@@ -183,24 +185,24 @@ const loadEntityNetwork = async () => {
     if (error.response?.status === 500) {
       const serverMessage = error.response?.data?.message || '服务器内部错误'
       errorMessage = `服务器错误: ${serverMessage}`
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     } else if (error.response?.status === 404) {
       errorMessage = `${props.entityType === 'bot' ? '机器人' : '账户'}不存在或已被删除`
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     } else if (error.response?.status === 401) {
       errorMessage = '登录已过期，请重新登录'
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     } else if (error.response?.status === 403) {
       errorMessage = `权限不足，无法访问${props.entityType === 'bot' ? '机器人' : '账户'}网络配置`
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       errorMessage = '网络连接失败，请检查网络设置'
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     } else if (error.friendlyMessage) {
-      ElMessage.error(error.friendlyMessage)
+      error(error.friendlyMessage)
     } else {
       errorMessage = `加载失败: ${error.message || '未知错误'}`
-      ElMessage.error(errorMessage)
+      error(errorMessage)
     }
   }
 }
@@ -214,7 +216,7 @@ const handleClose = () => {
 // 处理提交
 const handleSubmit = async () => {
   if (!props.entityData || !selectedNetworkId.value) {
-    ElMessage.warning('请选择网络')
+    warning('请选择网络')
     return
   }
   
@@ -233,14 +235,14 @@ const handleSubmit = async () => {
         type: 'warning',
         onConfirm: async () => {
           showConfirmDialog.value = false
-          ElMessage.warning('正在强制保存网络配置，请确保网络设置正确')
+          warning('正在强制保存网络配置，请确保网络设置正确')
           await performNetworkSave()
         }
       }
       showConfirmDialog.value = true
       return
     } else if (validationResult.warnings.length > 0) {
-      ElMessage.warning('网络配置警告: ' + validationResult.warnings.join('; '))
+      warning('网络配置警告: ' + validationResult.warnings.join('; '))
     }
   }
   
@@ -249,7 +251,7 @@ const handleSubmit = async () => {
     await performNetworkSave()
   } catch (error) {
     console.error('[NetworkConfig] 提交过程出错:', error)
-    ElMessage.error('操作失败，请重试')
+    error('操作失败，请重试')
     loading.value = false
   }
 }
@@ -268,13 +270,13 @@ const performNetworkSave = async () => {
     }
     
     console.log('✅ [NetworkConfig] 网络设置成功，准备触发success事件')
-    ElMessage.success('网络设置成功')
+    success('网络设置成功')
     emit('success')
     handleClose()
     console.log('🔔 [NetworkConfig] success事件已触发，弹窗已关闭')
   } catch (error) {
     console.error('[NetworkConfig] 保存失败:', error)
-    ElMessage.error('保存网络配置失败，请重试')
+    error('保存网络配置失败，请重试')
   } finally {
     loading.value = false
   }
@@ -283,7 +285,7 @@ const performNetworkSave = async () => {
 // 确认对话框关闭处理
 const handleConfirmDialogClose = () => {
   showConfirmDialog.value = false
-  ElMessage.info('已取消保存操作')
+  info('已取消保存操作')
 }
 </script>
 

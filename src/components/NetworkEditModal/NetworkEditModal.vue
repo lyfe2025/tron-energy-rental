@@ -79,22 +79,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Settings, Zap } from 'lucide-vue-next'
 import { networkApi } from '@/api/network'
+import { useToast } from '@/composables/useToast'
+import { type FormInstance, type FormRules } from 'element-plus'
+import { Settings, Zap } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
 
+import AdvancedConfigDialog from './AdvancedConfigDialog.vue'
 import BasicNetworkForm from './BasicNetworkForm.vue'
 import ConnectionConfigForm from './ConnectionConfigForm.vue'
 import ContractAddressManager from './ContractAddressManager.vue'
-import AdvancedConfigDialog from './AdvancedConfigDialog.vue'
 
-import type { 
-  NetworkFormData, 
-  ContractAddress, 
-  BasicNetworkFormData,
-  ConnectionConfigData,
-  AdvancedConfigData
+import type {
+    AdvancedConfigData,
+    BasicNetworkFormData,
+    ConnectionConfigData,
+    ContractAddress,
+    NetworkFormData
 } from './types'
 
 interface Props {
@@ -109,6 +110,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error } = useToast()
 
 const formRef = ref<FormInstance>()
 const connectionRef = ref()
@@ -385,15 +388,15 @@ const handleSubmit = async () => {
     }
 
     if (response.success) {
-      ElMessage.success(isEdit.value ? '网络更新成功' : '网络创建成功')
+      success(isEdit.value ? '网络更新成功' : '网络创建成功')
       emit('success')
       handleClose()
     } else {
-      ElMessage.error(response.message || (isEdit.value ? '更新失败' : '创建失败'))
+      error(response.message || (isEdit.value ? '更新失败' : '创建失败'))
     }
   } catch (error) {
     console.error('提交失败:', error)
-    ElMessage.error(isEdit.value ? '网络更新失败' : '网络创建失败')
+    error(isEdit.value ? '网络更新失败' : '网络创建失败')
   } finally {
     submitting.value = false
   }

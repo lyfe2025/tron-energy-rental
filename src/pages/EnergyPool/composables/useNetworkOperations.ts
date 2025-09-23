@@ -9,7 +9,7 @@ export function useNetworkOperations() {
   const route = useRoute()
   const router = useRouter()
   const networkStore = useNetworkStore()
-  const toast = useToast()
+  const { success, error, info } = useToast()
 
   // 状态管理
   const loading = ref({
@@ -65,7 +65,7 @@ export function useNetworkOperations() {
       return []
     } catch (error) {
       console.error('Failed to load networks:', error)
-      toast.error('加载网络列表失败')
+      error('加载网络列表失败')
       return []
     } finally {
       loading.value.networks = false
@@ -91,11 +91,11 @@ export function useNetworkOperations() {
         
         // 更新store中的当前网络
         networkStore.setCurrentNetwork(networkId)
-        toast.success(`已切换到网络: ${getNetworkName(networkId)}`)
+        success(`已切换到网络: ${getNetworkName(networkId)}`)
       }
     } catch (error) {
       console.error('Failed to switch network:', error)
-      toast.error('网络切换失败')
+      error('网络切换失败')
     } finally {
       loading.value.switching = false
     }
@@ -127,7 +127,7 @@ export function useNetworkOperations() {
       }
     } catch (error) {
       console.error('Failed to initialize networks:', error)
-      toast.error('网络初始化失败')
+      error('网络初始化失败')
     }
   }
 
@@ -211,11 +211,11 @@ export function useNetworkOperations() {
     try {
       // 由于API中没有reconnectNetwork方法，暂时重新加载网络列表
       await networkStore.loadNetworks()
-      toast.success('网络重连成功')
+      success('网络重连成功')
       return true
     } catch (error) {
       console.error('Failed to reconnect network:', error)
-      toast.error('网络重连失败')
+      error('网络重连失败')
     }
     return false
   }

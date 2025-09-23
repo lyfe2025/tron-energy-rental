@@ -101,8 +101,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import { RotateCcw } from 'lucide-vue-next';
-import { toast } from 'sonner';
 import { computed, onMounted, reactive, ref } from 'vue';
 import AgentActions from './components/AgentActions.vue';
 import AgentDetailModal from './components/AgentDetailModal.vue';
@@ -121,6 +121,9 @@ import type {
 
 // Store
 const agentStore = useAgentStore();
+
+// Toast
+const { success, error, info } = useToast();
 
 // 响应式状态
 const loading = ref(false);
@@ -166,7 +169,7 @@ const loadAgents = async () => {
     await agentStore.fetchAgents(searchQuery);
   } catch (error) {
     console.error('加载代理商列表失败:', error);
-    toast.error('加载代理商列表失败');
+    error('加载代理商列表失败');
   } finally {
     loading.value = false;
   }
@@ -179,7 +182,7 @@ const loadStats = async () => {
     await agentStore.fetchStats();
   } catch (error) {
     console.error('加载统计数据失败:', error);
-    toast.error('加载统计数据失败');
+    error('加载统计数据失败');
   } finally {
     statsLoading.value = false;
   }
@@ -200,7 +203,7 @@ const handleSearch = (query: AgentQuery) => {
 
 const handleExport = () => {
   // TODO: 实现导出功能
-  toast.info('导出功能开发中...');
+  info('导出功能开发中...');
 };
 
 const handleCreate = () => {
@@ -231,12 +234,12 @@ const handleDelete = async (agent: Agent) => {
   try {
     submitting.value = true;
     await agentStore.deleteAgent(agent.id);
-    toast.success('删除代理商成功');
+    success('删除代理商成功');
     selectedAgents.value = selectedAgents.value.filter(id => id !== agent.id);
     loadAgents();
   } catch (error) {
     console.error('删除代理商失败:', error);
-    toast.error('删除代理商失败');
+    error('删除代理商失败');
   } finally {
     submitting.value = false;
   }
@@ -273,12 +276,12 @@ const handleBatchStatus = async (agentIds: string[], status: 'active' | 'pending
   try {
     submitting.value = true;
     await agentStore.batchUpdateStatus(agentIds, status);
-    toast.success(`批量更新状态成功`);
+    success(`批量更新状态成功`);
     selectedAgents.value = [];
     loadAgents();
   } catch (error) {
     console.error('批量更新状态失败:', error);
-    toast.error('批量更新状态失败');
+    error('批量更新状态失败');
   } finally {
     submitting.value = false;
   }
@@ -286,19 +289,19 @@ const handleBatchStatus = async (agentIds: string[], status: 'active' | 'pending
 
 const handleBatchPricing = (agentIds: string[]) => {
   // TODO: 实现批量价格配置
-  toast.info('批量价格配置功能开发中...');
+  info('批量价格配置功能开发中...');
 };
 
 const handleBatchDelete = async (agentIds: string[]) => {
   try {
     submitting.value = true;
     await agentStore.batchDelete(agentIds);
-    toast.success('批量删除成功');
+    success('批量删除成功');
     selectedAgents.value = [];
     loadAgents();
   } catch (error) {
     console.error('批量删除失败:', error);
-    toast.error('批量删除失败');
+    error('批量删除失败');
   } finally {
     submitting.value = false;
   }
@@ -306,7 +309,7 @@ const handleBatchDelete = async (agentIds: string[]) => {
 
 const handleExportSelected = (agentIds: string[]) => {
   // TODO: 实现导出选中功能
-  toast.info('导出选中功能开发中...');
+  info('导出选中功能开发中...');
 };
 
 const handlePageChange = (page: number) => {
@@ -332,11 +335,11 @@ const handleSubmitForm = async (data: CreateAgentRequest | UpdateAgentRequest) =
     if (currentAgent.value) {
       // 更新代理商
       await agentStore.updateAgent(currentAgent.value.id, data as UpdateAgentRequest);
-      toast.success('更新代理商成功');
+      success('更新代理商成功');
     } else {
       // 创建代理商
       await agentStore.createAgent(data as CreateAgentRequest);
-      toast.success('创建代理商成功');
+      success('创建代理商成功');
     }
     
     showForm.value = false;
@@ -345,7 +348,7 @@ const handleSubmitForm = async (data: CreateAgentRequest | UpdateAgentRequest) =
     loadStats();
   } catch (error) {
     console.error('保存代理商失败:', error);
-    toast.error('保存代理商失败');
+    error('保存代理商失败');
   } finally {
     submitting.value = false;
   }

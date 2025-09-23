@@ -334,8 +334,8 @@
 
 <script setup lang="ts">
 import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData'
+import { useToast } from '@/composables/useToast'
 import { Check, Copy, Edit, RefreshCw, X } from 'lucide-vue-next'
-import { toast } from 'sonner'
 import { computed, ref, watch } from 'vue'
 import type { EnergyPoolAccount } from '../composables/useEnergyPool'
 
@@ -353,6 +353,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error } = useToast()
 
 // 复制状态管理
 const copyStatus = ref<'idle' | 'success' | 'error'>('idle')
@@ -399,7 +401,7 @@ const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
     copyStatus.value = 'success'
-    toast.success('地址已复制到剪贴板')
+    success('地址已复制到剪贴板')
     
     // 3秒后重置状态
     setTimeout(() => {
@@ -408,7 +410,7 @@ const copyToClipboard = async (text: string) => {
   } catch (error) {
     console.error('Failed to copy:', error)
     copyStatus.value = 'error'
-    toast.error('复制失败')
+    error('复制失败')
     
     // 2秒后重置错误状态
     setTimeout(() => {

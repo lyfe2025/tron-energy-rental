@@ -285,6 +285,7 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import {
     AlertCircle,
     Building,
@@ -296,7 +297,6 @@ import {
     User,
     X
 } from 'lucide-vue-next';
-import { toast } from 'sonner';
 import { ref, watch } from 'vue';
 import { useAgentStore } from '../composables/useAgentStore';
 import type { Agent, AgentPricingConfig } from '../types';
@@ -313,6 +313,8 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const { info, error } = useToast();
 
 // Store
 const agentStore = useAgentStore();
@@ -339,7 +341,7 @@ const loadData = async () => {
     pricingConfigs.value = configs || [];
   } catch (error) {
     console.error('加载代理商详情失败:', error);
-    toast.error('加载代理商详情失败');
+    error('加载代理商详情失败');
     agent.value = null;
   } finally {
     loading.value = false;
@@ -406,7 +408,7 @@ const handleEdit = () => {
 
 const handleEditPricing = () => {
   // TODO: 打开价格配置弹窗
-  toast.info('价格配置功能开发中...');
+  info('价格配置功能开发中...');
 };
 
 // 监听弹窗显示状态

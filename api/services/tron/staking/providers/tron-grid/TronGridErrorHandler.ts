@@ -56,7 +56,7 @@ export class TronGridErrorHandler {
       
       if (response.ok) {
         const data = await processor(response);
-        console.log(`[TronGridErrorHandler] ${operation}成功`);
+        // 静默处理成功响应，不输出日志
         return {
           success: true,
           data

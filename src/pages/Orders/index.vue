@@ -1,30 +1,10 @@
 <template>
   <div class="space-y-6">
-    <!-- 当前网络显示 -->
-    <div class="bg-white rounded-lg shadow-sm border p-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center"
-               :class="getNetworkIconClass(currentNetwork?.network_type)">
-            <span class="text-white font-bold">{{ getNetworkIcon(currentNetwork?.network_type) }}</span>
-          </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span class="text-sm text-gray-600">当前网络:</span>
-              <span class="font-semibold text-gray-900">{{ currentNetwork?.name || 'Unknown' }}</span>
-              <span class="text-sm text-gray-500">{{ currentNetwork?.rpc_url }}</span>
-            </div>
-          </div>
-        </div>
-        <button
-          @click="switchNetwork"
-          class="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
-        >
-          切换网络
-        </button>
-      </div>
-    </div>
+    <!-- 网络状态栏 -->
+    <NetworkStatusBar 
+      :current-network="currentNetwork"
+      @switch-network="showNetworkSwitcher = true"
+    />
 
     <!-- 页面标题和操作 -->
     <div class="bg-white rounded-lg shadow-sm p-6">
@@ -35,7 +15,7 @@
         </div>
         <div class="flex items-center space-x-4">
           <button
-            @click="refreshOrders"
+            @click="handleRefreshOrders"
             :disabled="state.isLoading"
             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -97,18 +77,28 @@
       @close-status="closeStatusModal"
       @update-status="updateOrderStatus"
     />
+
+    <!-- 网络切换模态框 -->
+    <NetworkSwitcher
+      :visible="showNetworkSwitcher"
+      :available-networks="availableNetworks"
+      :current-network-id="currentNetworkId || ''"
+      @close="showNetworkSwitcher = false"
+      @network-selected="handleNetworkSelected"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { networkApi } from '@/api/network'
+import NetworkStatusBar from '@/components/NetworkStatusBar.vue'
+import NetworkSwitcher from '@/components/NetworkSwitcher.vue'
+import { useCommonNetworkOperations } from '@/composables/useCommonNetworkOperations'
 import { useToast } from '@/composables/useToast'
-import { getNetworkIcon, getNetworkIconClass } from '@/utils/network'
 import {
   AlertCircle,
   RefreshCw
 } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrderList from './components/OrderList.vue'
 import OrderModal from './components/OrderModal.vue'
@@ -116,24 +106,27 @@ import OrderSearch from './components/OrderSearch.vue'
 import OrderStats from './components/OrderStats.vue'
 import { useOrderManagement } from './composables/useOrderManagement'
 
-interface Network {
-  id: string
-  name: string
-  network_type?: string
-  rpc_url: string
-  block_explorer_url?: string
-  is_active: boolean
-}
-
 const route = useRoute()
 const router = useRouter()
 const { error } = useToast()
-const currentNetwork = ref<Network | null>(null)
 
-// 获取当前网络ID
-const networkId = computed(() => route.params.networkId as string)
+// 网络切换相关状态
+const showNetworkSwitcher = ref(false)
 
-// 使用订单管理 composable，并传入网络ID
+// 使用通用网络操作
+const {
+  currentNetworkId,
+  currentNetwork,
+  availableNetworks,
+  switchNetwork,
+  initializeNetworks,
+  setCurrentNetworkId
+} = useCommonNetworkOperations()
+
+// 获取路由中的网络ID（如果有）
+const routeNetworkId = computed(() => route.params.networkId as string)
+
+// 使用订单管理 composable
 const {
   state,
   hasFilters,
@@ -150,54 +143,48 @@ const {
   initializeWithNetworkId
 } = useOrderManagement()
 
-// 加载当前网络信息
-const loadCurrentNetwork = async () => {
-  try {
-    console.log('🔍 [Orders] 开始加载网络信息，networkId:', networkId.value)
-    
-    // 直接通过ID获取指定网络
-    const response = await networkApi.getNetwork(networkId.value)
-    console.log('📡 [Orders] API响应:', response)
-    
-    if (response.success && response.data) {
-      currentNetwork.value = response.data as Network
-      console.log('✅ [Orders] 找到的当前网络:', currentNetwork.value)
-      
-      // 验证网络配置
-      if (!currentNetwork.value.block_explorer_url) {
-        console.warn('⚠️ [Orders] 网络缺少 block_explorer_url 配置')
-      }
-    } else {
-      throw new Error('未找到指定的网络')
-    }
-  } catch (err: any) {
-    console.error('❌ [Orders] 加载网络信息失败:', err)
-    error(`加载网络信息失败: ${err.message}`)
-    // 如果加载失败，跳转回网络选择页面
-    router.push({ name: 'orders' })
+// 网络切换处理
+const handleNetworkSelected = async (networkId: string) => {
+  const success = await switchNetwork(networkId)
+  if (success && initializeWithNetworkId) {
+    await initializeWithNetworkId(networkId)
   }
 }
 
-// 切换网络
-const switchNetwork = () => {
-  router.push({ name: 'orders' })
+// 刷新订单数据
+const handleRefreshOrders = async () => {
+  if (currentNetworkId.value && initializeWithNetworkId) {
+    await initializeWithNetworkId(currentNetworkId.value)
+  } else {
+    await refreshOrders()
+  }
 }
+
+// 监听网络ID变化
+watch(currentNetworkId, async (newNetworkId) => {
+  if (newNetworkId && initializeWithNetworkId) {
+    await initializeWithNetworkId(newNetworkId)
+  }
+}, { immediate: false })
 
 // 初始化
 onMounted(async () => {
-  // 检查是否有网络ID参数
-  if (!networkId.value) {
-    error('缺少网络参数')
-    router.push({ name: 'orders' })
-    return
-  }
-  
-  // 加载当前网络信息
-  await loadCurrentNetwork()
-  
-  // 初始化订单管理，传入网络ID
-  if (initializeWithNetworkId) {
-    await initializeWithNetworkId(networkId.value)
+  try {
+    // 初始化网络
+    await initializeNetworks()
+    
+    // 如果路由有网络ID参数，使用它
+    if (routeNetworkId.value) {
+      setCurrentNetworkId(routeNetworkId.value)
+    }
+    
+    // 如果有当前网络，初始化订单数据
+    if (currentNetworkId.value && initializeWithNetworkId) {
+      await initializeWithNetworkId(currentNetworkId.value)
+    }
+  } catch (err: any) {
+    console.error('❌ [Orders] 页面初始化失败:', err)
+    error(`页面初始化失败: ${err.message}`)
   }
 })
 </script>

@@ -239,8 +239,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import { Package, Plus, Save, Trash2, X } from 'lucide-vue-next';
-import { toast } from 'sonner';
 import { computed, ref, watch } from 'vue';
 import { useAgentStore } from '../composables/useAgentStore';
 import type { AgentPricingConfig } from '../types';
@@ -256,6 +256,8 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const { success, error } = useToast();
 
 // Store
 const agentStore = useAgentStore();
@@ -286,7 +288,7 @@ const loadData = async () => {
     originalConfigs.value = JSON.parse(JSON.stringify(configs || []));
   } catch (error) {
     console.error('加载价格配置失败:', error);
-    toast.error('加载价格配置失败');
+    error('加载价格配置失败');
   } finally {
     loading.value = false;
   }
@@ -358,18 +360,18 @@ const handleBatchSave = async () => {
     });
     
     if (validConfigs.length === 0) {
-      toast.error('请至少添加一个有效的价格配置');
+      error('请至少添加一个有效的价格配置');
       return;
     }
     
     // 保存配置
     await agentStore.batchSetPricingConfigs({ agent_id: props.agentId, configs: validConfigs });
     
-    toast.success('保存价格配置成功');
+    success('保存价格配置成功');
     originalConfigs.value = JSON.parse(JSON.stringify(pricingConfigs.value));
   } catch (error) {
     console.error('保存价格配置失败:', error);
-    toast.error('保存价格配置失败');
+    error('保存价格配置失败');
   } finally {
     submitting.value = false;
   }

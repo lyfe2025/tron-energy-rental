@@ -36,7 +36,7 @@ export class TronGridApiClient {
     const { baseUrl, headers } = this.getTronGridConfig();
     const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
-    console.log(`[TronGridApiClient] 发起API请求: ${fullUrl}`);
+    // 静默发起请求，只在异常时输出日志
 
     const response = await fetch(fullUrl, {
       ...options,
@@ -46,7 +46,11 @@ export class TronGridApiClient {
       }
     });
 
-    console.log(`[TronGridApiClient] API响应状态: ${response.status} ${response.statusText}`);
+    // 只在请求失败时输出日志
+    if (!response.ok) {
+      console.error(`[TronGridApiClient] ❌ API请求失败: ${response.status} ${response.statusText} - ${fullUrl}`);
+    }
+    
     return response;
   }
 

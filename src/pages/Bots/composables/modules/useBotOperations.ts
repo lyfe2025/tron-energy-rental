@@ -9,7 +9,7 @@ import { nextTick, ref } from 'vue'
 import type { BotConfig, Network } from './botTypes'
 
 export function useBotOperations() {
-  const toast = useToast()
+  const { success, error, warning } = useToast()
   
   // 状态管理
   const loading = ref(false)
@@ -41,11 +41,11 @@ export function useBotOperations() {
         console.log('✅ 机器人列表加载成功:', bots.value.length)
       } else {
         console.error('❌ 加载机器人列表失败:', response.data.message)
-        toast.error('加载机器人列表失败')
+        error('加载机器人列表失败')
       }
     } catch (error) {
       console.error('❌ 加载机器人列表异常:', error)
-      toast.error('加载机器人列表失败')
+      error('加载机器人列表失败')
     } finally {
       loading.value = false
     }
@@ -86,17 +86,17 @@ export function useBotOperations() {
         // 从选中列表中移除
         selectedBots.value = selectedBots.value.filter(id => id !== botId)
         
-        toast.success('机器人删除成功')
+        success('机器人删除成功')
         console.log('✅ 机器人删除成功')
       } else {
-        toast.error(response.data.message || '删除机器人失败')
+        error(response.data.message || '删除机器人失败')
         console.error('❌ 删除机器人失败:', response.data.message)
       }
     } catch (error: any) {
       console.error('❌ 删除机器人异常:', error)
       // 显示具体的错误信息
       const errorMessage = error?.friendlyMessage || error?.response?.data?.message || error?.message || '删除机器人失败'
-      toast.error(errorMessage)
+      error(errorMessage)
     }
   }
 
@@ -105,7 +105,7 @@ export function useBotOperations() {
    */
   const batchDeleteBots = async () => {
     if (selectedBots.value.length === 0) {
-      toast.warning('请先选择要删除的机器人')
+      warning('请先选择要删除的机器人')
       return
     }
 
@@ -133,17 +133,17 @@ export function useBotOperations() {
       selectedBots.value = []
       
       if (successCount > 0) {
-        toast.success(`成功删除 ${successCount} 个机器人`)
+        success(`成功删除 ${successCount} 个机器人`)
       }
       
       if (failCount > 0) {
-        toast.error(`${failCount} 个机器人删除失败`)
+        error(`${failCount} 个机器人删除失败`)
       }
       
       console.log(`✅ 批量删除完成: 成功${successCount}个, 失败${failCount}个`)
     } catch (error) {
       console.error('❌ 批量删除机器人异常:', error)
-      toast.error('批量删除机器人失败')
+      error('批量删除机器人失败')
     }
   }
 
@@ -164,19 +164,19 @@ export function useBotOperations() {
       const response = await botsAPI.updateBotStatus(bot.id, targetStatus ? 'active' : 'inactive')
       
       if (response.data.success) {
-        toast.success(`机器人${targetStatus ? '启用' : '停用'}成功`)
+        success(`机器人${targetStatus ? '启用' : '停用'}成功`)
         console.log('✅ 机器人状态切换成功')
       } else {
         // 回滚状态
         bot.is_active = originalStatus
-        toast.error(response.data.message || '状态切换失败')
+        error(response.data.message || '状态切换失败')
         console.error('❌ 机器人状态切换失败:', response.data.message)
       }
     } catch (error) {
       // 回滚状态
       bot.is_active = originalStatus
       console.error('❌ 机器人状态切换异常:', error)
-      toast.error('状态切换失败')
+      error('状态切换失败')
     }
   }
 
@@ -193,15 +193,15 @@ export function useBotOperations() {
       const response = await botsAPI.startBot(bot.id)
       
       if (response.data.success) {
-        toast.success('机器人重启成功')
+        success('机器人重启成功')
         console.log('✅ 机器人重启成功')
       } else {
-        toast.error(response.data.message || '重启机器人失败')
+        error(response.data.message || '重启机器人失败')
         console.error('❌ 重启机器人失败:', response.data.message)
       }
     } catch (error) {
       console.error('❌ 重启机器人异常:', error)
-      toast.error('重启机器人失败')
+      error('重启机器人失败')
     } finally {
       bot.updating = false
     }
@@ -213,10 +213,10 @@ export function useBotOperations() {
   const syncBot = async (bot: BotConfig) => {
     try {
       console.log('🔄 同步机器人信息:', bot.name)
-      toast.success('机器人信息同步成功')
+      success('机器人信息同步成功')
     } catch (error) {
       console.error('❌ 同步机器人信息异常:', error)
-      toast.error('同步机器人信息失败')
+      error('同步机器人信息失败')
     }
   }
 

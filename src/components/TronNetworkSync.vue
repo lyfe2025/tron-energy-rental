@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { computed, ref, watch } from 'vue'
 import NetworkSyncInfo from './TronNetworkSync/NetworkSyncInfo.vue'
 import SyncOptions from './TronNetworkSync/SyncOptions.vue'
@@ -63,6 +63,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { error } = useToast()
 
 // 对话框显示状态
 const visible = ref(false)
@@ -94,7 +96,7 @@ watch(() => props.modelValue, (newVal) => {
     initializeSync()
   } else if (newVal && !props.networkId) {
     console.error('❌ 对话框打开但缺少networkId参数')
-    ElMessage.error('缺少网络ID参数')
+    error('缺少网络ID参数')
   }
 })
 
@@ -110,7 +112,7 @@ const initializeSync = async () => {
     console.log('🚀 初始化同步对话框，networkId:', props.networkId)
     if (!props.networkId) {
       console.error('❌ 初始化失败: networkId 为空')
-      ElMessage.error('无法初始化同步：网络ID丢失')
+      error('无法初始化同步：网络ID丢失')
       return
     }
     
@@ -119,24 +121,24 @@ const initializeSync = async () => {
     console.log('✅ 同步对话框初始化完成')
   } catch (error) {
     console.error('❌ 初始化同步失败:', error)
-    ElMessage.error('初始化同步失败，请重试')
+    error('初始化同步失败，请重试')
   }
 }
 
 // 处理开始同步
 const handleStartSync = async () => {
   if (!props.networkId) {
-    ElMessage.error('网络ID不能为空')
+    error('网络ID不能为空')
     return
   }
   
   if (!networkInfo.value) {
-    ElMessage.error('网络信息未加载，请重新打开对话框')
+    error('网络信息未加载，请重新打开对话框')
     return
   }
   
   if (!hasSelectedOptions.value) {
-    ElMessage.error('请至少选择一项同步选项')
+    error('请至少选择一项同步选项')
     return
   }
   

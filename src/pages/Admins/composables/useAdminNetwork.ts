@@ -8,7 +8,7 @@ import { useToast } from '../../../composables/useToast'
 import { useAuthStore } from '../../../stores/auth'
 
 export function useAdminNetwork() {
-  const toast = useToast()
+  const { success, error, warning } = useToast()
   const authStore = useAuthStore()
 
   // 网络状态
@@ -20,12 +20,12 @@ export function useAdminNetwork() {
   const setupNetworkListeners = () => {
     const handleOnline = () => {
       isOnline.value = true
-      toast.success('网络连接已恢复')
+      success('网络连接已恢复')
     }
     
     const handleOffline = () => {
       isOnline.value = false
-      toast.warning('网络连接已断开，请检查网络设置')
+      warning('网络连接已断开，请检查网络设置')
     }
     
     window.addEventListener('online', handleOnline)
@@ -65,7 +65,7 @@ export function useAdminNetwork() {
       errorMsg = `${operation}失败，请稍后重试`
     }
     
-    toast.error(errorMsg)
+    error(errorMsg)
     return errorMsg
   }
 
@@ -77,7 +77,7 @@ export function useAdminNetwork() {
     } catch (error) {
       if (retryCount.value < maxRetries && isOnline.value) {
         retryCount.value++
-        toast.warning(`${operationName}失败，正在重试 (${retryCount.value}/${maxRetries})`)
+        warning(`${operationName}失败，正在重试 (${retryCount.value}/${maxRetries})`)
         setTimeout(() => retryOperation(operation, operationName), 1000 * retryCount.value)
       } else {
         handleApiError(error, operationName)

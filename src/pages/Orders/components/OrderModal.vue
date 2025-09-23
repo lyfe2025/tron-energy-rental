@@ -38,16 +38,54 @@
           </div>
         </div>
         
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">订单号</label>
             <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedOrder.order_number || '未生成' }}</p>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">地址</label>
-            <p class="mt-1 text-sm text-gray-900 font-mono break-all">
-              {{ selectedOrder.target_address || selectedOrder.recipient_address || '未设置' }}
-            </p>
+          <!-- 目标地址 -->
+          <div v-if="selectedOrder.target_address || selectedOrder.recipient_address">
+            <label class="block text-sm font-medium text-gray-700">目标地址</label>
+            <div class="mt-1 flex items-center space-x-2 p-2 bg-gray-50 rounded-md">
+              <p class="flex-1 text-sm text-gray-900 font-mono break-all select-all">
+                {{ selectedOrder.target_address || selectedOrder.recipient_address }}
+              </p>
+              <button
+                @click="copyToClipboard(selectedOrder.target_address || selectedOrder.recipient_address || '', 'target')"
+                :class="[
+                  'p-1 transition-colors',
+                  copyStates.target === 'success' ? 'text-green-500' : 'text-gray-400 hover:text-gray-600'
+                ]"
+                :title="copyStates.target === 'success' ? '已复制' : '复制地址'"
+              >
+                <Copy v-if="copyStates.target !== 'success'" class="h-4 w-4" />
+                <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <!-- 来源地址 -->
+          <div v-if="selectedOrder.source_address && selectedOrder.source_address !== (selectedOrder.target_address || selectedOrder.recipient_address)">
+            <label class="block text-sm font-medium text-gray-700">来源地址</label>
+            <div class="mt-1 flex items-center space-x-2 p-2 bg-blue-50 rounded-md">
+              <p class="flex-1 text-sm text-blue-900 font-mono break-all select-all">
+                {{ selectedOrder.source_address }}
+              </p>
+              <button
+                @click="copyToClipboard(selectedOrder.source_address, 'source')"
+                :class="[
+                  'p-1 transition-colors',
+                  copyStates.source === 'success' ? 'text-green-500' : 'text-blue-400 hover:text-blue-600'
+                ]"
+                :title="copyStates.source === 'success' ? '已复制' : '复制来源地址'"
+              >
+                <Copy v-if="copyStates.source !== 'success'" class="h-4 w-4" />
+                <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         
@@ -209,7 +247,9 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import {
+  Copy,
   ExternalLink,
   Loader2,
   X
@@ -234,10 +274,16 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// 使用 Toast
+const { success, error } = useToast()
+
 // 状态更新相关
 const newStatus = ref('')
 const txHash = ref('')
 const errorMessage = ref('')
+
+// 复制状态跟踪
+const copyStates = ref<Record<string, 'idle' | 'copying' | 'success'>>({})
 
 // 可用状态选项
 const availableStatuses = computed(() => [
@@ -276,6 +322,57 @@ const formatDateTime = (dateString: string) => {
 
 const viewTransaction = (txHash: string) => {
   window.open(`https://tronscan.org/#/transaction/${txHash}`, '_blank')
+}
+
+// 复制到剪贴板功能
+const copyToClipboard = async (text: string, addressType: 'target' | 'source' = 'target') => {
+  // 设置复制中状态
+  copyStates.value[addressType] = 'copying'
+  
+  try {
+    await navigator.clipboard.writeText(text)
+    
+    // 设置成功状态
+    copyStates.value[addressType] = 'success'
+    success('地址已复制到剪贴板')
+    
+    // 2秒后重置状态
+    setTimeout(() => {
+      copyStates.value[addressType] = 'idle'
+    }, 2000)
+    
+  } catch (err) {
+    // 如果现代 API 失败，使用旧的方法
+    try {
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      if (successful) {
+        copyStates.value[addressType] = 'success'
+        success('地址已复制到剪贴板')
+        
+        // 2秒后重置状态
+        setTimeout(() => {
+          copyStates.value[addressType] = 'idle'
+        }, 2000)
+      } else {
+        throw new Error('复制命令执行失败')
+      }
+    } catch (copyErr) {
+      console.error('复制失败:', copyErr)
+      copyStates.value[addressType] = 'idle'
+      error('复制失败，请手动复制地址')
+    }
+  }
 }
 
 const handleUpdateStatus = () => {

@@ -4,7 +4,7 @@
  * 只提供必要的能量和带宽配置操作
  */
 
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { apiClient } from '../../../../services/api/core/apiClient'
 import type {
     BandwidthConfig,
@@ -13,6 +13,8 @@ import type {
 } from '../types/resource-consumption.types'
 
 const API_BASE_URL = '/api/system-configs/configs'
+
+const { error } = useToast()
 
 export class SimpleResourceConsumptionApi {
   /**
@@ -29,7 +31,7 @@ export class SimpleResourceConsumptionApi {
       return response.data.data
     } catch (error: any) {
       console.error('获取能量配置失败:', error)
-      ElMessage.error('获取能量配置失败，请稍后重试')
+      error('获取能量配置失败，请稍后重试')
       throw error
     }
   }
@@ -80,7 +82,7 @@ export class SimpleResourceConsumptionApi {
       return response.data.data
     } catch (error: any) {
       console.error('获取带宽配置失败:', error)
-      ElMessage.error('获取带宽配置失败，请稍后重试')
+      error('获取带宽配置失败，请稍后重试')
       throw error
     }
   }

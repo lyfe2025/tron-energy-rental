@@ -81,38 +81,12 @@ export class TronGridProvider {
         const data = await response.json();
         let transactions = data.data || [];
 
-        console.log(`[TronGridProvider] 🔍 API原始响应分析:`, {
-          dataType: typeof data.data,
-          isArray: Array.isArray(data.data),
-          firstTransaction: data.data?.[0] ? {
-            txID: data.data[0].txID?.substring(0, 12),
-            contractType: data.data[0].raw_data?.contract?.[0]?.type,
-            owner_address: data.data[0].raw_data?.contract?.[0]?.parameter?.value?.owner_address,
-            receiver_address: data.data[0].raw_data?.contract?.[0]?.parameter?.value?.receiver_address
-          } : 'N/A'
-        });
+        // 静默处理API响应，不输出调试信息
 
         // 处理TronGrid API可能返回对象而非数组的情况
         if (transactions && typeof transactions === 'object' && !Array.isArray(transactions)) {
-          console.log(`[TronGridProvider] 🔧 检测到对象格式数据，转换为数组`);
-          
-          // 将对象的值转换为数组
+          // 静默处理对象转数组
           const transactionValues = Object.values(transactions);
-          console.log(`[TronGridProvider] 转换前对象键数: ${Object.keys(transactions).length}`);
-          console.log(`[TronGridProvider] 转换后数组长度: ${transactionValues.length}`);
-          
-          // 调试：检查转换后的第一个交易是否有正确的结构
-          if (transactionValues.length > 0) {
-            const firstTx = transactionValues[0] as any;
-            console.log(`[TronGridProvider] 🔍 转换后第一条交易结构检查:`, {
-              hasTxID: !!firstTx?.txID,
-              hasRawData: !!firstTx?.raw_data,
-              hasContract: !!firstTx?.raw_data?.contract,
-              contractType: firstTx?.raw_data?.contract?.[0]?.type,
-              txID: firstTx?.txID?.substring(0, 12) + '...'
-            });
-          }
-          
           transactions = transactionValues;
         }
 
@@ -125,12 +99,13 @@ export class TronGridProvider {
         // 最终验证：检查数组中的交易是否有正确的结构
         if (transactions.length > 0) {
           const validTransactions = transactions.filter(tx => tx && typeof tx === 'object');
-          console.log(`[TronGridProvider] 📊 数据验证: 总数 ${transactions.length}, 有效交易 ${validTransactions.length}`);
           
           if (validTransactions.length !== transactions.length) {
             console.warn(`[TronGridProvider] ⚠️ 发现 ${transactions.length - validTransactions.length} 条无效交易数据`);
             transactions = validTransactions;
           }
+          
+          // 静默处理数据验证统计
         }
 
         // 验证响应数据
@@ -139,7 +114,7 @@ export class TronGridProvider {
           console.warn('[TronGridProvider] 交易数据验证失败:', responseValidation.errors);
         }
 
-        console.log(`[TronGridProvider] 成功获取 ${transactions.length} 条交易记录`);
+        // 静默获取交易记录，不输出成功日志
         
         // 🔄 地址格式标准化：确保所有地址都是Base58格式
         transactions = this.normalizeAddressFormats(transactions);
@@ -158,7 +133,22 @@ export class TronGridProvider {
    */
   private normalizeAddressFormats(transactions: any[]): any[] {
     try {
-      console.log(`[TronGridProvider] 🔄 开始地址格式标准化，处理 ${transactions.length} 条交易`);
+      // 🎯 计算时间窗口：只对最近45秒内的交易输出详细日志
+      const now = Date.now();
+      const timeWindow = 45 * 1000; // 45秒
+      const queryStartTime = now - timeWindow;
+      
+      // 统计时间窗口内的交易数量
+      const recentTransactions = transactions.filter(tx => {
+        const txTimestamp = tx?.raw_data?.timestamp || 0;
+        return txTimestamp >= queryStartTime;
+      });
+      
+      // 仅在有最近交易需要详细日志时才显示（实际很少需要）
+      const shouldShowLog = recentTransactions.length > 0 && process.env.SHOW_ADDRESS_CONVERSION === 'true';
+      if (shouldShowLog) {
+        console.log(`[TronGridProvider] 🔄 开始地址格式标准化，处理 ${transactions.length} 条交易（最近45秒内：${recentTransactions.length} 条）`);
+      }
       
       let convertedCount = 0;
       
@@ -166,6 +156,10 @@ export class TronGridProvider {
         if (!tx || !tx.raw_data || !tx.raw_data.contract) {
           return tx;
         }
+        
+        // 判断当前交易是否在时间窗口内（用于控制日志输出）
+        const txTimestamp = tx.raw_data?.timestamp || 0;
+        const isRecentTransaction = txTimestamp >= queryStartTime;
         
         // 处理每个合约中的地址
         const processedTx = { ...tx };
@@ -184,7 +178,7 @@ export class TronGridProvider {
           // 转换owner_address
           if (value.owner_address) {
             const originalAddress = value.owner_address;
-            const converted = this.convertToBase58(originalAddress);
+            const converted = this.convertToBase58(originalAddress, isRecentTransaction);
             if (converted && converted !== originalAddress) {
               value.owner_address = converted;
               convertedCount++;
@@ -194,7 +188,7 @@ export class TronGridProvider {
           // 转换receiver_address
           if (value.receiver_address) {
             const originalAddress = value.receiver_address;
-            const converted = this.convertToBase58(originalAddress);
+            const converted = this.convertToBase58(originalAddress, isRecentTransaction);
             if (converted && converted !== originalAddress) {
               value.receiver_address = converted;
               convertedCount++;
@@ -204,7 +198,7 @@ export class TronGridProvider {
           // 转换to_address（如果存在）
           if (value.to_address) {
             const originalAddress = value.to_address;
-            const converted = this.convertToBase58(originalAddress);
+            const converted = this.convertToBase58(originalAddress, isRecentTransaction);
             if (converted && converted !== originalAddress) {
               value.to_address = converted;
               convertedCount++;
@@ -217,12 +211,14 @@ export class TronGridProvider {
         return processedTx;
       });
       
-      console.log(`[TronGridProvider] ✅ 地址格式标准化完成:`, {
-        总交易数: transactions.length,
-        转换成功: convertedCount,
-        保持原格式: transactions.length - convertedCount,
-        状态: '完成（转换失败时保持原格式）'
-      });
+      // 仅在有最近交易且需要详细日志时显示完成信息
+      if (shouldShowLog) {
+        console.log(`[TronGridProvider] ✅ 地址格式标准化完成:`, {
+          总交易数: transactions.length,
+          最近交易数: recentTransactions.length,
+          转换成功: convertedCount
+        });
+      }
       
       return processedTransactions;
       
@@ -235,9 +231,10 @@ export class TronGridProvider {
   /**
    * 将地址转换为Base58格式
    * @param address 可能是hex或Base58格式的地址
+   * @param showDetailedLog 是否显示详细的转换日志
    * @returns Base58格式的地址，转换失败时返回null
    */
-  private convertToBase58(address: string): string | null {
+  private convertToBase58(address: string, showDetailedLog: boolean = false): string | null {
     try {
       if (!address || typeof address !== 'string') {
         return null;
@@ -259,18 +256,25 @@ export class TronGridProvider {
             
             // 验证转换结果符合Base58标准
             if (base58Address && base58Address.startsWith('T') && base58Address.length === 34) {
-              console.log(`[TronGridProvider] ✅ 标准Hex→Base58转换: ${address.substring(0, 12)}... → ${base58Address.substring(0, 12)}...`);
+              // 仅在需要显示详细日志时输出转换信息
+              if (showDetailedLog) {
+                console.log(`[TronGridProvider] ✅ 标准Hex→Base58转换: ${address.substring(0, 12)}... → ${base58Address.substring(0, 12)}...`);
+              }
               return base58Address;
             }
           } catch (conversionError: any) {
-            console.log(`[TronGridProvider] ⚠️ TronWeb转换失败: ${address.substring(0, 12)}...，错误: ${conversionError.message}`);
+            if (showDetailedLog) {
+              console.log(`[TronGridProvider] ⚠️ TronWeb转换失败: ${address.substring(0, 12)}...，错误: ${conversionError.message}`);
+            }
           }
         } else {
-          console.log(`[TronGridProvider] ⚠️ TronWeb不可用，无法转换标准Hex地址: ${address.substring(0, 12)}...`);
+          if (showDetailedLog) {
+            console.log(`[TronGridProvider] ⚠️ TronWeb不可用，无法转换标准Hex地址: ${address.substring(0, 12)}...`);
+          }
         }
       } else {
-        // 非标准格式地址，记录并保持原样
-        if (!address.startsWith('T')) {
+        // 非标准格式地址，仅在需要显示详细日志时记录
+        if (!address.startsWith('T') && showDetailedLog) {
           console.log(`[TronGridProvider] ⚠️ 非标准TRON地址格式: ${address.substring(0, 12)}... (长度: ${address.length})`);
           console.log(`[TronGridProvider] 📖 TRON标准格式参考: https://developers.tron.network/docs/account`);
         }
@@ -280,7 +284,9 @@ export class TronGridProvider {
       return address;
       
     } catch (error: any) {
-      console.log(`[TronGridProvider] ⚠️ 地址处理异常，保持原格式: ${error.message}`);
+      if (showDetailedLog) {
+        console.log(`[TronGridProvider] ⚠️ 地址处理异常，保持原格式: ${error.message}`);
+      }
       return address;
     }
   }

@@ -2,14 +2,14 @@ import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { computed, ref } from 'vue'
 import type {
-  AccountFormData,
-  AccountUpdateData,
-  EnergyPoolAccount,
-  FilterState
+    AccountFormData,
+    AccountUpdateData,
+    EnergyPoolAccount,
+    FilterState
 } from '../types/energy-pool.types'
 
 export function useAccountManagement() {
-  const toast = useToast()
+  const { success, error } = useToast()
   
   // 状态管理
   const accounts = ref<EnergyPoolAccount[]>([])
@@ -71,7 +71,7 @@ export function useAccountManagement() {
       }
     } catch (error) {
       console.error('Failed to load accounts:', error)
-      toast.error('加载账户列表失败')
+      error('加载账户列表失败')
     } finally {
       loading.value.accounts = false
     }
@@ -89,13 +89,13 @@ export function useAccountManagement() {
       }
       const response = await energyPoolExtendedAPI.addAccount(completeAccountData)
       if (response.data.success) {
-        toast.success('账户添加成功')
+        success('账户添加成功')
         return response.data.data
       }
       throw new Error('添加账户失败')
     } catch (error) {
       console.error('Failed to add account:', error)
-      toast.error('添加账户失败')
+      error('添加账户失败')
       throw error
     } finally {
       loading.value.operations = false
@@ -108,13 +108,13 @@ export function useAccountManagement() {
     try {
       const response = await energyPoolExtendedAPI.updateAccount(id, updates)
       if (response.data.success) {
-        toast.success('账户更新成功')
+        success('账户更新成功')
         return true
       }
       throw new Error('更新账户失败')
     } catch (error) {
       console.error('Failed to update account:', error)
-      toast.error('更新账户失败')
+      error('更新账户失败')
       throw error
     } finally {
       loading.value.operations = false
@@ -127,13 +127,13 @@ export function useAccountManagement() {
     try {
       const response = await energyPoolExtendedAPI.deleteAccount(id)
       if (response.data.success) {
-        toast.success('账户已删除')
+        success('账户已删除')
         return true
       }
       throw new Error('删除账户失败')
     } catch (error) {
       console.error('Failed to delete account:', error)
-      toast.error('删除账户失败')
+      error('删除账户失败')
       throw error
     } finally {
       loading.value.operations = false
@@ -146,14 +146,14 @@ export function useAccountManagement() {
     try {
       const response = await energyPoolExtendedAPI.enableAccount(id)
       if (response.data.success) {
-        toast.success('账户已启用')
+        success('账户已启用')
         await loadAccounts(networkId)
         return true
       }
       throw new Error('启用账户失败')
     } catch (error) {
       console.error('Failed to enable account:', error)
-      toast.error('启用账户失败')
+      error('启用账户失败')
       throw error
     } finally {
       loading.value.operations = false
@@ -166,14 +166,14 @@ export function useAccountManagement() {
     try {
       const response = await energyPoolExtendedAPI.disableAccount(id)
       if (response.data.success) {
-        toast.success('账户已停用')
+        success('账户已停用')
         await loadAccounts(networkId)
         return true
       }
       throw new Error('停用账户失败')
     } catch (error) {
       console.error('Failed to disable account:', error)
-      toast.error('停用账户失败')
+      error('停用账户失败')
       throw error
     } finally {
       loading.value.operations = false
@@ -188,10 +188,10 @@ export function useAccountManagement() {
         await enableAccount(accountId, networkId)
       }
       selectedAccounts.value = []
-      toast.success(`成功启用 ${accountIds.length} 个账户`)
+      success(`成功启用 ${accountIds.length} 个账户`)
     } catch (error) {
       console.error('Failed to batch enable accounts:', error)
-      toast.error('批量启用失败')
+      error('批量启用失败')
     } finally {
       loading.value.batch = false
     }
@@ -205,10 +205,10 @@ export function useAccountManagement() {
         await disableAccount(accountId, networkId)
       }
       selectedAccounts.value = []
-      toast.success(`成功停用 ${accountIds.length} 个账户`)
+      success(`成功停用 ${accountIds.length} 个账户`)
     } catch (error) {
       console.error('Failed to batch disable accounts:', error)
-      toast.error('批量停用失败')
+      error('批量停用失败')
     } finally {
       loading.value.batch = false
     }

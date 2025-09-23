@@ -1,11 +1,12 @@
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api'
 import type { Bot } from '@/types/api'
 import { Activity, Bot as BotIcon, DollarSign, Users } from 'lucide-vue-next'
-import { toast } from 'sonner'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { BotFilters, BotForm, BotModalMode, BotPagination, BotStatCard } from '../types/bot.types'
 
 export function useBotManagement() {
+  const { success, error, info } = useToast()
   // 响应式数据
   const isLoading = ref(false)
   const isSaving = ref(false)
@@ -217,7 +218,7 @@ export function useBotManagement() {
       console.log('数据加载完成，机器人数量:', bots.value.length)
     } catch (error) {
       console.error('加载机器人列表失败:', error)
-      toast.error('加载机器人列表失败')
+      error('加载机器人列表失败')
     } finally {
       isLoading.value = false
     }
@@ -253,7 +254,7 @@ export function useBotManagement() {
   
   const refreshData = async () => {
     await loadBots()
-    toast.success('数据已刷新')
+    success('数据已刷新')
   }
   
   // 机器人操作
@@ -265,60 +266,60 @@ export function useBotManagement() {
   
   const editBot = (bot: Bot) => {
     // 现在使用弹窗进行编辑
-    toast.info('请使用机器人卡片上的编辑按钮进行编辑')
+    info('请使用机器人卡片上的编辑按钮进行编辑')
   }
   
   // 跳转到机器人管理页面
   const goToConfig = () => {
     // 已经在机器人管理页面了，不需要跳转
-    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
+    info('请使用页面上的“添加机器人”按钮创建新机器人')
   }
   
   // 保存功能现在使用弹窗
   const saveBot = async () => {
-    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
+    info('请使用页面上的“添加机器人”按钮创建新机器人')
   }
   
   const toggleBotStatus = async (bot: Bot) => {
     try {
       const newStatus = bot.status === 'active' ? 'inactive' : 'active'
       await botsAPI.updateBotStatus(bot.id, newStatus)
-      toast.success(`机器人已${newStatus === 'active' ? '启用' : '停用'}`)
+      success(`机器人已${newStatus === 'active' ? '启用' : '停用'}`)
       await loadBots()
     } catch (error) {
       console.error('切换机器人状态失败:', error)
-      toast.error('操作失败')
+      error('操作失败')
     }
   }
   
   const testConnection = async (bot: Bot) => {
     try {
       await botsAPI.testBot(bot.id)
-      toast.success('连接测试成功')
+      success('连接测试成功')
     } catch (error) {
       console.error('连接测试失败:', error)
-      toast.error('连接测试失败')
+      error('连接测试失败')
     }
   }
   
   const rechargeBalance = async (bot: Bot) => {
     // 这里应该打开充值对话框
-    toast.info('充值功能开发中')
+    info('充值功能开发中')
   }
   
   const viewLogs = async (bot: Bot) => {
     // 这里应该打开日志查看页面
-    toast.info('日志查看功能开发中')
+    info('日志查看功能开发中')
   }
   
   const resetBot = async (bot: Bot) => {
     try {
       await botsAPI.resetBot(bot.id)
-      toast.success('机器人重置成功')
+      success('机器人重置成功')
       await loadBots()
     } catch (error) {
       console.error('重置机器人失败:', error)
-      toast.error('重置失败')
+      error('重置失败')
     }
   }
   
@@ -329,12 +330,12 @@ export function useBotManagement() {
         botsAPI.updateBotStatus(botId, 'active')
       )
       await Promise.all(promises)
-      toast.success(`已启动 ${selectedBots.value.length} 个机器人`)
+      success(`已启动 ${selectedBots.value.length} 个机器人`)
       selectedBots.value = []
       await loadBots()
     } catch (error) {
       console.error('批量启动失败:', error)
-      toast.error('批量启动失败')
+      error('批量启动失败')
     }
   }
   
@@ -344,12 +345,12 @@ export function useBotManagement() {
         botsAPI.updateBotStatus(botId, 'inactive')
       )
       await Promise.all(promises)
-      toast.success(`已停止 ${selectedBots.value.length} 个机器人`)
+      success(`已停止 ${selectedBots.value.length} 个机器人`)
       selectedBots.value = []
       await loadBots()
     } catch (error) {
       console.error('批量停止失败:', error)
-      toast.error('批量停止失败')
+      error('批量停止失败')
     }
   }
   
@@ -359,10 +360,10 @@ export function useBotManagement() {
         botsAPI.testBot(botId)
       )
       await Promise.all(promises)
-      toast.success(`已测试 ${selectedBots.value.length} 个机器人连接`)
+      success(`已测试 ${selectedBots.value.length} 个机器人连接`)
     } catch (error) {
       console.error('批量测试失败:', error)
-      toast.error('批量测试失败')
+      error('批量测试失败')
     }
   }
   
@@ -391,7 +392,7 @@ export function useBotManagement() {
     link.download = `机器人列表_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     
-    toast.success('数据导出成功')
+    success('数据导出成功')
   }
   
   // 事件处理

@@ -1,30 +1,10 @@
 <template>
   <div class="price-config-page">
-    <!-- 当前网络显示 -->
-    <div class="mb-6 bg-white rounded-lg shadow-sm border p-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center"
-               :class="getNetworkIconClass(currentNetwork?.type)">
-            <span class="text-white font-bold">{{ getNetworkIcon(currentNetwork?.type) }}</span>
-          </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span class="text-sm text-gray-600">当前网络:</span>
-              <span class="font-semibold text-gray-900">{{ currentNetwork?.name || 'Unknown' }}</span>
-              <span class="text-sm text-gray-500">{{ currentNetwork?.rpc_url }}</span>
-            </div>
-          </div>
-        </div>
-        <button
-          @click="switchNetwork"
-          class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-        >
-          切换网络
-        </button>
-      </div>
-    </div>
+    <!-- 网络状态栏 -->
+    <NetworkStatusBar 
+      :current-network="currentNetwork"
+      @switch-network="showNetworkSwitcher = true"
+    />
 
     <div class="page-header">
       <div class="flex items-center justify-between">
@@ -105,34 +85,48 @@
         <p class="text-gray-600">暂无TRX闪兑配置，请联系管理员创建配置。</p>
       </div>
     </div>
+
+    <!-- 网络切换模态框 -->
+    <NetworkSwitcher
+      :visible="showNetworkSwitcher"
+      :available-networks="availableNetworks"
+      :current-network-id="currentNetworkId || ''"
+      @close="showNetworkSwitcher = false"
+      @network-selected="handleNetworkSelected"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { networkApi } from '@/api/network'
-import { getNetworkIcon, getNetworkIconClass } from '@/utils/network'
+import NetworkStatusBar from '@/components/NetworkStatusBar.vue'
+import NetworkSwitcher from '@/components/NetworkSwitcher.vue'
+import { useCommonNetworkOperations } from '@/composables/useCommonNetworkOperations'
+import { usePriceConfig } from '@/composables/usePriceConfig'
+import { useToast } from '@/composables/useToast'
 import { ArrowLeftRight, Package, Zap } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePriceConfig } from '../../composables/usePriceConfig'
-import { useToast } from '../../composables/useToast'
 
 // 导入子组件
 import EnergyFlashConfig from './EnergyFlash/index.vue'
 import TransactionPackageConfig from './TransactionPackage/index.vue'
 import TrxExchangeConfig from './TrxExchange/index.vue'
 
-interface Network {
-  id: number
-  name: string
-  type?: string
-  rpc_url: string
-  explorer_url?: string
-  is_active: boolean
-}
-
 const route = useRoute()
 const router = useRouter()
+
+// 网络切换相关状态
+const showNetworkSwitcher = ref(false)
+
+// 使用通用网络操作
+const {
+  currentNetworkId,
+  currentNetwork,
+  availableNetworks,
+  switchNetwork,
+  initializeNetworks,
+  setCurrentNetworkId
+} = useCommonNetworkOperations()
 
 // 价格配置逻辑
 const {
@@ -149,10 +143,12 @@ const {
 
 const { success, error, warning, loading: showLoading, dismiss } = useToast()
 const saving = ref(false)
-const currentNetwork = ref<Network | null>(null)
 
-// 获取当前网络ID
-const networkId = computed(() => route.params.networkId as string)
+// 获取路由中的网络ID（如果有）
+const routeNetworkId = computed(() => route.params.networkId as string)
+
+// 使用当前网络ID（优先使用网络操作中的ID）
+const networkId = computed(() => currentNetworkId.value || routeNetworkId.value)
 
 // 标签页配置
 const activeTab = ref('energy_flash')
@@ -189,35 +185,16 @@ const trxExchangeConfig = computed(() =>
   configs.value.find(c => c.mode_type === 'trx_exchange')
 )
 
-// 加载当前网络信息
-const loadCurrentNetwork = async () => {
-  try {
-    console.log('🔍 [PriceConfig] 开始加载网络信息，networkId:', networkId.value)
-    const response = await networkApi.getNetworks()
-    console.log('📡 [PriceConfig] API响应:', response)
-    
-    if (response.success && response.data) {
-      const allNetworks = response.data.data?.networks || response.data.networks || []
-      currentNetwork.value = allNetworks.find((network: Network) => network.id.toString() === networkId.value)
-      
-      if (!currentNetwork.value) {
-        throw new Error('未找到指定的网络')
-      }
-      
-    } else {
-      throw new Error(response.error || '获取网络信息失败')
+// 网络切换处理
+const handleNetworkSelected = async (networkId: string) => {
+  const success = await switchNetwork(networkId)
+  if (success) {
+    // 重新加载配置
+    await loadConfigs(networkId)
+    if (activeTab.value === 'energy_flash') {
+      await loadFlashRentConfigs(networkId)
     }
-  } catch (err: any) {
-    console.error('❌ [PriceConfig] 加载网络信息失败:', err)
-    error(`加载网络信息失败: ${err.message}`)
-    // 如果加载失败，跳转回网络选择页面
-    router.push({ name: 'PriceConfig' })
   }
-}
-
-// 切换网络
-const switchNetwork = () => {
-  router.push({ name: 'PriceConfig' })
 }
 
 // 切换模式状态 - 使用网络级别API
@@ -391,28 +368,42 @@ watch(activeTab, async (newTab) => {
   }
 })
 
+// 监听网络ID变化
+watch(currentNetworkId, async (newNetworkId) => {
+  if (newNetworkId) {
+    await loadConfigs(newNetworkId)
+    if (activeTab.value === 'energy_flash') {
+      await loadFlashRentConfigs(newNetworkId)
+    }
+  }
+}, { immediate: false })
+
 // 初始化
 onMounted(async () => {
-  // 检查是否有网络ID参数
-  if (!networkId.value) {
-    error('缺少网络参数')
-    router.push({ name: 'PriceConfig' })
-    return
+  try {
+    // 初始化网络
+    await initializeNetworks()
+    
+    // 如果路由有网络ID参数，使用它
+    if (routeNetworkId.value) {
+      setCurrentNetworkId(routeNetworkId.value)
+    }
+    
+    // 如果有当前网络，加载配置
+    if (networkId.value) {
+      await loadConfigs(networkId.value)
+      
+      if (activeTab.value === 'energy_flash') {
+        await loadFlashRentConfigs(networkId.value)
+      }
+      
+      // 确保加载TRX闪兑配置
+      getTrxExchangeConfig()
+    }
+  } catch (err: any) {
+    console.error('❌ [PriceConfig] 页面初始化失败:', err)
+    error(`页面初始化失败: ${err.message}`)
   }
-  
-  // 加载当前网络信息
-  await loadCurrentNetwork()
-  
-  // 加载基础配置（传递网络ID）
-  await loadConfigs(networkId.value)
-  
-  // 如果是能量闪租标签，加载闪租配置
-  if (activeTab.value === 'energy_flash') {
-    await loadFlashRentConfigs(networkId.value)
-  }
-  
-  // 确保加载TRX闪兑配置
-  getTrxExchangeConfig()
 })
 </script>
 

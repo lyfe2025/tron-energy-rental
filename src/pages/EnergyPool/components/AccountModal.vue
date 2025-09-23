@@ -54,8 +54,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import { ElMessage } from 'element-plus'
 import { Loader2, X } from 'lucide-vue-next'
 import { useEnergyPool } from '../composables/useEnergyPool'
 import AccountForm from './AccountModal/components/AccountForm.vue'
@@ -71,6 +71,8 @@ import type {
 
 const props = defineProps<AccountModalProps>()
 const emit = defineEmits<AccountModalEmits>()
+
+const { error } = useToast()
 
 const { addAccount, updateAccount } = useEnergyPool()
 
@@ -214,7 +216,7 @@ const handleSubmit = async () => {
     }
     
     // 显示错误消息
-    ElMessage.error(errorMessage)
+    error(errorMessage)
     
     console.error('用户友好错误:', errorMessage)
     // API调用失败时不emit success事件，让用户可以重试

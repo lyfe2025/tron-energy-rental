@@ -201,8 +201,8 @@
 
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
+import { useToast } from '@/composables/useToast'
 import type { NetworkStats, TronNetwork } from '@/types/network'
-import { ElMessage } from 'element-plus'
 import { ref, watch } from 'vue'
 
 interface ContractAddress {
@@ -236,6 +236,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error } = useToast()
 
 const visible = ref(false)
 const loading = ref(false)
@@ -274,7 +276,7 @@ const fetchNetworkDetail = async () => {
     await fetchNetworkStats()
   } catch (error) {
     console.error('获取网络详情失败:', error)
-    ElMessage.error('获取网络详情失败')
+    error('获取网络详情失败')
   } finally {
     loading.value = false
   }
@@ -368,10 +370,10 @@ const getContractAddresses = (): ContractAddress[] => {
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制到剪贴板')
+    success('已复制到剪贴板')
   } catch (err) {
     console.error('复制失败:', err)
-    ElMessage.error('复制失败')
+    error('复制失败')
   }
 }
 </script>

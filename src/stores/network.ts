@@ -1,6 +1,6 @@
+import { useToast } from '@/composables/useToast'
 import { apiClient } from '@/services/api/core/apiClient'
 import { defineStore } from 'pinia'
-import { toast } from 'sonner'
 import { computed, ref } from 'vue'
 
 export interface Network {
@@ -15,6 +15,7 @@ export interface Network {
 }
 
 export const useNetworkStore = defineStore('network', () => {
+  const { success, error } = useToast()
   // 状态
   const networks = ref<Network[]>([])
   const currentNetwork = ref<Network | null>(null)
@@ -63,7 +64,7 @@ export const useNetworkStore = defineStore('network', () => {
       }
     } catch (error) {
       console.error('加载网络列表失败:', error)
-      toast.error('加载网络列表失败')
+      error('加载网络列表失败')
       throw error
     } finally {
       loading.value = false
@@ -80,13 +81,13 @@ export const useNetworkStore = defineStore('network', () => {
     const network = getNetworkById(networkId)
     if (!network) {
       console.error(`网络 ID ${networkId} 不存在`)
-      toast.error('网络不存在')
+      error('网络不存在')
       return false
     }
     
     if (!network.is_active) {
       console.error(`网络 ${network.name} 当前不可用`)
-      toast.error(`网络 ${network.name} 当前不可用`)
+      error(`网络 ${network.name} 当前不可用`)
       return false
     }
     
@@ -102,11 +103,11 @@ export const useNetworkStore = defineStore('network', () => {
       return true // 已经是当前网络
     }
     
-    const success = setCurrentNetwork(networkId)
-    if (success) {
-      toast.success(`已切换到 ${currentNetwork.value?.name} 网络`)
+    const isSuccess = setCurrentNetwork(networkId)
+    if (isSuccess) {
+      success(`已切换到 ${currentNetwork.value?.name} 网络`)
     }
-    return success
+    return isSuccess
   }
 
   // 从本地存储恢复网络状态

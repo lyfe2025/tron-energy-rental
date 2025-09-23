@@ -7,18 +7,18 @@ import { useToast } from '@/composables/useToast'
 import { userService } from '@/services/userService'
 import type { Ref } from 'vue'
 import type {
-    BatchOperationParams,
-    CreateUserParams,
-    UpdateUserParams,
-    User,
-    UserFormData,
-    UserModalMode,
+  BatchOperationParams,
+  CreateUserParams,
+  UpdateUserParams,
+  User,
+  UserFormData,
+  UserModalMode,
 } from '../types/user.types'
 import { formatCurrency, formatDateTime } from './userFormatUtils'
 
 export function useUserActions() {
   // 初始化 toast
-  const toast = useToast()
+  const { success, error, info, loading, dismiss } = useToast()
 
   // 用户操作方法
   const saveUser = async (
@@ -90,7 +90,7 @@ export function useUserActions() {
       
       // 显示友好的错误消息
       const errorMessage = error?.friendlyMessage || error?.response?.data?.details || error?.response?.data?.error || error?.message || '保存用户失败'
-      toast.error(errorMessage)
+      error(errorMessage)
     } finally {
       isSubmitting.value = false
     }
@@ -224,25 +224,25 @@ export function useUserActions() {
       onConfirm: async () => {
         let loadingToastId: string | null = null
         try {
-          loadingToastId = toast.loading('正在重置密码...')
+          loadingToastId = loading('正在重置密码...')
           const result = await userService.resetUserPassword({
             userId: user.id,
             newPassword: 'temp123456'
           })
           // 关闭loading通知
           if (loadingToastId) {
-            toast.dismiss(loadingToastId)
+            dismiss(loadingToastId)
           }
-          toast.success(`密码重置成功！新密码：${result.new_password}`)
+          success(`密码重置成功！新密码：${result.new_password}`)
           // 关闭用户菜单
           showUserMenu.value = ''
         } catch (error) {
           // 关闭loading通知
           if (loadingToastId) {
-            toast.dismiss(loadingToastId)
+            dismiss(loadingToastId)
           }
           console.error('重置密码失败:', error)
-          toast.error('重置密码失败，请稍后重试')
+          error('重置密码失败，请稍后重试')
         }
       }
     })
@@ -260,7 +260,7 @@ export function useUserActions() {
       type: 'info',
       onConfirm: () => {
         // 这里可以打开余额调整模态框
-        toast.info('余额调整功能开发中，敬请期待')
+        info('余额调整功能开发中，敬请期待')
         // TODO: 实现余额调整模态框
         // 关闭用户菜单
         showUserMenu.value = ''
@@ -280,7 +280,7 @@ export function useUserActions() {
       type: 'info',
       onConfirm: () => {
         // 这里可以跳转到用户订单页面或打开订单模态框
-        toast.info('订单查看功能开发中，敬请期待')
+        info('订单查看功能开发中，敬请期待')
         // TODO: 实现跳转到用户订单页面
         // 关闭用户菜单
         showUserMenu.value = ''
@@ -306,26 +306,26 @@ export function useUserActions() {
       onConfirm: async () => {
         let loadingToastId: string | null = null
         try {
-          loadingToastId = toast.loading(`正在${action}用户...`)
+          loadingToastId = loading(`正在${action}用户...`)
           await userService.updateUser(user.id, {
             status: newStatus
           })
           // 关闭loading通知
           if (loadingToastId) {
-            toast.dismiss(loadingToastId)
+            dismiss(loadingToastId)
           }
           await loadUsers(searchParams)
           await loadUserStats()
-          toast.success(`用户${action}成功`)
+          success(`用户${action}成功`)
           // 关闭用户菜单
           showUserMenu.value = ''
         } catch (error) {
           // 关闭loading通知
           if (loadingToastId) {
-            toast.dismiss(loadingToastId)
+            dismiss(loadingToastId)
           }
           console.error(`${action}用户失败:`, error)
-          toast.error(`${action}用户失败，请稍后重试`)
+          error(`${action}用户失败，请稍后重试`)
         }
       }
     })

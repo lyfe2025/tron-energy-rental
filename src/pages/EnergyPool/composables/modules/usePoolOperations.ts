@@ -9,7 +9,7 @@ import { reactive, ref } from 'vue'
 import type { LoadingStates, NetworkInfo } from '../types/energy-pool.types'
 
 export function usePoolOperations() {
-  const toast = useToast()
+  const { success, error, info } = useToast()
   
   const loading = reactive<LoadingStates>({
     statistics: false,
@@ -27,7 +27,7 @@ export function usePoolOperations() {
     // 防抖检查：如果已经在刷新中或防抖定时器存在，直接返回
     if (isRefreshing.value || refreshDebounceTimer.value) {
       console.log('🚫 [usePoolOperations] 防抖拦截：刷新状态正在进行中')
-      toast.info('刷新操作进行中，请稍候...')
+      info('刷新操作进行中，请稍候...')
       return
     }
 
@@ -41,13 +41,13 @@ export function usePoolOperations() {
         console.log('✅ [usePoolOperations] 执行状态刷新操作')
         const response = await energyPoolExtendedAPI.refreshStatus()
         if (response.data.success) {
-          toast.success('状态刷新成功')
+          success('状态刷新成功')
           return true
         }
         throw new Error('刷新失败')
       } catch (error) {
         console.error('Failed to refresh status:', error)
-        toast.error('刷新状态失败')
+        error('刷新状态失败')
         throw error
       } finally {
         loading.refresh = false
@@ -70,7 +70,7 @@ export function usePoolOperations() {
       throw new Error('优化分配失败')
     } catch (error) {
       console.error('Failed to optimize allocation:', error)
-      toast.error('优化能量分配失败')
+      error('优化能量分配失败')
       throw error
     }
   }
@@ -95,7 +95,7 @@ export function usePoolOperations() {
       return []
     } catch (error) {
       console.error('Failed to load networks:', error)
-      toast.error('加载网络列表失败')
+      error('加载网络列表失败')
       return []
     }
   }

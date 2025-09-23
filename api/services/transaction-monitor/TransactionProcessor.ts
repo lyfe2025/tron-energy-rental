@@ -169,12 +169,12 @@ export class TransactionProcessor {
     const { address, networkId, networkName, tronWebInstance, tronGridProvider } = monitoredAddress;
     
     try {
-      // 🕐 计算查询时间范围：当前时间向前90秒
+      // 🕐 计算查询时间范围：当前时间向前45秒（减少重复处理，提高效率）
       const now = Date.now();
-      const queryStartTime = now - 90 * 1000; // 90秒查询时间窗口
+      const queryStartTime = now - 45 * 1000; // 45秒查询时间窗口
 
-      // 📥 查询最近90秒内的交易记录（增加查询数量以确保覆盖时间窗口）
-      const transactionsResult = await tronGridProvider.getAccountTransactions(address, 200, 'block_timestamp,desc');
+      // 📥 查询最近45秒内的交易记录（优化查询数量和时间窗口）
+      const transactionsResult = await tronGridProvider.getAccountTransactions(address, 100, 'block_timestamp,desc');
 
       if (!transactionsResult.success || !transactionsResult.data) {
         return;
@@ -190,7 +190,7 @@ export class TransactionProcessor {
         }
       }
 
-      // 🎯 过滤：只处理最近90秒内的交易
+      // 🎯 过滤：只处理最近45秒内的交易
       const recentTransactions = transactions
         .filter((tx: any) => tx && tx.raw_data && tx.raw_data.contract)
         .filter((tx: any) => {

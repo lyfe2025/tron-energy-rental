@@ -9,7 +9,7 @@ import { reactive, ref } from 'vue'
 import type { AccountAddData, AccountUpdateData, EnergyPoolAccount, LoadingStates } from '../types/energy-pool.types'
 
 export function usePoolAccounts() {
-  const toast = useToast()
+  const { success, error } = useToast()
   
   const accounts = ref<EnergyPoolAccount[]>([])
   const loading = reactive<LoadingStates>({
@@ -43,7 +43,7 @@ export function usePoolAccounts() {
       }
     } catch (error) {
       console.error('Failed to load accounts:', error)
-      toast.error('加载账户列表失败')
+      error('加载账户列表失败')
     } finally {
       loading.accounts = false
     }
@@ -84,7 +84,7 @@ export function usePoolAccounts() {
       console.log('✅ [usePoolAccounts] 实时能量数据加载完成')
     } catch (error) {
       console.error('Failed to load real-time energy data:', error)
-      toast.error('获取实时能量数据失败')
+      error('获取实时能量数据失败')
     }
   }
 
@@ -100,13 +100,13 @@ export function usePoolAccounts() {
       }
       const response = await energyPoolExtendedAPI.addAccount(completeAccountData)
       if (response.data.success) {
-        toast.success('账户添加成功')
+        success('账户添加成功')
         return response.data.data
       }
       throw new Error('添加账户失败')
     } catch (error) {
       console.error('Failed to add account:', error)
-      toast.error('添加账户失败')
+      error('添加账户失败')
       throw error
     }
   }
@@ -116,13 +116,13 @@ export function usePoolAccounts() {
     try {
       const response = await energyPoolExtendedAPI.updateAccount(id, updates)
       if (response.data.success) {
-        toast.success('账户更新成功')
+        success('账户更新成功')
         return true
       }
       throw new Error('更新账户失败')
     } catch (error) {
       console.error('Failed to update account:', error)
-      toast.error('更新账户失败')
+      error('更新账户失败')
       throw error
     }
   }
@@ -132,7 +132,7 @@ export function usePoolAccounts() {
     try {
       const response = await energyPoolExtendedAPI.enableAccount(id)
       if (response.data.success) {
-        toast.success('账户已启用')
+        success('账户已启用')
         // 重新加载账户列表
         await loadAccounts()
         return true
@@ -140,7 +140,7 @@ export function usePoolAccounts() {
       throw new Error('启用账户失败')
     } catch (error) {
       console.error('Failed to enable account:', error)
-      toast.error('启用账户失败')
+      error('启用账户失败')
       throw error
     }
   }
@@ -150,7 +150,7 @@ export function usePoolAccounts() {
     try {
       const response = await energyPoolExtendedAPI.disableAccount(id)
       if (response.data.success) {
-        toast.success('账户已停用')
+        success('账户已停用')
         // 重新加载账户列表
         await loadAccounts()
         return true
@@ -158,7 +158,7 @@ export function usePoolAccounts() {
       throw new Error('停用账户失败')
     } catch (error) {
       console.error('Failed to disable account:', error)
-      toast.error('停用账户失败')
+      error('停用账户失败')
       throw error
     }
   }
@@ -168,13 +168,13 @@ export function usePoolAccounts() {
     try {
       const response = await energyPoolExtendedAPI.deleteAccount(id)
       if (response.data.success) {
-        toast.success('账户已删除')
+        success('账户已删除')
         return true
       }
       throw new Error('删除账户失败')
     } catch (error) {
       console.error('Failed to delete account:', error)
-      toast.error('删除账户失败')
+      error('删除账户失败')
       throw error
     }
   }

@@ -2,8 +2,8 @@
  * 实时账户数据获取 Composable
  * 提供统一的TRON账户实时数据获取功能
  */
+import { useToast } from '@/composables/useToast'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
-import { toast } from 'sonner'
 import { ref } from 'vue'
 
 export interface RealTimeAccountData {
@@ -55,6 +55,7 @@ export interface RealTimeAccountData {
 }
 
 export const useRealTimeAccountData = () => {
+  const { error: showError } = useToast()
   const realTimeData = ref<RealTimeAccountData | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -74,7 +75,7 @@ export const useRealTimeAccountData = () => {
   ): Promise<RealTimeAccountData | null> => {
     if (!address) {
       if (showToast) {
-        toast.error('地址不能为空')
+        showError('地址不能为空')
       }
       return null
     }
@@ -147,7 +148,7 @@ export const useRealTimeAccountData = () => {
         const errorMsg = baseResponse.data.message || '获取实时数据失败'
         error.value = errorMsg
         if (showToast) {
-          toast.error(errorMsg)
+          showError(errorMsg)
         }
         return null
       }
@@ -156,7 +157,7 @@ export const useRealTimeAccountData = () => {
       error.value = errorMsg
       console.error('❌ [useRealTimeAccountData] 获取实时数据失败:', err)
       if (showToast) {
-        toast.error(errorMsg)
+        showError(errorMsg)
       }
       return null
     } finally {
@@ -177,7 +178,7 @@ export const useRealTimeAccountData = () => {
   ): Promise<RealTimeAccountData['stakeStatus'] | null> => {
     if (!address) {
       if (showToast) {
-        toast.error('地址不能为空')
+        showError('地址不能为空')
       }
       return null
     }
@@ -203,7 +204,7 @@ export const useRealTimeAccountData = () => {
       } else {
         const errorMsg = response.data.message || '获取质押状态失败'
         if (showToast) {
-          toast.error(errorMsg)
+          showError(errorMsg)
         }
         return null
       }
@@ -211,7 +212,7 @@ export const useRealTimeAccountData = () => {
       const errorMsg = '获取质押状态失败，请检查网络连接'
       console.error('❌ [useRealTimeAccountData] 获取质押状态失败:', err)
       if (showToast) {
-        toast.error(errorMsg)
+        showError(errorMsg)
       }
       return null
     }

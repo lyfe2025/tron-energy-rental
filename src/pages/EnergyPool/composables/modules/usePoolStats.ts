@@ -9,7 +9,7 @@ import { reactive, ref } from 'vue'
 import type { EnergyPoolStatistics, LoadingStates, TodayConsumption } from '../types/energy-pool.types'
 
 export function usePoolStats() {
-  const toast = useToast()
+  const { error } = useToast()
   
   const statistics = reactive<EnergyPoolStatistics>({
     totalAccounts: 0,
@@ -44,7 +44,7 @@ export function usePoolStats() {
       }
     } catch (error) {
       console.error('Failed to load statistics:', error)
-      toast.error('加载统计信息失败')
+      error('加载统计信息失败')
     } finally {
       loading.statistics = false
     }
@@ -91,7 +91,7 @@ export function usePoolStats() {
     } catch (error) {
       console.error('Failed to load today statistics:', error)
       // 提供友好的错误提示，不显示技术性错误
-      toast.error('暂时无法获取今日统计，显示默认数据')
+      error('暂时无法获取今日统计，显示默认数据')
       
       // 设置默认值避免界面出错
       todayConsumption.value = {

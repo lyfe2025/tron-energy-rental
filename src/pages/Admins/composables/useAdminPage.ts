@@ -17,7 +17,7 @@ export function useAdminPage() {
   // Store
   const adminStore = useAdminStore()
   const authStore = useAuthStore()
-  const toast = useToast()
+  const { success, error, warning } = useToast()
 
   // 引入分离的功能模块
   const network = useAdminNetwork()
@@ -36,12 +36,12 @@ export function useAdminPage() {
   const initData = async () => {
     // 确保用户已认证
     if (!authStore.isAuthenticated) {
-      toast.warning('用户未认证，请先登录')
+      warning('用户未认证，请先登录')
       return
     }
     
     if (!network.isOnline.value) {
-      toast.error('网络连接异常，无法获取数据')
+      error('网络连接异常，无法获取数据')
       return
     }
     
@@ -66,7 +66,7 @@ export function useAdminPage() {
     refreshing.value = true
     try {
       await network.retryOperation(initData, '刷新数据')
-      toast.success('数据刷新成功')
+      success('数据刷新成功')
     } catch (error) {
       network.handleApiError(error, '刷新数据')
     } finally {

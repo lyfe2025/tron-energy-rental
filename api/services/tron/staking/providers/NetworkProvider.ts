@@ -29,13 +29,7 @@ export class NetworkProvider {
    * 获取TronGrid API的基础URL和请求头
    */
   getTronGridConfig(): TronGridConfig {
-    console.log(`[NetworkProvider] 🌐 获取TronGrid配置`);
-    console.log(`[NetworkProvider] 当前网络配置:`, this.networkConfig ? {
-      name: this.networkConfig.name,
-      rpc_url: this.networkConfig.rpcUrl || this.networkConfig.rpc_url,
-      api_key: (this.networkConfig.apiKey || this.networkConfig.api_key) ? 
-        `${(this.networkConfig.apiKey || this.networkConfig.api_key).substring(0, 8)}...` : 'none'
-    } : 'null');
+    // 完全静默获取配置，不输出日志
 
     if (this.networkConfig) {
       let baseUrl = this.networkConfig.rpcUrl || 
@@ -43,21 +37,16 @@ export class NetworkProvider {
                    this.networkConfig.fullHost || 
                    'https://api.trongrid.io';
 
-      console.log(`[NetworkProvider] 原始rpcUrl: ${this.networkConfig.rpcUrl || this.networkConfig.rpc_url}`);
-      console.log(`[NetworkProvider] 处理后baseUrl: ${baseUrl}`);
-
       // 确保URL指向TronGrid格式
       if (baseUrl.includes('api.trongrid.io') || 
           baseUrl.includes('api.shasta.trongrid.io') || 
           baseUrl.includes('nile.trongrid.io')) {
-        // 已经是TronGrid格式
-        console.log(`[NetworkProvider] ✅ TronGrid格式正确`);
+        // 已经是TronGrid格式（静默处理）
       } else if (baseUrl.includes('trongrid.io')) {
-        // 可能是其他TronGrid格式，保持原样
-        console.log(`[NetworkProvider] ⚠️ 其他TronGrid格式，保持原样`);
+        // 可能是其他TronGrid格式，保持原样（静默处理）
       } else {
-        // 使用默认TronGrid
-        console.log(`[NetworkProvider] ❌ 非TronGrid格式，使用默认主网`);
+        // 使用默认TronGrid（这种情况需要警告，因为是配置错误）
+        console.warn(`[NetworkProvider] ❌ 非TronGrid格式，使用默认主网: ${baseUrl}`);
         baseUrl = 'https://api.trongrid.io';
       }
 
@@ -69,17 +58,16 @@ export class NetworkProvider {
       if (this.networkConfig.apiKey || this.networkConfig.api_key) {
         const apiKey = this.networkConfig.apiKey || this.networkConfig.api_key;
         headers['TRON-PRO-API-KEY'] = apiKey;
-        console.log(`[NetworkProvider] ✅ API Key已设置: ${apiKey.substring(0, 8)}...`);
+        // 静默设置API Key
       } else {
-        console.log(`[NetworkProvider] ⚠️ 没有API Key`);
+        // 没有API Key时给出警告（这可能影响功能）
+        console.warn(`[NetworkProvider] ⚠️ 没有API Key，可能影响API调用`);
       }
-
-      console.log(`[NetworkProvider] 最终配置 - URL: ${baseUrl}`);
       return { baseUrl, headers };
     }
 
-    // 默认配置
-    console.log(`[NetworkProvider] ⚠️ 使用默认主网配置`);
+    // 默认配置（这种情况需要警告，因为可能是配置问题）
+    console.warn(`[NetworkProvider] ⚠️ 没有网络配置，使用默认主网配置`);
     return {
       baseUrl: 'https://api.trongrid.io',
       headers: {

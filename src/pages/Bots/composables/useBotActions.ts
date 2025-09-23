@@ -1,11 +1,13 @@
 /**
  * 机器人操作相关组合式函数
  */
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
-import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 
 export function useBotActions() {
+  const { success, error, warning, info } = useToast()
+  
   // 状态
   const showCreateModal = ref(false)
   const showEditModal = ref(false)
@@ -58,7 +60,7 @@ export function useBotActions() {
       if (response.data?.success) {
         console.log('✅ 机器人创建API调用成功')
         
-        ElMessage.success('机器人创建成功！数据已保存到数据库')
+        success('机器人创建成功！数据已保存到数据库')
         
         showCreateModal.value = false
         await refreshData()
@@ -80,7 +82,7 @@ export function useBotActions() {
           
           
           setTimeout(() => {
-            ElMessage.info('机器人已创建完成，现在可以选择性地同步设置到Telegram')
+            info('机器人已创建完成，现在可以选择性地同步设置到Telegram')
           }, 500)
         }
         
@@ -89,7 +91,7 @@ export function useBotActions() {
       }
     } catch (error: any) {
       console.error('❌ 创建机器人失败:', error)
-      ElMessage.error(error.message || '创建机器人失败')
+      error(error.message || '创建机器人失败')
     }
   }
 
@@ -125,7 +127,7 @@ export function useBotActions() {
       if (response.data?.success) {
         console.log('✅ 机器人更新API调用成功')
         
-        ElMessage.success('机器人更新成功！数据已保存到数据库，如需同步到Telegram请使用手动同步功能')
+        success('机器人更新成功！数据已保存到数据库，如需同步到Telegram请使用手动同步功能')
         
         showEditModal.value = false
         selectedBot.value = null
@@ -139,12 +141,7 @@ export function useBotActions() {
       
       // 针对超时错误给出更友好的提示
       if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
-        ElMessage({
-          type: 'warning',
-          message: error.friendlyMessage || '操作超时，数据库更新可能已完成，请刷新页面查看最新状态',
-          duration: 6000,
-          showClose: true
-        })
+        warning(error.friendlyMessage || '操作超时，数据库更新可能已完成，请刷新页面查看最新状态')
         
         // 自动刷新数据
         setTimeout(async () => {
@@ -157,7 +154,7 @@ export function useBotActions() {
         }, 2000)
         
       } else {
-        ElMessage.error(error.friendlyMessage || error.message || '更新机器人失败')
+        error(error.friendlyMessage || error.message || '更新机器人失败')
       }
     }
   }
@@ -166,9 +163,9 @@ export function useBotActions() {
   const handleManualSyncSuccess = (syncResult?: any, refreshData?: () => Promise<void>) => {
     console.log('📡 手动同步完成:', syncResult)
     if (syncResult?.success) {
-      ElMessage.success('Telegram同步完成！')
+      success('Telegram同步完成！')
     } else if (syncResult?.hasPartialSuccess) {
-      ElMessage.warning('Telegram同步部分成功，请查看详细日志')
+      warning('Telegram同步部分成功，请查看详细日志')
     }
     
     // 刷新机器人数据以获取最新状态

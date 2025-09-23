@@ -2,14 +2,14 @@
  * 网络状态管理 Store
  * 用于全局管理网络选择状态，支持能量池管理等模块的网络选择功能
  */
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
 import { networkApi } from '@/api/network'
-import type { TronNetwork } from '@/types/network'
 import { useToast } from '@/composables/useToast'
+import type { TronNetwork } from '@/types/network'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 export const useNetworkStore = defineStore('network', () => {
-  const toast = useToast()
+  const { error: showError } = useToast()
   
   // 状态数据
   const networks = ref<TronNetwork[]>([])
@@ -31,7 +31,7 @@ export const useNetworkStore = defineStore('network', () => {
     return activeNetworks.value.map(network => ({
       value: network.id,
       label: network.name,
-      type: network.type,
+      type: network.network_type || network.type,
       isActive: network.is_active,
       healthStatus: network.health_status
     }))
@@ -68,7 +68,7 @@ export const useNetworkStore = defineStore('network', () => {
     } catch (err: any) {
       error.value = err.message || '加载网络列表失败'
       console.error('❌ [NetworkStore] 加载网络列表失败:', err)
-      toast.error('加载网络列表失败')
+      showError('加载网络列表失败')
     } finally {
       loading.value = false
     }

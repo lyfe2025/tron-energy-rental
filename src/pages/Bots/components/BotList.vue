@@ -309,21 +309,23 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import type { Bot as BotType } from '@/types/api';
 import {
-  Bell,
-  Bot,
-  CreditCard,
-  Eye,
-  FileText,
-  MoreVertical,
-  Power,
-  RotateCcw,
-  Settings,
-  Wifi
+    Bell,
+    Bot,
+    CreditCard,
+    Eye,
+    FileText,
+    MoreVertical,
+    Power,
+    RotateCcw,
+    Settings,
+    Wifi
 } from 'lucide-vue-next';
-import { toast } from 'sonner';
 import { computed } from 'vue';
+
+const { info } = useToast();
 
 const props = defineProps<{
   bots: BotType[]
@@ -387,9 +389,9 @@ const toggleBotMenu = (botId: string) => {
 // 提示使用弹窗功能
 const goToConfig = (botId?: string) => {
   if (botId) {
-    toast.info('请使用机器人卡片上的编辑按钮进行编辑')
+    info('请使用机器人卡片上的编辑按钮进行编辑')
   } else {
-    toast.info('请使用页面上的"添加机器人"按钮创建新机器人')
+    info('请使用页面上的“添加机器人”按钮创建新机器人')
   }
 }
 

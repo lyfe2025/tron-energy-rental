@@ -8,7 +8,7 @@ import { systemConfigsAPI } from '../../../services/api'
 import { useSettingsConfig } from './useSettingsConfig'
 
 export function useSettingsAPI() {
-  const toast = useToast()
+  const { warning, error, loading, dismiss, saveSuccess, saveError } = useToast()
   const { configKeyMappings, parseConfigValue, buildConfigArray } = useSettingsConfig()
 
   /**
@@ -71,7 +71,7 @@ export function useSettingsAPI() {
         errorMessage = '网络连接失败，请检查网络设置'
       }
       
-      toast.error(errorMessage)
+      error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -97,7 +97,7 @@ export function useSettingsAPI() {
     setSaving(true)
     
     // 显示保存中的通知
-    const loadingToastId = toast.loading('正在保存设置...')
+    const loadingToastId = loading('正在保存设置...')
     
     try {
       console.log('🔍 [设置保存] 当前标签页设置:', currentTabSettings)
@@ -109,8 +109,8 @@ export function useSettingsAPI() {
         const errors = validationModule.validateSettingsForm(currentSettings, tabId)
         if (errors.length > 0) {
           console.error('❌ [设置保存] 验证失败:', errors)
-          toast.dismiss(loadingToastId)
-          toast.error(errors.join('; '))
+          dismiss(loadingToastId)
+          error(errors.join('; '))
           return
         }
         console.log('✅ [设置保存] 设置验证通过')
@@ -132,8 +132,8 @@ export function useSettingsAPI() {
 
       if (configs.length === 0) {
         console.warn('⚠️ [设置保存] 没有找到需要保存的配置项')
-        toast.dismiss(loadingToastId)
-        toast.warning('没有找到需要保存的配置项')
+        dismiss(loadingToastId)
+        warning('没有找到需要保存的配置项')
         return
       }
       
@@ -149,7 +149,7 @@ export function useSettingsAPI() {
       const response = await systemConfigsAPI.updateConfigs(configs, changeReason)
       console.log('📥 [设置保存] API响应:', response)
       
-      toast.dismiss(loadingToastId)
+      dismiss(loadingToastId)
       
       if (response.data.success) {
         console.log('✅ [设置保存] API调用成功')
@@ -158,7 +158,7 @@ export function useSettingsAPI() {
         
         const savedCount = configs.length
         const tabName = tabId || '全部'
-        toast.saveSuccess(`${tabName}设置保存成功，共更新 ${savedCount} 项配置`)
+        saveSuccess(`${tabName}设置保存成功，共更新 ${savedCount} 项配置`)
         
         // 保存成功后重新加载数据以确保前端显示最新值
         try {
@@ -190,7 +190,7 @@ export function useSettingsAPI() {
         stack: error.stack
       })
       
-      toast.dismiss(loadingToastId)
+      dismiss(loadingToastId)
       
       let errorMessage = '设置保存失败，请稍后重试'
       if (error.response?.data?.message) {
@@ -200,7 +200,7 @@ export function useSettingsAPI() {
       }
       
       console.error('💥 [设置保存] 最终错误消息:', errorMessage)
-      toast.saveError(errorMessage)
+      saveError(errorMessage)
       throw error
     } finally {
       console.log('🏁 [设置保存] 保存流程结束')

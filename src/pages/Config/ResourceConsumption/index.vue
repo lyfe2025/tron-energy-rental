@@ -66,11 +66,11 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import {
-  RefreshCw,
-  Wifi,
-  Zap
+    RefreshCw,
+    Wifi,
+    Zap
 } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -83,13 +83,16 @@ import { SimpleResourceConsumptionApi } from './services/simpleApi.js'
 
 // 类型导入
 import type {
-  BandwidthConfig,
-  EnergyConfig
+    BandwidthConfig,
+    EnergyConfig
 } from './types/resource-consumption.types.js'
 
 // 响应式数据
 const activeTab = ref('energy')
 const loading = ref(false)
+
+// Toast
+const { success, error } = useToast()
 
 // 标签页配置
 const tabs = [
@@ -145,10 +148,10 @@ const refreshData = async () => {
     Object.assign(energyConfig, newEnergyConfig)
     Object.assign(bandwidthConfig, newBandwidthConfig)
     
-    ElMessage.success('数据刷新成功')
+    success('数据刷新成功')
   } catch (error) {
     console.error('刷新数据失败:', error)
-    ElMessage.error('刷新数据失败，请稍后重试')
+    error('刷新数据失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -160,17 +163,17 @@ const updateEnergyConfig = async (newConfig: Partial<EnergyConfig>) => {
     Object.assign(energyConfig, newConfig)
   } catch (error) {
     console.error('更新能量配置失败:', error)
-    ElMessage.error('更新能量配置失败，请稍后重试')
+    error('更新能量配置失败，请稍后重试')
   }
 }
 
 const saveEnergyConfig = async () => {
   try {
     await SimpleResourceConsumptionApi.saveEnergyConfig(energyConfig)
-    ElMessage.success('能量配置保存成功')
+    success('能量配置保存成功')
   } catch (error) {
     console.error('保存能量配置失败:', error)
-    ElMessage.error('保存能量配置失败，请稍后重试')
+    error('保存能量配置失败，请稍后重试')
   }
 }
 
@@ -180,17 +183,17 @@ const updateBandwidthConfig = async (newConfig: Partial<BandwidthConfig>) => {
     Object.assign(bandwidthConfig, newConfig)
   } catch (error) {
     console.error('更新带宽配置失败:', error)
-    ElMessage.error('更新带宽配置失败，请稍后重试')
+    error('更新带宽配置失败，请稍后重试')
   }
 }
 
 const saveBandwidthConfig = async () => {
   try {
     await SimpleResourceConsumptionApi.saveBandwidthConfig(bandwidthConfig)
-    ElMessage.success('带宽配置保存成功')
+    success('带宽配置保存成功')
   } catch (error) {
     console.error('保存带宽配置失败:', error)
-    ElMessage.error('保存带宽配置失败，请稍后重试')
+    error('保存带宽配置失败，请稍后重试')
   }
 }
 

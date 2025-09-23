@@ -17,7 +17,7 @@ import { useSettingsValidation } from './useSettingsValidation'
 
 export function useSettings() {
   // 通知系统
-  const toast = useToast()
+  const { success, error } = useToast()
   
   // 确认对话框状态
   const showConfirmDialog = ref(false)
@@ -220,10 +220,10 @@ export function useSettings() {
               break
           }
           coreModule.setDirty(true)
-          toast.success(`${coreModule.activeTab.value}设置已重置为默认值`)
+          success(`${coreModule.activeTab.value}设置已重置为默认值`)
         } catch (error) {
           console.error('重置设置失败:', error)
-          toast.error('重置设置失败，请稍后重试')
+          error('重置设置失败，请稍后重试')
         }
       },
       'warning'
