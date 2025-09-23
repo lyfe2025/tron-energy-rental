@@ -220,10 +220,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { networkApi } from '@/api/network'
+import { useToast } from '@/composables/useToast'
 import type { TronNetwork } from '@/types/network'
+import { ElMessageBox } from 'element-plus'
+import { reactive, ref, watch } from 'vue'
 
 interface Props {
   visible: boolean
@@ -236,6 +237,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error } = useToast()
 
 const networks = ref<TronNetwork[]>([])
 const loading = ref(false)
@@ -276,7 +279,7 @@ const loadNetworks = async () => {
     }
   } catch (error) {
     console.error('加载网络列表失败:', error)
-    ElMessage.error('加载网络列表失败')
+    error('加载网络列表失败')
   }
 }
 
@@ -334,11 +337,11 @@ const handleSubmit = async () => {
     if (editingNetwork.value) {
       // 更新网络
       await networkApi.updateNetwork(editingNetwork.value.id, formData)
-      ElMessage.success('网络更新成功')
+      success('网络更新成功')
     } else {
       // 添加网络
       await networkApi.createNetwork(formData)
-      ElMessage.success('网络添加成功')
+      success('网络添加成功')
     }
     
     await loadNetworks()
@@ -346,7 +349,7 @@ const handleSubmit = async () => {
     emit('success')
   } catch (error) {
     console.error('操作失败:', error)
-    ElMessage.error('操作失败，请重试')
+    error('操作失败，请重试')
   } finally {
     loading.value = false
   }
@@ -358,12 +361,12 @@ const toggleNetworkStatus = async (network: TronNetwork) => {
     await networkApi.updateNetwork(network.id, {
       is_active: !network.is_active
     })
-    ElMessage.success(`网络已${network.is_active ? '禁用' : '启用'}`)
+    success(`网络已${network.is_active ? '禁用' : '启用'}`)
     await loadNetworks()
     emit('success')
   } catch (error) {
     console.error('状态切换失败:', error)
-    ElMessage.error('状态切换失败')
+      error('状态切换失败')
   }
 }
 
@@ -381,13 +384,13 @@ const deleteNetwork = async (network: TronNetwork) => {
     )
     
     await networkApi.deleteNetwork(network.id)
-    ElMessage.success('网络删除成功')
+    success('网络删除成功')
     await loadNetworks()
     emit('success')
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      error('删除失败')
     }
   }
 }

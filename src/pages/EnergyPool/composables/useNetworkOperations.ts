@@ -30,13 +30,25 @@ export function useNetworkOperations() {
   })
 
   const currentNetwork = computed(() => {
-    const network = networkStore.networks.find(network => network.id === currentNetworkId.value)
-    console.log('🔍 [useNetworkOperations] 查找网络:', {
-      currentNetworkId: currentNetworkId.value,
-      availableNetworks: networkStore.networks.length,
-      foundNetwork: !!network,
-      network: network
+    const networkId = currentNetworkId.value
+    if (!networkId) {
+      console.log('🔍 [useNetworkOperations] 当前网络ID为空')
+      return undefined
+    }
+    
+    // 确保网络ID类型匹配（支持字符串和数字类型的比较）
+    const network = networkStore.networks.find(network => {
+      return String(network.id) === String(networkId)
     })
+    
+    console.log('🔍 [useNetworkOperations] 查找网络:', {
+      currentNetworkId: networkId,
+      availableNetworks: networkStore.networks.length,
+      allNetworks: networkStore.networks.map(n => ({ id: n.id, name: n.name, type: String(n.id) })),
+      foundNetwork: !!network,
+      networkName: network?.name
+    })
+    
     return network
   })
 

@@ -2,12 +2,14 @@
  * 机器人编辑核心逻辑
  * 职责：处理机器人编辑的主要业务逻辑
  */
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { computed, nextTick, ref } from 'vue'
 import type { BotData } from '../../../composables/useBotFormShared'
 import { useBotForm } from '../../../composables/useBotFormShared'
 
 export function useBotEdit() {
+  const { success, error } = useToast()
+  
   // 使用共享表单逻辑
   const { 
     formData, 
@@ -190,11 +192,11 @@ export function useBotEdit() {
           emit('refresh')
         }
         
-        ElMessage.success(`✅ 已成功切换到 ${result.mode === 'webhook' ? 'Webhook' : 'Polling'} 模式`)
+        success(`✅ 已成功切换到 ${result.mode === 'webhook' ? 'Webhook' : 'Polling'} 模式`)
       }
     } catch (error: any) {
       console.error('模式切换失败:', error)
-      ElMessage.error(`❌ 模式切换失败: ${error.message}`)
+      error(`❌ 模式切换失败: ${error.message}`)
     } finally {
       saving.value = false
     }
@@ -203,7 +205,7 @@ export function useBotEdit() {
   // 手动同步成功处理
   const handleSyncSuccess = (emit: any) => {
     showManualSyncDialog.value = false
-    ElMessage.success('同步操作已完成！')
+    success('同步操作已完成！')
     // 触发父组件刷新数据
     emit('refresh')
   }

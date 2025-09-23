@@ -32,6 +32,8 @@
       <EnergyCalculator
         :calculator="calculator"
         :local-config="localConfig"
+        :energy-config="energyConfig"
+        :is-config-loaded="isConfigLoaded"
         :calculate-energy="calculateEnergy"
         :reset-calculator="resetCalculator"
         :use-default-addresses="useDefaultAddresses"
@@ -99,6 +101,8 @@ const {
 // 使用计算器逻辑
 const {
   calculator,
+  energyConfig,
+  isConfigLoaded,
   calculateEnergy,
   resetCalculator,
   useDefaultAddresses,

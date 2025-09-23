@@ -433,7 +433,7 @@ export class TransactionProcessor {
           calculated_units, payment_status, status, tron_tx_hash,
           source_address, created_at, updated_at
          FROM orders 
-         WHERE tron_tx_hash = $1 OR payment_tx_hash = $1
+         WHERE tron_tx_hash = $1
          LIMIT 1`,
         [txHash]
       );

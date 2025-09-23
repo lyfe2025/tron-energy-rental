@@ -3,7 +3,7 @@
  * 负责URL处理、密钥生成等配置相关逻辑
  */
 
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { computed, ref } from 'vue'
 import type { BotData, WebhookConfig, WebhookUIState } from '../types/webhook.types'
 
@@ -16,6 +16,8 @@ export function useWebhookConfig(
   },
   emit: (event: 'update:modelValue', value: WebhookConfig) => void
 ) {
+  const { success } = useToast()
+  
   // UI状态管理
   const uiState = ref<WebhookUIState>({
     checking: false,
@@ -130,7 +132,7 @@ export function useWebhookConfig(
       uiState.value.secretGenerated = false
     }, 3000)
     
-    ElMessage.success('已生成32位随机密钥')
+    success('已生成32位随机密钥')
   }
 
   // 切换密钥显示/隐藏

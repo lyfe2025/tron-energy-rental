@@ -25,12 +25,9 @@ export class OrderCalculationService {
    * 计算总能量需求
    */
   async calculateTotalEnergy(units: number, config: FlashRentConfig): Promise<number> {
-    // 优先使用配置中的能量值，如果没有则从系统配置动态获取
-    let energyPerUnit = config.energy_per_unit;
-    
-    if (!energyPerUnit) {
-      energyPerUnit = await this.getDynamicEnergyPerUnit();
-    }
+    // 始终使用系统配置表的动态计算值，确保能量计算的准确性
+    // 公式：能量 = 笔数 * (标准转账能量消耗 * (1 + 安全缓冲百分比))
+    const energyPerUnit = await this.getDynamicEnergyPerUnit();
     
     return units * energyPerUnit;
   }
@@ -56,17 +53,18 @@ export class OrderCalculationService {
         }, {} as Record<string, number>);
 
         const standardEnergy = energyConfigs['resource_consumption.energy.usdt_standard_energy'] || 65000;
-        const bufferPercentage = energyConfigs['resource_consumption.energy.usdt_buffer_percentage'] || 1;
+        const bufferPercentage = energyConfigs['resource_consumption.energy.usdt_buffer_percentage'] || 2;
         
         // 计算：单笔需要消耗的能量 = 标准转账能量消耗 * (1 + 安全缓冲百分比)
         return Math.round(standardEnergy * (1 + bufferPercentage / 100));
       }
 
-      // 如果获取配置失败，使用默认值（与系统配置默认值一致）
+      // 如果获取配置失败，使用系统默认值
+      console.warn('未找到能量消耗配置，使用系统默认值');
       return Math.round(65000 * (1 + 2 / 100)); // 66300
     } catch (error) {
       console.error('获取能量消耗配置失败:', error);
-      // 错误情况下使用默认值
+      // 错误情况下使用系统默认值
       return Math.round(65000 * (1 + 2 / 100)); // 66300
     }
   }
@@ -113,10 +111,10 @@ export class OrderCalculationService {
   }
 
   /**
-   * 获取闪租持续时间（整数小时）
+   * 获取闪租持续时间（分钟）
    */
   getFlashRentDuration(config: FlashRentConfig): number {
-    return Math.round(config.expiry_hours || 6);
+    return Math.round((config.expiry_hours || 6) * 60); // 转换为分钟保持一致性
   }
 
   /**
@@ -127,19 +125,16 @@ export class OrderCalculationService {
     config: FlashRentConfig
   ): Promise<OrderCalculationResult & {
     orderPrice: number;
-    duration: number;
   }> {
     const calculatedUnits = this.calculateUnits(trxAmount, config);
     const totalEnergy = await this.calculateTotalEnergy(calculatedUnits, config);
     const validation = this.validateCalculationResult(trxAmount, calculatedUnits, totalEnergy);
 
     const orderPrice = this.calculateOrderPrice(calculatedUnits, config);
-    const duration = this.getFlashRentDuration(config);
 
     return {
       ...validation,
-      orderPrice,
-      duration
+      orderPrice
     };
   }
 }

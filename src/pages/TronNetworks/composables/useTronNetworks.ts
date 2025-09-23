@@ -1,5 +1,6 @@
 import { networkApi } from '@/api/network'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
 interface TronNetwork {
@@ -32,6 +33,8 @@ interface NetworkStats {
 }
 
 export function useTronNetworks() {
+  const { success, error, warning } = useToast()
+  
   // 响应式数据
   const loading = ref(false)
   const testingAll = ref(false)
@@ -125,13 +128,13 @@ export function useTronNetworks() {
         networks.value = []
         total.value = 0
         if (response.error) {
-          ElMessage.error(response.error)
+          error(response.error)
         }
       }
       console.log('🎯 最终设置的networks:', networks.value)
     } catch (error) {
       console.error('❌ 获取网络列表失败:', error)
-      ElMessage.error('获取网络列表失败')
+      error('获取网络列表失败')
       networks.value = []
       total.value = 0
     } finally {
@@ -170,10 +173,10 @@ export function useTronNetworks() {
         })
       }
       
-      ElMessage.success('网络连接测试完成')
+      success('网络连接测试完成')
     } catch (error) {
       console.error('测试网络连接失败:', error)
-      ElMessage.error('测试网络连接失败')
+      error('测试网络连接失败')
       
       // 出错时重新获取网络列表
       await fetchNetworks()
@@ -211,16 +214,16 @@ export function useTronNetworks() {
           network.connection_status = 'connected'
           network.health_status = 'healthy'
           network.latency = testData.response_time_ms || 0
-          ElMessage.success(`网络 "${network.name}" 连接测试成功 (${testData.response_time_ms}ms)`)
+          success(`网络 "${network.name}" 连接测试成功 (${testData.response_time_ms}ms)`)
         } else {
           network.connection_status = 'disconnected'
           network.health_status = 'unhealthy'
-          ElMessage.warning(`网络 "${network.name}" 连接测试失败`)
+          warning(`网络 "${network.name}" 连接测试失败`)
         }
       } else {
         network.connection_status = 'disconnected'
         network.health_status = 'unhealthy'
-        ElMessage.error(`网络 "${network.name}" 连接测试返回异常`)
+        error(`网络 "${network.name}" 连接测试返回异常`)
       }
       network.last_check_at = new Date().toISOString()
       
@@ -228,7 +231,7 @@ export function useTronNetworks() {
       console.error('网络连接测试失败:', error)
       network.connection_status = 'disconnected'
       network.health_status = 'unhealthy'
-      ElMessage.error(`网络 "${network.name}" 连接测试失败`)
+      error(`网络 "${network.name}" 连接测试失败`)
     }
   }
 
@@ -237,11 +240,11 @@ export function useTronNetworks() {
       network.updating = true
       await networkApi.toggleNetworkStatus(network.id)
       
-      ElMessage.success(`网络已${network.is_active ? '启用' : '禁用'}`)
+      success(`网络已${network.is_active ? '启用' : '禁用'}`)
     } catch (error) {
       console.error('更新状态失败:', error)
       network.is_active = !network.is_active // 回滚状态
-      ElMessage.error('更新状态失败')
+      error('更新状态失败')
     } finally {
       network.updating = false
     }
@@ -253,7 +256,7 @@ export function useTronNetworks() {
 
   const handleBatchEnable = async () => {
     if (selectedNetworks.value.length === 0) {
-      ElMessage.warning('请先选择要启用的网络')
+      warning('请先选择要启用的网络')
       return
     }
 
@@ -279,16 +282,16 @@ export function useTronNetworks() {
       // 清空选择
       selectedNetworks.value = []
       
-      ElMessage.success(`已启用 ${ids.length} 个网络`)
+      success(`已启用 ${ids.length} 个网络`)
     } catch (error) {
       console.error('批量启用失败:', error)
-      ElMessage.error(`批量启用失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      error(`批量启用失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 
   const handleBatchDisable = async () => {
     if (selectedNetworks.value.length === 0) {
-      ElMessage.warning('请先选择要禁用的网络')
+      warning('请先选择要禁用的网络')
       return
     }
 
@@ -314,10 +317,10 @@ export function useTronNetworks() {
       // 清空选择
       selectedNetworks.value = []
       
-      ElMessage.success(`已禁用 ${ids.length} 个网络`)
+      success(`已禁用 ${ids.length} 个网络`)
     } catch (error) {
       console.error('批量禁用失败:', error)
-      ElMessage.error(`批量禁用失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      error(`批量禁用失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 
@@ -337,11 +340,11 @@ export function useTronNetworks() {
       
       // 重新获取网络列表
       await fetchNetworks()
-      ElMessage.success('删除成功')
+      success('删除成功')
     } catch (error) {
       if (error !== 'cancel') {
         console.error('删除失败:', error)
-        ElMessage.error('删除失败')
+        error('删除失败')
       }
     }
   }
@@ -349,10 +352,10 @@ export function useTronNetworks() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      ElMessage.success('已复制到剪贴板')
+      success('已复制到剪贴板')
     } catch (error) {
       console.error('复制失败:', error)
-      ElMessage.error('复制失败')
+      error('复制失败')
     }
   }
 

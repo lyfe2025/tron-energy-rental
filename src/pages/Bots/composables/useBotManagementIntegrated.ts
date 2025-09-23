@@ -203,12 +203,14 @@ export function useBotManagement() {
       }
       
       // 显示成功提示
-      const { ElMessage } = await import('element-plus')
-      ElMessage.success('配置信息已复制到剪贴板')
+      const { useToast } = await import('@/composables/useToast')
+      const { success } = useToast()
+      success('配置信息已复制到剪贴板')
     } catch (error: any) {
       console.error('复制配置失败:', error)
-      const { ElMessage } = await import('element-plus')
-      ElMessage.error('复制失败，请重试')
+      const { useToast } = await import('@/composables/useToast')
+      const { error: showError } = useToast()
+      showError('复制失败，请重试')
     }
   }
 

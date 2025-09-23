@@ -268,9 +268,9 @@
 
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
+import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { energyPoolExtendedAPI } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import type { TronNetwork } from '@/types/network'
-import type { EnergyPoolAccount } from '@/services/api/energy-pool/energyPoolExtendedAPI'
 import { Check, Network, Search, User } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 

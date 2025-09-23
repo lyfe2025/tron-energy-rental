@@ -84,7 +84,7 @@ export const getEnergyConsumptionConfig = async (): Promise<EnergyConsumptionCon
       }, {} as Record<string, number>)
       
       const standardEnergy = configs['resource_consumption.energy.usdt_standard_energy'] || 65000
-      const bufferPercentage = configs['resource_consumption.energy.usdt_buffer_percentage'] || 1
+      const bufferPercentage = configs['resource_consumption.energy.usdt_buffer_percentage'] || 2
       
       // 计算：单笔需要消耗的能量 = 标准转账能量消耗 * (1 + 安全缓冲百分比)
       const calculatedEnergyPerUnit = Math.round(standardEnergy * (1 + bufferPercentage / 100))
@@ -102,8 +102,8 @@ export const getEnergyConsumptionConfig = async (): Promise<EnergyConsumptionCon
   // 返回默认值
   return {
     standard_energy: 65000,
-    buffer_percentage: 1,
-    calculated_energy_per_unit: 65650 // 65000 * (1 + 1/100)
+    buffer_percentage: 2,
+    calculated_energy_per_unit: 66300 // 65000 * (1 + 2/100)
   }
 }
 

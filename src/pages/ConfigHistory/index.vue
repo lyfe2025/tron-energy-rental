@@ -44,15 +44,18 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import type { ConfigHistoryRecord } from '@/services/api'
 import { configCacheAPI } from '@/services/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref, watch } from 'vue'
 import HistoryDetailsDialog from './components/HistoryDetailsDialog.vue'
 import HistoryFilters from './components/HistoryFilters.vue'
 import HistoryList from './components/HistoryList.vue'
 import HistoryPagination from './components/HistoryPagination.vue'
 import { generateConfigTitle } from './utils/configUtils'
+
+const { success, error } = useToast()
 
 // 响应式数据
 const loading = ref(false)
@@ -96,11 +99,11 @@ const loadHistory = async () => {
       historyRecords.value = response.data.data.history
       totalRecords.value = response.data.data.pagination.total
     } else {
-      ElMessage.error(response.data.message || '加载历史记录失败')
+      error(response.data.message || '加载历史记录失败')
     }
   } catch (error: any) {
     console.error('加载历史记录错误:', error)
-    ElMessage.error(error.response?.data?.message || '加载历史记录失败')
+    error(error.response?.data?.message || '加载历史记录失败')
   } finally {
     loading.value = false
   }
@@ -145,7 +148,7 @@ const rollbackConfig = async (record: ConfigHistoryRecord) => {
 
     // 模拟回滚操作
     await new Promise(resolve => setTimeout(resolve, 2000))
-    ElMessage.success('配置回滚成功')
+    success('配置回滚成功')
     
     // 关闭详情对话框
     if (showDetailsDialog.value) {
@@ -163,9 +166,9 @@ const exportHistory = async () => {
   try {
     // 模拟导出操作
     await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('历史记录导出成功')
+    success('历史记录导出成功')
   } catch (error) {
-    ElMessage.error('导出失败')
+    error('导出失败')
   }
 }
 

@@ -1,9 +1,12 @@
+import { useToast } from '@/composables/useToast'
 import { notificationsAPI } from '@/services/api/notifications/notificationsAPI'
 import type { BotNotificationConfig } from '@/types/notification'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { reactive, ref } from 'vue'
 
 export function useNotificationConfig(botId: string) {
+  const { success, error } = useToast()
+  
   const loading = ref(true)
   const saving = ref(false)
   const showManualDialog = ref(false)
@@ -98,11 +101,11 @@ export function useNotificationConfig(botId: string) {
         Object.assign(config, response.data)
         console.log('✅ 通知配置加载成功')
       } else {
-        ElMessage.error('加载配置失败')
+        error('加载配置失败')
       }
     } catch (error: any) {
       console.error('❌ 加载配置失败:', error)
-      ElMessage.error(error?.response?.data?.message || '加载配置失败')
+      error(error?.response?.data?.message || '加载配置失败')
     } finally {
       loading.value = false
     }
@@ -114,14 +117,14 @@ export function useNotificationConfig(botId: string) {
       const response = await notificationsAPI.updateConfig(botId, config)
       
       if (response.data) {
-        ElMessage.success('配置保存成功')
+        success('配置保存成功')
         console.log('✅ 通知配置保存成功')
       } else {
-        ElMessage.error('保存配置失败')
+        error('保存配置失败')
       }
     } catch (error: any) {
       console.error('❌ 保存配置失败:', error)
-      ElMessage.error(error?.response?.data?.message || '保存配置失败')
+      error(error?.response?.data?.message || '保存配置失败')
     } finally {
       saving.value = false
     }
@@ -140,7 +143,7 @@ export function useNotificationConfig(botId: string) {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
     
-    ElMessage.success('配置已导出')
+    success('配置已导出')
   }
 
   const importConfig = (importedConfig: BotNotificationConfig) => {
@@ -239,14 +242,14 @@ export function useNotificationConfig(botId: string) {
       
       // 自动保存
       await saveConfig();
-      ElMessage.success('配置已重置为默认值并保存');
+      success('配置已重置为默认值并保存');
     } catch {
       // 用户取消操作
     }
   }
 
   const handleNotificationSent = (notificationId: string) => {
-    ElMessage.success('通知发送任务已创建')
+    success('通知发送任务已创建')
     // 可以在这里添加跳转到发送记录的逻辑
   }
 

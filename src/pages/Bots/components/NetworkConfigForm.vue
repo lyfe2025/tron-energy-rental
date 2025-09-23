@@ -243,8 +243,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import type { FormInstance } from 'element-plus'
-import { ElMessage } from 'element-plus'
 import { reactive, ref, watch } from 'vue'
 
 // Props
@@ -267,6 +267,8 @@ const emit = defineEmits<{
   save: [config: any]
   cancel: []
 }>()
+
+const { error } = useToast()
 
 // 表单引用和状态
 const formRef = ref<FormInstance>()
@@ -387,7 +389,7 @@ const handleSave = async () => {
     await formRef.value.validate()
     
     if (customConfigError.value) {
-      ElMessage.error('请修正配置错误')
+      error('请修正配置错误')
       return
     }
     
@@ -412,7 +414,7 @@ const handleSave = async () => {
     
     emit('save', finalConfig)
   } catch (error) {
-    ElMessage.error('请完善表单信息')
+    error('请完善表单信息')
   } finally {
     saving.value = false
   }

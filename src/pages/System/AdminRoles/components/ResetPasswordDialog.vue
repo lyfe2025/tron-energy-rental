@@ -86,10 +86,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { X } from 'lucide-vue-next'
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { AdminService } from '@/services/adminService'
+import { X } from 'lucide-vue-next'
+import { ref } from 'vue'
 import type { AdminRoleInfo } from '../types'
 
 interface Props {
@@ -104,6 +104,9 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Toast 通知
+const { success, error } = useToast()
 
 const loading = ref(false)
 const showPassword = ref(false)
@@ -136,11 +139,11 @@ const handleConfirm = async () => {
     showPassword.value = true
     emit('update:visible', false)
     
-    ElMessage.success('密码重置成功')
+    success('密码重置成功')
     emit('success')
   } catch (error) {
     console.error('重置密码失败:', error)
-    ElMessage.error('重置密码失败')
+    error('重置密码失败')
   } finally {
     loading.value = false
   }
@@ -157,9 +160,9 @@ const closePasswordDialog = () => {
 const copyPassword = async () => {
   try {
     await navigator.clipboard.writeText(resetResult.value.password)
-    ElMessage.success('密码已复制到剪贴板')
+    success('密码已复制到剪贴板')
   } catch (error) {
-    ElMessage.error('复制失败')
+    error('复制失败')
   }
 }
 

@@ -11,7 +11,7 @@
 
 **基于 TRON 2.0 质押机制的专业能量租赁平台**
 
-[功能特性](#-功能特性) • [快速开始](#-快速开始) • [部署指南](#-部署指南) • [API 文档](#-api-文档) • [贡献指南](#-贡献指南)
+[功能特性](#-功能特性) • [快速开始](#-快速开始) • [部署指南](#-部署指南) • [数据库备份恢复](#-数据库备份和恢复) • [API 文档](#-api-文档) • [贡献指南](#-贡献指南)
 
 </div>
 
@@ -482,6 +482,196 @@ curl -I http://your-domain.com
 
 详细部署说明请参考: [deployment/README.md](./deployment/README.md)
 
+## 💾 数据库备份和恢复
+
+### 📁 备份系统概述
+
+项目提供了完善的数据库备份和恢复系统，支持两种备份格式：
+
+#### 🔧 双重备份策略
+
+| 备份类型 | 文件名格式 | 适用场景 | 特点 |
+|---------|-----------|----------|------|
+| **标准版本** | `db_backup_tron_energy_rental_*.sql` | 完整数据库重建 | 包含 DROP/CREATE DATABASE 语句 |
+| **Navicat兼容版** | `db_backup_navicat_*.sql` | 图形化工具导入 | 不包含数据库创建语句，更安全 |
+
+### 🚀 创建数据库备份
+
+#### 使用项目管理脚本（推荐）
+
+```bash
+# 启动统一管理脚本
+./project.sh
+
+# 选择操作流程：
+# 7) 数据库管理
+# 1) 创建新备份（完整）      - 生成标准版本备份
+# 2) 创建Navicat兼容备份     - 生成图形化工具兼容版本
+```
+
+#### 使用独立备份脚本
+
+```bash
+# 标准版本备份
+./scripts/database/backup-database.sh
+
+# 查看备份历史
+ls -la backups/
+```
+
+### 🔄 数据库恢复最佳实践
+
+#### ⭐ 推荐方案：命令行导入（适用所有场景）
+
+经过大量测试验证，**命令行导入是最稳定可靠的方式**，适用于：
+- ✅ 开发环境数据恢复
+- ✅ 生产环境部署
+- ✅ 数据库迁移
+- ✅ 灾难恢复
+
+**步骤详解：**
+
+```bash
+# 1. 创建目标数据库（如果不存在）
+psql postgresql://username:password@localhost:5432/postgres \
+  -c "CREATE DATABASE your_target_database;"
+
+# 2. 使用标准版本恢复（完整重建）
+psql postgresql://username:password@localhost:5432/postgres \
+  -f backups/db_backup_tron_energy_rental_20250923_121841.sql
+
+# 3. 使用Navicat版本恢复（导入到现有数据库）
+psql postgresql://username:password@localhost:5432/your_target_database \
+  -f backups/db_backup_navicat_tron_energy_rental_20250923_121843.sql
+```
+
+**实际操作示例：**
+
+```bash
+# 使用项目默认用户恢复
+psql postgresql://postgres:postgres@localhost:5432/postgres \
+  -f backups/db_backup_navicat_tron_energy_rental_20250923_121843.sql
+
+# 验证恢复结果
+psql postgresql://postgres:postgres@localhost:5432/tron_energy_rental \
+  -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
+```
+
+#### 📊 图形化工具使用指南
+
+**针对 Navicat / pgAdmin 用户的特别说明：**
+
+1. **优先推荐：先用命令行导入，再用图形界面管理**
+   ```bash
+   # 先命令行导入数据
+   psql -d your_database -f backup_file.sql
+   
+   # 然后用 Navicat 连接管理
+   # 享受图形界面的便利性
+   ```
+
+2. **Navicat 直接导入的注意事项**
+   - ✅ 使用 `db_backup_navicat_*.sql` 文件
+   - ⚙️ 导入设置中勾选"遇到错误时继续"
+   - 📝 确保使用 UTF-8 编码
+   - 📋 建议分段导入大文件
+
+### 🔍 恢复验证和测试
+
+```bash
+# 1. 检查表数量
+psql -d your_database -c "
+SELECT COUNT(*) as table_count 
+FROM information_schema.tables 
+WHERE table_schema = 'public';"
+
+# 2. 检查数据完整性
+psql -d your_database -c "
+SELECT 
+  schemaname, 
+  tablename, 
+  n_tup_ins as insert_count,
+  n_tup_upd as update_count
+FROM pg_stat_user_tables 
+ORDER BY tablename;"
+
+# 3. 测试应用连接
+curl -s -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@tronrental.com","password":"admin123456"}' | jq .
+
+# 4. 检查关键功能
+psql -d your_database -c "SELECT COUNT(*) FROM admins WHERE role = 'super_admin';"
+```
+
+### 🚨 故障排查指南
+
+#### 常见问题及解决方案
+
+**1. Navicat 导入报错 "syntax error at or near"**
+```bash
+# 问题：图形化工具对SQL格式严格解析
+# 解决：使用命令行导入（推荐）
+psql -d your_database -f backup_file.sql
+
+# 或者调整 Navicat 设置：
+# - 勾选"遇到错误时继续"
+# - 确保编码为 UTF-8
+# - 尝试分段导入
+```
+
+**2. 权限相关错误**
+```bash
+# 问题：备份文件包含特定用户的所有者信息
+# 解决：项目已使用 --no-owner --no-privileges 参数，无此问题
+
+# 验证备份参数
+grep -E "no-owner|no-privileges" scripts/core/database-manager.sh
+```
+
+**3. 数据库已存在错误**
+```bash
+# 标准版本会自动处理，Navicat版本需要手动创建
+CREATE DATABASE your_database_name WITH 
+  TEMPLATE = template0 
+  ENCODING = 'UTF8' 
+  LOCALE = 'C';
+```
+
+### 📋 备份恢复检查清单
+
+**备份前检查：**
+- [ ] 数据库连接正常
+- [ ] 备份目录权限充足
+- [ ] 磁盘空间充足（建议预留3倍数据库大小）
+
+**恢复前检查：**
+- [ ] 备份文件完整性验证
+- [ ] 目标环境PostgreSQL版本兼容
+- [ ] 用户权限配置正确
+
+**恢复后验证：**
+- [ ] 表数量正确（预期：41个表）
+- [ ] 管理员账户可正常登录
+- [ ] 应用服务启动正常
+- [ ] 关键业务功能测试通过
+
+### 🔒 安全最佳实践
+
+```bash
+# 1. 备份文件加密（生产环境推荐）
+gpg --symmetric --cipher-algo AES256 backup_file.sql
+gpg --decrypt backup_file.sql.gpg > backup_file.sql
+
+# 2. 定期备份策略
+# 添加到 crontab
+0 2 * * * /path/to/scripts/database/backup-database.sh
+0 0 * * 0 find /path/to/backups -name "*.sql" -mtime +30 -delete
+
+# 3. 备份完整性验证
+scripts/database/verify-backup.sh backup_file.sql
+```
+
 ## 🛠️ 开发指南
 
 ### 项目结构
@@ -578,6 +768,12 @@ pnpm run migrate:status    # 查看迁移状态
 pnpm run migrate:rollback  # 回滚最后一次迁移
 pnpm run migrate:sync      # 同步迁移文件
 pnpm run migrate:sync:dry  # 干运行同步迁移（不执行）
+
+# 💾 数据库备份和恢复
+# 项目提供统一的数据库管理脚本，支持备份、恢复、验证等操作
+./project.sh               # 进入项目管理脚本，选择数据库管理
+scripts/database/backup-database.sh      # 独立备份脚本
+scripts/database/restore-database.sh     # 独立恢复脚本
 
 # 🏗️ 构建和预览
 pnpm run build             # 构建生产版本
@@ -772,19 +968,42 @@ crontab -e
 
 ### 🔄 备份策略
 
+#### 双重备份系统
+项目提供两种备份格式以适应不同使用场景：
+- **标准版本**: 完整数据库重建，适合自动化部署
+- **Navicat兼容版**: 图形化工具导入，适合手动管理
+
 #### 自动化数据库备份
 ```bash
-# 添加到crontab
-0 2 * * * /var/www/tron-energy-rental/scripts/database/backup-database.sh
+# 添加到crontab - 使用项目管理脚本
+0 2 * * * cd /var/www/tron-energy-rental && ./project.sh -c "backup_both"
 0 0 * * 0 find /var/www/tron-energy-rental/backups -name "*.sql" -mtime +30 -delete
+
+# 或使用独立备份脚本
+0 2 * * * /var/www/tron-energy-rental/scripts/database/backup-database.sh
 ```
 
 #### 备份文件结构
 ```
 backups/
-├── daily/                 # 每日备份
-├── weekly/                # 每周备份
-└── monthly/               # 每月备份
+├── db_backup_tron_energy_rental_*.sql      # 标准版本备份
+├── db_backup_navicat_*.sql                 # Navicat兼容版本
+├── daily/                                  # 每日备份归档
+├── weekly/                                 # 每周备份归档  
+└── monthly/                                # 每月备份归档
+```
+
+#### 备份最佳实践
+```bash
+# 备份前检查
+./scripts/database/backup-database.sh --verify-before
+./scripts/database/backup-database.sh --encrypt
+
+# 恢复测试（推荐命令行方式）
+psql -d test_restore_db -f backup_file.sql
+
+# 验证恢复结果  
+psql -d test_restore_db -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
 ```
 
 ### 🚨 故障排查指南
@@ -807,6 +1026,20 @@ psql postgresql://username:password@localhost:5432/tron_energy_rental -c "SELECT
 
 # 5. Redis连接测试
 redis-cli ping
+
+# 6. 数据库备份恢复诊断
+# 检查备份文件完整性
+ls -la backups/ | grep -E "\.sql$"
+head -10 backups/your_backup_file.sql
+
+# 测试备份恢复（命令行方式 - 推荐）
+psql -d test_database -f backups/backup_file.sql --single-transaction
+
+# 图形化工具问题诊断
+# 如果 Navicat 导入失败，尝试：
+# - 使用 Navicat 兼容版本文件
+# - 检查文件编码（应为 UTF-8）
+# - 在 Navicat 中启用"遇到错误时继续"选项
 ```
 
 #### 应急响应流程
@@ -814,6 +1047,12 @@ redis-cli ping
 2. **数据库问题**: 检查连接 → 查看慢查询 → 重启数据库服务
 3. **网络问题**: 检查Nginx配置 → 验证SSL证书 → 重载配置
 4. **内存泄漏**: 监控内存使用 → 分析heap dump → 优化代码
+5. **数据库损坏**: 立即备份当前状态 → 使用最新备份恢复 → 验证数据完整性
+6. **备份恢复失败**: 
+   - 优先使用命令行导入 `psql -f backup_file.sql`
+   - 检查备份文件完整性和权限
+   - 尝试不同备份版本（标准版 vs Navicat版）
+   - 分段恢复或手动执行关键部分
 
 ### 📋 生产部署检查清单
 

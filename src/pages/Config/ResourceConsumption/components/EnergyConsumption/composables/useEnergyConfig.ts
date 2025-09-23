@@ -2,7 +2,7 @@
  * 能量配置管理逻辑
  */
 
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { reactive, ref, watch } from 'vue'
 import type { EnergyConfig } from '../../../types/resource-consumption.types'
 import {
@@ -13,6 +13,8 @@ import {
 } from '../../../utils/validation'
 
 export function useEnergyConfig(props: { config: EnergyConfig }, emits: any) {
+  const { success, error, warning } = useToast()
+  
   // 本地配置副本
   const localConfig = reactive<EnergyConfig>({ ...props.config })
 
@@ -47,15 +49,15 @@ export function useEnergyConfig(props: { config: EnergyConfig }, emits: any) {
       
       // 显示警告信息
       if (result.warnings.length > 0) {
-        result.warnings.forEach(warning => {
-          ElMessage.warning(warning)
+        result.warnings.forEach(msg => {
+          warning(msg)
         })
       }
       
       return result.isValid
     } catch (error) {
       console.error('验证配置时出错:', error)
-      ElMessage.error('配置验证失败')
+      error('配置验证失败')
       return false
     } finally {
       isValidating.value = false
@@ -96,7 +98,7 @@ export function useEnergyConfig(props: { config: EnergyConfig }, emits: any) {
       // 显示验证错误
       const firstError = ValidationErrorHandler.getFirstErrorMessage(validationResult.value.errors)
       if (firstError) {
-        ElMessage.error(firstError)
+        error(firstError)
       }
     }
   }

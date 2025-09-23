@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 
 // 导入拆分后的组件
 import TaskPageHeader from './components/TaskPageHeader.vue'
@@ -80,6 +80,9 @@ import TaskStatsCards from './components/task-stats/TaskStatsCards.vue'
 
 // 导入业务逻辑
 import { useScheduledTasks } from './composables/useScheduledTasks'
+
+// Toast 通知
+const { success, error } = useToast()
 
 // 使用定时任务管理逻辑
 const {
@@ -121,45 +124,45 @@ const {
 const pauseTask = async (taskId: string) => {
   try {
     await _pauseTask(taskId)
-    ElMessage.success('任务已暂停')
+    success('任务已暂停')
   } catch (error) {
-    ElMessage.error('暂停任务失败')
+    error('暂停任务失败')
   }
 }
 
 const resumeTask = async (taskId: string) => {
   try {
     await _resumeTask(taskId)
-    ElMessage.success('任务已恢复')
+    success('任务已恢复')
   } catch (error) {
-    ElMessage.error('恢复任务失败')
+    error('恢复任务失败')
   }
 }
 
 const executeTask = async (taskId: string) => {
   try {
     await _executeTask(taskId)
-    ElMessage.success('任务已开始执行')
+    success('任务已开始执行')
   } catch (error) {
-    ElMessage.error('执行任务失败')
+    error('执行任务失败')
   }
 }
 
 const createTask = async (form: any) => {
   try {
     await _createTask(form)
-    ElMessage.success('任务创建成功')
+    success('任务创建成功')
   } catch (error) {
-    ElMessage.error('创建任务失败')
+    error('创建任务失败')
   }
 }
 
 const confirmDeleteTask = async () => {
   try {
     await _confirmDeleteTask()
-    ElMessage.success('任务删除成功')
+    success('任务删除成功')
   } catch (error) {
-    ElMessage.error('删除任务失败')
+    error('删除任务失败')
   }
 }
 </script>

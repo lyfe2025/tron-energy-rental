@@ -148,9 +148,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus, Link } from '@element-plus/icons-vue'
+import { useToast } from '@/composables/useToast'
+import { Plus } from '@element-plus/icons-vue'
+import { ref, watch } from 'vue'
 
 interface Network {
   id: string
@@ -181,6 +181,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error, warning } = useToast()
 
 const showAddDialog = ref(false)
 const adding = ref(false)
@@ -231,10 +233,10 @@ const toggleNetwork = async (network: Network) => {
   try {
     // 模拟API调用
     await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success(`网络${network.enabled ? '启用' : '禁用'}成功`)
+    success(`网络${network.enabled ? '启用' : '禁用'}成功`)
     emit('updated')
   } catch (error) {
-    ElMessage.error('操作失败')
+    error('操作失败')
     network.enabled = !network.enabled // 回滚状态
   } finally {
     network.loading = false
@@ -246,9 +248,9 @@ const testConnection = async (network: Network) => {
   try {
     // 模拟连接测试
     await new Promise(resolve => setTimeout(resolve, 2000))
-    ElMessage.success(`${network.name} 连接测试成功`)
+    success(`${network.name} 连接测试成功`)
   } catch (error) {
-    ElMessage.error(`${network.name} 连接测试失败`)
+    error(`${network.name} 连接测试失败`)
   } finally {
     network.testing = false
   }
@@ -262,10 +264,10 @@ const removeNetwork = async (network: Network) => {
     if (index > -1) {
       associatedNetworks.value.splice(index, 1)
     }
-    ElMessage.success('网络关联已移除')
+    success('网络关联已移除')
     emit('updated')
   } catch (error) {
-    ElMessage.error('移除失败')
+    error('移除失败')
   }
 }
 
@@ -286,12 +288,12 @@ const addNetwork = async () => {
       })
     }
     
-    ElMessage.success('网络关联添加成功')
+    success('网络关联添加成功')
     showAddDialog.value = false
     addForm.value = { networkId: '', enabled: true }
     emit('updated')
   } catch (error) {
-    ElMessage.error('添加失败')
+    error('添加失败')
   } finally {
     adding.value = false
   }

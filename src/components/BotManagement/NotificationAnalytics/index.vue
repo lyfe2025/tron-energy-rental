@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { nextTick, onMounted, ref } from 'vue'
 import AnalyticsCharts from './components/AnalyticsCharts.vue'
 import DateRangeSelector from './components/DateRangeSelector.vue'
@@ -86,6 +86,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// Toast 通知
+const { info } = useToast()
 
 // 使用composables
 const {
@@ -170,15 +173,15 @@ const viewDetails = async (notification: DetailedStat) => {
 }
 
 const exportReport = () => {
-  ElMessage.info('报告导出功能开发中...')
+  info('报告导出功能开发中...')
 }
 
 const exportTypeReport = (notification: DetailedStat) => {
-  ElMessage.info(`导出 ${notification.notification_type} 报告功能开发中...`)
+  info(`导出 ${notification.notification_type} 报告功能开发中...`)
 }
 
 const optimizeSuggestions = (notification: DetailedStat) => {
-  ElMessage.info(`${notification.notification_type} 优化建议功能开发中...`)
+  info(`${notification.notification_type} 优化建议功能开发中...`)
 }
 
 // 初始化图表并设置引用

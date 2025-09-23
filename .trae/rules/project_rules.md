@@ -12,3 +12,4 @@ curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: applicati
 8.TRON 相关信息获取，需要根据不同网络，直接从TRON官方API获取实时数据，而不是依赖数据库。
 9.遵守 DRY (Don't Repeat Yourself) 原则和SOLID原则。
 10.TRON API调用要明确设置 visible: true，确保地址统一为Base58格式。
+11.项目的通知系统使用的是自定义的 useToast 组件，并且风格是简洁的中文提示。

@@ -276,12 +276,12 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import {
-  HelpCircle,
-  Settings,
-  Shield,
-  Wifi
+    HelpCircle,
+    Settings,
+    Shield,
+    Wifi
 } from 'lucide-vue-next'
 import { reactive, ref, watch } from 'vue'
 import type { BandwidthConfig } from '../../types/resource-consumption.types.js'
@@ -300,6 +300,9 @@ const emits = defineEmits<{
   update: [config: Partial<BandwidthConfig>]
   save: []
 }>()
+
+// Toast 通知
+const { success, error, warning } = useToast()
 
 // 本地配置副本
 const localConfig = reactive<BandwidthConfig>({ ...props.config })
@@ -370,19 +373,19 @@ const applyPreset = (value: number) => {
   // 默认应用到TRC20转账带宽
   localConfig.trc20_transfer_bandwidth = value
   emitUpdate()
-  ElMessage.success(`已应用预设值：${value} bytes`)
+  success(`已应用预设值：${value} bytes`)
 }
 
 const addPreset = async () => {
   if (!newPreset.name.trim() || !newPreset.value) {
-    ElMessage.warning('请填写完整的预设信息')
+    warning('请填写完整的预设信息')
     return
   }
   
   // 验证预设值
   const rule = ResourceConsumptionValidator.getFieldRule('bandwidth', 'trc20_transfer_bandwidth')
   if (rule && rule.min !== undefined && rule.max !== undefined && (newPreset.value < rule.min || newPreset.value > rule.max)) {
-    ElMessage.error(`预设值必须在 ${rule.min} - ${rule.max} 之间`)
+    error(`预设值必须在 ${rule.min} - ${rule.max} 之间`)
     return
   }
   
@@ -392,7 +395,7 @@ const addPreset = async () => {
   )
   
   if (exists) {
-    ElMessage.warning('预设名称或数值已存在')
+    warning('预设名称或数值已存在')
     return
   }
   
@@ -405,13 +408,13 @@ const addPreset = async () => {
   newPreset.value = 345
   
   emitUpdate()
-  ElMessage.success('预设值添加成功')
+  success('预设值添加成功')
 }
 
 const removePreset = (index: number) => {
   localConfig.preset_values.splice(index, 1)
   emitUpdate()
-  ElMessage.success('预设值删除成功')
+  success('预设值删除成功')
 }
 </script>
 

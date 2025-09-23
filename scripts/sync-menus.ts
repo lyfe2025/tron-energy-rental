@@ -1,6 +1,17 @@
 /**
  * 菜单同步脚本
  * 将硬编码的菜单导入到数据库中，解决菜单管理与真实菜单不一致的问题
+ * 
+ * ⚠️ 重要警告:
+ * 1. 此脚本会删除所有现有菜单和权限数据！
+ * 2. 运行前请务必备份数据库！
+ * 3. 建议在开发环境中测试后再在生产环境使用
+ * 4. 脚本会自动恢复所有角色的权限，但请验证结果
+ * 
+ * 使用建议:
+ * 1. 备份数据库: ./scripts/database/backup-database.sh
+ * 2. 运行脚本: npm run sync-menus 或 pnpm run sync-menus
+ * 3. 验证权限: psql -f scripts/database/verify-role-permissions.sql
  */
 
 import { query } from '../api/config/database.ts';
@@ -415,40 +426,41 @@ async function insertMenuTree(menus: any[], parentId: number | null = null) {
 }
 
 /**
- * 为超级管理员角色分配所有菜单权限
+ * 为所有角色重新分配菜单权限
+ * 避免只恢复超级管理员权限的问题
  */
-async function assignPermissionsToSuperAdmin() {
+async function restoreAllRolePermissions() {
   try {
-    // 获取超级管理员角色ID
-    const roleResult = await query(`
-      SELECT id FROM roles WHERE code = 'super_admin' OR name = 'super_admin' OR name = '超级管理员'
-      LIMIT 1
+    console.log('🔧 正在恢复所有角色的菜单权限...');
+    
+    // 运行权限恢复脚本
+    const { execSync } = require('child_process');
+    const scriptPath = './scripts/database/restore-role-permissions.sql';
+    const dbUrl = `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'tron_energy_rental'}`;
+    
+    console.log('📋 执行权限恢复脚本...');
+    execSync(`psql "${dbUrl}" -f "${scriptPath}"`, { stdio: 'pipe' });
+    
+    // 验证权限恢复结果
+    const verifyResult = await query(`
+      SELECT 
+        r.name as role_name,
+        COUNT(rp.id) as permission_count
+      FROM roles r
+      LEFT JOIN role_permissions rp ON r.id = rp.role_id
+      GROUP BY r.id, r.name
+      ORDER BY r.id
     `);
     
-    if (roleResult.rows.length === 0) {
-      console.log('⚠️ 未找到超级管理员角色，跳过权限分配');
-      return;
-    }
+    console.log('✅ 权限恢复完成，各角色权限统计：');
+    verifyResult.rows.forEach(row => {
+      console.log(`   - ${row.role_name}: ${row.permission_count} 个权限`);
+    });
     
-    const roleId = roleResult.rows[0].id;
-    console.log(`📋 找到超级管理员角色 ID: ${roleId}`);
-    
-    // 获取所有菜单ID
-    const menusResult = await query('SELECT id FROM menus ORDER BY id');
-    const menuIds = menusResult.rows.map(row => row.id);
-    
-    // 为超级管理员角色分配所有菜单权限
-    for (const menuId of menuIds) {
-      await query(`
-        INSERT INTO role_permissions (role_id, menu_id)
-        VALUES ($1, $2)
-        ON CONFLICT (role_id, menu_id) DO NOTHING
-      `, [roleId, menuId]);
-    }
-    
-    console.log(`✅ 为超级管理员角色分配了 ${menuIds.length} 个菜单权限`);
   } catch (error) {
-    console.error('❌ 分配权限失败:', error);
+    console.error('❌ 恢复权限失败:', error);
+    console.log('🔧 尝试手动执行权限恢复脚本：');
+    console.log('   psql -f scripts/database/restore-role-permissions.sql');
     throw error;
   }
 }
@@ -458,7 +470,32 @@ async function assignPermissionsToSuperAdmin() {
  */
 async function main() {
   try {
-    console.log('🚀 开始同步菜单数据...\n');
+    console.log('🚀 菜单同步脚本启动\n');
+    
+    // 安全确认
+    console.log('⚠️ 重要警告:');
+    console.log('  - 此脚本会删除所有现有菜单和权限数据！');
+    console.log('  - 请确保已备份数据库！');
+    console.log('  - 建议先在开发环境测试！\n');
+    
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    const answer = await new Promise((resolve) => {
+      rl.question('确认继续同步? 输入 "YES" 继续，其他任意键取消: ', resolve);
+    });
+    
+    rl.close();
+    
+    if (answer !== 'YES') {
+      console.log('❌ 操作已取消');
+      return;
+    }
+    
+    console.log('\n🚀 开始同步菜单数据...\n');
     
     // 1. 清空现有数据
     console.log('1️⃣ 清空现有菜单数据...');
@@ -470,9 +507,9 @@ async function main() {
     await insertMenuTree(menuData);
     console.log('');
     
-    // 3. 分配权限
-    console.log('3️⃣ 为超级管理员分配权限...');
-    await assignPermissionsToSuperAdmin();
+    // 3. 恢复所有角色权限
+    console.log('3️⃣ 恢复所有角色权限...');
+    await restoreAllRolePermissions();
     console.log('');
     
     // 4. 验证结果

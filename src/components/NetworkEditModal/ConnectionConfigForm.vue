@@ -86,9 +86,9 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
+import { Activity, Settings } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { Settings, Activity } from 'lucide-vue-next'
-import { ElMessage } from 'element-plus'
 
 interface ConnectionConfigData {
   rpc_url: string
@@ -112,6 +112,8 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+const { warning } = useToast()
+
 const testing = ref(false)
 const testResult = ref<any>(null)
 
@@ -124,7 +126,7 @@ const updateField = (field: keyof ConnectionConfigData, value: any) => {
 
 const handleTest = async () => {
   if (!props.modelValue.rpc_url) {
-    ElMessage.warning('请先输入RPC地址')
+    warning('请先输入RPC地址')
     return
   }
 

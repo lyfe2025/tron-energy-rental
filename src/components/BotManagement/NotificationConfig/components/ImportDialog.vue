@@ -30,9 +30,10 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import type { BotNotificationConfig } from '@/types/notification'
 import { UploadFilled } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 interface Props {
   visible: boolean
@@ -45,6 +46,9 @@ interface Emits {
 
 defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Toast 通知
+const { success, error, info } = useToast()
 
 const handleImportConfig = (file: File) => {
   const reader = new FileReader()
@@ -63,12 +67,12 @@ const handleImportConfig = (file: File) => {
       ).then(() => {
         emit('import-config', importedConfig)
         emit('update:visible', false)
-        ElMessage.success('配置导入成功')
+        success('配置导入成功')
       }).catch(() => {
-        ElMessage.info('已取消导入')
+        info('已取消导入')
       })
     } catch (error) {
-      ElMessage.error('配置文件格式错误')
+      error('配置文件格式错误')
     }
   }
   reader.readAsText(file)

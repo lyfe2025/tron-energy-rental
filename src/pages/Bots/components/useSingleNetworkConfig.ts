@@ -2,9 +2,10 @@
  * 机器人单网络配置管理业务逻辑
  * 职责：管理机器人的单网络配置，符合数据库的单网络约束
  */
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ref } from 'vue'
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
+import { ElMessageBox } from 'element-plus'
+import { ref } from 'vue'
 
 export interface BotInfo {
   id: string
@@ -45,6 +46,8 @@ export interface AvailableNetwork {
 }
 
 export function useSingleNetworkConfig(botId: string) {
+  const { success, error, warning } = useToast()
+
   // 状态管理
   const loading = ref(false)
   const saving = ref(false)
@@ -78,7 +81,7 @@ export function useSingleNetworkConfig(botId: string) {
       }
     } catch (error) {
       console.error('获取机器人信息失败:', error)
-      ElMessage.error('获取机器人信息失败')
+      error('获取机器人信息失败')
       throw error
     }
   }
@@ -135,7 +138,7 @@ export function useSingleNetworkConfig(botId: string) {
       ]
     } catch (error) {
       console.error('获取可用网络失败:', error)
-      ElMessage.error('获取可用网络失败')
+      error('获取可用网络失败')
     }
   }
 
@@ -178,13 +181,13 @@ export function useSingleNetworkConfig(botId: string) {
       
       if (response.data?.success) {
         await fetchCurrentNetwork() // 重新获取最新配置
-        ElMessage.success('网络配置设置成功')
+        success('网络配置设置成功')
       } else {
         throw new Error(response.data?.message || '设置网络配置失败')
       }
     } catch (error: any) {
       console.error('设置网络配置失败:', error)
-      ElMessage.error(error.message || '设置网络配置失败')
+      error(error.message || '设置网络配置失败')
       throw error
     } finally {
       saving.value = false
@@ -194,7 +197,7 @@ export function useSingleNetworkConfig(botId: string) {
   // 移除网络配置
   const removeNetworkConfig = async () => {
     if (!currentNetwork.value) {
-      ElMessage.warning('当前没有配置网络')
+      warning('当前没有配置网络')
       return
     }
 
@@ -213,11 +216,11 @@ export function useSingleNetworkConfig(botId: string) {
       await botsAPI.deleteBotNetwork(botId, currentNetwork.value.network_id)
       
       currentNetwork.value = null
-      ElMessage.success('网络配置移除成功')
+      success('网络配置移除成功')
     } catch (error: any) {
       if (error !== 'cancel') {
         console.error('移除网络配置失败:', error)
-        ElMessage.error('移除网络配置失败')
+        error('移除网络配置失败')
         throw error
       }
     }
@@ -233,13 +236,13 @@ export function useSingleNetworkConfig(botId: string) {
       // 调用健康检查API
       await botsAPI.performHealthCheck(botId)
       
-      ElMessage.success('网络连接测试成功')
+      success('网络连接测试成功')
       
       // 重新获取机器人信息以更新健康状态
       await fetchBotInfo()
     } catch (error: any) {
       console.error('网络连接测试失败:', error)
-      ElMessage.error('网络连接测试失败')
+      error('网络连接测试失败')
       throw error
     } finally {
       testing.value = false

@@ -176,9 +176,12 @@
 
 <script setup lang="ts">
 import { operationLogApi } from '@/api/system/logs'
+import { useToast } from '@/composables/useToast'
 import { formatDateTime } from '@/utils/date'
-import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
+
+// Toast 通知
+const { error } = useToast()
 
 // 响应式数据
 const loading = ref(false)
@@ -260,11 +263,11 @@ const getOperationLogs = async () => {
       tableData.value = backendData.logs || []
       pagination.total = backendData.pagination?.total || 0
     } else {
-      ElMessage.error(response.error || '获取操作日志失败')
+      error(response.error || '获取操作日志失败')
     }
   } catch (error) {
     console.error('获取操作日志失败:', error)
-    ElMessage.error('获取操作日志失败')
+    error('获取操作日志失败')
   } finally {
     loading.value = false
   }
@@ -312,14 +315,14 @@ const handleView = async (row: any) => {
     if (response.success) {
       detailData.value = response.data
     } else {
-      ElMessage.error(response.error || '获取操作日志详情失败')
+      error(response.error || '获取操作日志详情失败')
       return
     }
     
     dialogVisible.value = true
   } catch (error) {
     console.error('获取操作日志详情失败:', error)
-    ElMessage.error('获取操作日志详情失败')
+    error('获取操作日志详情失败')
   }
 }
 

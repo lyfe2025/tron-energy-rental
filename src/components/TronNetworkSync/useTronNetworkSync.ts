@@ -3,8 +3,8 @@
  * 职责：管理同步状态和执行同步操作
  */
 import { networkApi } from '@/api/network'
+import { useToast } from '@/composables/useToast'
 import type { TronNetwork } from '@/types/network'
-import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, type ComputedRef, type Ref } from 'vue'
 
 export interface SyncStep {
@@ -42,6 +42,8 @@ export interface SyncOptions {
 }
 
 export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>) {
+  const { success, error, warning } = useToast()
+  
   // 状态管理
   const loading = ref(false)
   const networkInfo = ref<TronNetwork | null>(null)
@@ -80,12 +82,12 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
         await loadSyncDataFromDatabase()
       } else {
         console.error('❌ 网络信息响应格式错误:', response)
-        ElMessage.error('网络信息响应格式错误')
+        error('网络信息响应格式错误')
         throw new Error('网络信息响应格式错误')
       }
     } catch (error) {
       console.error('❌ 获取网络信息失败:', error)
-      ElMessage.error(`获取网络信息失败: ${error.message || '未知错误'}`)
+      error(`获取网络信息失败: ${error.message || '未知错误'}`)
       throw error
     }
   }
@@ -278,13 +280,13 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
     
     if (!networkId.value) {
       console.error('❌ 同步失败: networkId为空')
-      ElMessage.error('网络ID参数丢失')
+      error('网络ID参数丢失')
       return
     }
     
     if (!networkInfo.value) {
       console.error('❌ 同步失败: networkInfo.value为空')
-      ElMessage.error('网络信息未加载')
+      error('网络信息未加载')
       return
     }
 
@@ -346,15 +348,15 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
         // 全部成功
         await saveSyncDataToDatabase()
         await logSyncOperation('success')
-        ElMessage.success('配置同步完成')
+        success('配置同步完成')
       } else if (successSteps > 0) {
         // 部分成功
         await logSyncOperation('partial')
-        ElMessage.warning(`配置同步部分完成 (${successSteps}/${totalSteps}步成功)`)
+        warning(`配置同步部分完成 (${successSteps}/${totalSteps}步成功)`)
       } else {
         // 全部失败
         await logSyncOperation('error')
-        ElMessage.error('配置同步失败')
+        error('配置同步失败')
       }
 
       onSuccess?.()
@@ -365,7 +367,7 @@ export function useTronNetworkSync(networkId: Ref<string> | ComputedRef<string>)
       // 记录同步失败日志
       await logSyncOperation('error', error)
 
-      ElMessage.error('同步失败')
+      error('同步失败')
     } finally {
       loading.value = false
     }

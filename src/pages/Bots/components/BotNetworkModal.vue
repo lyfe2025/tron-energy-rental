@@ -222,8 +222,9 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { Connection, Loading } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { ref, watch } from 'vue'
 import NetworkConfigForm from './NetworkConfigForm.vue'
 import { useSingleNetworkConfig } from './useSingleNetworkConfig'
@@ -248,6 +249,8 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   'network-updated': []
 }>()
+
+const { success } = useToast()
 
 // 本地状态
 const showNetworkSelection = ref(false)
@@ -311,7 +314,7 @@ const handleSetNetwork = async () => {
     showNetworkSelection.value = false
     selectedNetworkId.value = ''
     emit('network-updated')
-    ElMessage.success('网络配置成功')
+    success('网络配置成功')
   } catch (error) {
     // 错误已在composable中处理
   }
@@ -331,7 +334,7 @@ const handleQuickSwitch = async (networkId: string) => {
     
     await quickSetNetwork(networkId)
     emit('network-updated')
-    ElMessage.success('网络切换成功')
+    success('网络切换成功')
   } catch (error: any) {
     if (error !== 'cancel') {
       // 错误已在composable中处理
@@ -364,7 +367,7 @@ const handleSaveAdvancedConfig = async (config: any) => {
     await advancedSetNetwork(networkId, config)
     showAdvancedConfig.value = false
     emit('network-updated')
-    ElMessage.success('网络配置保存成功')
+    success('网络配置保存成功')
   } catch (error) {
     // 错误已在composable中处理
   }

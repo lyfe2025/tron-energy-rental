@@ -244,8 +244,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
-import { ElMessage } from 'element-plus'
 import { Activity, Bell, Bot, Edit, ExternalLink, Loader2, MoreHorizontal, Network } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -299,6 +299,9 @@ interface Emits {
 }
 
 const emit = defineEmits<Emits>()
+
+// Toast 通知
+const { success, error, warning } = useToast()
 
 // 路由实例
 const router = useRouter()
@@ -363,9 +366,9 @@ const handleHealthCheck = async () => {
       console.log('健康检查结果:', result.data)
       
       if ((result.data as any).status === 'healthy') {
-        ElMessage.success('健康检查通过')
+        success('健康检查通过')
       } else {
-        ElMessage.warning(`健康检查发现问题：${(result.data as any).error_message || '未知错误'}`)
+        warning(`健康检查发现问题：${(result.data as any).error_message || '未知错误'}`)
       }
       
       // 触发父组件刷新机器人列表
@@ -375,12 +378,12 @@ const handleHealthCheck = async () => {
         lastCheck: (result.data as any).last_check || new Date().toISOString()
       })
     } else {
-      ElMessage.error(`健康检查失败：${result?.message || '未知错误'}`)
+      error(`健康检查失败：${result?.message || '未知错误'}`)
     }
     
   } catch (error: any) {
     console.error('健康检查失败:', error)
-    ElMessage.error(`健康检查失败：${error.message || '未知错误'}`)
+    error(`健康检查失败：${error.message || '未知错误'}`)
     
     // 即使出错也保存错误信息
     lastHealthCheckResult.value = {

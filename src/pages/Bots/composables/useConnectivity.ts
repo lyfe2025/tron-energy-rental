@@ -1,12 +1,14 @@
 /**
  * 连接状态管理组合式函数
  */
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
-import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import type { ConnectivityState } from '../types/connectivity.types'
 
 export function useConnectivity() {
+  const { success, error, info } = useToast()
+  
   // 状态
   const connectivityState = ref<ConnectivityState>({
     checking: false,
@@ -28,7 +30,7 @@ export function useConnectivity() {
     if (!silent) {
       const now = Date.now()
       if (now - lastManualCheck < 3000) {
-        ElMessage.info('检测过于频繁，请稍后再试')
+        info('检测过于频繁，请稍后再试')
         return
       }
       lastManualCheck = now
@@ -65,15 +67,13 @@ export function useConnectivity() {
           const statusText = status === 'connected' && data.status === 'excellent' ? '优秀' :
                             status === 'connected' && data.status === 'good' ? '良好' :
                             '较慢'
-          ElMessage.success(`Telegram API连接正常，网络状态: ${statusText} (${data.latency}ms)`)
+          success(`Telegram API连接正常，网络状态: ${statusText} (${data.latency}ms)`)
           
           // 如果有建议，显示警告信息
           if (data.suggestions && data.suggestions.length > 0) {
-            ElMessage({
-              type: 'warning',
-              message: `网络建议: ${data.suggestions[0]}`,
-              duration: 5000
-            })
+            // 显示网络建议警告
+            const { warning } = useToast()
+            warning(`网络建议: ${data.suggestions[0]}`, { duration: 5000 })
           }
         }
         
@@ -99,22 +99,13 @@ export function useConnectivity() {
             `\n建议：${suggestions.slice(0, 2).join('; ')}` : 
             '\n建议：检查网络设置或更换IP地址'
 
-          ElMessage({
-            type: 'error',
-            message: primaryMessage + suggestionText,
-            duration: 8000,
-            showClose: true
-          })
+          error(primaryMessage + suggestionText, { duration: 8000 })
 
           // 如果有多个建议，分别显示
           if (suggestions.length > 2) {
             setTimeout(() => {
-              ElMessage({
-                type: 'warning',
-                message: `其他建议：${suggestions.slice(2).join('; ')}`,
-                duration: 6000,
-                showClose: true
-              })
+              const { warning } = useToast()
+              warning(`其他建议：${suggestions.slice(2).join('; ')}`, { duration: 6000 })
             }, 1000)
           }
         }
@@ -133,12 +124,7 @@ export function useConnectivity() {
 
       // 只在非静默模式下显示错误消息
       if (!silent) {
-        ElMessage({
-          type: 'error',
-          message: `网络检测失败: ${error.message || '未知错误'}`,
-          duration: 5000,
-          showClose: true
-        })
+        error(`网络检测失败: ${error.message || '未知错误'}`, { duration: 5000 })
       }
     }
   }
@@ -168,12 +154,7 @@ export function useConnectivity() {
       if (!connectivityState.value.checking && 
           (connectivityState.value.status === null || connectivityState.value.status === 'disconnected')) {
         
-        ElMessage({
-          type: 'info',
-          message: `${message}。点击"检测连接"按钮进行检查`,
-          duration: 6000,
-          showClose: true
-        })
+        info(`${message}。点击“检测连接”按钮进行检查`, { duration: 6000 })
         
         // 可选：自动进行一次检测（静默模式）
         setTimeout(() => {

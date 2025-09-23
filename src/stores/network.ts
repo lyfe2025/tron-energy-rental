@@ -58,7 +58,23 @@ export const useNetworkStore = defineStore('network', () => {
       loading.value = true
       const response = await apiClient.get('/api/tron-networks')
       if (response.data.success && response.data.data) {
-        networks.value = response.data.data.networks || []
+        // 映射API返回的数据结构到Network接口
+        const apiNetworks = response.data.data.networks || []
+        networks.value = apiNetworks.map((apiNetwork: any) => ({
+          id: apiNetwork.id,
+          name: apiNetwork.name,
+          type: apiNetwork.network_type || apiNetwork.type, // 映射network_type到type字段
+          rpc_url: apiNetwork.rpc_url,
+          explorer_url: apiNetwork.block_explorer_url || apiNetwork.explorer_url,
+          is_active: apiNetwork.is_active,
+          created_at: apiNetwork.created_at,
+          updated_at: apiNetwork.updated_at
+        }))
+        
+        console.log('✅ [NetworkStore] 网络数据映射完成:', {
+          totalNetworks: networks.value.length,
+          networks: networks.value.map(n => ({ id: n.id, name: n.name, type: n.type }))
+        })
       } else {
         throw new Error(response.data.message || '获取网络列表失败')
       }
@@ -73,14 +89,22 @@ export const useNetworkStore = defineStore('network', () => {
 
   // 根据ID获取网络
   const getNetworkById = (id: string): Network | undefined => {
-    return networks.value.find(network => network.id === id)
+    // 支持字符串和数字类型的ID比较
+    return networks.value.find(network => String(network.id) === String(id))
   }
 
   // 设置当前网络
   const setCurrentNetwork = (networkId: string): boolean => {
+    console.log('🔌 [NetworkStore] 设置当前网络:', {
+      networkId,
+      availableNetworks: networks.value.length,
+      allNetworkIds: networks.value.map(n => ({ id: n.id, name: n.name, type: typeof n.id }))
+    })
+    
     const network = getNetworkById(networkId)
     if (!network) {
       console.error(`网络 ID ${networkId} 不存在`)
+      console.error('可用网络:', networks.value.map(n => ({ id: n.id, name: n.name })))
       error('网络不存在')
       return false
     }
@@ -93,7 +117,12 @@ export const useNetworkStore = defineStore('network', () => {
     
     currentNetwork.value = network
     // 保存到本地存储
-    localStorage.setItem('currentNetworkId', networkId)
+    localStorage.setItem('currentNetworkId', String(networkId))
+    console.log('✅ [NetworkStore] 网络设置成功:', {
+      networkId: network.id,
+      networkName: network.name,
+      isActive: network.is_active
+    })
     return true
   }
 
@@ -132,8 +161,16 @@ export const useNetworkStore = defineStore('network', () => {
 
   // 验证网络是否可用
   const validateNetwork = (networkId: string): boolean => {
-    const network = getNetworkById(networkId)
-    return network ? network.is_active : false
+    const network = getNetworkById(String(networkId))
+    const isValid = network ? network.is_active : false
+    console.log('🔍 [NetworkStore] 验证网络:', {
+      networkId,
+      foundNetwork: !!network,
+      networkName: network?.name,
+      isActive: network?.is_active,
+      isValid
+    })
+    return isValid
   }
 
   // 获取网络显示名称

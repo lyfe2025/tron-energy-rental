@@ -105,8 +105,8 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { Plus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 
 interface AnnouncementForm {
   title: string
@@ -133,6 +133,9 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Toast 通知
+const { success, error } = useToast()
+
 // 上传配置
 const uploadHeaders = {
   'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -143,11 +146,11 @@ const beforeImageUpload = (file: File) => {
   const isLt2M = file.size / 1024 / 1024 < 2
 
   if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
+    error('只能上传图片文件!')
     return false
   }
   if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
+    error('图片大小不能超过 2MB!')
     return false
   }
   return true
@@ -156,9 +159,9 @@ const beforeImageUpload = (file: File) => {
 const handleImageUpload = (response: any) => {
   if (response.success) {
     emit('update:form', { ...props.form, image_url: response.data.url })
-    ElMessage.success('图片上传成功')
+    success('图片上传成功')
   } else {
-    ElMessage.error('图片上传失败')
+    error('图片上传失败')
   }
 }
 </script>

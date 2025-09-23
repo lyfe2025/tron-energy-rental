@@ -69,7 +69,26 @@ export function useStakeData(): StakeDataState {
 
   // 计算属性
   const currentNetwork = computed(() => {
-    return networkStore.networks.find(n => n.id === currentNetworkId.value) || null
+    const networkId = currentNetworkId.value
+    if (!networkId) {
+      console.log('🔍 [useStakeData] 当前网络ID为空')
+      return null
+    }
+    
+    // 确保网络ID类型匹配（支持字符串和数字类型的比较）
+    const network = networkStore.networks.find(n => {
+      return String(n.id) === String(networkId)
+    })
+    
+    console.log('🔍 [useStakeData] 查找当前网络:', {
+      networkId,
+      availableNetworks: networkStore.networks.length,
+      allNetworks: networkStore.networks.map(n => ({ id: n.id, name: n.name, type: String(n.id) })),
+      foundNetwork: !!network,
+      networkName: network?.name
+    })
+    
+    return network || null
   })
 
   const availableNetworks = computed(() => {

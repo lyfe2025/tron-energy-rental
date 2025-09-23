@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { getTronGridHeaders } from '../../../utils/database-api-key';
 
 export interface TronNetworkParams {
   network: 'mainnet' | 'shasta' | 'nile';
@@ -95,11 +96,9 @@ export class NetworkParametersService {
     
     try {
       // 1. 获取链参数
+      const headers = await getTronGridHeaders(baseUrl);
       const chainParamsResponse = await axios.post(`${baseUrl}/wallet/getchainparameters`, {}, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
-        },
+        headers,
         timeout: 10000
       });
 
@@ -182,14 +181,12 @@ export class NetworkParametersService {
       for (const address of testAddresses) {
         try {
           // 获取能量数据
+          const energyHeaders = await getTronGridHeaders(baseUrl);
           const energyResponse = await axios.post(`${baseUrl}/wallet/getaccountresource`, {
             address,
             visible: true
           }, {
-            headers: {
-              'Content-Type': 'application/json',
-              ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
-            },
+            headers: energyHeaders,
             timeout: 15000
           });
 
@@ -216,14 +213,12 @@ export class NetworkParametersService {
       // 获取带宽数据
       for (const address of testAddresses) {
         try {
+          const bandwidthHeaders = await getTronGridHeaders(baseUrl);
           const bandwidthResponse = await axios.post(`${baseUrl}/wallet/getaccountnet`, {
             address,
             visible: true
           }, {
-            headers: {
-              'Content-Type': 'application/json',
-              ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
-            },
+            headers: bandwidthHeaders,
             timeout: 15000
           });
 
@@ -311,11 +306,9 @@ export class NetworkParametersService {
   private async tryAlternativeStakeDataSources(baseUrl: string, network: 'mainnet' | 'shasta' | 'nile') {
     try {
       // 尝试获取链状态信息
+      const statusHeaders = await getTronGridHeaders(baseUrl);
       const chainStatusResponse = await axios.post(`${baseUrl}/wallet/getnowblock`, {}, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
-        },
+        headers: statusHeaders,
         timeout: 10000
       });
 
@@ -326,13 +319,11 @@ export class NetworkParametersService {
 
       // 尝试查询一个知名账户的资源信息来推断全网数据
       const sampleAddress = this.getSampleAddress(network);
+      const sampleHeaders = await getTronGridHeaders(baseUrl);
       const sampleAccountResponse = await axios.post(`${baseUrl}/wallet/getaccountresource`, {
         address: sampleAddress
       }, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
-        },
+        headers: sampleHeaders,
         timeout: 10000
       });
 

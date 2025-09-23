@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import { networkApi } from '@/api/network'
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { reactive, ref, watch } from 'vue'
 import LogsFilter from './TronNetworkLogs/LogsFilter.vue'
 import LogsList from './TronNetworkLogs/LogsList.vue'
@@ -66,6 +66,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, error } = useToast()
 
 const visible = ref(false)
 const loading = ref(false)
@@ -119,7 +121,7 @@ const fetchLogs = async () => {
     
   } catch (error) {
     console.error('获取网络日志失败:', error)
-    ElMessage.error('获取网络日志失败')
+    error('获取网络日志失败')
     
     // 如果API失败，使用模拟数据作为降级方案
     await fetchMockLogs()
@@ -222,7 +224,7 @@ const resetFilters = () => {
 
 const exportLogs = () => {
   // 模拟导出功能
-  ElMessage.success('日志导出功能开发中')
+  success('日志导出功能开发中')
 }
 
 const handleClose = () => {

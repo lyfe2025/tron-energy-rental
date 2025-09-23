@@ -114,17 +114,31 @@ export function useStakeOperations(stakeData: StakeDataState): StakeOperationsSt
   }
 
   const switchNetwork = async (networkId: string) => {
+    console.log('🔄 [StakeOperations] 开始切换网络:', {
+      fromNetworkId: stakeData.currentNetworkId.value,
+      toNetworkId: networkId,
+      networkIdType: typeof networkId
+    })
+    
     stakeData.showNetworkSwitcher.value = false
     
     // 设置当前网络到store
-    stakeData.networkStore.setCurrentNetwork(networkId)
+    const success = stakeData.networkStore.setCurrentNetwork(String(networkId))
+    if (!success) {
+      console.error('❌ [StakeOperations] 网络设置失败')
+      return
+    }
     
     // 导航到新的网络路由
-    await stakeData.router.push(`/energy-pool/${networkId}/stake`)
+    const targetPath = `/energy-pool/${networkId}/stake`
+    console.log('🔄 [StakeOperations] 导航到:', targetPath)
+    await stakeData.router.push(targetPath)
     
     // 重置账户选择
     stakeData.selectedAccount.value = null
     stakeData.selectedAccountId.value = null
+    
+    console.log('✅ [StakeOperations] 网络切换完成')
   }
 
   const handleWithdraw = async () => {

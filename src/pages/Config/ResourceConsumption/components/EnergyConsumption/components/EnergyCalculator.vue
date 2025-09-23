@@ -19,13 +19,14 @@
           <el-radio-group v-model="calculator.calculationMode" class="flex flex-col gap-2">
             <el-radio value="static" class="mb-2">
               <span class="ml-2">静态计算</span>
-              <span class="text-xs text-blue-600 ml-2">(基于官方标准数据)</span>
+              <span class="text-xs text-blue-600 ml-2">(基于配置数据)</span>
             </el-radio>
             <el-radio value="api">
               <span class="ml-2">实时API查询</span>
               <span class="text-xs text-green-600 ml-2">(TRON官方API实时查询)</span>
             </el-radio>
           </el-radio-group>
+          
         </div>
 
         <!-- 转账类型 -->
@@ -34,11 +35,17 @@
           <el-radio-group v-model="calculator.transferType" class="flex flex-col gap-2">
             <el-radio value="existing" class="mb-2">
               <span class="ml-2">已有USDT地址转账</span>
-              <span class="text-xs text-blue-600 ml-2">(约65,000基础能量)</span>
+              <span class="text-xs text-blue-600 ml-2" v-if="getCurrentStandardEnergy() > 0">
+                (约{{ getCurrentStandardEnergy().toLocaleString() }}基础能量)
+              </span>
+              <span class="text-xs text-gray-400 ml-2" v-else>(加载中...)</span>
             </el-radio>
             <el-radio value="new">
               <span class="ml-2">新地址首次转账</span>
-              <span class="text-xs text-orange-600 ml-2">(约130,000基础能量)</span>
+              <span class="text-xs text-orange-600 ml-2" v-if="getCurrentStandardEnergy() > 0">
+                (约{{ (getCurrentStandardEnergy() * 2).toLocaleString() }}基础能量)
+              </span>
+              <span class="text-xs text-gray-400 ml-2" v-else>(加载中...)</span>
             </el-radio>
           </el-radio-group>
         </div>
@@ -140,7 +147,10 @@
             </div>
             
             <div class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">安全缓冲 ({{ localConfig.usdt_buffer_percentage }}%)：</span>
+              <span class="text-sm text-gray-600" v-if="getCurrentBufferPercentage() > 0">
+                安全缓冲 ({{ getCurrentBufferPercentage() }}%)：
+              </span>
+              <span class="text-sm text-gray-600" v-else>安全缓冲 (加载中...)：</span>
               <span class="font-mono font-medium">{{ calculator.result.bufferEnergy.toLocaleString() }} 能量</span>
             </div>
             
@@ -266,11 +276,23 @@ import type { CalculatorState } from '../types/energy-calculator.types'
 interface Props {
   calculator: CalculatorState
   localConfig: EnergyConfig
+  energyConfig: { standard_energy: number; buffer_percentage: number; calculated_energy_per_unit: number }
+  isConfigLoaded: boolean
   calculateEnergy: () => Promise<void>
   resetCalculator: () => void
   useDefaultAddresses: () => void
   queryBothScenarios: () => Promise<void>
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 获取当前有效的标准能量值（优先使用用户输入）
+const getCurrentStandardEnergy = () => {
+  return props.localConfig.usdt_standard_energy || props.energyConfig.standard_energy || 0
+}
+
+// 获取当前有效的缓冲百分比（优先使用用户输入）
+const getCurrentBufferPercentage = () => {
+  return props.localConfig.usdt_buffer_percentage || props.energyConfig.buffer_percentage || 0
+}
 </script>

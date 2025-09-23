@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { reactive, ref } from 'vue'
 import type {
     AnalyticsResponse,
@@ -10,6 +10,8 @@ import type {
 } from '../types/analytics.types'
 
 export function useAnalyticsData(botId: string) {
+  const { error } = useToast()
+  
   const loading = ref(false)
   const dateRange = ref<[string, string]>(['', ''])
   
@@ -76,7 +78,7 @@ export function useAnalyticsData(botId: string) {
       }
     } catch (error) {
       console.error('加载分析数据失败:', error)
-      ElMessage.error('加载分析数据失败')
+      error('加载分析数据失败')
     } finally {
       loading.value = false
     }

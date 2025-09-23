@@ -2,6 +2,7 @@
  * 定时任务管理的组合式函数
  */
 import { monitoringApi, type ScheduledTask, type TaskExecutionLog } from '@/api/monitoring'
+import { useToast } from '@/composables/useToast'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 export interface TaskForm {
@@ -15,6 +16,9 @@ export interface TaskForm {
 }
 
 export function useScheduledTasks() {
+  // Toast 通知
+  const { error } = useToast()
+
   // 响应式数据
   const loading = ref(false)
   const logsLoading = ref(false)
@@ -77,8 +81,9 @@ export function useScheduledTasks() {
       } else {
         tasks.value = []
       }
-    } catch (error) {
-      console.error('获取定时任务失败:', error)
+    } catch (err) {
+      console.error('获取定时任务失败:', err)
+      error('获取定时任务失败')
       tasks.value = []
     } finally {
       loading.value = false
@@ -117,8 +122,9 @@ export function useScheduledTasks() {
           logs.value = []
         }
       }
-    } catch (error) {
-      console.error('获取任务日志失败:', error)
+    } catch (err) {
+      console.error('获取任务日志失败:', err)
+      error('获取任务日志失败')
     } finally {
       logsLoading.value = false
     }
@@ -138,10 +144,12 @@ export function useScheduledTasks() {
       const response = await monitoringApi.pauseTask(taskId)
       if (response.success) {
         await fetchTasks() // 刷新任务列表
+      } else {
+        throw new Error(response.message || '暂停任务失败')
       }
-    } catch (error) {
-      console.error('暂停任务失败:', error)
-      throw error
+    } catch (err) {
+      console.error('暂停任务失败:', err)
+      throw err
     }
   }
 
@@ -151,10 +159,12 @@ export function useScheduledTasks() {
       const response = await monitoringApi.resumeTask(taskId)
       if (response.success) {
         await fetchTasks() // 刷新任务列表
+      } else {
+        throw new Error(response.message || '恢复任务失败')
       }
-    } catch (error) {
-      console.error('恢复任务失败:', error)
-      throw error
+    } catch (err) {
+      console.error('恢复任务失败:', err)
+      throw err
     }
   }
 
@@ -164,10 +174,12 @@ export function useScheduledTasks() {
       const response = await monitoringApi.executeTask(taskId)
       if (response.success) {
         await fetchTasks() // 刷新任务列表
+      } else {
+        throw new Error(response.message || '执行任务失败')
       }
-    } catch (error) {
-      console.error('执行任务失败:', error)
-      throw error
+    } catch (err) {
+      console.error('执行任务失败:', err)
+      throw err
     }
   }
 
@@ -222,10 +234,12 @@ export function useScheduledTasks() {
         await fetchTasks() // 重新获取任务列表
         closeCreateDialog()
         return response
+      } else {
+        throw new Error(response.message || '创建任务失败')
       }
-    } catch (error) {
-      console.error('创建任务失败:', error)
-      throw error
+    } catch (err) {
+      console.error('创建任务失败:', err)
+      throw err
     } finally {
       createLoading.value = false
     }
@@ -254,10 +268,12 @@ export function useScheduledTasks() {
       if (response.success) {
         await fetchTasks() // 重新获取任务列表
         closeDeleteDialog()
+      } else {
+        throw new Error(response.message || '删除任务失败')
       }
-    } catch (error) {
-      console.error('删除任务失败:', error)
-      throw error
+    } catch (err) {
+      console.error('删除任务失败:', err)
+      throw err
     } finally {
       deleteLoading.value = false
     }

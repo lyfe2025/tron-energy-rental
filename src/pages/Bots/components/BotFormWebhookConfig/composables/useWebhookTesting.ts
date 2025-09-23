@@ -3,11 +3,13 @@
  * 负责状态检查、设置应用等测试功能
  */
 
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { ref } from 'vue'
 import type { BotData, WebhookStatus } from '../types/webhook.types'
 
 export function useWebhookTesting(props: { botData?: BotData | null }) {
+  const { success, error } = useToast()
+  
   const webhookStatus = ref<WebhookStatus | null>(null)
   const checking = ref(false)
   const applying = ref(false)
@@ -58,15 +60,15 @@ export function useWebhookTesting(props: { botData?: BotData | null }) {
       const result = await response.json()
       
       if (response.ok && result.success) {
-        ElMessage.success('Webhook设置成功')
+        success('Webhook设置成功')
         // 自动刷新webhook状态
         await checkWebhookStatus()
       } else {
-        ElMessage.error(result.message || 'Webhook设置失败')
+        error(result.message || 'Webhook设置失败')
       }
     } catch (error) {
       console.error('应用webhook设置失败:', error)
-      ElMessage.error('应用webhook设置失败')
+      error('应用webhook设置失败')
     } finally {
       applying.value = false
     }

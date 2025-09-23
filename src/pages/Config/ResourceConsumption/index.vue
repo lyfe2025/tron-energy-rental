@@ -6,7 +6,7 @@
       <p class="text-gray-600 mt-2">配置TRON网络的能量和带宽消耗参数</p>
       <div class="flex gap-3 mt-4">
         <button 
-          @click="refreshData" 
+          @click="() => refreshData()" 
           :disabled="loading"
           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors duration-200"
         >
@@ -68,9 +68,9 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import {
-    RefreshCw,
-    Wifi,
-    Zap
+  RefreshCw,
+  Wifi,
+  Zap
 } from 'lucide-vue-next'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -83,8 +83,8 @@ import { SimpleResourceConsumptionApi } from './services/simpleApi.js'
 
 // 类型导入
 import type {
-    BandwidthConfig,
-    EnergyConfig
+  BandwidthConfig,
+  EnergyConfig
 } from './types/resource-consumption.types.js'
 
 // 响应式数据
@@ -135,7 +135,7 @@ const bandwidthConfig = reactive<BandwidthConfig>({
 })
 
 // 方法
-const refreshData = async () => {
+const refreshData = async (showSuccessMessage: boolean = true) => {
   loading.value = true
   try {
     // 并行获取能量和带宽配置
@@ -148,7 +148,10 @@ const refreshData = async () => {
     Object.assign(energyConfig, newEnergyConfig)
     Object.assign(bandwidthConfig, newBandwidthConfig)
     
-    success('数据刷新成功')
+    // 只在手动刷新时显示成功提示
+    if (showSuccessMessage) {
+      success('数据刷新成功')
+    }
   } catch (error) {
     console.error('刷新数据失败:', error)
     error('刷新数据失败，请稍后重试')
@@ -200,7 +203,8 @@ const saveBandwidthConfig = async () => {
 
 // 生命周期
 onMounted(() => {
-  refreshData()
+  // 初始加载时不显示成功提示
+  refreshData(false)
 })
 </script>
 

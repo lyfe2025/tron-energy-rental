@@ -111,8 +111,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
+import { computed, ref, watch } from 'vue'
 
 interface Network {
   id: string
@@ -141,6 +142,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { success, warning, error } = useToast()
 
 const operationType = ref<'add' | 'remove' | 'replace'>('add')
 const selectedNetworks = ref<string[]>([])
@@ -219,7 +222,7 @@ const getSubmitButtonText = () => {
 
 const handleSubmit = async () => {
   if (selectedNetworks.value.length === 0) {
-    ElMessage.warning('请选择至少一个网络')
+    warning('请选择至少一个网络')
     return
   }
 
@@ -240,11 +243,11 @@ const handleSubmit = async () => {
     // 模拟批量操作
     await performBatchOperation()
     
-    ElMessage.success('批量操作完成')
+    success('批量操作完成')
     emit('updated')
     handleClose()
   } catch (error) {
-    ElMessage.error('批量操作失败')
+    error('批量操作失败')
   } finally {
     processing.value = false
   }

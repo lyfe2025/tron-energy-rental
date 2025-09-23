@@ -6,10 +6,10 @@
 import { query } from '../../../database/index';
 import { orderLogger } from '../../../utils/logger';
 import type {
-  EnergyConfig,
-  FlashRentConfig,
-  FlashRentTransaction,
-  OrderCalculation
+    EnergyConfig,
+    FlashRentConfig,
+    FlashRentTransaction,
+    OrderCalculation
 } from './types';
 
 export class FlashRentOrderCreator {
@@ -386,7 +386,7 @@ export class FlashRentOrderCreator {
 
         return {
           standard_energy: energyConfigs['resource_consumption.energy.usdt_standard_energy'] || 65000,
-          buffer_percentage: energyConfigs['resource_consumption.energy.usdt_buffer_percentage'] || 1
+          buffer_percentage: energyConfigs['resource_consumption.energy.usdt_buffer_percentage'] || 2
         };
       }
 

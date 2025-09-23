@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { computed, ref } from 'vue'
 
 // 类型定义
@@ -32,6 +32,8 @@ interface LogEntry {
  * 系统监控 composable
  */
 export function useSystemMonitoring() {
+  const { success, error, info } = useToast()
+  
   // 响应式数据
   const refreshing = ref(false)
   const checkingServices = ref(false)
@@ -162,9 +164,9 @@ export function useSystemMonitoring() {
                           systemMetrics.value.network_latency > 100
       systemStatus.value = hasHighUsage ? 'unhealthy' : 'healthy'
       
-      ElMessage.success('数据刷新成功')
+      success('数据刷新成功')
     } catch (error) {
-      ElMessage.error('数据刷新失败')
+      error('数据刷新失败')
     } finally {
       refreshing.value = false
     }
@@ -181,9 +183,9 @@ export function useSystemMonitoring() {
         service.last_check = new Date().toLocaleString('zh-CN')
       })
       
-      ElMessage.success('所有服务检查完成')
+      success('所有服务检查完成')
     } catch (error) {
-      ElMessage.error('服务检查失败')
+      error('服务检查失败')
     } finally {
       checkingServices.value = false
     }
@@ -194,9 +196,9 @@ export function useSystemMonitoring() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
       service.last_check = new Date().toLocaleString('zh-CN')
-      ElMessage.success(`${service.name} 检查完成`)
+      success(`${service.name} 检查完成`)
     } catch (error) {
-      ElMessage.error(`${service.name} 检查失败`)
+      error(`${service.name} 检查失败`)
     } finally {
       service.checking = false
     }
@@ -209,9 +211,9 @@ export function useSystemMonitoring() {
       service.status = 'running'
       service.uptime = '刚刚启动'
       service.last_check = new Date().toLocaleString('zh-CN')
-      ElMessage.success(`${service.name} 启动成功`)
+      success(`${service.name} 启动成功`)
     } catch (error) {
-      ElMessage.error(`${service.name} 启动失败`)
+      error(`${service.name} 启动失败`)
     } finally {
       service.starting = false
     }
@@ -223,9 +225,9 @@ export function useSystemMonitoring() {
       await new Promise(resolve => setTimeout(resolve, 3000))
       service.uptime = '刚刚重启'
       service.last_check = new Date().toLocaleString('zh-CN')
-      ElMessage.success(`${service.name} 重启成功`)
+      success(`${service.name} 重启成功`)
     } catch (error) {
-      ElMessage.error(`${service.name} 重启失败`)
+      error(`${service.name} 重启失败`)
     } finally {
       service.restarting = false
     }
@@ -233,7 +235,7 @@ export function useSystemMonitoring() {
 
   const clearLogs = () => {
     logs.value = []
-    ElMessage.success('日志已清空')
+    success('日志已清空')
   }
 
   const toggleAutoRefresh = () => {
@@ -257,13 +259,13 @@ export function useSystemMonitoring() {
         }
       }, 3000)
       
-      ElMessage.success('已开启日志自动刷新')
+      success('已开启日志自动刷新')
     } else {
       if (autoRefreshInterval.value) {
         clearInterval(autoRefreshInterval.value)
         autoRefreshInterval.value = null
       }
-      ElMessage.info('已停止日志自动刷新')
+      info('已停止日志自动刷新')
     }
   }
 

@@ -141,7 +141,7 @@ export const formatEnergy = (order: OrderForEnergy, config?: FlashRentConfig): s
       ? parseFloat(order.payment_trx_amount)
       : order.payment_trx_amount
     if (!isNaN(paymentAmount) && paymentAmount > 0) {
-      // 默认估算：1 TRX ≈ 65,000 能量
+      // 默认估算：1 TRX ≈ 65,000 能量（此处为静态估算，实际应从系统配置获取）
       const estimatedEnergy = Math.round(paymentAmount * 65000)
       return formatNumber(estimatedEnergy) + ' (估算)'
     }

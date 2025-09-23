@@ -134,10 +134,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { formatDateTime } from '@/utils/date'
 import { loginLogApi } from '@/api/system/logs'
+import { useToast } from '@/composables/useToast'
+import { formatDateTime } from '@/utils/date'
+import { onMounted, reactive, ref } from 'vue'
+
+// Toast 通知  
+const { error } = useToast()
 
 // 响应式数据
 const loading = ref(false)
@@ -182,11 +185,11 @@ const getLoginLogs = async () => {
       tableData.value = response.data.logs
       pagination.total = response.data.pagination.total
     } else {
-      ElMessage.error(response.error || '获取登录日志失败')
+      error(response.error || '获取登录日志失败')
     }
   } catch (error) {
     console.error('获取登录日志失败:', error)
-    ElMessage.error('获取登录日志失败')
+    error('获取登录日志失败')
   } finally {
     loading.value = false
   }

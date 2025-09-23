@@ -1,7 +1,7 @@
 /**
  * 管理员角色页面主要逻辑整合
  */
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { onMounted } from 'vue'
 import { useAdminRoles } from '../useAdminRoles'
 import { useAdminDialogs } from './useAdminDialogs'
@@ -9,6 +9,8 @@ import { useAdminFilters } from './useAdminFilters'
 import { useAdminSelection } from './useAdminSelection'
 
 export function useAdminRolesPage() {
+  const { success, error: showError, warning } = useToast()
+  
   // 基础数据管理
   const {
     adminRoles,
@@ -82,7 +84,7 @@ export function useAdminRolesPage() {
       resetSelection() // 刷新数据后重置选择
     } catch (error) {
       console.error('加载管理员数据失败:', error)
-      ElMessage.error('加载管理员数据失败')
+      showError('加载管理员数据失败')
     }
   }
 
@@ -95,7 +97,7 @@ export function useAdminRolesPage() {
   // 刷新数据
   const handleRefresh = async () => {
     await loadAdminRoles()
-    ElMessage.success('数据刷新成功')
+    success('数据刷新成功')
   }
 
   // 分页处理
@@ -123,10 +125,10 @@ export function useAdminRolesPage() {
   const handleDeleteAdmin = async (admin: any) => {
     try {
       // 这里应该调用删除API
-      ElMessage.success('删除成功')
+      success('删除成功')
       await loadAdminRoles()
     } catch (error) {
-      ElMessage.error('删除失败')
+      showError('删除失败')
     }
   }
 
@@ -138,18 +140,18 @@ export function useAdminRolesPage() {
   // 批量分配角色
   const handleBatchAssignRoles = async () => {
     if (selectedAdmins.value.length === 0) {
-      ElMessage.warning('请先选择要分配角色的管理员')
+      warning('请先选择要分配角色的管理员')
       return
     }
 
     try {
       assignLoading.value = true
       // 这里应该实现批量分配逻辑
-      ElMessage.success('批量分配角色成功')
+      success('批量分配角色成功')
       await loadAdminRoles()
       clearSelection()
     } catch (error) {
-      ElMessage.error('批量分配角色失败')
+      showError('批量分配角色失败')
     } finally {
       assignLoading.value = false
     }
@@ -159,21 +161,21 @@ export function useAdminRolesPage() {
   const handleRoleAssignSuccess = async () => {
     closeAssignRoleDialog()
     await loadAdminRoles()
-    ElMessage.success('角色分配成功')
+    success('角色分配成功')
   }
 
   // 管理员创建成功回调
   const handleAdminCreateSuccess = async () => {
     closeCreateAdminDialog()
     await loadAdminRoles()
-    ElMessage.success('管理员创建成功')
+    success('管理员创建成功')
   }
 
   // 管理员编辑成功回调
   const handleAdminEditSuccess = async () => {
     closeEditAdminDialog()
     await loadAdminRoles()
-    ElMessage.success('管理员信息更新成功')
+    success('管理员信息更新成功')
   }
 
   // 初始化页面
@@ -186,7 +188,7 @@ export function useAdminRolesPage() {
       ])
     } catch (error) {
       console.error('页面初始化失败:', error)
-      ElMessage.error('页面初始化失败')
+      showError('页面初始化失败')
     } finally {
       loading.value = false
     }

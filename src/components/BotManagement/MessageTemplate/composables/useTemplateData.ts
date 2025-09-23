@@ -1,4 +1,5 @@
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
 import { reactive, ref } from 'vue'
 import type {
     CreateTemplateRequest,
@@ -9,6 +10,8 @@ import type {
 } from '../types/template.types'
 
 export function useTemplateData(botId: string) {
+  const { success, error } = useToast()
+  
   const loading = ref(false)
   const templates = ref<MessageTemplate[]>([])
   
@@ -50,7 +53,7 @@ export function useTemplateData(botId: string) {
       }
     } catch (error) {
       console.error('加载模板失败:', error)
-      ElMessage.error('加载模板失败')
+      error('加载模板失败')
     } finally {
       loading.value = false
     }
@@ -76,16 +79,16 @@ export function useTemplateData(botId: string) {
       })
       
       if (response.ok) {
-        ElMessage.success(isEdit ? '模板更新成功' : '模板创建成功')
+        success(isEdit ? '模板更新成功' : '模板创建成功')
         await loadTemplates()
         return true
       } else {
-        ElMessage.error('保存失败')
+        error('保存失败')
         return false
       }
     } catch (error) {
       console.error('保存模板失败:', error)
-      ElMessage.error('保存失败')
+      error('保存失败')
       return false
     }
   }
@@ -110,11 +113,11 @@ export function useTemplateData(botId: string) {
       })
       
       if (response.ok) {
-        ElMessage.success('模板删除成功')
+        success('模板删除成功')
         await loadTemplates()
         return true
       } else {
-        ElMessage.error('删除失败')
+        error('删除失败')
         return false
       }
     } catch (error) {
@@ -133,7 +136,7 @@ export function useTemplateData(botId: string) {
       })
       
       // 这里应该调用测试发送API
-      ElMessage.success(`测试消息已发送到 ${chatId}`)
+      success(`测试消息已发送到 ${chatId}`)
     } catch (error) {
       // 用户取消
     }

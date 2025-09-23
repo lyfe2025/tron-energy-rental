@@ -77,13 +77,13 @@ router.get('/energy', authenticateToken, async (req: Request, res: Response) => 
 
     // 设置默认值
     const defaultEnergyConfig = {
-      usdt_standard_energy: 15000,
-      usdt_max_energy: 30000, 
-      usdt_buffer_percentage: 20,
+      usdt_standard_energy: 65000,
+      usdt_max_energy: 150000, 
+      usdt_buffer_percentage: 2,
       preset_values: [
-        { name: '保守', value: 32000 },
-        { name: '标准', value: 15000 },
-        { name: '激进', value: 13000 }
+        { name: '保守', value: 70000 },
+        { name: '标准', value: 65000 },
+        { name: '激进', value: 60000 }
       ]
     };
 

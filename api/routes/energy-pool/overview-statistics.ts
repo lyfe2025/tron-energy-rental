@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../../database';
 import { energyPoolService } from '../../services/energy-pool';
+import { getTronGridHeaders } from '../../utils/database-api-key';
 
 const router: Router = Router();
 
@@ -23,11 +24,10 @@ async function getUSDTBalanceFromTronGrid(address: string, rpcUrl: string, contr
     
     console.log('🌐 [TronGrid] 使用TronGrid API查询USDT余额:', { address, contractAddress, gridApiUrl });
     
-    // 使用v1 API获取账户完整信息，包含TRC20余额  
+    // 使用v1 API获取账户完整信息，包含TRC20余额
+    const headers = await getTronGridHeaders(gridApiUrl);
     const response = await axios.get(`${gridApiUrl}/v1/accounts/${address}`, {
-      headers: {
-        'TRON-PRO-API-KEY': process.env.TRON_API_KEY || ''
-      },
+      headers,
       timeout: 10000
     });
     
@@ -212,9 +212,10 @@ async function getUSDTBalance(address: string, rpcUrl: string, contractAddress?:
     console.log('✅ [USDT Balance] TronWeb导入成功');
     
     // 创建TronWeb实例
+    const tronWebHeaders = await getTronGridHeaders(rpcUrl);
     const tronWeb = new TronWeb({
       fullHost: rpcUrl,
-      headers: { "TRON-PRO-API-KEY": process.env.TRON_API_KEY || '' }
+      headers: tronWebHeaders
     });
     
     // 验证地址格式
@@ -452,7 +453,7 @@ router.get('/networks', async (req, res) => {
 
 // 导出辅助函数供其他模块使用
 export {
-  getNetworkUSDTContract, getUSDTBalance, getUSDTBalanceFromDatabase, getUSDTBalanceFromTronGrid
+    getNetworkUSDTContract, getUSDTBalance, getUSDTBalanceFromDatabase, getUSDTBalanceFromTronGrid
 };
 
 export default router;

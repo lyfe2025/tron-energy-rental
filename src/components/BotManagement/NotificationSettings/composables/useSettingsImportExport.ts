@@ -1,4 +1,5 @@
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
 import type { NotificationSettings } from '../types/settings.types'
 
@@ -7,6 +8,8 @@ export function useSettingsImportExport(
   getAllSettings: () => NotificationSettings,
   applySettings: (settings: Partial<NotificationSettings>) => void
 ) {
+  const { success, error, warning } = useToast()
+  
   const showImportDialog = ref(false)
   const importData = ref<any>(null)
 
@@ -27,7 +30,7 @@ export function useSettingsImportExport(
     link.click()
     
     URL.revokeObjectURL(url)
-    ElMessage.success('配置已导出')
+    success('配置已导出')
   }
 
   const importSettings = () => {
@@ -39,9 +42,9 @@ export function useSettingsImportExport(
     reader.onload = (e) => {
       try {
         importData.value = JSON.parse(e.target?.result as string)
-        ElMessage.success('文件读取成功')
+        success('文件读取成功')
       } catch (error) {
-        ElMessage.error('文件格式错误')
+        error('文件格式错误')
         importData.value = null
       }
     }
@@ -50,7 +53,7 @@ export function useSettingsImportExport(
 
   const confirmImport = async () => {
     if (!importData.value) {
-      ElMessage.warning('请先选择配置文件')
+      warning('请先选择配置文件')
       return
     }
     
@@ -70,7 +73,7 @@ export function useSettingsImportExport(
       
       showImportDialog.value = false
       importData.value = null
-      ElMessage.success('配置导入成功')
+      success('配置导入成功')
     } catch {
       // 用户取消
     }

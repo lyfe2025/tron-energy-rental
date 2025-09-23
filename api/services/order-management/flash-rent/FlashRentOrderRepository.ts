@@ -26,9 +26,9 @@ export class FlashRentOrderRepository {
         order_number, user_id, network_id, order_type, target_address,
         energy_amount, price, payment_trx_amount, calculated_units,
         payment_status, status, tron_tx_hash, 
-        source_address, flash_rent_duration, processing_started_at,
+        source_address, processing_started_at,
         processing_details, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) 
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
       RETURNING *`,
       [
         orderNumber,
@@ -44,7 +44,6 @@ export class FlashRentOrderRepository {
         'pending_delegation',
         txId,
         fromAddress,
-        calculation.duration,
         new Date(),
         JSON.stringify({
           步骤: '订单创建',
@@ -94,18 +93,16 @@ export class FlashRentOrderRepository {
         payment_status = 'paid',
         status = 'pending_delegation',
         source_address = $5,
-        flash_rent_duration = $6,
-        processing_started_at = $7,
-        processing_details = $8,
-        updated_at = $9
-       WHERE id = $10`,
+        processing_started_at = $6,
+        processing_details = $7,
+        updated_at = $8
+       WHERE id = $9`,
       [
         calculation.totalEnergy,
         calculation.orderPrice,
         trxAmount,
         calculation.calculatedUnits,
         fromAddress,
-        calculation.duration,
         new Date(),
         JSON.stringify({
           step: 'order_updated',

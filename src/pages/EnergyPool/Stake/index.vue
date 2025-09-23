@@ -326,9 +326,9 @@ import AccountSelector from '../components/AccountSelector.vue'
 // 使用新的质押操作组件结构
 import { useRealTimeAccountData } from '@/composables/useRealTimeAccountData'
 import {
-  DelegateModal,
-  StakeModal,
-  UnstakeModal
+    DelegateModal,
+    StakeModal,
+    UnstakeModal
 } from '../components/StakeOperations'
 import ErrorDisplay from './components/ErrorDisplay.vue'
 import StakeHistory from './components/StakeHistory.vue'
@@ -441,14 +441,32 @@ const handleOpenDelegateFromStake = () => {
 // 监听路由变化
 watch(
   () => stakeData.currentNetworkId.value,
-  async (newNetworkId) => {
+  async (newNetworkId, oldNetworkId) => {
+    console.log('🔍 [StakeIndex] 网络ID变化:', {
+      oldNetworkId,
+      newNetworkId,
+      hasNetworks: stakeData.networkStore.networks.length > 0,
+      currentNetworkInStore: stakeData.networkStore.currentNetwork?.name,
+      computedCurrentNetwork: stakeData.currentNetwork.value?.name
+    })
+    
     if (newNetworkId && stakeData.networkStore.networks.length > 0) {
-      // 重置账户选择
-      stakeData.selectedAccount.value = null
-      stakeData.selectedAccountId.value = null
+      // 设置当前网络到store（如果不匹配）
+      if (String(stakeData.networkStore.currentNetwork?.id) !== String(newNetworkId)) {
+        console.log('🔌 [StakeIndex] 更新网络Store中的当前网络')
+        stakeData.networkStore.setCurrentNetwork(String(newNetworkId))
+      }
+      
+      // 重置账户选择（仅在网络实际变化时）
+      if (oldNetworkId && oldNetworkId !== newNetworkId) {
+        console.log('🔄 [StakeIndex] 网络变化，重置账户选择')
+        stakeData.selectedAccount.value = null
+        stakeData.selectedAccountId.value = null
+      }
       
       // 加载网络相关数据
       if (stakeData.stakeComposable.loadOverview && stakeData.selectedAccountId.value) {
+        console.log('🔄 [StakeIndex] 加载网络相关数据')
         await stakeData.stakeComposable.loadOverview(stakeData.selectedAccountId.value, stakeData.currentNetworkId.value)
       }
     }
@@ -474,14 +492,43 @@ watch(
 
 // 组件挂载
 onMounted(async () => {
-  // 加载网络信息
-  if (!stakeData.networkStore.networks.length) {
-    await stakeData.networkStore.loadNetworks()
-  }
+  console.log('🚀 [StakeIndex] 组件挂载开始', {
+    currentNetworkId: stakeData.currentNetworkId.value,
+    hasNetworks: stakeData.networkStore.networks.length > 0
+  })
   
-  // 加载能量池账户
-  if (stakeData.energyPoolComposable.loadAccounts) {
-    await stakeData.energyPoolComposable.loadAccounts()
+  try {
+    // 优先加载网络信息
+    if (!stakeData.networkStore.networks.length) {
+      console.log('🔄 [StakeIndex] 加载网络列表...')
+      await stakeData.networkStore.loadNetworks()
+      console.log('✅ [StakeIndex] 网络列表加载完成', {
+        networkCount: stakeData.networkStore.networks.length,
+        networks: stakeData.networkStore.networks.map(n => ({ id: n.id, name: n.name }))
+      })
+    }
+    
+    // 设置当前网络到store
+    if (stakeData.currentNetworkId.value) {
+      console.log('🔌 [StakeIndex] 设置当前网络:', stakeData.currentNetworkId.value)
+      const success = stakeData.networkStore.setCurrentNetwork(stakeData.currentNetworkId.value)
+      console.log('🔌 [StakeIndex] 网络设置结果:', {
+        success,
+        currentNetworkInStore: stakeData.networkStore.currentNetwork?.name,
+        computedCurrentNetwork: stakeData.currentNetwork.value?.name
+      })
+    }
+    
+    // 加载能量池账户
+    if (stakeData.energyPoolComposable.loadAccounts) {
+      console.log('🔄 [StakeIndex] 加载能量池账户...')
+      await stakeData.energyPoolComposable.loadAccounts()
+      console.log('✅ [StakeIndex] 能量池账户加载完成')
+    }
+    
+    console.log('✅ [StakeIndex] 组件初始化完成')
+  } catch (error) {
+    console.error('❌ [StakeIndex] 组件初始化失败:', error)
   }
 })
 </script>

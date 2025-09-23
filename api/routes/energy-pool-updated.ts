@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
+import { getTronGridHeaders } from '../utils/database-api-key';
 
 const router = Router();
 
@@ -95,9 +96,10 @@ async function getUSDTBalance(address: string, networkId: string): Promise<{ suc
         throw new Error('TronWeb library not available');
       }
       
+      const tronWebHeaders = await getTronGridHeaders(rpcUrl);
       const tronWeb = new TronWeb({
         fullHost: rpcUrl,
-        headers: { "TRON-PRO-API-KEY": process.env.TRON_API_KEY || '' }
+        headers: tronWebHeaders
       });
       
       // 验证地址格式
@@ -156,11 +158,10 @@ async function getUSDTBalanceFromTronGrid(address: string, rpcUrl: string, contr
     
     console.log('🌐 [TronGrid] 使用TronGrid v1 API查询USDT余额:', { address, contractAddress, gridApiUrl });
     
-    // 使用v1 API获取账户完整信息，包含TRC20余额  
+    // 使用v1 API获取账户完整信息，包含TRC20余额
+    const headers = await getTronGridHeaders(gridApiUrl);
     const response = await axios.get(`${gridApiUrl}/v1/accounts/${address}`, {
-      headers: {
-        'TRON-PRO-API-KEY': process.env.TRON_API_KEY || ''
-      },
+      headers,
       timeout: 10000
     });
     

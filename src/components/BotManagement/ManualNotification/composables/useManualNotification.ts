@@ -1,7 +1,9 @@
-import { ElMessage } from 'element-plus'
+import { useToast } from '@/composables/useToast'
 import { computed, reactive, ref, watch } from 'vue'
 
 export function useManualNotification(botId: string) {
+  const { success, error } = useToast()
+  
   const sending = ref(false)
 
   // 通知表单数据
@@ -127,12 +129,12 @@ ${maintenanceForm.affected_features.map(f => `• ${getFeatureName(f)}`).join('\
     // 验证表单
     if (notificationForm.type === 'maintenance_notice') {
       if (!maintenanceForm.description) {
-        ElMessage.error('请填写维护内容')
+        error('请填写维护内容')
         return
       }
     } else if (notificationForm.type === 'important_announcement') {
       if (!announcementForm.title || !announcementForm.content) {
-        ElMessage.error('请填写公告标题和内容')
+        error('请填写公告标题和内容')
         return
       }
     }
@@ -184,14 +186,14 @@ ${maintenanceForm.affected_features.map(f => `• ${getFeatureName(f)}`).join('\
 
       if (response.ok) {
         const data = await response.json()
-        ElMessage.success('通知发送任务已创建')
+        success('通知发送任务已创建')
         return data.notification_id
       } else {
-        ElMessage.error('发送通知失败')
+        error('发送通知失败')
       }
     } catch (error) {
       console.error('发送通知失败:', error)
-      ElMessage.error('发送通知失败')
+      error('发送通知失败')
     } finally {
       sending.value = false
     }

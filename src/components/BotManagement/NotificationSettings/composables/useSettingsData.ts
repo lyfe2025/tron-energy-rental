@@ -1,4 +1,5 @@
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
 import { reactive, ref } from 'vue'
 import type {
     AdvancedSettings,
@@ -13,6 +14,8 @@ import type {
 } from '../types/settings.types'
 
 export function useSettingsData(botId: string) {
+  const { success, error, warning, info } = useToast()
+  
   const saving = ref(false)
   const testing = ref(false)
 
@@ -101,7 +104,7 @@ export function useSettingsData(botId: string) {
       }
     } catch (error) {
       console.error('加载设置失败:', error)
-      ElMessage.error('加载设置失败')
+      error('加载设置失败')
     }
   }
 
@@ -129,15 +132,15 @@ export function useSettingsData(botId: string) {
       })
       
       if (response.ok) {
-        ElMessage.success('设置保存成功')
+        success('设置保存成功')
         return true
       } else {
-        ElMessage.error('保存失败')
+        error('保存失败')
         return false
       }
     } catch (error) {
       console.error('保存设置失败:', error)
-      ElMessage.error('保存失败')
+      error('保存失败')
       return false
     } finally {
       saving.value = false
@@ -156,7 +159,7 @@ export function useSettingsData(botId: string) {
             type: 'warning',
           }
         )
-        ElMessage.info('通知功能已关闭')
+        info('通知功能已关闭')
       } catch {
         globalSettings.enabled = true
       }
@@ -165,7 +168,7 @@ export function useSettingsData(botId: string) {
 
   const testWebhook = async (): Promise<boolean> => {
     if (!advancedSettings.webhookUrl) {
-      ElMessage.warning('请先输入Webhook URL')
+      warning('请先输入Webhook URL')
       return false
     }
     
@@ -184,14 +187,14 @@ export function useSettingsData(botId: string) {
       })
       
       if (response.ok) {
-        ElMessage.success('Webhook测试成功')
+        success('Webhook测试成功')
         return true
       } else {
-        ElMessage.error('Webhook测试失败')
+        error('Webhook测试失败')
         return false
       }
     } catch (error) {
-      ElMessage.error('Webhook测试失败')
+      error('Webhook测试失败')
       return false
     } finally {
       testing.value = false
@@ -257,7 +260,7 @@ export function useSettingsData(botId: string) {
         fallbackBotToken: ''
       })
       
-      ElMessage.success('已恢复到默认设置')
+      success('已恢复到默认设置')
     } catch {
       // 用户取消
     }

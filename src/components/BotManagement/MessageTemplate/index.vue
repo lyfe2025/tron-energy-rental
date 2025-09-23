@@ -54,7 +54,8 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useToast } from '@/composables/useToast'
+import { ElMessageBox } from 'element-plus'
 import { onMounted, reactive } from 'vue'
 import TemplateEditor from './components/TemplateEditor.vue'
 import TemplateList from './components/TemplateList.vue'
@@ -68,6 +69,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// Toast 通知
+const { info } = useToast()
 
 // 使用composables
 const {
@@ -177,7 +181,7 @@ const previewTemplate = () => {
 }
 
 const testCurrentTemplate = () => {
-  ElMessage.info('测试发送功能开发中...')
+  info('测试发送功能开发中...')
 }
 
 // 生命周期

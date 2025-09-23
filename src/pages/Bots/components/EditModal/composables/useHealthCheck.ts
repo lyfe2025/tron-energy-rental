@@ -2,8 +2,8 @@
  * 健康检查相关逻辑
  * 职责：处理机器人健康检查功能
  */
+import { useToast } from '@/composables/useToast'
 import { botsAPI } from '@/services/api/bots/botsAPI'
-import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import type { BotData } from '../../../composables/useBotFormShared'
 
@@ -21,6 +21,8 @@ export interface HealthCheckResult {
 }
 
 export function useHealthCheck() {
+  const { success, error, warning } = useToast()
+  
   // 响应式状态
   const healthChecking = ref(false)
   const healthCheckResult = ref<HealthCheckResult | null>(null)
@@ -48,15 +50,15 @@ export function useHealthCheck() {
         console.log('健康检查结果:', result.data)
         
         if ((result.data as any).status === 'healthy') {
-          ElMessage.success('健康检查通过')
+          success('健康检查通过')
         } else {
-          ElMessage.warning(`健康检查发现问题`)
+          warning(`健康检查发现问题`)
         }
         
         // 触发父组件刷新数据以获取最新的健康状态
         emit('refresh')
       } else {
-        ElMessage.error(`健康检查失败：${result?.message || '未知错误'}`)
+        error(`健康检查失败：${result?.message || '未知错误'}`)
         
         // 即使失败也显示错误信息
         healthCheckResult.value = {
@@ -87,7 +89,7 @@ export function useHealthCheck() {
         errorMessage = error.message
       }
       
-      ElMessage.error(`健康检查失败：${errorMessage}`)
+      error(`健康检查失败：${errorMessage}`)
       
       // 保存错误信息用于显示
       healthCheckResult.value = {
