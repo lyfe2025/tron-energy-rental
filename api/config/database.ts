@@ -7,9 +7,9 @@ dotenv.config();
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'tron_energy_rental',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'tron_energy',
+  user: process.env.DB_USER || 'db_tron_admin',
+  password: process.env.DB_PASSWORD || 'AZDTswBsRbhTpbAm',
   max: parseInt(process.env.DB_MAX_CONNECTIONS || '30'),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

@@ -13,7 +13,7 @@
  * 环境变量配置 (.env文件):
  * DB_HOST=localhost
  * DB_PORT=5432
- * DB_NAME=tron_energy_rental
+ * DB_NAME=tron_energy
  * DB_USER=postgres
  * DB_PASSWORD=your_password
  * DB_SSL=false
@@ -205,7 +205,7 @@ function showHelp() {
 环境变量配置 (.env文件):
   DB_HOST=localhost
   DB_PORT=5432
-  DB_NAME=tron_energy_rental
+  DB_NAME=tron_energy
   DB_USER=postgres
   DB_PASSWORD=your_password
   DB_SSL=false

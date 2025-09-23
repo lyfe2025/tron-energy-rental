@@ -87,9 +87,9 @@ fi
 # 数据库配置
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-tron_energy_rental}"
-DB_USER="${DB_USER:-postgres}"
-DB_PASSWORD="${DB_PASSWORD:-postgres}"
+DB_NAME="${DB_NAME:-tron_energy}"
+DB_USER="${DB_USER:-db_tron_admin}"
+DB_PASSWORD="${DB_PASSWORD:-AZDTswBsRbhTpbAm}"
 
 # 验证必要配置
 if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then
@@ -149,8 +149,6 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     --verbose \
     --create \
     --clean \
-    --no-owner \
-    --no-privileges \
     --format=plain \
     --encoding=UTF8 \
     --file="$backup_file" 2>/dev/null; then

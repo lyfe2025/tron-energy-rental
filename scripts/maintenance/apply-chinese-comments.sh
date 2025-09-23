@@ -17,18 +17,18 @@ if [ -z "$DB_PORT" ]; then
 fi
 
 if [ -z "$DB_NAME" ]; then
-    echo "⚠️  环境变量DB_NAME未设置，使用默认值tron_energy_rental"
-    export DB_NAME=tron_energy_rental
+    echo "⚠️  环境变量DB_NAME未设置，使用默认值tron_energy"
+    export DB_NAME=tron_energy
 fi
 
 if [ -z "$DB_USER" ]; then
-    echo "⚠️  环境变量DB_USER未设置，使用默认值postgres"
-    export DB_USER=postgres
+    echo "⚠️  环境变量DB_USER未设置，使用默认值db_tron_admin"
+    export DB_USER=db_tron_admin
 fi
 
 if [ -z "$DB_PASSWORD" ]; then
-    echo "⚠️  环境变量DB_PASSWORD未设置，使用默认值postgres"
-    export DB_PASSWORD=postgres
+    echo "⚠️  环境变量DB_PASSWORD未设置，使用默认值AZDTswBsRbhTpbAm"
+    export DB_PASSWORD=AZDTswBsRbhTpbAm
 fi
 
 echo "📊 数据库连接信息："

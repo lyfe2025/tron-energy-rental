@@ -14,9 +14,9 @@ load_db_config() {
     # 数据库配置变量
     DB_HOST="${DB_HOST:-localhost}"
     DB_PORT="${DB_PORT:-5432}"
-    DB_NAME="${DB_NAME:-tron_energy_rental}"
-    DB_USER="${DB_USER:-postgres}"
-    DB_PASSWORD="${DB_PASSWORD:-postgres}"
+    DB_NAME="${DB_NAME:-tron_energy}"
+    DB_USER="${DB_USER:-db_tron_admin}"
+    DB_PASSWORD="${DB_PASSWORD:-AZDTswBsRbhTpbAm}"
     
     # 验证必要配置
     if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then
@@ -497,14 +497,23 @@ restore_database() {
         echo -e "\n${GREEN}${ARROW} 开始恢复数据库...${NC}"
         echo -e "${GREEN}${ARROW} 请稍候，恢复过程可能需要几分钟...${NC}"
         
-        # 执行恢复
-        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -f "$selected_file" >/dev/null 2>&1; then
+        # 执行恢复 - 连接到目标数据库而不是postgres
+        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$selected_file" >/dev/null 2>&1; then
             # 清除密码环境变量
             unset PGPASSWORD
             
             echo -e "${GREEN}${CHECK_MARK} 数据库恢复成功！${NC}"
             echo -e "${GREEN}${ARROW} 恢复文件: ${YELLOW}$filename${NC}"
             echo -e "${GREEN}${ARROW} 完成时间: ${YELLOW}$(date)${NC}"
+            
+            # 修复序列和对象所有者权限
+            echo -e "${GREEN}${ARROW} 修复数据库对象权限...${NC}"
+            export PGPASSWORD="$DB_PASSWORD"
+            # 修复序列所有者
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ALTER SEQUENCE IF EXISTS bot_logs_id_seq OWNER TO $DB_USER;" >/dev/null 2>&1 || true
+            # 确保用户有序列权限
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "GRANT USAGE, SELECT ON SEQUENCE bot_logs_id_seq TO $DB_USER;" >/dev/null 2>&1 || true
+            echo -e "${GREEN}${CHECK_MARK} 权限修复完成${NC}"
             
             # 测试恢复后的数据库连接
             echo -e "\n${GREEN}${ARROW} 验证恢复结果...${NC}"

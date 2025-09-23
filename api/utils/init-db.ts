@@ -1,5 +1,5 @@
-import { Client } from 'pg';
 import dotenv from 'dotenv';
+import { Client } from 'pg';
 
 // 加载环境变量
 dotenv.config();
@@ -9,8 +9,8 @@ const createDatabase = async (): Promise<void> => {
   const client = new Client({
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
+    user: process.env.DB_USER || 'db_tron_admin',
+    password: process.env.DB_PASSWORD || 'AZDTswBsRbhTpbAm',
     database: 'postgres', // 连接到默认数据库
   });
 
@@ -18,7 +18,7 @@ const createDatabase = async (): Promise<void> => {
     await client.connect();
     console.log('Connected to PostgreSQL server');
 
-    const dbName = process.env.DB_NAME || 'tron_energy_rental';
+    const dbName = process.env.DB_NAME || 'tron_energy';
     
     // 检查数据库是否已存在
     const checkDbQuery = 'SELECT 1 FROM pg_database WHERE datname = $1';

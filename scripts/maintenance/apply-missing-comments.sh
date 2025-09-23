@@ -56,17 +56,17 @@ apply_migration() {
     log_info "创建数据库备份..."
     local backup_file="backups/db_backup_before_comments_$(date +%Y%m%d_%H%M%S).sql"
     mkdir -p backups
-    pg_dump -h localhost -U postgres -d tron_energy_rental > "$backup_file"
+    pg_dump -h localhost -U db_tron_admin -d tron_energy > "$backup_file"
     log_success "数据库备份已创建: $backup_file"
     
     # 应用迁移
     log_info "执行迁移脚本..."
-    if psql -h localhost -U postgres -d tron_energy_rental -f "$migration_file"; then
+    if psql -h localhost -U db_tron_admin -d tron_energy -f "$migration_file"; then
         log_success "迁移文件应用成功"
     else
         log_error "迁移文件应用失败"
         log_warning "正在恢复数据库备份..."
-        psql -h localhost -U postgres -d tron_energy_rental < "$backup_file"
+        psql -h localhost -U db_tron_admin -d tron_energy < "$backup_file"
         log_error "数据库已恢复到备份状态"
         exit 1
     fi
