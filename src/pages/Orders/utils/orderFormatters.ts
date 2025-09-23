@@ -230,10 +230,10 @@ export const calculateOrderCount = (order: OrderForCount, config?: FlashRentConf
  * 网络信息接口
  */
 interface NetworkInfo {
-  id: number
-  name: string
-  type?: string
-  explorer_url?: string
+  id: string
+  name?: string
+  network_type?: string
+  block_explorer_url?: string
   is_active: boolean
 }
 
@@ -243,20 +243,21 @@ interface NetworkInfo {
 export const getTransactionUrl = (txHash: string, network?: NetworkInfo): string => {
   if (!txHash) return ''
   
-  // 如果有网络的explorer_url，使用它
-  if (network?.explorer_url) {
-    // 处理不同格式的explorer_url
-    const baseUrl = network.explorer_url.replace(/\/$/, '') // 移除末尾的斜杠
+  // 如果有网络的block_explorer_url，使用它
+  if (network?.block_explorer_url) {
+    // 处理不同格式的block_explorer_url
+    const baseUrl = network.block_explorer_url.replace(/\/$/, '') // 移除末尾的斜杠
     
     // 根据不同的浏览器格式构建URL
-    if (baseUrl.includes('tronscan.org')) {
+    // 注意：需要先检查具体的子域名，再检查通用的域名，避免逻辑冲突
+    if (baseUrl.includes('nile.tronscan.org')) {
+      return `${baseUrl}/#/transaction/${txHash}`
+    } else if (baseUrl.includes('shasta.tronscan.org')) {
+      return `${baseUrl}/#/transaction/${txHash}`
+    } else if (baseUrl.includes('tronscan.org')) {
       return `${baseUrl}/#/transaction/${txHash}`
     } else if (baseUrl.includes('trongrid.io')) {
       return `${baseUrl}/transaction/${txHash}`
-    } else if (baseUrl.includes('shasta.tronscan.org')) {
-      return `${baseUrl}/#/transaction/${txHash}`
-    } else if (baseUrl.includes('nile.tronscan.org')) {
-      return `${baseUrl}/#/transaction/${txHash}`
     } else {
       // 通用格式，假设是标准的浏览器格式
       return `${baseUrl}/transaction/${txHash}`
@@ -264,12 +265,21 @@ export const getTransactionUrl = (txHash: string, network?: NetworkInfo): string
   }
   
   // 如果没有网络信息，根据网络类型使用默认浏览器
-  if (network?.type) {
-    switch (network.type.toLowerCase()) {
+  if (network?.network_type) {
+    // 对于 testnet 类型，需要根据网络名称进一步判断
+    if (network.network_type.toLowerCase() === 'testnet') {
+      if (network.name?.toLowerCase().includes('nile')) {
+        return `https://nile.tronscan.org/#/transaction/${txHash}`
+      } else {
+        // 默认 testnet 使用 Shasta
+        return `https://shasta.tronscan.org/#/transaction/${txHash}`
+      }
+    }
+    
+    switch (network.network_type.toLowerCase()) {
       case 'mainnet':
       case 'tron_mainnet':
         return `https://tronscan.org/#/transaction/${txHash}`
-      case 'testnet':
       case 'shasta':
       case 'tron_shasta':
         return `https://shasta.tronscan.org/#/transaction/${txHash}`

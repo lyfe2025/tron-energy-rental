@@ -35,8 +35,21 @@ export class TransactionProcessor {
 
     // 检查是否已处理过
     if (await this.transactionCache.isTransactionProcessed(txId)) {
+      orderLogger.info(`   ⏭️ 交易已处理过，跳过`, {
+        txId: txId,
+        networkName,
+        reason: 'already_processed'
+      });
       return;
     }
+
+    // 立即标记交易为正在处理（防止并发）
+    await this.transactionCache.markTransactionProcessed(txId);
+    orderLogger.info(`   🔒 交易已标记为处理中`, {
+      txId: txId,
+      networkName,
+      step: 'mark_processing'
+    });
 
     // 首先创建订单记录
     let orderNumber: string | null = null;
@@ -54,6 +67,7 @@ export class TransactionProcessor {
         networkName,
         error: createOrderError.message
       });
+      // 创建订单失败时，也保持交易标记为已处理（避免重复尝试）
       return;
     }
 
@@ -121,14 +135,6 @@ export class TransactionProcessor {
 
       await this.paymentService.handleFlashRentPayment(transaction, networkId);
 
-      // 6. 标记交易为已处理
-      orderLogger.info(`   6. 标记交易为已处理`, {
-        txId: transaction.txID,
-        networkName,
-        step: 6
-      });
-      await this.transactionCache.markTransactionProcessed(txId);
-
       orderLogger.info(`   ✅ 交易处理完成`, {
         txId: transaction.txID,
         networkName,
@@ -144,14 +150,14 @@ export class TransactionProcessor {
         await this.updateOrderToFailed(orderNumber, networkId, `Processing error: ${error.message}`);
       }
       
-      // 即使处理失败，也要标记交易为已处理（避免无限重试）
-      orderLogger.info(`   6. 标记交易为已处理（处理失败）`, {
+      orderLogger.info(`   ❌ 交易处理失败（已标记为已处理）`, {
         txId: txId,
         networkName,
         step: 6,
-        status: 'failed_but_marked'
+        status: 'failed_but_already_marked',
+        reason: error.message
       });
-      await this.transactionCache.markTransactionProcessed(txId);
+      // 注意：交易已在开始时标记为已处理，无需重复标记
     }
   }
 

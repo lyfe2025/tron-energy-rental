@@ -131,7 +131,7 @@ export class FlashRentOrderUpdater {
       step: 3
     });
 
-    const calculation = this.calculationService.performFullCalculation(trxAmount, config);
+    const calculation = await this.calculationService.performFullCalculation(trxAmount, config);
 
     if (!calculation.isValid) {
       throw new Error(calculation.reason!);

@@ -26,10 +26,10 @@ export interface ExtendedOrder extends Order {
 
 // 网络信息接口
 export interface NetworkInfo {
-  id: number
+  id: string
   name: string
-  type?: string
-  explorer_url?: string
+  network_type?: string
+  block_explorer_url?: string
   is_active: boolean
 }
 

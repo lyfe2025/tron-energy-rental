@@ -52,9 +52,9 @@ export const getNetworksList: RouteHandler = async (req: Request, res: Response)
     // 查询网络列表
     const networksQuery = `
       SELECT 
-        id, name, network_type as type, rpc_url, api_key, chain_id, block_explorer_url as explorer_url,
+        id, name, network_type, rpc_url, api_key, chain_id, block_explorer_url,
         is_active, is_default, priority, timeout_ms, retry_count,
-        rate_limit_per_second as rate_limit, health_status, last_health_check as last_check_at,
+        rate_limit_per_second, health_status, last_health_check,
         description, created_at, updated_at, config
       FROM tron_networks 
       ${whereClause}
@@ -105,10 +105,10 @@ export const getNetworkDetails: RouteHandler = async (req: Request, res: Respons
     
     const networkResult = await query(
       `SELECT 
-        id, name, network_type as type, rpc_url, api_key, chain_id, block_explorer_url as explorer_url,
+        id, name, network_type, rpc_url, api_key, chain_id, block_explorer_url,
         is_active, is_default, priority, timeout_ms, retry_count,
-        rate_limit_per_second as rate_limit, config, health_check_url, health_status,
-        last_health_check as last_check_at, description, created_at, updated_at
+        rate_limit_per_second, config, health_check_url, health_status,
+        last_health_check, description, created_at, updated_at
        FROM tron_networks 
        WHERE id = $1`,
       [id]

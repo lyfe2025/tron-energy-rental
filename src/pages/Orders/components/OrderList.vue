@@ -192,7 +192,7 @@
                 <!-- 查看支付交易 -->
                 <button
                   v-if="order.payment_tx_hash || order.tron_tx_hash"
-                  @click="viewTransaction(order.payment_tx_hash || order.tron_tx_hash, network)"
+                  @click="viewTransaction(order.payment_tx_hash || order.tron_tx_hash, props.network)"
                   class="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50 text-xs font-medium flex items-center space-x-1"
                   title="查看支付交易"
                 >
@@ -202,7 +202,7 @@
                 <!-- 查看委托交易 -->
                 <button
                   v-if="order.delegation_tx_hash || order.delegate_tx_hash"
-                  @click="viewTransaction(order.delegation_tx_hash || order.delegate_tx_hash, network)"
+                  @click="viewTransaction(order.delegation_tx_hash || order.delegate_tx_hash, props.network)"
                   class="text-purple-600 hover:text-purple-900 px-2 py-1 rounded hover:bg-purple-50 text-xs font-medium flex items-center space-x-1"
                   title="查看委托交易"
                 >
@@ -296,9 +296,6 @@ interface Emits extends OrderListEmits {}
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 解构props获取网络信息
-const { network } = props
-
 // 使用composable
 const {} = useOrderList()
 
@@ -314,12 +311,12 @@ const flashRentConfig = ref<SimpleFlashRentConfig | null>(null)
 
 // 获取闪租配置
 const loadFlashRentConfig = async () => {
-  if (!network?.id) return
+  if (!props.network?.id) return
 
   try {
     // 同时获取闪租配置和能量消耗配置
     const [config, energyConfig] = await Promise.all([
-      flashRentConfigApi.getFlashRentConfigByNetwork(network.id.toString()),
+      flashRentConfigApi.getFlashRentConfigByNetwork(props.network.id),
       flashRentConfigApi.getEnergyConsumptionConfig()
     ])
     
@@ -344,7 +341,7 @@ const loadFlashRentConfig = async () => {
 }
 
 // 监听网络变化
-watch(() => network?.id, () => {
+watch(() => props.network?.id, () => {
   loadFlashRentConfig()
 }, { immediate: true })
 

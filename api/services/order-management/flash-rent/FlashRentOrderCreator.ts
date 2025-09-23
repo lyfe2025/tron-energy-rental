@@ -129,7 +129,7 @@ export class FlashRentOrderCreator {
       step: 6
     });
 
-    const calculation = this.calculationService.performFullCalculation(trxAmount, config);
+    const calculation = await this.calculationService.performFullCalculation(trxAmount, config);
 
     if (!calculation.isValid) {
       orderLogger.error(`   ❌ 订单计算失败`, {

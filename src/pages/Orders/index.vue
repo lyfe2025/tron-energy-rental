@@ -5,8 +5,8 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-full flex items-center justify-center"
-               :class="getNetworkIconClass(currentNetwork?.type)">
-            <span class="text-white font-bold">{{ getNetworkIcon(currentNetwork?.type) }}</span>
+               :class="getNetworkIconClass(currentNetwork?.network_type)">
+            <span class="text-white font-bold">{{ getNetworkIcon(currentNetwork?.network_type) }}</span>
           </div>
           <div>
             <div class="flex items-center space-x-2">
@@ -117,11 +117,11 @@ import OrderStats from './components/OrderStats.vue'
 import { useOrderManagement } from './composables/useOrderManagement'
 
 interface Network {
-  id: number
+  id: string
   name: string
-  type?: string
+  network_type?: string
   rpc_url: string
-  explorer_url?: string
+  block_explorer_url?: string
   is_active: boolean
 }
 
@@ -154,18 +154,21 @@ const {
 const loadCurrentNetwork = async () => {
   try {
     console.log('🔍 [Orders] 开始加载网络信息，networkId:', networkId.value)
-    const response = await networkApi.getNetworks()
+    
+    // 直接通过ID获取指定网络
+    const response = await networkApi.getNetwork(networkId.value)
     console.log('📡 [Orders] API响应:', response)
     
     if (response.success && response.data) {
-      const allNetworks = response.data.data?.networks || response.data.networks || []
-      currentNetwork.value = allNetworks.find((network: Network) => network.id.toString() === networkId.value)
+      currentNetwork.value = response.data as Network
+      console.log('✅ [Orders] 找到的当前网络:', currentNetwork.value)
       
-      if (!currentNetwork.value) {
-        throw new Error('未找到指定的网络')
+      // 验证网络配置
+      if (!currentNetwork.value.block_explorer_url) {
+        console.warn('⚠️ [Orders] 网络缺少 block_explorer_url 配置')
       }
     } else {
-      throw new Error(response.error || '获取网络信息失败')
+      throw new Error('未找到指定的网络')
     }
   } catch (err: any) {
     console.error('❌ [Orders] 加载网络信息失败:', err)
