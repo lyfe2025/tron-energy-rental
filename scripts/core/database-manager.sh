@@ -506,14 +506,50 @@ restore_database() {
             echo -e "${GREEN}${ARROW} 恢复文件: ${YELLOW}$filename${NC}"
             echo -e "${GREEN}${ARROW} 完成时间: ${YELLOW}$(date)${NC}"
             
-            # 修复序列和对象所有者权限
+            # 修复数据库对象权限（全面权限授予）
             echo -e "${GREEN}${ARROW} 修复数据库对象权限...${NC}"
             export PGPASSWORD="$DB_PASSWORD"
-            # 修复序列所有者
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "ALTER SEQUENCE IF EXISTS bot_logs_id_seq OWNER TO $DB_USER;" >/dev/null 2>&1 || true
-            # 确保用户有序列权限
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "GRANT USAGE, SELECT ON SEQUENCE bot_logs_id_seq TO $DB_USER;" >/dev/null 2>&1 || true
-            echo -e "${GREEN}${CHECK_MARK} 权限修复完成${NC}"
+            
+            # 1. 修复所有序列的所有者和权限
+            echo -e "${GREEN}${ARROW} 修复序列权限...${NC}"
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
+                -- 获取所有序列并修复权限
+                DO \$\$
+                DECLARE
+                    seq_record RECORD;
+                BEGIN
+                    FOR seq_record IN 
+                        SELECT sequence_name FROM information_schema.sequences 
+                        WHERE sequence_schema = 'public'
+                    LOOP
+                        EXECUTE format('ALTER SEQUENCE IF EXISTS %I OWNER TO %I', seq_record.sequence_name, '$DB_USER');
+                        EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %I TO %I', seq_record.sequence_name, '$DB_USER');
+                    END LOOP;
+                END \$\$;
+            " >/dev/null 2>&1 || true
+            
+            # 2. 修复所有表的权限
+            echo -e "${GREEN}${ARROW} 修复表权限...${NC}"
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
+                -- 授予所有表的完整权限
+                GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO $DB_USER;
+                -- 授予所有序列的权限
+                GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO $DB_USER;
+                -- 授予所有函数的权限
+                GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO $DB_USER;
+                -- 设置默认权限，确保新创建的对象也有权限
+                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;
+                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;
+                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO $DB_USER;
+            " >/dev/null 2>&1 || true
+            
+            # 3. 确保用户是数据库的所有者（如果可能）
+            echo -e "${GREEN}${ARROW} 修复数据库所有者权限...${NC}"
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "
+                ALTER DATABASE $DB_NAME OWNER TO $DB_USER;
+            " >/dev/null 2>&1 || true
+            
+            echo -e "${GREEN}${CHECK_MARK} 数据库权限修复完成${NC}"
             
             # 测试恢复后的数据库连接
             echo -e "\n${GREEN}${ARROW} 验证恢复结果...${NC}"

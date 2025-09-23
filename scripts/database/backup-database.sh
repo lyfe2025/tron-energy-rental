@@ -40,6 +40,7 @@ show_help() {
     echo -e "${BOLD}功能:${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 创建PostgreSQL数据库的完整备份"
     echo -e "  ${GREEN}${ARROW}${NC} 包含数据库结构、数据、索引、序列等"
+    echo -e "  ${GREEN}${ARROW}${NC} 自动清空所有权限信息，确保跨环境兼容性"
     echo -e "  ${GREEN}${ARROW}${NC} 自动读取.env配置文件获取数据库连接信息"
     echo -e "  ${GREEN}${ARROW}${NC} 生成带时间戳的备份文件名"
     echo -e "  ${GREEN}${ARROW}${NC} 备份前自动测试数据库连接"
@@ -144,11 +145,13 @@ echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
 # 记录开始时间
 start_time=$(date +%s)
 
-# 执行备份（不压缩，直接保存为SQL文件）
+# 执行备份（清空权限信息，确保跨环境兼容）
 if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     --verbose \
     --create \
     --clean \
+    --no-owner \
+    --no-privileges \
     --format=plain \
     --encoding=UTF8 \
     --file="$backup_file" 2>/dev/null; then
