@@ -13,7 +13,7 @@ let transactionMonitorInstance: TransactionMonitorService | null = null;
 export function getTransactionMonitorInstance(): TransactionMonitorService {
   if (!transactionMonitorInstance) {
     const redisService = new RedisService();
-    const databaseService = new DatabaseService();
+    const databaseService = DatabaseService.getInstance();
     
     transactionMonitorInstance = new TransactionMonitorService(
       redisService,

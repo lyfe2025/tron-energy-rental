@@ -29,13 +29,22 @@ router.post('/',
   priceConfigController.createConfig
 )
 
-// 更新价格配置
+// 更新价格配置（全局，不推荐使用）
 router.put('/:modeType', 
   authenticateToken,
   requireRole(['super_admin', 'admin']),
   validateModeType,
   validatePriceConfigUpdate,
   priceConfigController.updateConfig
+)
+
+// 更新特定网络的价格配置（推荐）
+router.put('/:modeType/network/:networkId', 
+  authenticateToken,
+  requireRole(['super_admin', 'admin']),
+  validateModeType,
+  validatePriceConfigUpdate,
+  priceConfigController.updateConfigByNetwork
 )
 
 // 切换配置状态（所有同类型配置）

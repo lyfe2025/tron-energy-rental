@@ -17,7 +17,7 @@ export class DynamicKeyboardService {
   private priceConfigService: PriceConfigService;
 
   constructor() {
-    this.priceConfigService = new PriceConfigService();
+    this.priceConfigService = PriceConfigService.getInstance();
   }
 
   /**

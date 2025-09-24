@@ -1,7 +1,7 @@
 import { type NextFunction, type Request, type Response } from 'express'
 import { PriceConfigService } from '../services/PriceConfigService'
 
-const priceConfigService = new PriceConfigService()
+const priceConfigService = PriceConfigService.getInstance()
 
 // 验证价格配置数据
 export const validatePriceConfig = (req: Request, res: Response, next: NextFunction) => {
@@ -84,8 +84,9 @@ export const validateEnergyFlashConfig = (config: any): string[] => {
     errors.push('payment_address must be a non-empty string')
   }
 
-  if (typeof config.double_energy_for_no_usdt !== 'boolean') {
-    errors.push('double_energy_for_no_usdt must be a boolean')
+  // 验证主消息模板（可选）
+  if (config.main_message_template !== undefined && typeof config.main_message_template !== 'string') {
+    errors.push('main_message_template must be a string if provided')
   }
 
   return errors
@@ -95,14 +96,7 @@ export const validateEnergyFlashConfig = (config: any): string[] => {
 export const validateTrxExchangeConfig = (config: any): string[] => {
   const errors: string[] = []
 
-  if (typeof config.exchange_address !== 'string' || !config.exchange_address.trim()) {
-    errors.push('exchange_address must be a non-empty string')
-  }
-
-  if (typeof config.min_amount !== 'number' || config.min_amount <= 0) {
-    errors.push('min_amount must be a positive number')
-  }
-
+  // 验证汇率
   if (typeof config.usdt_to_trx_rate !== 'number' || config.usdt_to_trx_rate <= 0) {
     errors.push('usdt_to_trx_rate must be a positive number')
   }
@@ -111,22 +105,28 @@ export const validateTrxExchangeConfig = (config: any): string[] => {
     errors.push('trx_to_usdt_rate must be a positive number')
   }
 
-  if (typeof config.rate_update_interval !== 'number' || config.rate_update_interval <= 0) {
-    errors.push('rate_update_interval must be a positive number')
+  // 验证金额限制
+  if (typeof config.min_amount !== 'number' || config.min_amount <= 0) {
+    errors.push('min_amount must be a positive number')
   }
 
-  if (!Array.isArray(config.notes)) {
-    errors.push('notes must be an array')
-  } else {
-    config.notes.forEach((note: any, index: number) => {
-      if (typeof note !== 'string' || !note.trim()) {
-        errors.push(`notes[${index}] must be a non-empty string`)
-      }
-    })
+  if (typeof config.max_amount !== 'number' || config.max_amount <= 0) {
+    errors.push('max_amount must be a positive number')
   }
 
-  if (typeof config.is_auto_exchange !== 'boolean') {
-    errors.push('is_auto_exchange must be a boolean')
+  // 验证最小金额不能大于最大金额
+  if (config.min_amount && config.max_amount && config.min_amount > config.max_amount) {
+    errors.push('min_amount cannot be greater than max_amount')
+  }
+
+  // 验证支付地址
+  if (typeof config.payment_address !== 'string' || !config.payment_address.trim()) {
+    errors.push('payment_address must be a non-empty string')
+  }
+
+  // 验证主消息模板（可选）
+  if (config.main_message_template !== undefined && typeof config.main_message_template !== 'string') {
+    errors.push('main_message_template must be a string if provided')
   }
 
   return errors
@@ -209,6 +209,7 @@ export const validatePagination = (req: Request, res: Response, next: NextFuncti
 export const validateTransactionPackageConfig = (config: any): string[] => {
   const errors: string[] = []
 
+  // 验证基础配置
   if (typeof config.daily_fee !== 'number' || config.daily_fee < 0) {
     errors.push('daily_fee must be a non-negative number')
   }
@@ -221,6 +222,7 @@ export const validateTransactionPackageConfig = (config: any): string[] => {
     errors.push('proxy_purchase must be a boolean')
   }
 
+  // 验证套餐配置
   if (!Array.isArray(config.packages)) {
     errors.push('packages must be an array')
   } else {
@@ -234,7 +236,37 @@ export const validateTransactionPackageConfig = (config: any): string[] => {
       if (typeof pkg.price !== 'number' || pkg.price <= 0) {
         errors.push(`packages[${index}].price must be a positive number`)
       }
+      if (typeof pkg.unit_price !== 'number' || pkg.unit_price <= 0) {
+        errors.push(`packages[${index}].unit_price must be a positive number`)
+      }
+      if (typeof pkg.currency !== 'string' || !pkg.currency.trim()) {
+        errors.push(`packages[${index}].currency must be a non-empty string`)
+      }
     })
+  }
+
+  // 验证订单配置
+  if (!config.order_config || typeof config.order_config !== 'object') {
+    errors.push('order_config must be an object')
+  } else {
+    if (typeof config.order_config.payment_address !== 'string' || !config.order_config.payment_address.trim()) {
+      errors.push('order_config.payment_address must be a non-empty string')
+    }
+    if (typeof config.order_config.expire_minutes !== 'number' || config.order_config.expire_minutes <= 0) {
+      errors.push('order_config.expire_minutes must be a positive number')
+    }
+    if (typeof config.order_config.confirmation_template !== 'string' || !config.order_config.confirmation_template.trim()) {
+      errors.push('order_config.confirmation_template must be a non-empty string')
+    }
+  }
+
+  // 验证消息模板
+  if (typeof config.main_message_template !== 'string' || !config.main_message_template.trim()) {
+    errors.push('main_message_template must be a non-empty string')
+  }
+
+  if (typeof config.reply_message !== 'string' || !config.reply_message.trim()) {
+    errors.push('reply_message must be a non-empty string')
   }
 
   return errors

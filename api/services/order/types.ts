@@ -43,6 +43,13 @@ export interface Order {
   retry_count?: number;          // 重试次数
   processing_started_at?: Date;  // 处理开始时间
   delegation_started_at?: Date;  // 委托开始时间
+  // 笔数套餐相关字段
+  transaction_count?: number;    // 交易笔数
+  used_transactions?: number;    // 已使用交易笔数
+  remaining_transactions?: number; // 剩余交易笔数
+  last_energy_usage_time?: Date; // 最后能量使用时间
+  next_delegation_time?: Date;   // 下次代理时间
+  daily_fee_last_check?: Date;   // 占费最后检查时间
 }
 
 export interface OrderStats {

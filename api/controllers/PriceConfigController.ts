@@ -6,7 +6,7 @@ export class PriceConfigController {
   private priceConfigService: PriceConfigService
 
   constructor() {
-    this.priceConfigService = new PriceConfigService()
+    this.priceConfigService = PriceConfigService.getInstance()
   }
 
   // 获取所有价格配置（支持按网络ID筛选）
@@ -128,6 +128,44 @@ export class PriceConfigController {
       logger.error('Update config error:', error)
       res.status(500).json({ 
         error: 'Failed to update price config',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }
+
+  // 更新特定网络的价格配置
+  updateConfigByNetwork = async (req: Request, res: Response) => {
+    try {
+      const { modeType, networkId } = req.params
+      const { 
+        config, 
+        name, 
+        description, 
+        inline_keyboard_config, 
+        image_url, 
+        image_alt, 
+        enable_image 
+      } = req.body
+
+      const updatedConfig = await this.priceConfigService.updateConfigByNetwork(modeType, networkId, {
+        config,
+        name,
+        description,
+        inline_keyboard_config,
+        image_url,
+        image_alt,
+        enable_image
+      })
+
+      if (!updatedConfig) {
+        return res.status(404).json({ error: 'Price config not found for this network' })
+      }
+
+      res.json(updatedConfig)
+    } catch (error) {
+      logger.error('Update config by network error:', error)
+      res.status(500).json({ 
+        error: 'Failed to update price config for network',
         message: error instanceof Error ? error.message : 'Unknown error'
       })
     }

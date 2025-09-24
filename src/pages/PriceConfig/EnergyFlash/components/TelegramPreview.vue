@@ -15,7 +15,7 @@
     </div>
       
     <!-- 消息内容 -->
-    <div class="p-4 space-y-3 max-h-[700px] overflow-y-auto">
+    <div class="p-4 space-y-3">
       <!-- 机器人消息 -->
       <div class="flex gap-2">
         <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -36,62 +36,24 @@
               </div>
             </div>
             
-            <!-- 标题 -->
-            <div class="font-bold text-sm mb-1 text-green-600">
-              {{ getTitleText() }}
+            <!-- 主消息内容 -->
+            <div v-if="props.mainMessageTemplate" class="text-xs whitespace-pre-line" v-html="formatMainMessageHTML">
             </div>
-            <!-- 标题后换行 -->
-            <div v-if="lineBreaks.after_title > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_title) }}</div>
             
-            <!-- 副标题 -->
-            <div class="text-xs text-gray-600 mb-2 whitespace-pre-line">
-              {{ formattedSubtitle }}
+            <!-- 没有配置模板时的提示 -->
+            <div v-else class="text-xs text-gray-500 text-center py-4">
+              请配置主消息模板以预览内容
             </div>
-            <!-- 副标题后换行 -->
-            <div v-if="lineBreaks.after_subtitle > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_subtitle) }}</div>
             
-            <!-- 详细信息 -->
-            <div class="text-xs space-y-1">
-              <div>{{ formatText('duration_label', '⏱ 租期时效：{duration}小时', config.config.expiry_hours, displayTexts) }}</div>
-              <div>{{ formatText('price_label', '💰 单笔价格：{price}TRX', config.config.single_price, displayTexts) }}</div>
-              <div>{{ formatText('max_label', '🔢 最大购买：{max}笔', config.config.max_transactions, displayTexts) }}</div>
-              <!-- 地址标签（总是显示，优先使用自定义标签） -->
-              <div class="pt-1 border-t border-gray-200">{{ getAddressLabel() }}</div>
-              <div 
-                class="font-mono text-xs text-blue-600 break-all cursor-pointer hover:bg-blue-50 p-1 rounded transition-colors"
-                @click="copyAddress"
-                :title="'点击复制地址: ' + (config.config.payment_address || 'TExample...')"
-              >
-                {{ config.config.payment_address || 'TExample...' }}
-              </div>
-              <div v-if="copyStatus" class="text-xs text-center mt-1 transition-opacity duration-300">
-                <span :class="{
-                  'text-green-600': copyStatus.includes('✅'),
-                  'text-red-600': copyStatus.includes('❌'),
-                  'text-yellow-600': copyStatus.includes('⚠️')
-                }">
-                  {{ copyStatus }}
-                </span>
-              </div>
-              
-              <!-- 智能换行：合并详细信息后和警告信息前的换行 -->
-              <div v-if="intelligentLineBreaks > 0" class="whitespace-pre-line">{{ generateLineBreaks(intelligentLineBreaks) }}</div>
-              
-              <!-- 双倍能量警告 -->
-              <div v-if="config.config.double_energy_for_no_usdt" class="text-xs text-red-600 bg-red-50 p-2 rounded mt-2">
-                {{ getDisplayText('double_energy_warning', '⚠️ 注意：账户无USDT将消耗双倍能量', displayTexts) }}
-              </div>
-              
-              <!-- 注意事项前换行 -->
-              <div v-if="config.config.notes && config.config.notes.length > 0 && lineBreaks.before_notes > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.before_notes) }}</div>
-              
-              <!-- 注意事项 -->
-              <div v-if="config.config.notes && config.config.notes.length > 0" class="mt-2 pt-2 border-t border-gray-200">
-                <div class="text-xs font-medium text-gray-700 mb-1">注意事项：</div>
-                <div v-for="(note, index) in config.config.notes" :key="index" class="text-xs text-gray-600">
-                  {{ note }}
-                </div>
-              </div>
+            <!-- 复制状态显示 -->
+            <div v-if="copyStatus" class="text-xs text-center mt-2 transition-opacity duration-300">
+              <span :class="{
+                'text-green-600': copyStatus.includes('✅'),
+                'text-red-600': copyStatus.includes('❌'),
+                'text-yellow-600': copyStatus.includes('⚠️')
+              }">
+                {{ copyStatus }}
+              </span>
             </div>
           </div>
           
@@ -106,64 +68,93 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useEnergyFlashConfig } from '../composables/useEnergyFlashConfig'
-import { usePreviewLogic } from '../composables/usePreviewLogic'
-import { useTemplateFormatter } from '../composables/useTemplateFormatter'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { EnergyFlashConfig } from '../types/energy-flash.types'
 
 interface Props {
   config: EnergyFlashConfig
+  mainMessageTemplate?: string
+  singlePrice?: number
+  expiryHours?: number
+  maxTransactions?: number
+  paymentAddress?: string
 }
 
 const props = defineProps<Props>()
 
 // 使用composables
-const { displayTexts, subtitleTemplates, lineBreaks } = useEnergyFlashConfig(props.config)
-const { formatSubtitle, formatText, getDisplayText, generateLineBreaks } = useTemplateFormatter()
-const { copyStatus, copyAddress, handleImageError } = usePreviewLogic(props.config)
 
-// 格式化副标题
-const formattedSubtitle = computed(() => {
-  return formatSubtitle(subtitleTemplates.value, props.config.config, lineBreaks.value)
-})
+// 复制状态管理
+const copyStatus = ref('')
 
-// 获取地址标签（与后端逻辑保持一致）
-const getAddressLabel = () => {
-  const addressLabel = displayTexts.value.address_label
-  // 如果有自定义标签且不是空字符串，使用自定义标签，否则使用默认标签
-  if (addressLabel && addressLabel.trim() !== '') {
-    return addressLabel
-  } else {
-    return '💰 下单地址：（点击地址自动复制）'
-  }
+// 图片错误处理
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  console.error('图片加载失败:', img.src)
 }
 
-// 智能换行计算（与后端逻辑保持一致）
-const intelligentLineBreaks = computed(() => {
-  if (props.config.config.double_energy_for_no_usdt) {
-    // 当有警告信息时，使用两者中的较大值
-    return Math.max(lineBreaks.value.after_details || 0, lineBreaks.value.before_warning || 0)
-  } else if (lineBreaks.value.after_details > 0) {
-    // 没有警告信息时，使用详细信息后的换行
-    return lineBreaks.value.after_details
+
+
+// 格式化主消息模板为HTML，支付地址可点击
+const formatMainMessageHTML = computed(() => {
+  if (!props.mainMessageTemplate) {
+    return '⚡闪租能量（需要时）' // 默认标题
   }
-  return 0
+  
+  // 注意：mainMessageTemplate已经是格式化过的内容（包含计算后的价格等），
+  // 我们只需要处理支付地址的点击功能
+  const textContent = props.mainMessageTemplate
+  
+  const paymentAddress = props.paymentAddress || props.config.config.payment_address || 'TExample...'
+  
+  // 将支付地址替换为可点击的HTML元素
+  const clickableAddress = `<span class="font-mono text-blue-600 break-all cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-blue-300" onclick="window.copyEnergyFlashAddress('${paymentAddress}')" title="点击复制地址: ${paymentAddress}">${paymentAddress}</span>`
+  
+  return textContent.replace(new RegExp(paymentAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), clickableAddress)
 })
 
-// 获取标题文本（与后端逻辑保持一致）
-const getTitleText = () => {
-  const displayTexts = props.config.config.display_texts || {}
-  const keyboardConfig = (props.config as any).inline_keyboard_config || {}
-  const name = (props.config as any).name || '能量闪租配置'
-  
-  // 与后端相同的逻辑：只有非空字符串才使用自定义标题
-  const customTitle = (displayTexts as any).title
-  if (customTitle && customTitle.trim() !== '') {
-    return customTitle
+// 设置全局复制函数，供HTML中的onclick使用
+onMounted(() => {
+  (window as any).copyEnergyFlashAddress = async (address: string) => {
+    if (!address || address === 'TExample...') {
+      copyStatus.value = '⚠️ 没有地址可复制'
+      setTimeout(() => {
+        copyStatus.value = ''
+      }, 2000)
+      return
+    }
+    
+    try {
+      await navigator.clipboard.writeText(address)
+      copyStatus.value = '✅ 地址已复制！'
+      console.log('支付地址已复制到剪贴板:', address)
+    } catch (err) {
+      console.error('复制失败:', err)
+      // 降级方案
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = address
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        copyStatus.value = '✅ 地址已复制！'
+        console.log('支付地址已复制到剪贴板（降级方案）:', address)
+      } catch (fallbackErr) {
+        console.error('降级复制方案也失败:', fallbackErr)
+        copyStatus.value = '❌ 复制失败'
+      }
+    }
+    
+    // 2秒后清除状态提示
+    setTimeout(() => {
+      copyStatus.value = ''
+    }, 2000)
   }
-  
-  // 使用键盘配置标题或配置名称
-  return (keyboardConfig as any).title || name || '⚡闪租能量（需要时）'
-}
+})
+
+// 清理全局函数
+onUnmounted(() => {
+  delete (window as any).copyEnergyFlashAddress
+})
 </script>

@@ -258,6 +258,7 @@ const saveConfig = async (modeType: string) => {
     const config = configs.value.find(c => c.mode_type === modeType)
     if (!config) {
       warning('未找到对应的配置数据')
+      saving.value = false
       return
     }
     
@@ -265,6 +266,7 @@ const saveConfig = async (modeType: string) => {
     const validationResult = validateConfig(modeType, config.config)
     if (!validationResult.isValid) {
       error(`配置验证失败: ${validationResult.message}`)
+      saving.value = false
       return
     }
     
@@ -276,7 +278,8 @@ const saveConfig = async (modeType: string) => {
       // 保存成功后重新加载闪租配置
       await loadFlashRentConfigs(networkId.value)
     } else {
-      await updateConfig(modeType, config.config, config)
+      // ✅ 传递网络ID，确保配置按网络区分保存
+      await updateConfig(modeType, config.config, config, networkId.value || undefined)
       // 保存成功后重新加载基础配置
       await loadConfigs(networkId.value)
     }
@@ -318,10 +321,76 @@ const saveConfig = async (modeType: string) => {
   }
 }
 
+// 检查支付地址唯一性
+const checkPaymentAddressUnique = (currentModeType: string, currentConfig: any) => {
+  // 获取当前要保存的地址
+  let currentAddress = ''
+  if (currentModeType === 'transaction_package') {
+    currentAddress = currentConfig?.order_config?.payment_address || ''
+  } else {
+    currentAddress = currentConfig?.payment_address || ''
+  }
+  
+  if (!currentAddress || currentAddress.trim() === '') {
+    return { isValid: true, message: '' }
+  }
+  
+  currentAddress = currentAddress.trim()
+  
+  // 获取当前模块的显示名称
+  const getCurrentModuleName = (modeType: string) => {
+    switch (modeType) {
+      case 'energy_flash': return '能量闪租'
+      case 'transaction_package': return '笔数套餐'
+      case 'trx_exchange': return 'TRX闪兑'
+      default: return modeType
+    }
+  }
+  
+  // 检查其他模块是否使用了相同地址
+  const conflictModules: string[] = []
+  
+  configs.value.forEach(config => {
+    // 跳过当前正在保存的模块
+    if (config.mode_type === currentModeType) {
+      return
+    }
+    
+    let existingAddress = ''
+    if (config.mode_type === 'energy_flash') {
+      existingAddress = config.config?.payment_address || ''
+    } else if (config.mode_type === 'transaction_package') {
+      existingAddress = config.config?.order_config?.payment_address || ''
+    } else if (config.mode_type === 'trx_exchange') {
+      existingAddress = config.config?.payment_address || ''
+    }
+    
+    if (existingAddress && existingAddress.trim() === currentAddress) {
+      conflictModules.push(getCurrentModuleName(config.mode_type))
+    }
+  })
+  
+  // 如果发现冲突
+  if (conflictModules.length > 0) {
+    return {
+      isValid: false,
+      message: `💡 检测到地址重复使用\n\n地址：${currentAddress.substring(0, 12)}...${currentAddress.slice(-4)}\n该地址已在「${conflictModules.join('、')}」中使用，无法配置到「${getCurrentModuleName(currentModeType)}」\n\n📝 建议：为确保资金安全和订单准确识别，请为每个模块配置不同的支付地址。`
+    }
+  }
+  
+  return { isValid: true, message: '' }
+}
+
 // 配置验证函数 - 保持原有逻辑
 const validateConfig = (modeType: string, config: any) => {
   if (!config) {
     return { isValid: false, message: '配置数据不能为空' }
+  }
+  
+  // 首先检查支付地址唯一性
+  const addressCheck = checkPaymentAddressUnique(modeType, config)
+  if (!addressCheck.isValid) {
+    return addressCheck
   }
   
   if (modeType === 'energy_flash') {

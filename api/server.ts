@@ -19,7 +19,7 @@ const HOST_ADDRESS = process.env.HOST_ADDRESS || '0.0.0.0';
 
 // 初始化交易监听服务
 const redisService = new RedisService();
-const databaseService = new DatabaseService();
+const databaseService = DatabaseService.getInstance();
 const transactionMonitor = new TransactionMonitorService(
   redisService,
   paymentService,

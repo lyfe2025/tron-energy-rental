@@ -9,15 +9,19 @@ import { orderQueryService } from '../order/OrderQueryService.ts';
 import type { CreateOrderRequest, Order, OrderStats } from '../order/types.ts';
 import { FlashRentOrderService } from './FlashRentOrderService';
 import type { FlashRentOrderParams } from './types';
+import { TransactionPackageOrderService } from '../order/TransactionPackageOrderService';
+import type { CreateTransactionPackageOrderRequest, TransactionPackageOrderDetails } from '../order/TransactionPackageOrderService';
 
 // 重新导出类型，保持向后兼容
 export type { CreateOrderRequest, Order, OrderStats };
 
 class OrderService {
   private flashRentService: FlashRentOrderService;
+  private transactionPackageService: TransactionPackageOrderService;
 
   constructor() {
     this.flashRentService = new FlashRentOrderService();
+    this.transactionPackageService = new TransactionPackageOrderService();
   }
 
   // ==================== 原有订单创建相关方法 ====================
@@ -139,6 +143,28 @@ class OrderService {
     } else {
       return await this.flashRentService.processExistingFlashRentOrder(params);
     }
+  }
+
+  // ==================== 笔数套餐订单相关方法 ====================
+  /**
+   * 创建笔数套餐订单
+   */
+  async createTransactionPackageOrder(request: CreateTransactionPackageOrderRequest): Promise<Order> {
+    return this.transactionPackageService.createTransactionPackageOrder(request);
+  }
+
+  /**
+   * 激活笔数套餐订单（支付完成后）
+   */
+  async activateTransactionPackageOrder(orderId: string): Promise<void> {
+    return this.transactionPackageService.activateTransactionPackageOrder(orderId);
+  }
+
+  /**
+   * 获取笔数套餐订单详情
+   */
+  async getTransactionPackageOrderDetails(orderId: string): Promise<TransactionPackageOrderDetails | null> {
+    return this.transactionPackageService.getTransactionPackageOrderDetails(orderId);
   }
 }
 

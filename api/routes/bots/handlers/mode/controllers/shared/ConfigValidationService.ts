@@ -59,7 +59,7 @@ export class ConfigValidationService {
       logs.push(`🎯 ${modePrefix} 开始验证价格配置`);
       
       const { PriceConfigService } = await import('../../../../../../services/PriceConfigService.ts');
-      const priceConfigService = new PriceConfigService();
+      const priceConfigService = PriceConfigService.getInstance();
       
       // 获取所有价格配置
       const allConfigs = await priceConfigService.getAllConfigs();

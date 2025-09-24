@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import type { ConfigCardProps } from '../../types'
 
 export function useTrxExchangeConfig(props: ConfigCardProps) {
@@ -45,37 +45,8 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
   // 初始化默认配置
   const initializeConfig = () => {
     if (props.config?.config) {
-      // 确保 display_texts 存在
-      if (!props.config.config.display_texts) {
-        props.config.config.display_texts = {
-          title: '',
-          subtitle_template: '',
-          rate_title: '',
-          rate_description: '当前汇率仅供参考',
-          address_label: '',
-          line_breaks: {
-            after_title: 0,
-            after_subtitle: 0,
-            after_rates: 0,
-            after_address: 0,
-            before_notes: 0
-          }
-        }
-      }
-      // 确保 line_breaks 存在
-      if (!props.config.config.display_texts.line_breaks) {
-        props.config.config.display_texts.line_breaks = {
-          after_title: 0,
-          after_subtitle: 0,
-          after_rates: 0,
-          after_address: 0,
-          before_notes: 0
-        }
-      }
-      // 确保 notes 数组存在
-      if (!props.config.config.notes) {
-        props.config.config.notes = []
-      }
+      // TRX闪兑配置只需要保证基本字段存在即可
+      // 所有配置都通过页面界面直接编辑，无需额外的display_texts或notes
     }
   }
 
@@ -97,46 +68,9 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
     props.onSave('trx_exchange')
   }
 
-  // 计算属性：安全访问 display_texts
-  const displayTexts = computed(() => {
-    if (!props.config?.config?.display_texts) {
-      return {
-        title: '',
-        subtitle_template: '',
-        rate_title: '',
-        rate_description: '当前汇率仅供参考',
-        address_label: ''
-      }
-    }
-    return props.config.config.display_texts
-  })
+  // TRX闪兑配置已简化，移除了不必要的computed属性
 
-  // 计算属性：安全访问 notes
-  const notes = computed(() => {
-    return props.config?.config?.notes || []
-  })
-
-  // 计算属性：安全访问 line_breaks
-  const lineBreaks = computed(() => {
-    return props.config?.config?.display_texts?.line_breaks || {
-      after_title: 0,
-      after_subtitle: 0,
-      after_rates: 0,
-      after_address: 0,
-      before_notes: 0
-    }
-  })
-
-  // 获取显示文本，如果没有配置则使用默认值
-  const getDisplayText = (key: string, defaultValue: string): string => {
-    return props.config?.config.display_texts?.[key] || defaultValue
-  }
-
-  // 格式化副标题，替换占位符
-  const formatSubtitle = (): string => {
-    const template = getDisplayText('subtitle_template', '（转U自动回TRX，{min_amount}U起换）')
-    return template.replace('{min_amount}', props.config?.config.min_amount?.toString() || '0')
-  }
+  // 移除了不再需要的显示文本处理方法
 
   // 图片相关处理函数
   const handleImageError = (event: Event) => {
@@ -166,62 +100,9 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
   }
 
 
-  // 注意事项管理
-  const addNote = () => {
-    if (props.config && props.config.config.notes) {
-      props.config.config.notes.push('')
-    }
-  }
+  // 移除了不再需要的notes管理方法
 
-  const removeNote = (index: number) => {
-    if (props.config && props.config.config.notes) {
-      props.config.config.notes.splice(index, 1)
-    }
-  }
-
-  // 换行配置预设方法
-  const setLineBreakPreset = (presetType: string) => {
-    if (!props.config?.config?.display_texts?.line_breaks) return
-    
-    const presets = {
-      compact: {
-        after_title: 0,
-        after_subtitle: 0,
-        after_rates: 0,
-        after_address: 0,
-        before_notes: 0
-      },
-      normal: {
-        after_title: 1,
-        after_subtitle: 1,
-        after_rates: 1,
-        after_address: 1,
-        before_notes: 1
-      },
-      spacious: {
-        after_title: 2,
-        after_subtitle: 2,
-        after_rates: 2,
-        after_address: 2,
-        before_notes: 2
-      },
-      custom: {
-        after_title: 1,
-        after_subtitle: 1,
-        after_rates: 1,
-        after_address: 1,
-        before_notes: 1
-      }
-    }
-    
-    const preset = presets[presetType] || presets.normal
-    Object.assign(props.config.config.display_texts.line_breaks, preset)
-  }
-
-  // 生成额外换行字符串
-  const generateLineBreaks = (count: number): string => {
-    return count > 0 ? '\n'.repeat(count) : ''
-  }
+  // 移除了不再需要的换行配置方法
 
   onMounted(() => {
     // 调试当前布局
@@ -237,22 +118,13 @@ export function useTrxExchangeConfig(props: ConfigCardProps) {
 
   return {
     layoutContainer,
-    displayTexts,
-    notes,
-    lineBreaks,
     handleToggle,
     handleSave,
     initializeConfig,
-    getDisplayText,
-    formatSubtitle,
     handleImageError,
     handleImageUploadSuccess,
     handleImageUploadError,
     toggleImageEnabled,
-    addNote,
-    removeNote,
-    setLineBreakPreset,
-    generateLineBreaks,
     debugLayout
   }
 }

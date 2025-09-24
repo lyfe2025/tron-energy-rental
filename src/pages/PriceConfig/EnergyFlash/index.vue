@@ -29,7 +29,14 @@
     <div v-if="config" class="flex flex-col md:flex-row gap-6" ref="layoutContainer">
       <!-- 左侧：Telegram 显示预览 -->
       <div class="md:w-1/3">
-        <TelegramPreview :config="config" />
+        <TelegramPreview 
+          :config="config"
+          :mainMessageTemplate="formatMainMessage"
+          :singlePrice="singlePrice"
+          :expiryHours="expiryHours"
+          :maxTransactions="maxTransactions"
+          :paymentAddress="paymentAddress"
+        />
       </div>
 
       <!-- 右侧：配置表单 -->
@@ -37,17 +44,20 @@
         <!-- 图片配置 -->
         <ImageConfig :config="config" />
 
-        <!-- 基础配置 -->
-        <BasicConfig :config="config" />
-
-        <!-- 显示文本配置 -->
-        <DisplayTextConfig :config="config" />
-
-        <!-- 换行配置 -->
-        <LineBreakConfig :config="config" />
-
-        <!-- 注意事项配置 -->
-        <NotesConfig :config="config" />
+        <!-- 主消息配置 -->
+        <MainMessageConfig
+          :singlePrice="singlePrice"
+          :expiryHours="expiryHours"
+          :maxTransactions="maxTransactions"
+          :paymentAddress="paymentAddress"
+          :mainMessageTemplate="mainMessageTemplate"
+          :applyMainTemplate="applyMainTemplate"
+          @update:singlePrice="updateSinglePrice"
+          @update:expiryHours="updateExpiryHours"
+          @update:maxTransactions="updateMaxTransactions"
+          @update:paymentAddress="updatePaymentAddress"
+          @update:mainMessageTemplate="updateMainMessageTemplate"
+        />
 
         <!-- 保存按钮 -->
         <div class="mt-4 flex justify-end">
@@ -69,15 +79,13 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import type { ConfigCardProps } from '../types'
 
 // 引入分离出的组件
-import BasicConfig from './components/BasicConfig.vue'
-import DisplayTextConfig from './components/DisplayTextConfig.vue'
 import ImageConfig from './components/ImageConfig.vue'
-import LineBreakConfig from './components/LineBreakConfig.vue'
-import NotesConfig from './components/NotesConfig.vue'
+import MainMessageConfig from './components/MainMessageConfig.vue'
 import TelegramPreview from './components/TelegramPreview.vue'
 
 // 引入配置管理逻辑
 import { useEnergyFlashConfig } from './composables/useEnergyFlashConfig'
+import { useMainMessageConfig } from './composables/useMainMessageConfig'
 
 /**
  * 组件接口定义 - 保持与原组件完全一致
@@ -91,6 +99,24 @@ const layoutContainer = ref(null)
 // 使用配置管理composable
 const { initializeConfig } = useEnergyFlashConfig(props.config)
 
+// 使用主消息配置管理
+const {
+  mainMessageTemplate,
+  formatMainMessage,
+  singlePrice,
+  expiryHours,
+  maxTransactions,
+  paymentAddress,
+  initializeFromConfig,
+  saveConfig,
+  applyMainTemplate,
+  updateSinglePrice,
+  updateExpiryHours,
+  updateMaxTransactions,
+  updatePaymentAddress,
+  updateMainMessageTemplate
+} = useMainMessageConfig(props.config)
+
 /**
  * 事件处理函数
  */
@@ -101,6 +127,8 @@ const handleToggle = () => {
 const handleSave = () => {
   saving.value = true
   try {
+    // 保存主消息配置
+    saveConfig()
     props.onSave('energy_flash')
   } finally {
     // 模拟保存过程
@@ -157,6 +185,7 @@ const debugLayout = () => {
 watch(() => props.config, () => {
   console.log('🐛 EnergyFlash Config Changed:', props.config?.mode_type)
   initializeConfig() // 初始化配置
+  initializeFromConfig() // 初始化主消息配置
   setTimeout(() => {
     if (layoutContainer.value) debugLayout()
   }, 100)

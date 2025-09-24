@@ -46,6 +46,17 @@ export interface UpdatePriceConfigData {
 }
 
 export class PriceConfigService {
+  private static instance: PriceConfigService;
+
+  private constructor() {}
+
+  static getInstance(): PriceConfigService {
+    if (!PriceConfigService.instance) {
+      PriceConfigService.instance = new PriceConfigService();
+    }
+    return PriceConfigService.instance;
+  }
+
   // 获取所有价格配置（支持按网络ID筛选）
   async getAllConfigs(networkId?: string): Promise<PriceConfig[]> {
     try {
@@ -215,6 +226,73 @@ export class PriceConfigService {
       return result.rows[0] || null
     } catch (error) {
       logger.error('Update config error:', error)
+      throw error
+    }
+  }
+
+  // 更新特定网络的价格配置
+  async updateConfigByNetwork(modeType: string, networkId: string, data: Partial<PriceConfig>): Promise<PriceConfig | null> {
+    try {
+      const setParts: string[] = []
+      const values: any[] = []
+      let paramIndex = 1
+
+      if (data.config !== undefined) {
+        setParts.push(`config = $${paramIndex++}`)
+        values.push(JSON.stringify(data.config))
+      }
+
+      if (data.name !== undefined) {
+        setParts.push(`name = $${paramIndex++}`)
+        values.push(data.name)
+      }
+
+      if (data.description !== undefined) {
+        setParts.push(`description = $${paramIndex++}`)
+        values.push(data.description)
+      }
+
+      if (data.inline_keyboard_config !== undefined) {
+        setParts.push(`inline_keyboard_config = $${paramIndex++}`)
+        values.push(JSON.stringify(data.inline_keyboard_config))
+      }
+
+      if (data.image_url !== undefined) {
+        setParts.push(`image_url = $${paramIndex++}`)
+        values.push(data.image_url)
+      }
+
+      if (data.image_alt !== undefined) {
+        setParts.push(`image_alt = $${paramIndex++}`)
+        values.push(data.image_alt)
+      }
+
+      if (data.enable_image !== undefined) {
+        setParts.push(`enable_image = $${paramIndex++}`)
+        values.push(data.enable_image)
+      }
+
+      if (setParts.length === 0) {
+        throw new Error('No fields to update')
+      }
+
+      setParts.push(`updated_at = CURRENT_TIMESTAMP`)
+      values.push(modeType)
+      values.push(networkId)
+
+      const query = `
+        UPDATE price_configs 
+        SET ${setParts.join(', ')}
+        WHERE mode_type = $${paramIndex++} AND network_id = $${paramIndex}
+        RETURNING id, mode_type, name, description, config, inline_keyboard_config, 
+                  image_url, image_alt, enable_image, network_id,
+                  is_active, created_by, created_at, updated_at
+      `
+
+      const result = await pool.query(query, values)
+      return result.rows[0] || null
+    } catch (error) {
+      logger.error('Update config by network error:', error)
       throw error
     }
   }

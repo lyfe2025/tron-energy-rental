@@ -4,8 +4,8 @@
  */
 import fs from 'fs';
 import TelegramBot from 'node-telegram-bot-api';
+import { fileURLToPath } from 'node:url';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { query } from '../../../config/database.ts';
 import { WebhookURLService } from '../utils/WebhookURLService.ts';
 
@@ -152,92 +152,73 @@ export class PriceConfigMessageHandler {
   }
 
   /**
-   * 格式化能量闪租消息（1:1复现前端预览，支持换行配置）
+   * 格式化能量闪租消息（使用数据库中的main_message_template）
    */
   private formatEnergyFlashMessage(name: string, config: any, keyboardConfig: any): string {
-    const displayTexts = config.display_texts || {};
-    const lineBreaks = displayTexts.line_breaks || {
-      after_title: 0,
-      after_subtitle: 0,
-      after_details: 0,
-      before_warning: 0,
-      before_notes: 0
-    };
-    
-    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : (keyboardConfig?.title || name || '⚡闪租能量（需要时）');
-    
-    let message = `*${title}*\n`;
-    
-    // 标题后换行
-    if (lineBreaks.after_title > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_title);
-    }
-    
-    // 处理副标题模板 - 支持数组和计算表达式
-    const subtitleFormatted = this.formatSubtitleTemplates(displayTexts.subtitle_template, config.single_price || 0, config.max_transactions || 0);
-    if (subtitleFormatted) {
-      message += `${subtitleFormatted}\n`;
-      // 副标题后换行
-      if (lineBreaks.after_subtitle > 0) {
-        message += this.generateLineBreaks(lineBreaks.after_subtitle);
-      }
-    }
-    
-    // 租期时效
-    const durationLabel = this.formatTemplateText(displayTexts.duration_label || '⏱ 租期时效：{duration}小时', { duration: config.expiry_hours || 0 });
-    message += `${durationLabel}\n`;
-    
-    // 单笔价格
-    const priceLabel = this.formatTemplateText(displayTexts.price_label || '💰 单笔价格：{price}TRX', { price: config.single_price || 0 });
-    message += `${priceLabel}\n`;
-    
-    // 最大购买
-    const maxLabel = this.formatTemplateText(displayTexts.max_label || '🔢 最大购买：{max}笔', { max: config.max_transactions || 0 });
-    message += `${maxLabel}\n`;
-    
-    // 下单地址（支持点击复制）
-    if (config.payment_address) {
-      const addressLabel = displayTexts.address_label;
-      // 如果有自定义标签且不是空字符串，使用自定义标签，否则使用默认标签
-      if (addressLabel && addressLabel.trim() !== '') {
-        message += `${addressLabel}\n`;
-      } else {
-        // 使用默认标签（包括当 address_label 为空字符串时）
-        message += '💰 下单地址：（点击地址自动复制）\n';
-      }
-      // 使用 Telegram 的 monospace 格式让地址可以长按复制
-      message += `\`${config.payment_address}\`\n`;
-    }
-    
-    // 详细信息后换行（智能换行：合并after_details和before_warning）
-    const totalLineBreaks = Math.max(lineBreaks.after_details || 0, lineBreaks.before_warning || 0);
-    
-    if (config.double_energy_for_no_usdt && totalLineBreaks > 0) {
-      message += this.generateLineBreaks(totalLineBreaks);
-    } else if (!config.double_energy_for_no_usdt && lineBreaks.after_details > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_details);
-    }
-    
-    // 双倍能量警告
-    if (config.double_energy_for_no_usdt) {
-      const doubleEnergyWarning = displayTexts.double_energy_warning || '⚠️ 注意：账户无USDT将消耗双倍能量';
-      message += `${doubleEnergyWarning}\n`;
-    }
-    
-    // 注意事项前换行
-    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
-      message += this.generateLineBreaks(lineBreaks.before_notes);
-    }
-    
-    // 注意事项
-    if (config.notes && config.notes.length > 0) {
-      message += `注意事项：\n`;
-      config.notes.forEach((note: string) => {
-        message += `${note}\n`;
+    // 使用数据库中的 main_message_template
+    if (config.main_message_template && config.main_message_template.trim() !== '') {
+      return this.formatMainMessageTemplate(config.main_message_template, {
+        price: config.single_price || 0,
+        hours: config.expiry_hours || 0,
+        maxTransactions: config.max_transactions || 0,
+        paymentAddress: config.payment_address || ''
       });
     }
 
-    return message;
+    // 默认消息（如果没有模板）
+    return `⚡ ${name}\n\n价格：${config.single_price || 0} TRX/笔\n有效期：${config.expiry_hours || 0} 小时\n最大：${config.max_transactions || 0} 笔`;
+  }
+
+  /**
+   * 格式化主消息模板，支持占位符替换和计算表达式
+   */
+  private formatMainMessageTemplate(template: string, variables: { [key: string]: any }): string {
+    let result = template;
+    
+    // 先处理计算表达式（price*2, price*3等）
+    result = result.replace(/\{price\*(\d+)\}/g, (match, multiplier) => {
+      const price = variables.price || 0;
+      const result = price * parseInt(multiplier);
+      return Number(result.toFixed(8)).toString();
+    });
+    
+    result = result.replace(/\{price\/(\d+)\}/g, (match, divisor) => {
+      const price = variables.price || 0;
+      const div = parseInt(divisor);
+      const result = div > 0 ? price / div : price;
+      return Number(result.toFixed(8)).toString();
+    });
+    
+    result = result.replace(/\{price\+(\d+)\}/g, (match, addend) => {
+      const price = variables.price || 0;
+      return (price + parseInt(addend)).toString();
+    });
+    
+    result = result.replace(/\{price\-(\d+)\}/g, (match, subtrahend) => {
+      const price = variables.price || 0;
+      return (price - parseInt(subtrahend)).toString();
+    });
+    
+    // 处理其他变量的计算表达式
+    result = result.replace(/\{maxTransactions\*(\d+)\}/g, (match, multiplier) => {
+      const maxTransactions = variables.maxTransactions || 0;
+      return (maxTransactions * parseInt(multiplier)).toString();
+    });
+    
+    // 最后处理基础变量替换
+    for (const [key, value] of Object.entries(variables)) {
+      const placeholder = `{${key}}`;
+      let replacementValue = value?.toString() || '0';
+      
+      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以长按复制
+      if (key === 'paymentAddress' && replacementValue && replacementValue !== '0') {
+        replacementValue = `\`${replacementValue}\``;
+      }
+      
+      result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacementValue);
+    }
+    
+    return result;
   }
 
   /**
@@ -247,182 +228,29 @@ export class PriceConfigMessageHandler {
     return count > 0 ? '\n'.repeat(count) : '';
   }
 
-  /**
-   * 格式化副标题，替换dailyFee占位符
-   */
-  private formatSubtitleWithDailyFee(template: string, dailyFee: number): string {
-    return template.replace(/\{dailyFee\}/g, dailyFee.toString());
-  }
 
   /**
-   * 格式化副标题模板 - 支持数组和计算表达式
-   */
-  private formatSubtitleTemplates(subtitleTemplate: string | string[] | undefined, price: number, max: number): string {
-    if (!subtitleTemplate) {
-      // 默认模板
-      return `（${price}TRX/笔，最多买${max}笔）`;
-    }
-
-    let templates: string[] = [];
-    
-    // 兼容旧版本：如果是字符串，转换为数组
-    if (typeof subtitleTemplate === 'string') {
-      templates = subtitleTemplate ? [subtitleTemplate] : [];
-    } else if (Array.isArray(subtitleTemplate)) {
-      templates = subtitleTemplate;
-    }
-
-    if (templates.length === 0) {
-      return `（${price}TRX/笔，最多买${max}笔）`;
-    }
-
-    // 格式化所有模板并用换行符连接
-    const formattedTemplates = templates
-      .filter(t => t.trim() !== '')
-      .map(template => this.formatTemplateWithCalculations(template, price, max));
-    
-    return formattedTemplates.join('\n');
-  }
-
-  /**
-   * 格式化模板，支持动态计算和多种变量
-   */
-  private formatTemplateWithCalculations(template: string, price: number, max: number): string {
-    let result = template;
-    
-    // 先处理所有计算表达式（必须在基础变量之前处理）
-    
-    // price计算表达式
-    result = result.replace(/\{price\*(\d+)\}/g, (match, multiplier) => {
-      return (price * parseInt(multiplier)).toString();
-    });
-    
-    result = result.replace(/\{price\/(\d+)\}/g, (match, divisor) => {
-      const div = parseInt(divisor);
-      return div > 0 ? (price / div).toString() : price.toString();
-    });
-    
-    result = result.replace(/\{price\+(\d+)\}/g, (match, addend) => {
-      return (price + parseInt(addend)).toString();
-    });
-    
-    result = result.replace(/\{price\-(\d+)\}/g, (match, subtrahend) => {
-      return (price - parseInt(subtrahend)).toString();
-    });
-    
-    // max计算表达式
-    result = result.replace(/\{max\*(\d+)\}/g, (match, multiplier) => {
-      return (max * parseInt(multiplier)).toString();
-    });
-    
-    result = result.replace(/\{max\/(\d+)\}/g, (match, divisor) => {
-      const div = parseInt(divisor);
-      return div > 0 ? (max / div).toString() : max.toString();
-    });
-    
-    result = result.replace(/\{max\+(\d+)\}/g, (match, addend) => {
-      return (max + parseInt(addend)).toString();
-    });
-    
-    result = result.replace(/\{max\-(\d+)\}/g, (match, subtrahend) => {
-      return (max - parseInt(subtrahend)).toString();
-    });
-    
-    // 最后处理基础变量
-    result = result.replace(/\{price\}/g, price.toString());
-    result = result.replace(/\{max\}/g, max.toString());
-    
-    return result;
-  }
-
-  /**
-   * 格式化模板文本，替换单个占位符
-   */
-  private formatTemplateText(template: string, values: { [key: string]: any }): string {
-    let result = template;
-    for (const [key, value] of Object.entries(values)) {
-      const placeholder = `{${key}}`;
-      result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value?.toString() || '0');
-    }
-    return result;
-  }
-
-  /**
-   * 格式化笔数套餐消息（支持换行配置）
+   * 格式化笔数套餐消息（使用数据库中的main_message_template）
    */
   private formatTransactionPackageMessage(name: string, config: any, keyboardConfig: any): string {
-    const displayTexts = config.display_texts || {};
-    const lineBreaks = displayTexts.line_breaks || {
-      after_title: 0,
-      after_subtitle: 0,
-      after_packages: 0,
-      before_usage_rules: 0,
-      before_notes: 0
-    };
-    
-    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : (keyboardConfig?.title || name);
-    const subtitle = this.formatSubtitleWithDailyFee(displayTexts.subtitle_template || '（24小时不使用，则扣{dailyFee}笔占费）', config.daily_fee || 12);
-    
-    let message = `*${title}*\n`;
-    
-    // 标题后换行
-    if (lineBreaks.after_title > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_title);
+    // 使用数据库中的 main_message_template
+    if (config.main_message_template && config.main_message_template.trim() !== '') {
+      return this.formatMainMessageTemplate(config.main_message_template, {
+        dailyFee: config.daily_fee || 0
+      });
     }
+
+    // 默认消息（如果没有模板）
+    let message = `🔥 ${name}\n\n`;
     
-    if (subtitle) {
-      message += `${subtitle}\n`;
-      // 副标题后换行
-      if (lineBreaks.after_subtitle > 0) {
-        message += this.generateLineBreaks(lineBreaks.after_subtitle);
-      }
+    if (config.daily_fee) {
+      message += `（24小时不使用，则扣${config.daily_fee}笔占用费）\n\n`;
     }
 
     if (config.packages && config.packages.length > 0) {
-      message += `📦 **可选套餐**：\n`;
+      message += `📦 可选套餐：\n`;
       config.packages.forEach((pkg: any) => {
-        message += `• **${pkg.name}**: ${pkg.transaction_count}笔 - ${pkg.price} ${pkg.currency || 'TRX'}\n`;
-      });
-      
-      // 套餐列表后换行
-      if (lineBreaks.after_packages > 0) {
-        message += this.generateLineBreaks(lineBreaks.after_packages);
-      }
-    }
-
-    // 使用规则前换行
-    if (config.usage_rules && config.usage_rules.length > 0 && lineBreaks.before_usage_rules > 0) {
-      message += this.generateLineBreaks(lineBreaks.before_usage_rules);
-    }
-
-    if (config.usage_rules && config.usage_rules.length > 0) {
-      message += `💡 **使用规则**：\n`;
-      config.usage_rules.forEach((rule: string) => {
-        message += `${rule}\n`;
-      });
-    }
-
-    if (config.transferable !== undefined) {
-      message += `🔄 **可转让**: ${config.transferable ? '是' : '否'}\n`;
-    }
-    
-    if (config.proxy_purchase !== undefined) {
-      message += `🛒 **代购服务**: ${config.proxy_purchase ? '支持' : '不支持'}\n`;
-    }
-
-    if (config.daily_fee) {
-      message += `💰 **日费用**: ${config.daily_fee} TRX\n`;
-    }
-
-    // 注意事项前换行
-    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
-      message += this.generateLineBreaks(lineBreaks.before_notes);
-    }
-
-    if (config.notes && config.notes.length > 0) {
-      message += `📌 **注意事项**：\n`;
-      config.notes.forEach((note: string) => {
-        message += `${note}\n`;
+        message += `• ${pkg.name}: ${pkg.transaction_count}笔 - ${pkg.price} ${pkg.currency || 'TRX'}\n`;
       });
     }
 
@@ -469,89 +297,37 @@ export class PriceConfigMessageHandler {
   }
 
   /**
-   * 格式化TRX闪兑消息（支持换行配置）
+   * 格式化TRX闪兑消息（使用数据库中的main_message_template）
    */
   private formatTrxExchangeMessage(name: string, config: any, keyboardConfig: any): string {
-    const displayTexts = config.display_texts || {};
-    const lineBreaks = displayTexts.line_breaks || {
-      after_title: 0,
-      after_subtitle: 0,
-      after_rates: 0,
-      after_address: 0,
-      before_notes: 0
-    };
-    
-    const title = (displayTexts.title && displayTexts.title.trim() !== '') ? displayTexts.title : '🟢USDT自动兑换TRX🔴';
-    const subtitle = this.formatTemplateText(displayTexts.subtitle_template || '（转U自动回TRX，{min_amount}U起换）', { min_amount: config.min_amount || 1.1 });
-    
-    let message = `*${title}*\n`;
-    
-    // 标题后换行
-    if (lineBreaks.after_title > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_title);
-    }
-    
-    if (subtitle) {
-      message += `${subtitle}\n`;
-      // 副标题后换行
-      if (lineBreaks.after_subtitle > 0) {
-        message += this.generateLineBreaks(lineBreaks.after_subtitle);
-      }
+    // 使用数据库中的 main_message_template
+    if (config.main_message_template && config.main_message_template.trim() !== '') {
+      return this.formatMainMessageTemplate(config.main_message_template, {
+        usdtToTrxRate: config.usdt_to_trx_rate || 0,
+        trxToUsdtRate: config.trx_to_usdt_rate || 0,
+        minAmount: config.min_amount || 0,
+        maxAmount: config.max_amount || 0,
+        paymentAddress: config.payment_address || ''
+      });
     }
 
-    // 汇率信息
-    const rateTitle = displayTexts.rate_title || '📊 当前汇率';
-    if (rateTitle) {
-      message += `${rateTitle}\n`;
-    }
-
+    // 默认消息（如果没有模板）
+    let message = `🔄 ${name}\n\n`;
+    
     if (config.usdt_to_trx_rate) {
-      message += `💱 **USDT→TRX汇率**: 1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
+      message += `💱 USDT→TRX汇率: 1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
     }
     
     if (config.trx_to_usdt_rate) {
-      message += `💱 **TRX→USDT汇率**: 1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
+      message += `💱 TRX→USDT汇率: 1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
     }
 
-    if (displayTexts.rate_description) {
-      message += `${displayTexts.rate_description}\n`;
+    if (config.min_amount) {
+      message += `💰 最小兑换: ${config.min_amount} USDT起\n`;
     }
 
-    // 汇率信息后换行
-    if (lineBreaks.after_rates > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_rates);
-    }
-
-    // 地址信息
-    if (config.exchange_address) {
-      const addressLabel = displayTexts.address_label || '📍 兑换地址';
-      message += `${addressLabel}\n`;
-      message += `\`${config.exchange_address}\`\n`;
-    }
-
-    // 地址信息后换行
-    if (lineBreaks.after_address > 0) {
-      message += this.generateLineBreaks(lineBreaks.after_address);
-    }
-
-    if (config.is_auto_exchange) {
-      message += `⚡ **自动兑换**: ${config.is_auto_exchange ? '支持' : '不支持'}\n`;
-    }
-
-    if (config.rate_update_interval) {
-      message += `🔄 **汇率更新**: 每${config.rate_update_interval}分钟\n`;
-    }
-
-    // 注意事项前换行
-    if (config.notes && config.notes.length > 0 && lineBreaks.before_notes > 0) {
-      message += this.generateLineBreaks(lineBreaks.before_notes);
-    }
-
-    if (config.notes && config.notes.length > 0) {
-      message += `📌 **注意事项**：\n`;
-      config.notes.forEach((note: string) => {
-        message += `${note}\n`;
-      });
+    if (config.payment_address) {
+      message += `📍 兑换地址: ${config.payment_address}\n`;
     }
 
     return message;

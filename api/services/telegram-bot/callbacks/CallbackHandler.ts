@@ -161,6 +161,13 @@ export class CallbackHandler {
         await this.orderHandler.handleEnergyPackageSelection(chatId, packageId, telegramId);
       }
     }
+    // 笔数套餐回调（transaction_package_10, transaction_package_20 等）
+    else if (data.startsWith('transaction_package_')) {
+      const transactionCount = CallbackValidator.extractIdFromCallbackData(data, 'transaction_package_');
+      if (transactionCount) {
+        await this.orderHandler.handleTransactionPackageSelection(chatId, transactionCount, telegramId);
+      }
+    }
     // 确认套餐回调
     else if (data.startsWith('confirm_package_')) {
       const packageId = CallbackValidator.extractIdFromCallbackData(data, 'confirm_package_');

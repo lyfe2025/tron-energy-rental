@@ -56,6 +56,24 @@ export class EnergyPoolService {
   }
 
   /**
+   * 选择最优账户进行能量代理
+   */
+  async selectOptimalAccount(requiredEnergy: number): Promise<EnergyPoolAccount | null> {
+    const activeAccounts = await this.getActivePoolAccounts();
+    if (activeAccounts.length === 0) {
+      return null;
+    }
+
+    // 按成本效率排序，选择最优账户
+    const sortedAccounts = activeAccounts.sort((a, b) => {
+      return a.cost_per_energy - b.cost_per_energy;
+    });
+
+    // 返回成本最低的账户
+    return sortedAccounts[0];
+  }
+
+  /**
    * 更新能量池账户信息
    */
   async updatePoolAccount(id: string, updates: Partial<EnergyPoolAccount>): Promise<{ success: boolean; message: string }> {

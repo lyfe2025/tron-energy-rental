@@ -1,101 +1,95 @@
 import { computed, ref } from 'vue'
 import type { ConfigCardProps } from '../../types'
+import type {
+  Button,
+  OrderConfig,
+  PackageButton,
+  TransactionPackageConfigData
+} from '../types/transaction-package.types'
 
-export interface Button {
-  id: string
-  count: number
-  price: number
-  isSpecial: boolean
-}
+// 重新导出Button类型以保持向后兼容
+export type { Button } from '../types/transaction-package.types'
 
 export function usePackageConfig(props: ConfigCardProps) {
   // 响应式数据
-  const displayTitle = ref('笔数套餐')
-  const subtitleTemplate = ref('（24小时不使用，则扣{dailyFee}笔占费）')
-  const dailyFee = ref(1)
-  const isUnlimited = ref(true)
-  const replyMessage = ref('请输入能量接收地址:')
   const showReply = ref(false)
+  const showOrderReply = ref(false)
   const currentTime = ref('')
+  const userInputAddress = ref('')
   const imageEnabled = ref(false)
   const imageUrl = ref('')
   const imageAlt = ref('')
-  const usageRules = ref<string[]>([])
-  const notes = ref<string[]>([])
+  
+  
+  // 订单配置信息（静态配置）
+  const paymentAddress = ref('TWdcgk9NEsV1nt5yPrNfSYktbA12345678')  // 支付地址
+  const orderExpireMinutes = ref(30)  // 订单过期时间（分钟）
+  
+  // 主消息配置
+  const mainMessageTemplate = ref('')  // 主消息模板
+  const dailyFee = ref(1)  // 每日费用
+  const replyMessage = ref('')  // 回复消息
+  const usageRules = ref<string[]>([])  // 使用规则
+  const notes = ref<string[]>([])  // 注意事项
+  
+  // 订单确认文案模板
+  const orderConfirmationTemplate = ref(`✅ 订单确认
+
+📋 已为您生成基于地址 {userAddress} 的个性化订单
+
+每笔单价：{unitPrice} USDT
+收款金额：{totalAmount} USDT (点击复制)
+使用笔数：{transactionCount} 笔转账
+
+能量接收地址：
+{userAddress}
+↑ 这是用户刚才输入的地址
+
+支付地址：
+{paymentAddress}
+(点击地址自动复制)
+
+‼️请务必核对金额尾数，金额不对则无法确认
+‼️请务必核对金额尾数，金额不对则无法确认
+‼️请务必核对金额尾数，金额不对则无法确认
+
+订单将于 {expireTime} 过期，请尽快支付！`)
+  
+  // 动态计算的订单信息（根据用户选择的套餐）
+  const selectedButton = ref<Button | null>(null)
+  
+  // 计算属性：根据选择的按钮动态计算
+  const currentUnitPrice = computed(() => selectedButton.value?.unitPrice || 1.1438)
+  const currentTransactionCount = computed(() => selectedButton.value?.count || 10)
+  const currentTotalAmount = computed(() => {
+    if (selectedButton.value) {
+      return selectedButton.value.count * selectedButton.value.unitPrice
+    }
+    return 11.504
+  })
 
   // 初始化默认配置
   const initializeConfig = () => {
-    console.log('🔧 [TransactionPackage] initializeConfig 被调用')
-    console.log('🔧 [TransactionPackage] props.config:', props.config)
-    
     if (props.config) {
       // 确保 config 对象存在
       if (!props.config.config) {
-        console.log('🔧 [TransactionPackage] 创建空的 config 对象')
         props.config.config = {}
       }
       
-      // 确保 usage_rules 数组存在且不为空
-      if (!props.config.config.usage_rules || props.config.config.usage_rules.length === 0) {
-        console.log('🔧 [TransactionPackage] 设置默认 usage_rules (原数组为空或不存在)')
-        props.config.config.usage_rules = [
-          '🔺对方有U没U都是扣除一笔转账',
-          '🔺转移笔数到其他地址请联系客服',
-          '🔺为他人购买，填写他人地址即可'
-        ]
-      } else {
-        console.log('🔧 [TransactionPackage] usage_rules 已存在且有内容:', props.config.config.usage_rules)
-      }
-      
-      // 确保 notes 数组存在且不为空
-      if (!props.config.config.notes || props.config.config.notes.length === 0) {
-        console.log('🔧 [TransactionPackage] 设置默认 notes (原数组为空或不存在)')
-        props.config.config.notes = [
-          '⚠️笔数开/关按钮，可查询账单，开/关笔数'
-        ]
-      } else {
-        console.log('🔧 [TransactionPackage] notes 已存在且有内容:', props.config.config.notes)
-      }
-      
-      // 确保 display_texts 存在
-      if (!props.config.config.display_texts) {
-        console.log('🔧 [TransactionPackage] 设置默认 display_texts')
-        props.config.config.display_texts = {
-          title: '',
-          subtitle_template: '（24小时不使用，则扣{dailyFee}笔占费）',
-          address_prompt: '请输入能量接收地址:',
-          line_breaks: {
-            after_title: 0,
-            after_subtitle: 0,
-            after_packages: 0,
-            before_usage_rules: 0,
-            before_notes: 0
-          }
-        }
-      } else {
-        console.log('🔧 [TransactionPackage] display_texts 已存在:', props.config.config.display_texts)
-        // 确保 line_breaks 存在
-        if (!props.config.config.display_texts.line_breaks) {
-          props.config.config.display_texts.line_breaks = {
-            after_title: 0,
-            after_subtitle: 0,
-            after_packages: 0,
-            before_usage_rules: 0,
-            before_notes: 0
-          }
+
+      // 确保订单配置存在
+      if (!props.config.config.order_config) {
+        props.config.config.order_config = {
+          delegate_address: 'TL5afFHPzESaGrvG8JKAwrNx6drbDZf9it',
+          payment_address: 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678',
+          expire_minutes: 30
         }
       }
-      
-      console.log('🔧 [TransactionPackage] 初始化完成后的 config:', props.config.config)
-    } else {
-      console.log('❌ [TransactionPackage] props.config 为空')
     }
   }
 
   // 初始化方法，从props.config中加载数据
   const initializeFromConfig = () => {
-    console.log('📊 [TransactionPackage] initializeFromConfig 被调用')
-    console.log('📊 [TransactionPackage] props.config:', props.config)
     
     if (props.config) {
       // 先初始化配置确保默认值存在
@@ -108,92 +102,65 @@ export function usePackageConfig(props: ConfigCardProps) {
       
       // 加载其他配置（如果存在）
       if (props.config.config) {
-        dailyFee.value = props.config.config.daily_fee || 1
-        
-        if (props.config.config.display_texts) {
-          replyMessage.value = props.config.config.display_texts.address_prompt || '请输入能量接收地址:'
-          // 从完整标题中提取显示标题（与后端逻辑保持一致）
-          const displayTexts = props.config.config.display_texts || {}
-          const keyboardConfig = (props.config as any).inline_keyboard_config || {}
-          const name = (props.config as any).name || '笔数套餐配置'
-          
-          // 与后端相同的逻辑：只有非空字符串才使用自定义标题
-          const customTitle = (displayTexts as any).title
-          let titleToUse = ''
-          
-          if (customTitle && customTitle.trim() !== '') {
-            titleToUse = customTitle
-          } else {
-            // 使用键盘配置标题或配置名称
-            titleToUse = (keyboardConfig as any).title || name
-          }
-          
-          // 从标题中提取核心部分（移除🔥等装饰）
-          if (titleToUse.includes('🔥')) {
-            const match = titleToUse.match(/🔥\s*([^🔥]+?)\s*🔥/)
-            if (match && match[1]) {
-              displayTitle.value = match[1].trim()
-            }
-          } else {
-            displayTitle.value = titleToUse
-          }
-          
-          // 加载副标题模板
-          if (props.config.config.display_texts.subtitle_template) {
-            subtitleTemplate.value = props.config.config.display_texts.subtitle_template
-          }
-          
-          // 从副标题中提取每日费用信息（向后兼容）
-          if (props.config.config.display_texts.subtitle) {
-            const subtitleText = props.config.config.display_texts.subtitle
-            const feeMatch = subtitleText.match(/扣(\d+)笔占费/)
-            if (feeMatch && feeMatch[1]) {
-              dailyFee.value = parseInt(feeMatch[1])
-            }
-            // 如果没有subtitle_template，从旧的subtitle推断模板
-            if (!props.config.config.display_texts.subtitle_template) {
-              subtitleTemplate.value = subtitleText.replace(/扣\d+笔占费/, '扣{dailyFee}笔占费')
-            }
-          }
-        }
         
         // 加载套餐数据
         if (props.config.config.packages && Array.isArray(props.config.config.packages)) {
-          buttons.value = props.config.config.packages.map((pkg: any, index: number) => ({
-            id: (index + 1).toString(),
-            count: pkg.transaction_count || 10,
-            price: pkg.price || 200,
-            isSpecial: index === props.config.config.packages.length - 1 // 最后一个设为特殊按钮
-          }))
+          buttons.value = props.config.config.packages.map((pkg: any, index: number) => {
+            // 安全地获取数值，防止 NaN
+            const transactionCount = Number(pkg.transaction_count) || 10
+            const savedUnitPrice = Number(pkg.unit_price)
+            const savedPrice = Number(pkg.price)
+            
+            // 计算单价：优先使用保存的单价，否则从总价计算，最后使用默认值
+            let unitPrice = 1.1500 // 默认值
+            if (!isNaN(savedUnitPrice) && savedUnitPrice > 0) {
+              unitPrice = savedUnitPrice
+            } else if (!isNaN(savedPrice) && savedPrice > 0 && transactionCount > 0) {
+              unitPrice = savedPrice / transactionCount
+            }
+            
+            // 计算总价：优先使用计算值确保一致性
+            const price = transactionCount * unitPrice
+            
+            return {
+              id: (index + 1).toString(),
+              count: transactionCount,
+              unitPrice: unitPrice,
+              price: price,
+              isSpecial: index === props.config.config.packages.length - 1
+            }
+          })
         }
         
-        // 加载使用规则（现在已经确保数组存在）
-        console.log('📊 [TransactionPackage] 加载 usage_rules:', props.config.config.usage_rules)
-        usageRules.value = [...props.config.config.usage_rules]
-        console.log('📊 [TransactionPackage] usageRules.value 设置为:', usageRules.value)
-        
-        // 加载注意事项（现在已经确保数组存在）
-        console.log('📊 [TransactionPackage] 加载 notes:', props.config.config.notes)
-        notes.value = [...props.config.config.notes]
-        console.log('📊 [TransactionPackage] notes.value 设置为:', notes.value)
+
+        // 加载订单配置
+        if (props.config.config.order_config) {
+          paymentAddress.value = props.config.config.order_config.payment_address || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678'
+          orderExpireMinutes.value = props.config.config.order_config.expire_minutes || 30
+          if (props.config.config.order_config.confirmation_template) {
+            orderConfirmationTemplate.value = props.config.config.order_config.confirmation_template
+          }
+        }
       }
     }
   }
 
   // 根据真实截图配置7个按钮：10笔、20笔、50笔、100笔、200笔、300笔、500笔（最后一个全宽）
+  // 递减价格策略：10笔起始价1.1509，随笔数增加单价递减
   const buttons = ref<Button[]>([
-    { id: '1', count: 10, price: 200, isSpecial: false },
-    { id: '2', count: 20, price: 380, isSpecial: false },
-    { id: '3', count: 50, price: 900, isSpecial: false },
-    { id: '4', count: 100, price: 1700, isSpecial: false },
-    { id: '5', count: 200, price: 3200, isSpecial: false },
-    { id: '6', count: 300, price: 4500, isSpecial: false },
-    { id: '7', count: 500, price: 7000, isSpecial: true }
+    { id: '1', count: 10, unitPrice: 1.1509, price: 11.509, isSpecial: false },
+    { id: '2', count: 20, unitPrice: 1.1450, price: 22.9, isSpecial: false },
+    { id: '3', count: 50, unitPrice: 1.1400, price: 57.0, isSpecial: false },
+    { id: '4', count: 100, unitPrice: 1.1350, price: 113.5, isSpecial: false },
+    { id: '5', count: 200, unitPrice: 1.1300, price: 226.0, isSpecial: false },
+    { id: '6', count: 300, unitPrice: 1.1250, price: 337.5, isSpecial: false },
+    { id: '7', count: 500, unitPrice: 1.1200, price: 560.0, isSpecial: true }
   ])
 
   // 计算属性
   const regularButtons = computed(() => buttons.value.filter(b => !b.isSpecial))
   const specialButton = computed(() => buttons.value.find(b => b.isSpecial))
+  const specialButtons = computed(() => buttons.value.filter(b => b.isSpecial))
 
   // 业务方法
   const handleToggle = () => {
@@ -201,47 +168,48 @@ export function usePackageConfig(props: ConfigCardProps) {
   }
 
   const handleSave = () => {
-    // 构建配置数据
+    // 构建标准配置数据，只保存必要字段
     if (props.config) {
-      // 更新基础配置
-      props.config.config.daily_fee = dailyFee.value
-      props.config.config.display_texts = {
-        title: `🔥 ${displayTitle.value} 🔥（${isUnlimited.value ? '无时间限制' : '有时间限制'}）`,
-        subtitle: `（24小时不使用，则扣${dailyFee.value}笔占费）`,
-        subtitle_template: subtitleTemplate.value,
-        usage_title: '💡 笔数开/关按钮，可查询账单，开/关笔数',
-        address_prompt: replyMessage.value,
-        line_breaks: props.config.config.display_texts?.line_breaks || {
-          after_title: 0,
-          after_subtitle: 0,
-          after_packages: 0,
-          before_usage_rules: 0,
-          before_notes: 0
-        }
-      }
-      
-      // 更新套餐数据
-      props.config.config.packages = buttons.value.map(button => ({
+      // 构建标准的套餐配置数据
+      const packages: PackageButton[] = buttons.value.map(button => ({
         name: `${button.count}笔套餐`,
         transaction_count: button.count,
-        price: button.price,
+        price: button.count * button.unitPrice, // 使用计算得到的准确价格
+        unit_price: button.unitPrice, // 保存单价信息
         currency: 'TRX'
       }))
-      
-      // 更新使用规则和注意事项
-      props.config.config.usage_rules = [...usageRules.value]
-      props.config.config.notes = [...notes.value]
+
+      // 构建标准的订单配置
+      const orderConfig: OrderConfig = {
+        payment_address: paymentAddress.value,
+        expire_minutes: orderExpireMinutes.value,
+        confirmation_template: orderConfirmationTemplate.value
+      }
+
+      // 构建标准的笔数套餐配置数据，只保存页面有配置界面的字段
+      const standardConfig: TransactionPackageConfigData = {
+        packages,
+        daily_fee: 1, // 将从主消息配置中更新
+        order_config: orderConfig,
+        main_message_template: props.config.config?.main_message_template || '',
+        reply_message: props.config.config?.reply_message || '请输入能量接收地址:',
+        transferable: true,
+        proxy_purchase: true
+      }
+
+      // 安全替换配置，只保留标准字段
+      props.config.config = standardConfig
       
       // 更新图片配置
       props.config.enable_image = imageEnabled.value
       props.config.image_url = imageUrl.value || null
       props.config.image_alt = imageAlt.value || null
       
-      // 更新内嵌键盘配置
+      // 构建标准的内嵌键盘配置
       props.config.inline_keyboard_config = {
         enabled: true,
         keyboard_type: 'transaction_count_selection',
-        title: `🔥 ${displayTitle.value} 🔥`,
+        title: `🔥 笔数套餐 🔥（无时间限制）`,
         description: `选择您需要的交易笔数`,
         buttons_per_row: 2,
         buttons: buttons.value.map(button => ({
@@ -252,7 +220,7 @@ export function usePackageConfig(props: ConfigCardProps) {
           price: button.price,
           description: `${button.count}笔套餐`
         })),
-        next_message: replyMessage.value,
+        next_message: '请输入能量接收地址:',
         validation: {
           address_required: true,
           min_transaction_count: 1,
@@ -265,10 +233,31 @@ export function usePackageConfig(props: ConfigCardProps) {
   }
 
   const simulateButtonClick = (button: Button) => {
-    showReply.value = true
+    // 重置状态
+    showReply.value = false
+    showOrderReply.value = false
+    userInputAddress.value = ''
+    
+    // 设置当前选择的按钮（这样会自动计算价格等信息）
+    selectedButton.value = button
+    
+    // 第一步：显示"请输入能量接收地址"
     setTimeout(() => {
-      showReply.value = false
+      showReply.value = true
+    }, 300)
+    
+    // 第二步：1.5秒后设置用户输入的地址
+    setTimeout(() => {
+      userInputAddress.value = 'TL5afFHPzESaGrvG8JKAwrNx6drbDZf9it'
+    }, 1500)
+    
+    // 第三步：3秒后显示完整订单信息
+    setTimeout(() => {
+      showOrderReply.value = true
     }, 3000)
+    
+    // 保持展开状态，不自动重置
+    // 用户可以手动点击其他按钮来重新演示
   }
 
   const addButton = () => {
@@ -276,6 +265,7 @@ export function usePackageConfig(props: ConfigCardProps) {
     buttons.value.push({
       id: newId,
       count: 10,
+      unitPrice: 1.1438,
       price: 200,
       isSpecial: false
     })
@@ -289,31 +279,32 @@ export function usePackageConfig(props: ConfigCardProps) {
     switch (templateType) {
       case 'basic':
         buttons.value = [
-          { id: '1', count: 5, price: 100, isSpecial: false },
-          { id: '2', count: 10, price: 190, isSpecial: false },
-          { id: '3', count: 20, price: 360, isSpecial: false },
-          { id: '4', count: 50, price: 850, isSpecial: true }
+          { id: '1', count: 5, unitPrice: 1.1550, price: 5.775, isSpecial: false },
+          { id: '2', count: 10, unitPrice: 1.1509, price: 11.509, isSpecial: false },
+          { id: '3', count: 20, unitPrice: 1.1450, price: 22.9, isSpecial: false },
+          { id: '4', count: 50, unitPrice: 1.1400, price: 57.0, isSpecial: true }
         ]
         break
       case 'popular':
         buttons.value = [
-          { id: '1', count: 10, price: 200, isSpecial: false },
-          { id: '2', count: 20, price: 380, isSpecial: false },
-          { id: '3', count: 50, price: 900, isSpecial: false },
-          { id: '4', count: 100, price: 1700, isSpecial: false },
-          { id: '5', count: 200, price: 3200, isSpecial: false },
-          { id: '6', count: 300, price: 4500, isSpecial: false },
-          { id: '7', count: 500, price: 7000, isSpecial: true }
+          { id: '1', count: 10, unitPrice: 1.1509, price: 11.509, isSpecial: false },
+          { id: '2', count: 20, unitPrice: 1.1450, price: 22.9, isSpecial: false },
+          { id: '3', count: 50, unitPrice: 1.1400, price: 57.0, isSpecial: false },
+          { id: '4', count: 100, unitPrice: 1.1350, price: 113.5, isSpecial: false },
+          { id: '5', count: 200, unitPrice: 1.1300, price: 226.0, isSpecial: false },
+          { id: '6', count: 300, unitPrice: 1.1250, price: 337.5, isSpecial: false },
+          { id: '7', count: 500, unitPrice: 1.1200, price: 560.0, isSpecial: true }
         ]
         break
       case 'enterprise':
         buttons.value = [
-          { id: '1', count: 100, price: 1700, isSpecial: false },
-          { id: '2', count: 200, price: 3200, isSpecial: false },
-          { id: '3', count: 500, price: 7000, isSpecial: false },
-          { id: '4', count: 1000, price: 13000, isSpecial: false },
-          { id: '5', count: 2000, price: 24000, isSpecial: false },
-          { id: '6', count: 5000, price: 55000, isSpecial: true }
+          { id: '1', count: 100, unitPrice: 1.1350, price: 113.5, isSpecial: false },
+          { id: '2', count: 200, unitPrice: 1.1300, price: 226.0, isSpecial: false },
+          { id: '3', count: 500, unitPrice: 1.1200, price: 560.0, isSpecial: false },
+          { id: '4', count: 1000, unitPrice: 1.1150, price: 1115.0, isSpecial: false },
+          { id: '5', count: 2000, unitPrice: 1.1100, price: 2220.0, isSpecial: false },
+          { id: '6', count: 3000, unitPrice: 1.1050, price: 3315.0, isSpecial: false },
+          { id: '7', count: 5000, unitPrice: 1.1000, price: 5500.0, isSpecial: true }
         ]
         break
     }
@@ -347,25 +338,7 @@ export function usePackageConfig(props: ConfigCardProps) {
   }
 
   // 更新函数
-  const updateDisplayTitle = (value: string) => {
-    displayTitle.value = value
-  }
 
-  const updateSubtitleTemplate = (value: string) => {
-    subtitleTemplate.value = value
-  }
-
-  const updateDailyFee = (value: number) => {
-    dailyFee.value = value
-  }
-
-  const updateIsUnlimited = (value: boolean) => {
-    isUnlimited.value = value
-  }
-
-  const updateReplyMessage = (value: string) => {
-    replyMessage.value = value
-  }
 
   const updateImageUrl = (value: string) => {
     imageUrl.value = value
@@ -375,110 +348,196 @@ export function usePackageConfig(props: ConfigCardProps) {
     imageAlt.value = value
   }
 
-  // 使用规则管理
+
+  // 订单配置更新函数
+  const updatePaymentAddress = (value: string) => {
+    paymentAddress.value = value
+  }
+
+  const updateOrderExpireMinutes = (value: number) => {
+    orderExpireMinutes.value = value
+  }
+
+  const updateOrderConfirmationTemplate = (value: string) => {
+    orderConfirmationTemplate.value = value
+  }
+  
+  // 主消息配置更新函数
+  const updateMainMessageTemplate = (value: string) => {
+    mainMessageTemplate.value = value
+  }
+  
+  const updateDailyFee = (value: number) => {
+    dailyFee.value = value
+  }
+  
+  const updateReplyMessage = (value: string) => {
+    replyMessage.value = value
+  }
+  
   const addUsageRule = () => {
     usageRules.value.push('')
   }
-
+  
   const removeUsageRule = (index: number) => {
     usageRules.value.splice(index, 1)
   }
-
-  // 注意事项管理
+  
   const addNote = () => {
     notes.value.push('')
   }
-
+  
   const removeNote = (index: number) => {
     notes.value.splice(index, 1)
   }
-
-  // 换行配置计算属性
-  const lineBreaks = computed(() => {
-    return props.config?.config?.display_texts?.line_breaks || {
-      after_title: 0,
-      after_subtitle: 0,
-      after_packages: 0,
-      before_usage_rules: 0,
-      before_notes: 0
-    }
-  })
-
-  // 更新换行配置方法
-  const updateLineBreak = (field: string, value: number) => {
-    if (props.config?.config?.display_texts?.line_breaks) {
-      props.config.config.display_texts.line_breaks[field] = value
+  
+  const applyMainTemplate = (templateType: string) => {
+    // 应用主消息模板的逻辑
+    switch (templateType) {
+      case 'default':
+        mainMessageTemplate.value = '🔥 笔数套餐 🔥（无时间限制）'
+        break
+      case 'simple':
+        mainMessageTemplate.value = '💰 笔数套餐 - 简单直接'
+        break
+      default:
+        break
     }
   }
 
-  // 换行配置预设方法
-  const setLineBreakPreset = (presetType: string) => {
-    if (!props.config?.config?.display_texts?.line_breaks) return
-    
-    const presets = {
-      compact: {
-        after_title: 0,
-        after_subtitle: 0,
-        after_packages: 0,
-        before_usage_rules: 0,
-        before_notes: 0
-      },
-      normal: {
-        after_title: 1,
-        after_subtitle: 1,
-        after_packages: 1,
-        before_usage_rules: 1,
-        before_notes: 1
-      },
-      spacious: {
-        after_title: 2,
-        after_subtitle: 2,
-        after_packages: 2,
-        before_usage_rules: 2,
-        before_notes: 2
-      },
-      custom: {
-        after_title: 1,
-        after_subtitle: 1,
-        after_packages: 1,
-        before_usage_rules: 1,
-        before_notes: 1
-      }
+
+  // 订单确认模板快速模板
+  const applyOrderTemplate = (templateType: string) => {
+    switch (templateType) {
+      case 'basic':
+        orderConfirmationTemplate.value = `✅ 订单确认
+
+📋 订单信息：
+• 每笔单价：{unitPrice} USDT
+• 收款金额：{totalAmount} USDT
+• 使用笔数：{transactionCount} 笔转账
+
+🎯 能量接收地址：{userAddress}
+💰 支付地址：{paymentAddress}
+
+⚠️ 请务必核对金额尾数，确保支付准确！
+⏰ 订单将于 {expireTime} 过期`
+        break
+      
+      case 'detailed':
+        orderConfirmationTemplate.value = `✅ 订单确认成功
+
+📋 已为您生成基于地址 {userAddress} 的个性化订单
+
+💎 套餐详情：
+├─ 每笔单价：{unitPrice} USDT
+├─ 收款金额：{totalAmount} USDT (点击复制)
+└─ 使用笔数：{transactionCount} 笔转账
+
+🎯 能量接收地址：
+{userAddress}
+↑ 这是您刚才输入的能量接收地址
+
+💰 支付地址：
+{paymentAddress}
+(点击地址可自动复制到剪贴板)
+
+‼️ 重要提醒：
+请务必核对金额尾数，金额不对则无法确认
+请务必核对金额尾数，金额不对则无法确认
+请务必核对金额尾数，金额不对则无法确认
+
+⏰ 付款提醒：
+订单将于 {expireTime} 过期，请尽快支付！`
+        break
+
+      case 'simple':
+        orderConfirmationTemplate.value = `订单确认 ✅
+
+单价：{unitPrice} USDT
+金额：{totalAmount} USDT
+笔数：{transactionCount} 笔
+
+接收地址：{userAddress}
+支付地址：{paymentAddress}
+
+请核对金额后支付
+过期时间：{expireTime}`
+        break
+
+      case 'professional':
+        orderConfirmationTemplate.value = `🔔 TRON能量代理订单确认
+
+订单编号：#{transactionCount}-{unitPrice}
+生成时间：{expireTime}
+
+📊 交易详情：
+━━━━━━━━━━━━━━━━━━━━
+单笔价格：{unitPrice} USDT
+交易笔数：{transactionCount} 笔
+应付总额：{totalAmount} USDT
+━━━━━━━━━━━━━━━━━━━━
+
+🎯 服务地址：{userAddress}
+💳 支付地址：{paymentAddress}
+
+⚠️ 风险提示：
+1. 请仔细核对付款金额的小数位
+2. 金额错误将导致订单处理失败
+3. 本订单具有时效性，请及时付款
+
+📞 如有疑问，请联系客服`
+        break
+
+      case 'friendly':
+        orderConfirmationTemplate.value = `🎉 太好了！您的订单已生成
+
+亲爱的用户，我们已经为您的地址 {userAddress} 准备好了专属的能量套餐！
+
+🛍️ 您购买的套餐：
+• 超值价格：每笔只需 {unitPrice} USDT
+• 交易次数：{transactionCount} 笔畅享
+• 总计费用：{totalAmount} USDT
+
+💝 温馨提示：
+支付地址：{paymentAddress}
+记得要精确到小数点后4位哦！💰
+
+⏰ 温馨提醒：
+您的订单将在 {expireTime} 过期
+为了不影响使用，请尽快完成支付 😊
+
+祝您使用愉快！🌟`
+        break
     }
-    
-    const preset = presets[presetType] || presets.normal
-    Object.assign(props.config.config.display_texts.line_breaks, preset)
   }
 
-  // 生成额外换行字符串
-  const generateLineBreaks = (count: number): string => {
-    return count > 0 ? '\n'.repeat(count) : ''
-  }
 
-  console.log('🎯 [TransactionPackage] return时的响应式变量:')
-  console.log('🎯 [TransactionPackage] usageRules.value:', usageRules.value)
-  console.log('🎯 [TransactionPackage] notes.value:', notes.value)
 
   return {
     // 响应式数据
-    displayTitle,
-    subtitleTemplate,
-    dailyFee,
-    isUnlimited,
-    replyMessage,
     showReply,
+    showOrderReply,
     currentTime,
+    userInputAddress,
     imageEnabled,
     imageUrl,
     imageAlt,
     buttons,
-    usageRules,
-    notes,
-    lineBreaks,
+    
+    // 订单配置字段
+    currentUnitPrice,
+    currentTotalAmount,
+    currentTransactionCount,
+    paymentAddress,
+    orderExpireMinutes,
+    orderConfirmationTemplate,
+    
     
     // 计算属性
     regularButtons,
     specialButton,
+    specialButtons,
     
     // 方法
     handleToggle,
@@ -492,19 +551,31 @@ export function usePackageConfig(props: ConfigCardProps) {
     handleImageUploadError,
     updateTime,
     initializeFromConfig,
-    updateDisplayTitle,
-    updateSubtitleTemplate,
-    updateDailyFee,
-    updateIsUnlimited,
-    updateReplyMessage,
     updateImageUrl,
     updateImageAlt,
+    
+    // 主消息配置
+    mainMessageTemplate,
+    dailyFee,
+    replyMessage,
+    usageRules,
+    notes,
+    
+    // 主消息配置更新函数
+    updateMainMessageTemplate,
+    updateDailyFee,
+    updateReplyMessage,
     addUsageRule,
     removeUsageRule,
     addNote,
     removeNote,
-    updateLineBreak,
-    setLineBreakPreset,
-    generateLineBreaks
+    applyMainTemplate,
+    
+    // 订单配置更新函数
+    updatePaymentAddress,
+    updateOrderExpireMinutes,
+    updateOrderConfirmationTemplate,
+    applyOrderTemplate,
+    
   }
 }

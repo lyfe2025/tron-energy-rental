@@ -31,6 +31,7 @@ import systemRoutes from './routes/system/index.ts';
 import telegramBotNotificationsRoutes from './routes/telegram-bot-notifications/index.ts';
 import telegramRoutes from './routes/telegram.ts';
 import testRoutes from './routes/test.ts';
+import transactionPackageRoutes from './routes/transaction-package.ts';
 import tronNetworksRoutes from './routes/tron-networks/index.ts';
 import tronRoutes from './routes/tron.ts';
 import uploadsRoutes from './routes/uploads.ts';
@@ -77,6 +78,7 @@ app.use('/api/system-configs', systemConfigsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/telegram-bot-notifications', telegramBotNotificationsRoutes);
+app.use('/api/transaction-package', transactionPackageRoutes);
 app.use('/api/multi-bot', multiBotStatusRoutes);
 app.use('/api/tron', tronRoutes);
 app.use('/api/tron-networks', tronNetworksRoutes);
@@ -136,6 +138,7 @@ app.use('/api', (req: Request, res: Response): void => {
       '/api/system-configs',
       '/api/system',
       '/api/telegram',
+      '/api/transaction-package',
       '/api/tron',
       '/api/tron-networks',
       '/api/energy-pools-extended',

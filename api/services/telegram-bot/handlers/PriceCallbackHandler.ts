@@ -48,32 +48,45 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
       const config = configResult.rows[0].config;
       const serviceName = configResult.rows[0].name;
 
-      // 构建USDT→TRX兑换信息
-      let message = `💱 *${serviceName} - USDT转TRX*\n\n`;
-      
-      if (config.usdt_to_trx_rate) {
-        message += `📊 当前汇率：1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
-      }
-      
-      if (config.min_amount) {
-        message += `💰 最小兑换：${config.min_amount} USDT\n`;
-      }
-      
-      if (config.exchange_address) {
-        message += `📍 兑换地址：\`${config.exchange_address}\`\n\n`;
-      }
-      
-      message += `📝 *操作说明*：\n`;
-      message += `1. 发送USDT到上述兑换地址\n`;
-      message += `2. 系统将自动按汇率兑换为TRX\n`;
-      message += `3. TRX将在确认后发送到您的账户\n\n`;
-      
-      // 添加注意事项
-      if (config.notes && config.notes.length > 0) {
-        message += `⚠️ *注意事项*：\n`;
-        config.notes.forEach((note: string) => {
-          message += `• ${note}\n`;
+      // 使用数据库中的 main_message_template，如果有的话
+      let message = '';
+      if (config.main_message_template && config.main_message_template.trim() !== '') {
+        message = this.formatMainMessageTemplate(config.main_message_template, {
+          usdtToTrxRate: config.usdt_to_trx_rate || 0,
+          trxToUsdtRate: config.trx_to_usdt_rate || 0,
+          minAmount: config.min_amount || 0,
+          maxAmount: config.max_amount || 0,
+          paymentAddress: config.payment_address || config.exchange_address || ''
         });
+      } else {
+        // 降级到硬编码格式
+        message = `💱 *${serviceName} - USDT转TRX*\n\n`;
+        
+        if (config.usdt_to_trx_rate) {
+          message += `📊 当前汇率：1 USDT = ${config.usdt_to_trx_rate} TRX\n`;
+        }
+        
+        if (config.min_amount) {
+          message += `💰 最小兑换：${config.min_amount} USDT\n`;
+        }
+        
+        if (config.exchange_address || config.payment_address) {
+          const address = config.payment_address || config.exchange_address;
+          message += `📍 兑换地址：\`${address}\`\n\n`;
+        }
+        
+        message += `📝 *操作说明*：\n`;
+        message += `1. 发送USDT到上述兑换地址\n`;
+        message += `2. 系统将自动按汇率兑换为TRX\n`;
+        message += `3. TRX将在确认后发送到您的账户\n\n`;
+        
+        // 添加注意事项
+        if (config.notes && config.notes.length > 0) {
+          message += `⚠️ *注意事项*：\n`;
+          config.notes.forEach((note: string) => {
+            message += `• ${note}\n`;
+          });
+        }
       }
 
       await this.bot.sendMessage(context.chatId, message, {
@@ -105,33 +118,46 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
       const config = configResult.rows[0].config;
       const serviceName = configResult.rows[0].name;
 
-      // 构建TRX→USDT兑换信息
-      let message = `💱 *${serviceName} - TRX转USDT*\n\n`;
-      
-      if (config.trx_to_usdt_rate) {
-        message += `📊 当前汇率：1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
-      }
-      
-      if (config.min_trx_amount || config.min_amount) {
-        const minAmount = config.min_trx_amount || (config.min_amount * (config.usdt_to_trx_rate || 1));
-        message += `💰 最小兑换：${minAmount} TRX\n`;
-      }
-      
-      if (config.exchange_address) {
-        message += `📍 兑换地址：\`${config.exchange_address}\`\n\n`;
-      }
-      
-      message += `📝 *操作说明*：\n`;
-      message += `1. 发送TRX到上述兑换地址\n`;
-      message += `2. 系统将自动按汇率兑换为USDT\n`;
-      message += `3. USDT将在确认后发送到您的账户\n\n`;
-      
-      // 添加注意事项
-      if (config.notes && config.notes.length > 0) {
-        message += `⚠️ *注意事项*：\n`;
-        config.notes.forEach((note: string) => {
-          message += `• ${note}\n`;
+      // 使用数据库中的 main_message_template，如果有的话
+      let message = '';
+      if (config.main_message_template && config.main_message_template.trim() !== '') {
+        message = this.formatMainMessageTemplate(config.main_message_template, {
+          usdtToTrxRate: config.usdt_to_trx_rate || 0,
+          trxToUsdtRate: config.trx_to_usdt_rate || 0,
+          minAmount: config.min_amount || 0,
+          maxAmount: config.max_amount || 0,
+          paymentAddress: config.payment_address || config.exchange_address || ''
         });
+      } else {
+        // 降级到硬编码格式
+        message = `💱 *${serviceName} - TRX转USDT*\n\n`;
+        
+        if (config.trx_to_usdt_rate) {
+          message += `📊 当前汇率：1 TRX = ${config.trx_to_usdt_rate} USDT\n`;
+        }
+        
+        if (config.min_trx_amount || config.min_amount) {
+          const minAmount = config.min_trx_amount || (config.min_amount * (config.usdt_to_trx_rate || 1));
+          message += `💰 最小兑换：${minAmount} TRX\n`;
+        }
+        
+        if (config.exchange_address || config.payment_address) {
+          const address = config.payment_address || config.exchange_address;
+          message += `📍 兑换地址：\`${address}\`\n\n`;
+        }
+        
+        message += `📝 *操作说明*：\n`;
+        message += `1. 发送TRX到上述兑换地址\n`;
+        message += `2. 系统将自动按汇率兑换为USDT\n`;
+        message += `3. USDT将在确认后发送到您的账户\n\n`;
+        
+        // 添加注意事项
+        if (config.notes && config.notes.length > 0) {
+          message += `⚠️ *注意事项*：\n`;
+          config.notes.forEach((note: string) => {
+            message += `• ${note}\n`;
+          });
+        }
       }
 
       await this.bot.sendMessage(context.chatId, message, {
@@ -270,6 +296,58 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
   }
 
   /**
+   * 格式化主消息模板，支持占位符替换和计算表达式
+   */
+  private formatMainMessageTemplate(template: string, variables: { [key: string]: any }): string {
+    let result = template;
+    
+    // 先处理计算表达式（price*2, price*3等）
+    result = result.replace(/\{price\*(\d+)\}/g, (match, multiplier) => {
+      const price = variables.price || 0;
+      const result = price * parseInt(multiplier);
+      return Number(result.toFixed(8)).toString();
+    });
+    
+    result = result.replace(/\{price\/(\d+)\}/g, (match, divisor) => {
+      const price = variables.price || 0;
+      const div = parseInt(divisor);
+      const result = div > 0 ? price / div : price;
+      return Number(result.toFixed(8)).toString();
+    });
+    
+    result = result.replace(/\{price\+(\d+)\}/g, (match, addend) => {
+      const price = variables.price || 0;
+      return (price + parseInt(addend)).toString();
+    });
+    
+    result = result.replace(/\{price\-(\d+)\}/g, (match, subtrahend) => {
+      const price = variables.price || 0;
+      return (price - parseInt(subtrahend)).toString();
+    });
+    
+    // 处理其他变量的计算表达式
+    result = result.replace(/\{maxTransactions\*(\d+)\}/g, (match, multiplier) => {
+      const maxTransactions = variables.maxTransactions || 0;
+      return (maxTransactions * parseInt(multiplier)).toString();
+    });
+    
+    // 最后处理基础变量替换
+    for (const [key, value] of Object.entries(variables)) {
+      const placeholder = `{${key}}`;
+      let replacementValue = value?.toString() || '0';
+      
+      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以长按复制
+      if (key === 'paymentAddress' && replacementValue && replacementValue !== '0') {
+        replacementValue = `\`${replacementValue}\``;
+      }
+      
+      result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacementValue);
+    }
+    
+    return result;
+  }
+
+  /**
    * 格式化副标题模板 - 支持数组和计算表达式
    */
   private formatSubtitleTemplates(subtitleTemplate: string | string[] | undefined, price: number, max: number): string {
@@ -363,9 +441,17 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
   }
 
   /**
-   * 格式化笔数套餐消息
+   * 格式化笔数套餐消息（使用数据库中的main_message_template）
    */
   private formatTransactionPackageMessage(name: string, config: any, keyboardConfig: any): string {
+    // 使用数据库中的 main_message_template
+    if (config.main_message_template && config.main_message_template.trim() !== '') {
+      return this.formatMainMessageTemplate(config.main_message_template, {
+        dailyFee: config.daily_fee || 0
+      });
+    }
+
+    // 默认消息（如果没有模板）
     const title = keyboardConfig?.title || name;
     const description = keyboardConfig?.description || '无时间限制的长期套餐';
     
@@ -396,9 +482,21 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
   }
 
   /**
-   * 格式化TRX闪兑消息
+   * 格式化TRX闪兑消息（使用数据库中的main_message_template）
    */
   private formatTrxExchangeMessage(name: string, config: any, keyboardConfig: any): string {
+    // 使用数据库中的 main_message_template
+    if (config.main_message_template && config.main_message_template.trim() !== '') {
+      return this.formatMainMessageTemplate(config.main_message_template, {
+        usdtToTrxRate: config.usdt_to_trx_rate || 0,
+        trxToUsdtRate: config.trx_to_usdt_rate || 0,
+        minAmount: config.min_amount || 0,
+        maxAmount: config.max_amount || 0,
+        paymentAddress: config.payment_address || config.exchange_address || ''
+      });
+    }
+
+    // 默认消息（如果没有模板）
     const title = keyboardConfig?.title || name;
     const description = keyboardConfig?.description || 'USDT自动兑换TRX服务';
     
@@ -417,8 +515,9 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
       message += `💰 **最小兑换**: ${config.min_amount} USDT起\n`;
     }
 
-    if (config.exchange_address) {
-      message += `📍 **兑换地址**: \`${config.exchange_address}\`\n`;
+    if (config.exchange_address || config.payment_address) {
+      const address = config.payment_address || config.exchange_address;
+      message += `📍 **兑换地址**: \`${address}\`\n`;
     }
 
     if (config.is_auto_exchange) {

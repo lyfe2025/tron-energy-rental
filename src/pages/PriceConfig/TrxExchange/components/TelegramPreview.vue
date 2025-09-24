@@ -1,7 +1,6 @@
 <template>
-  <div class="md:w-1/3">
-    <!-- Telegram风格预览 -->
-    <div class="bg-white rounded-lg border shadow-sm max-w-sm sticky top-4">
+  <!-- Telegram风格预览 -->
+  <div class="bg-white rounded-lg border shadow-sm max-w-sm sticky top-4">
       <!-- 机器人头部 -->
       <div class="bg-blue-500 text-white px-4 py-3 rounded-t-lg">
         <div class="flex items-center gap-2">
@@ -16,7 +15,7 @@
       </div>
         
       <!-- 消息内容 -->
-      <div class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
+      <div class="p-4 space-y-3">
         <!-- 机器人消息 -->
         <div class="flex gap-2">
           <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -37,48 +36,23 @@
                 </div>
               </div>
               
-              <!-- 标题 -->
-              <div class="font-bold text-sm mb-1 text-green-600">
-                {{ getTitleText() }}
+              <!-- 主消息内容 -->
+              <div v-if="props.mainMessageTemplate" class="text-xs whitespace-pre-line" v-html="formatMainMessageHTML">
               </div>
-              <!-- 标题后换行 -->
-              <div v-if="lineBreaks.after_title > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_title) }}</div>
               
-              <!-- 副标题 -->
-              <div class="text-xs text-gray-600 mb-2">
-                {{ formatSubtitle() }}
+              <!-- 没有配置模板时的提示 -->
+              <div v-else class="text-xs text-gray-500 text-center py-4">
+                请配置主消息模板以预览内容
               </div>
-              <!-- 副标题后换行 -->
-              <div v-if="lineBreaks.after_subtitle > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_subtitle) }}</div>
               
-              <!-- 汇率信息 -->
-              <div class="text-xs">
-                <div class="font-medium">{{ getDisplayText('rate_title', '📊 当前汇率') }}</div>
-                <div>💱 USDT→TRX汇率: 1 USDT = {{ config.config.usdt_to_trx_rate || '0' }} TRX</div>
-                <div>💱 TRX→USDT汇率: 1 TRX = {{ config.config.trx_to_usdt_rate || '0' }} USDT</div>
-                <div class="text-gray-600">{{ getDisplayText('rate_description', '当前汇率仅供参考') }}</div>
-                
-                <!-- 汇率信息后换行 -->
-                <div v-if="lineBreaks.after_rates > 0" class="whitespace-pre-line">{{ generateLineBreaks(lineBreaks.after_rates) }}</div>
-                
-                <div class="pt-1 border-t border-gray-200">{{ getDisplayText('address_label', '📍 兑换地址') }}</div>
-                <div class="font-mono text-xs text-blue-600 break-all">{{ config.config.exchange_address || 'TExample...' }}</div>
-                
-                <!-- 汇率更新间隔 -->
-                <div v-if="config.config.rate_update_interval" class="text-xs mt-2">
-                  🔄 汇率更新: 每{{ config.config.rate_update_interval }}分钟
-                </div>
-                
-                <!-- 地址信息（包含汇率更新）后换行，智能合并before_notes -->
-                <div v-if="shouldShowAddressBreaks" class="whitespace-pre-line">{{ generateLineBreaks(addressLineBreaks) }}</div>
-                
-                <!-- 注意事项 -->
-                <div v-if="config.config.notes && config.config.notes.length > 0" class="border-t border-gray-200">
-                  <div class="text-xs font-medium text-gray-700 mb-1">📌 注意事项：</div>
-                  <div v-for="(note, index) in config.config.notes" :key="index" class="text-xs text-gray-600">
-                    {{ note }}
-                  </div>
-                </div>
+              <!-- 复制状态显示 -->
+              <div v-if="copyStatus" class="text-xs text-center mt-2 transition-opacity duration-300">
+                <span :class="{
+                  'text-green-600': copyStatus.includes('✅'),
+                  'text-red-600': copyStatus.includes('❌')
+                }">
+                  {{ copyStatus }}
+                </span>
               </div>
             </div>
             
@@ -90,68 +64,111 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 interface Props {
   config: any
-  getDisplayText: (key: string, defaultValue: string) => string
-  formatSubtitle: () => string
-  handleImageError: (event: Event) => void
-  lineBreaks?: any
-  generateLineBreaks?: (count: number) => string
+  mainMessageTemplate?: string
+  usdtToTrxRate?: number
+  trxToUsdtRate?: number
+  minAmount?: number
+  maxAmount?: number
+  paymentAddress?: string
 }
 
 const props = defineProps<Props>()
 
-// 默认换行配置
-const lineBreaks = computed(() => {
-  return props.lineBreaks || {
-    after_title: 0,
-    after_subtitle: 0,
-    after_rates: 0,
-    after_address: 0,
-    before_notes: 0
-  }
-})
-
-// 生成换行字符串
-const generateLineBreaks = (count: number): string => {
-  return props.generateLineBreaks ? props.generateLineBreaks(count) : (count > 0 ? '\n'.repeat(count) : '')
-}
-
-// 智能地址换行计算（避免双重换行）
-const shouldShowAddressBreaks = computed(() => {
-  const hasNotes = props.config.config.notes && props.config.config.notes.length > 0
-  return (lineBreaks.value.after_address > 0) || (hasNotes && lineBreaks.value.before_notes > 0)
-})
-
-const addressLineBreaks = computed(() => {
-  const hasNotes = props.config.config.notes && props.config.config.notes.length > 0
-  if (hasNotes) {
-    // 如果有注意事项，使用两者中的较大值
-    return Math.max(lineBreaks.value.after_address || 0, lineBreaks.value.before_notes || 0)
-  } else {
-    // 没有注意事项，只使用after_address
-    return lineBreaks.value.after_address || 0
-  }
-})
-
-// 获取标题文本（与后端逻辑保持一致）
-const getTitleText = () => {
-  const displayTexts = props.config.config.display_texts || {}
-  
-  // 与后端相同的逻辑：只有非空字符串才使用自定义标题
-  const customTitle = (displayTexts as any).title
-  if (customTitle && customTitle.trim() !== '') {
-    return customTitle
+// 格式化主消息模板
+const formatMainMessage = computed(() => {
+  if (!props.mainMessageTemplate) {
+    return 'TRX闪兑服务' // 默认标题
   }
   
-  // TRX闪兑的默认标题
-  return '🟢USDT自动兑换TRX🔴'
+  return props.mainMessageTemplate
+    .replace(/{usdtToTrxRate}/g, (props.usdtToTrxRate || 0).toString())
+    .replace(/{trxToUsdtRate}/g, (props.trxToUsdtRate || 0).toString())
+    .replace(/{minAmount}/g, (props.minAmount || 0).toString())
+    .replace(/{maxAmount}/g, (props.maxAmount || 0).toString())
+    .replace(/{paymentAddress}/g, props.paymentAddress || '')
+})
+
+// 格式化主消息模板为HTML，支付地址可点击
+const formatMainMessageHTML = computed(() => {
+  if (!props.mainMessageTemplate) {
+    return 'TRX闪兑服务' // 默认标题
+  }
+  
+  const textContent = props.mainMessageTemplate
+    .replace(/{usdtToTrxRate}/g, (props.usdtToTrxRate || 0).toString())
+    .replace(/{trxToUsdtRate}/g, (props.trxToUsdtRate || 0).toString())
+    .replace(/{minAmount}/g, (props.minAmount || 0).toString())
+    .replace(/{maxAmount}/g, (props.maxAmount || 0).toString())
+  
+  const paymentAddress = props.paymentAddress || 'TExample...'
+  
+  // 将支付地址替换为可点击的HTML元素
+  const clickableAddress = `<span class="font-mono text-blue-600 break-all cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-blue-300" onclick="window.copyTrxExchangeAddress('${paymentAddress}')" title="点击复制地址: ${paymentAddress}">${paymentAddress}</span>`
+  
+  return textContent.replace(/{paymentAddress}/g, clickableAddress)
+})
+
+// 复制状态管理
+const copyStatus = ref('')
+
+// 处理图片加载错误
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
 }
+
+
+// 设置全局复制函数，供HTML中的onclick使用
+onMounted(() => {
+  (window as any).copyTrxExchangeAddress = async (address: string) => {
+    if (address === 'TExample...') {
+      copyStatus.value = '⚠️ 没有地址可复制'
+      setTimeout(() => {
+        copyStatus.value = ''
+      }, 2000)
+      return
+    }
+    
+    try {
+      await navigator.clipboard.writeText(address)
+      copyStatus.value = '✅ 地址已复制！'
+      console.log('支付地址已复制到剪贴板:', address)
+    } catch (err) {
+      console.error('复制失败:', err)
+      // 降级方案
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = address
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        copyStatus.value = '✅ 地址已复制！'
+        console.log('支付地址已复制到剪贴板（降级方案）:', address)
+      } catch (fallbackErr) {
+        console.error('降级复制方案也失败:', fallbackErr)
+        copyStatus.value = '❌ 复制失败'
+      }
+    }
+    
+    // 2秒后清除状态提示
+    setTimeout(() => {
+      copyStatus.value = ''
+    }, 2000)
+  }
+})
+
+// 清理全局函数
+onUnmounted(() => {
+  delete (window as any).copyTrxExchangeAddress
+})
+
 
 </script>

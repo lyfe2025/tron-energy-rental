@@ -24,8 +24,7 @@ export interface EnergyFlashConfig {
   max_transactions: number
   expiry_hours: number
   payment_address: string
-  double_energy_for_no_usdt: boolean
-  currency: string
+  main_message_template?: string
 }
 
 export interface TransactionPackageConfig {
@@ -36,19 +35,26 @@ export interface TransactionPackageConfig {
     name: string
     transaction_count: number
     price: number
+    unit_price: number
     currency: string
   }>
+  order_config: {
+    payment_address: string
+    expire_minutes: number
+    confirmation_template: string
+  }
+  main_message_template: string
+  reply_message: string
 }
 
 
 export interface TrxExchangeConfig {
-  exchange_address: string
-  min_amount: number
   usdt_to_trx_rate: number
   trx_to_usdt_rate: number
-  rate_update_interval: number
-  notes: string[]
-  is_auto_exchange: boolean
+  min_amount: number
+  max_amount: number
+  payment_address: string
+  main_message_template?: string
 }
 
 export function usePriceConfig() {
@@ -147,8 +153,8 @@ export function usePriceConfig() {
     return configs.value.find(config => config.mode_type === modeType)
   }
 
-  // 更新配置
-  const updateConfig = async (modeType: string, configData: any, fullConfigObject?: any) => {
+  // 更新配置 - 支持网络级别
+  const updateConfig = async (modeType: string, configData: any, fullConfigObject?: any, networkId?: string) => {
     try {
       // 如果传递了完整的配置对象，使用它来提取图片相关字段
       const requestData: any = {
@@ -171,7 +177,12 @@ export function usePriceConfig() {
         }
       }
       
-      const response = await api.put(`/price-configs/${modeType}`, requestData)
+      // 使用网络级别的API路由
+      const apiPath = networkId 
+        ? `/price-configs/${modeType}/network/${networkId}`
+        : `/price-configs/${modeType}` // 兼容旧版本
+      
+      const response = await api.put(apiPath, requestData)
       
       // 更新本地数据
       const index = configs.value.findIndex(c => c.mode_type === modeType)
