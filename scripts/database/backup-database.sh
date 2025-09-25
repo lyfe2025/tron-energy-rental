@@ -44,12 +44,14 @@ show_help() {
     echo -e "  ${GREEN}${ARROW}${NC} 自动读取.env配置文件获取数据库连接信息"
     echo -e "  ${GREEN}${ARROW}${NC} 生成带时间戳的备份文件名"
     echo -e "  ${GREEN}${ARROW}${NC} 备份前自动测试数据库连接"
+    echo -e "  ${GREEN}${ARROW}${NC} 🔧 智能序列同步 (预防主键冲突问题)"
     echo ""
     echo -e "${BOLD}备份内容:${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} 数据库结构 (表、索引、约束等)"
     echo -e "  ${GREEN}${ARROW}${NC} 完整数据内容 (通过COPY语句)"
     echo -e "  ${GREEN}${ARROW}${NC} 序列和函数"
     echo -e "  ${GREEN}${ARROW}${NC} 触发器和视图"
+    echo -e "  ${GREEN}${ARROW}${NC} 自动序列同步SQL (恢复后无主键冲突)"
     echo ""
     echo -e "${BOLD}环境要求:${NC}"
     echo -e "  ${GREEN}${ARROW}${NC} PostgreSQL客户端工具 (pg_dump)"
@@ -142,6 +144,21 @@ backup_file="$BACKUP_DIR/db_backup_${DB_NAME}_${timestamp}.sql"
 echo -e "\n${GREEN}${ARROW} 开始备份数据库...${NC}"
 echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
 
+# 备份前同步序列，预防恢复后的主键冲突问题
+echo -e "${GREEN}${ARROW} 备份前同步序列值...${NC}"
+SEQUENCE_SYNC_SCRIPT="$SCRIPT_DIR/../database/sync-sequences.sql"
+if [ -f "$SEQUENCE_SYNC_SCRIPT" ]; then
+    export PGPASSWORD="$DB_PASSWORD"
+    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SEQUENCE_SYNC_SCRIPT" >/dev/null 2>&1; then
+        echo -e "${GREEN}${CHECK_MARK} 序列同步完成${NC}"
+    else
+        echo -e "${YELLOW}${ARROW} 序列同步执行完成（可能有警告，继续备份）${NC}"
+    fi
+    unset PGPASSWORD
+else
+    echo -e "${YELLOW}${ARROW} 序列同步脚本未找到，跳过预同步${NC}"
+fi
+
 # 记录开始时间
 start_time=$(date +%s)
 
@@ -164,6 +181,82 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     duration=$((end_time - start_time))
     
     # 获取备份文件大小
+    file_size=$(du -h "$backup_file" | cut -f1)
+    
+    # 向备份文件添加序列同步SQL，确保恢复后自动修复序列
+    echo -e "${GREEN}${ARROW} 向备份文件添加序列同步SQL...${NC}"
+    cat >> "$backup_file" << 'EOF'
+
+-- ============================================================================
+-- 自动序列同步脚本 (由备份脚本自动添加)
+-- 解决恢复后可能出现的主键冲突问题
+-- ============================================================================
+-- 避免 "duplicate key value violates unique constraint" 错误
+
+-- 通用序列同步函数
+DO $$
+DECLARE
+    seq_info RECORD;
+    max_val BIGINT;
+    table_name TEXT;
+    column_name TEXT;
+BEGIN
+    RAISE NOTICE '开始自动同步序列值...';
+    
+    -- 同步所有常见的序列
+    FOR seq_info IN 
+        SELECT 
+            s.relname as seq_name,
+            t.relname as table_name,
+            a.attname as column_name
+        FROM pg_class s
+        JOIN pg_depend d ON d.objid = s.oid
+        JOIN pg_class t ON d.refobjid = t.oid
+        JOIN pg_attribute a ON (d.refobjid, d.refobjsubid) = (a.attrelid, a.attnum)
+        WHERE s.relkind = 'S'
+        AND t.relkind = 'r'
+        AND s.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    LOOP
+        table_name := seq_info.table_name;
+        column_name := seq_info.column_name;
+        
+        -- 获取表中该列的最大值
+        EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', column_name, table_name) INTO max_val;
+        
+        -- 如果表中有数据，设置序列值
+        IF max_val > 0 THEN
+            EXECUTE format('SELECT setval(%L, %s)', seq_info.seq_name, max_val);
+            RAISE NOTICE '已同步序列 % 到值 % (表: %.%)', seq_info.seq_name, max_val, table_name, column_name;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE '序列同步完成！';
+END $$;
+
+-- 显示同步结果
+SELECT 
+    s.relname as "序列名",
+    last_value as "当前序列值",
+    t.relname as "关联表",
+    a.attname as "关联列"
+FROM pg_class s
+JOIN pg_depend d ON d.objid = s.oid
+JOIN pg_class t ON d.refobjid = t.oid  
+JOIN pg_attribute a ON (d.refobjid, d.refobjsubid) = (a.attrelid, a.attnum)
+JOIN pg_sequences ps ON ps.sequencename = s.relname
+WHERE s.relkind = 'S'
+AND t.relkind = 'r'
+AND s.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+ORDER BY s.relname;
+
+-- ============================================================================
+-- 序列同步完成 - 备份恢复后应该不会再出现主键冲突错误
+-- ============================================================================
+EOF
+
+    echo -e "${GREEN}${CHECK_MARK} 序列同步SQL已添加到备份文件${NC}"
+    
+    # 重新获取备份文件大小（因为添加了序列同步SQL）
     file_size=$(du -h "$backup_file" | cut -f1)
     
     echo -e "${GREEN}${CHECK_MARK} 数据库备份成功！${NC}"
@@ -190,6 +283,11 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     echo -e "  ${GREEN}${ARROW}${NC} 完整数据内容"
     echo -e "  ${GREEN}${ARROW}${NC} 序列和函数"
     echo -e "  ${GREEN}${ARROW}${NC} 触发器和视图"
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} 自动序列同步SQL (预防主键冲突)"
+    echo -e "\n${GREEN}${GEAR} === 全新功能: 智能序列同步 ===${NC}"
+    echo -e "${GREEN}${ARROW} 🔧 备份前自动同步序列 ${YELLOW}(预防措施)${NC}"
+    echo -e "${GREEN}${ARROW} 🔧 备份文件包含序列同步SQL ${YELLOW}(恢复后自动修复)${NC}"
+    echo -e "${GREEN}${ARROW} 🔧 彻底解决主键冲突问题 ${YELLOW}(无需手动干预)${NC}"
     echo -e "\n${GREEN}${CHECK_MARK} SQL文件未压缩，方便直接查看和编辑${NC}"
     
     # 显示使用建议

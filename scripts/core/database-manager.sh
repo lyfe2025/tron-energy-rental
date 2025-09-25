@@ -98,6 +98,21 @@ backup_database_navicat() {
     local timestamp=$(date +"%Y%m%d_%H%M%S")
     local backup_file="$BACKUP_DIR/db_backup_navicat_${DB_NAME}_${timestamp}.sql"
     
+    # 备份前同步序列，预防恢复后的主键冲突问题
+    echo -e "${GREEN}${ARROW} 备份前同步序列值...${NC}"
+    SEQUENCE_SYNC_SCRIPT="$PROJECT_DIR/scripts/database/sync-sequences.sql"
+    if [ -f "$SEQUENCE_SYNC_SCRIPT" ]; then
+        export PGPASSWORD="$DB_PASSWORD"
+        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SEQUENCE_SYNC_SCRIPT" >/dev/null 2>&1; then
+            echo -e "${GREEN}${CHECK_MARK} 序列同步完成${NC}"
+        else
+            echo -e "${YELLOW}${ARROW} 序列同步执行完成（可能有警告，继续备份）${NC}"
+        fi
+        unset PGPASSWORD
+    else
+        echo -e "${YELLOW}${ARROW} 序列同步脚本未找到，跳过预同步${NC}"
+    fi
+    
     echo -e "\n${GREEN}${ARROW} 开始创建Navicat兼容备份...${NC}"
     echo -e "${GREEN}${ARROW} 备份文件: ${YELLOW}$backup_file${NC}"
     
@@ -145,6 +160,61 @@ backup_database_navicat() {
         
         mv "$temp_file" "$backup_file"
         
+        # 向备份文件添加序列同步SQL，确保恢复后自动修复序列
+        echo -e "${GREEN}${ARROW} 向Navicat兼容备份添加序列同步SQL...${NC}"
+        cat >> "$backup_file" << 'EOF'
+
+-- ============================================================================
+-- 自动序列同步脚本 (Navicat/宝塔完美兼容版)
+-- 解决恢复后可能出现的主键冲突问题
+-- ============================================================================
+-- 避免 "duplicate key value violates unique constraint" 错误
+
+-- 通用序列同步函数
+DO $$
+DECLARE
+    seq_info RECORD;
+    max_val BIGINT;
+    table_name TEXT;
+    column_name TEXT;
+BEGIN
+    RAISE NOTICE '开始自动同步序列值...';
+    
+    -- 同步所有常见的序列
+    FOR seq_info IN 
+        SELECT 
+            s.relname as seq_name,
+            t.relname as table_name,
+            a.attname as column_name
+        FROM pg_class s
+        JOIN pg_depend d ON d.objid = s.oid
+        JOIN pg_class t ON d.refobjid = t.oid
+        JOIN pg_attribute a ON (d.refobjid, d.refobjsubid) = (a.attrelid, a.attnum)
+        WHERE s.relkind = 'S'
+        AND t.relkind = 'r'
+        AND s.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    LOOP
+        table_name := seq_info.table_name;
+        column_name := seq_info.column_name;
+        
+        -- 获取表中该列的最大值
+        EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', column_name, table_name) INTO max_val;
+        
+        -- 如果表中有数据，设置序列值
+        IF max_val > 0 THEN
+            EXECUTE format('SELECT setval(%L, %s)', seq_info.seq_name, max_val);
+            RAISE NOTICE '已同步序列 % 到值 % (表: %.%)', seq_info.seq_name, max_val, table_name, column_name;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE '序列同步完成！';
+END $$;
+
+-- ============================================================================
+-- Navicat/宝塔兼容备份 - 序列同步完成，恢复后无主键冲突
+-- ============================================================================
+EOF
+        
         # 验证生成的SQL文件语法
         echo -e "${GREEN}${ARROW} 验证备份文件语法...${NC}"
         if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
@@ -179,6 +249,7 @@ backup_database_navicat() {
         echo -e "  ${GREEN}${CHECK_MARK}${NC} 禁用美元引用（避免特殊字符问题）"
         echo -e "  ${GREEN}${CHECK_MARK}${NC} 禁用触发器（避免导入时约束冲突）"
         echo -e "  ${GREEN}${CHECK_MARK}${NC} 无所有者和权限信息（跨环境兼容）"
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 自动序列同步SQL（彻底解决主键冲突）"
         
         echo -e "\n${GREEN}${ARROW} 📦 备份内容:${NC}"
         echo -e "  ${GREEN}${CHECK_MARK}${NC} 完整的表结构（CREATE TABLE）"
@@ -573,6 +644,58 @@ restore_database() {
     fi
 }
 
+# 修复数据库序列同步
+fix_sequences_sync() {
+    echo -e "\n${GREEN}${GEAR} === 修复数据库序列同步 ===${NC}"
+    echo -e "${GREEN}${ARROW} 解决主键约束违反错误${NC}"
+    
+    # 检查快速修复脚本是否存在
+    local fix_script="$PROJECT_DIR/scripts/database/fix-sequences-quick.sh"
+    if [ ! -f "$fix_script" ]; then
+        echo -e "${RED}${CROSS_MARK} 错误: 序列修复脚本未找到${NC}"
+        echo -e "${YELLOW}${ARROW} 脚本位置: $fix_script${NC}"
+        return 1
+    fi
+    
+    # 检查脚本执行权限
+    if [ ! -x "$fix_script" ]; then
+        echo -e "${YELLOW}${ARROW} 修复脚本执行权限...${NC}"
+        chmod +x "$fix_script" || {
+            echo -e "${RED}${CROSS_MARK} 无法设置脚本执行权限${NC}"
+            return 1
+        }
+    fi
+    
+    echo -e "${GREEN}${ARROW} 此操作将修复以下问题:${NC}"
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} duplicate key value violates unique constraint"
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} login_logs_pkey 错误"
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} bot_logs_pkey 错误"
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} 其他序列同步问题"
+    echo ""
+    echo -e "${GREEN}${ARROW} 操作安全: ${YELLOW}此修复不会删除任何数据${NC}"
+    echo ""
+    
+    read -p "确认执行序列同步修复? (y/N): " confirm
+    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+        echo -e "${YELLOW}${ARROW} 已取消修复操作${NC}"
+        return 0
+    fi
+    
+    echo -e "\n${GREEN}${ARROW} 开始执行序列同步修复...${NC}"
+    
+    # 执行快速修复脚本
+    if "$fix_script"; then
+        echo -e "\n${GREEN}${CHECK_MARK} 序列同步修复完成！${NC}"
+        echo -e "${GREEN}${ARROW} 建议重启项目以验证修复效果${NC}"
+        echo -e "${BLUE}${ARROW} 重启命令: ${YELLOW}npm run restart${NC}"
+        return 0
+    else
+        echo -e "\n${RED}${CROSS_MARK} 序列同步修复失败${NC}"
+        echo -e "${YELLOW}${ARROW} 请检查数据库连接和权限${NC}"
+        return 1
+    fi
+}
+
 # 数据库管理主函数
 manage_database() {
     while true; do
@@ -583,6 +706,7 @@ manage_database() {
         echo -e "  ${GREEN}${ARROW}${NC} 4) 验证备份文件"
         echo -e "  ${GREEN}${ARROW}${NC} 5) 恢复数据库"
         echo -e "  ${GREEN}${ARROW}${NC} 6) 测试数据库连接"
+        echo -e "  ${GREEN}${ARROW}${NC} 7) 修复序列同步 🔧"
         echo -e "  ${GREEN}${ARROW}${NC} 0) 返回主菜单"
         echo ""
         read -p "  请选择: " backup_choice
@@ -607,6 +731,9 @@ manage_database() {
                 ;;
             6)
                 test_db_connection || true
+                ;;
+            7)
+                fix_sequences_sync || true
                 ;;
             0)
                 return

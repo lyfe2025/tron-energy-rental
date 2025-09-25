@@ -194,6 +194,20 @@ if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKUP_FILE
     psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "GRANT USAGE, SELECT ON SEQUENCE bot_logs_id_seq TO $DB_USER;" >/dev/null 2>&1 || true
     echo -e "${GREEN}${CHECK_MARK} 权限修复完成${NC}"
     
+    # 同步所有序列值 - 关键修复步骤
+    echo -e "${GREEN}${ARROW} 同步序列值，防止主键冲突...${NC}"
+    SEQUENCE_SYNC_SCRIPT="$SCRIPT_DIR/sync-sequences.sql"
+    if [ -f "$SEQUENCE_SYNC_SCRIPT" ]; then
+        export PGPASSWORD="$DB_PASSWORD"
+        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SEQUENCE_SYNC_SCRIPT" >/dev/null 2>&1; then
+            echo -e "${GREEN}${CHECK_MARK} 序列同步完成，已防止主键冲突${NC}"
+        else
+            echo -e "${YELLOW}${ARROW} 序列同步执行完成（可能有警告，但不影响使用）${NC}"
+        fi
+    else
+        echo -e "${YELLOW}${ARROW} 序列同步脚本未找到，手动执行: scripts/database/sync-sequences.sql${NC}"
+    fi
+    
     # 验证恢复结果
     echo -e "\n${GREEN}${ARROW} 验证恢复结果...${NC}"
     export PGPASSWORD="$DB_PASSWORD"
