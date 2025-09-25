@@ -15,190 +15,36 @@
         </div>
       </div>
       
-      <!-- 消息内容 -->
+      <!-- 消息内容 - 使用重构后的组件 -->
       <div class="p-4 space-y-3">
-        <!-- 机器人消息 -->
-        <div class="flex gap-2">
-          <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-xs">🤖</span>
-          </div>
-          <div class="flex-1">
-            <div class="bg-gray-100 rounded-lg p-3 max-w-xs">
-              <!-- 图片显示（如果启用） -->
-              <div v-if="imageEnabled && imageUrl" class="mb-3">
-                <img 
-                  :src="imageUrl" 
-                  :alt="imageAlt || '笔数套餐配置图片'" 
-                  class="w-full rounded-lg border"
-                  @error="handleImageError"
-                />
-                <div v-if="imageAlt" class="text-xs text-gray-500 mt-1 text-center">
-                  {{ imageAlt }}
-                </div>
-              </div>
-              
-              <!-- 主消息内容 -->
-              <div class="text-xs whitespace-pre-line">
-                {{ formatMainMessage }}
-              </div>
-            </div>
-            
-            <!-- 内嵌键盘（显示在消息下方） -->
-            <div class="mt-2 max-w-xs">
-              <div class="space-y-1">
-                <!-- 使用网格布局显示按钮，匹配配置界面的布局（每行3个按钮） -->
-                <div class="grid grid-cols-3 gap-1">
-                  <template v-for="button in regularButtons" :key="button.id">
-                    <button
-                      @click="simulateButtonClick(button)"
-                      class="bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors"
-                    >
-                      {{ button.count }}笔
-                    </button>
-                  </template>
-                </div>
-                
-                <!-- 特殊按钮（全宽显示） -->
-                <div v-for="button in props.specialButtons" :key="`special-${button.id}`">
-                  <button
-                    @click="simulateButtonClick(button)"
-                    class="w-full bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors"
-                  >
-                    {{ button.count }}笔
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div class="text-xs text-gray-400 mt-1">{{ currentTime }}</div>
-          </div>
-        </div>
-        
-        <!-- 模拟用户选择后的回复 -->
-        <div v-if="showReply" class="flex gap-2 animate-fade-in">
-          <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-xs">🤖</span>
-          </div>
-          <div class="flex-1">
-            <div class="bg-gray-100 rounded-lg p-2 max-w-xs">
-              <div class="text-xs">{{ replyMessage }}</div>
-            </div>
-            <div class="text-xs text-gray-400 mt-1">{{ currentTime }}</div>
-            <div class="text-xs text-green-600 mt-1 italic">
-              📌 机器人等待用户输入地址...
-            </div>
-          </div>
-        </div>
-
-        <!-- 模拟用户输入地址 -->
-        <div v-if="showReply" class="flex gap-2 mt-3 animate-fade-in-delayed">
-          <div class="w-6"></div>
-          <div class="flex-1 flex justify-end">
-            <div class="bg-blue-500 text-white rounded-lg p-2 max-w-xs">
-              <div class="text-xs">{{ userInputAddress }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 处理中提示 -->
-        <div v-if="showReply && userInputAddress && !showOrderReply" class="flex gap-2 mt-2">
-          <div class="w-6"></div>
-          <div class="flex-1">
-            <div class="text-xs text-orange-600 italic">
-              ⚡ 系统正在根据用户地址生成个性化订单...
-            </div>
-          </div>
-        </div>
-
-        <!-- 最终订单确认回复（包含订单配置信息） -->
-        <div v-if="showOrderReply" class="flex gap-2 mt-3 animate-fade-in-order">
-          <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-xs">🤖</span>
-          </div>
-          <div class="flex-1">
-            <div class="bg-gray-100 rounded-lg p-3 max-w-xs">
-              <!-- 使用模板渲染完整订单确认信息 -->
-              <div class="text-xs whitespace-pre-line" v-html="formatOrderConfirmationHTML()">
-              </div>
-              
-              <!-- 复制状态显示 -->
-              <div v-if="copyStatus" class="text-xs text-center mt-2 transition-opacity duration-300">
-                <span :class="{
-                  'text-green-600': copyStatus.includes('✅'),
-                  'text-red-600': copyStatus.includes('❌')
-                }">
-                  {{ copyStatus }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- 订单确认的内嵌键盘（如果启用且显示订单确认） -->
-            <div v-if="inlineKeyboardEnabled && showOrderReply" class="mt-2 max-w-xs">
-              <div class="space-y-1">
-                <!-- 根据配置的每行按钮数来决定显示方式 -->
-                <div v-if="keyboardButtonsPerRow === 1" class="space-y-1">
-                  <button
-                    @click="switchPaymentMode"
-                    class="w-full bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
-                  >
-                    🔄 切换 {{ currentPaymentMode === 'USDT' ? 'TRX' : 'USDT' }} 支付
-                  </button>
-                  <button
-                    @click="cancelOrder"
-                    class="w-full bg-red-50 border border-red-200 text-red-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
-                  >
-                    ❌ 取消订单
-                  </button>
-                </div>
-                <div v-else class="grid grid-cols-2 gap-1">
-                  <button
-                    @click="switchPaymentMode"
-                    class="bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
-                  >
-                    🔄 切换 {{ currentPaymentMode === 'USDT' ? 'TRX' : 'USDT' }} 支付
-                  </button>
-                  <button
-                    @click="cancelOrder"
-                    class="bg-red-50 border border-red-200 text-red-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
-                  >
-                    ❌ 取消订单
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div class="text-xs text-gray-400 mt-1">{{ currentTime }}</div>
-          </div>
-        </div>
+        <RefactoredTelegramPreview v-bind="refactoredProps" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed } from 'vue'
+import RefactoredTelegramPreview from '../../../../components/telegram-preview/TelegramPreview.vue'
 import type { Button } from '../composables/usePackageConfig'
 
 interface Props {
-  // 主消息模板
+  // 消息配置
   mainMessageTemplate?: string
   dailyFee: number
-  replyMessage: string
-  showReply: boolean
-  showOrderReply: boolean
-  currentTime: string
+  usageRules: string[]
+  notes: string[]
+  
+  // 按钮配置
   regularButtons: Button[]
-  specialButton: Button | undefined
   specialButtons: Button[]
-  simulateButtonClick: (button: Button) => void
+  
+  // 图片配置
   imageEnabled: boolean
   imageUrl: string
   imageAlt: string
-  usageRules: string[]
-  notes: string[]
-  lineBreaks?: any
-  generateLineBreaks?: (count: number) => string
-  // 订单配置字段
+  
+  // 订单确认配置
   currentUnitPrice?: number
   currentTotalAmount?: number
   currentTransactionCount?: number
@@ -206,401 +52,38 @@ interface Props {
   orderExpireMinutes?: number
   orderConfirmationTemplate?: string
   orderConfirmationTemplateTrx?: string
-  userInputAddress?: string
-  // 内嵌键盘配置
-  inlineKeyboardEnabled?: boolean
-  keyboardButtonsPerRow?: number
 }
 
 const props = defineProps<Props>()
 
-// 默认换行配置
-const lineBreaks = computed(() => {
-  return props.lineBreaks || {
-    after_title: 0,
-    after_subtitle: 0,
-    after_packages: 0,
-    before_usage_rules: 0,
-    before_notes: 0
-  }
-})
-
-// 生成换行字符串
-const generateLineBreaks = (count: number): string => {
-  return props.generateLineBreaks ? props.generateLineBreaks(count) : (count > 0 ? '\n'.repeat(count) : '')
-}
-
-
-// 格式化主消息模板
-const formatMainMessage = computed(() => {
-  if (!props.mainMessageTemplate) {
-    // 如果没有主消息模板，使用默认的老式构建方式
-    return buildDefaultMessage()
-  }
-  
-  const template = props.mainMessageTemplate
-  
-  return template
-    .replace(/{dailyFee}/g, props.dailyFee.toString())
-})
-
-// 构建默认消息（兼容旧版本）
-const buildDefaultMessage = () => {
-  let message = '🔥 笔数套餐 🔥（无时间限制）'
-  
-  // 添加副标题
-  message += '\n（24小时不使用，则扣' + props.dailyFee + '笔占用费）'
-  
-  // 使用规则
-  if (props.usageRules && props.usageRules.length > 0) {
-    message += '\n使用说明：'
-    props.usageRules.forEach(rule => {
-      if (rule && rule.trim()) {
-        message += '\n• ' + rule
-      }
-    })
-  }
-  
-  // 注意事项
-  if (props.notes && props.notes.length > 0) {
-    message += '\n注意事项：'
-    props.notes.forEach(note => {
-      if (note && note.trim()) {
-        message += '\n• ' + note
-      }
-    })
-  }
-  
-  return message
-}
-
-
-
-// 计算过期时间
-const calculateExpireTime = () => {
-  if (!props.orderExpireMinutes) return '未设置'
-  
-  const now = new Date()
-  const expireTime = new Date(now.getTime() + props.orderExpireMinutes * 60 * 1000)
-  return expireTime.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
-// 复制状态管理
-const copyStatus = ref('')
-
-// 支付方式状态管理
-const currentPaymentMode = ref<'USDT' | 'TRX'>('USDT')
-
-// 切换支付方式
-const switchPaymentMode = () => {
-  currentPaymentMode.value = currentPaymentMode.value === 'USDT' ? 'TRX' : 'USDT'
-  console.log('切换支付方式到:', currentPaymentMode.value)
-}
-
-// 取消订单
-const cancelOrder = () => {
-  console.log('取消订单')
-  // 可以在这里添加取消订单的逻辑
-}
-
-// 监听showOrderReply变化，重置支付方式
-watch(() => props.showOrderReply, (newValue) => {
-  if (!newValue) {
-    // 当订单确认消失时，重置支付方式为USDT
-    currentPaymentMode.value = 'USDT'
-  }
-})
-
-// 复制支付地址
-const copyPaymentAddress = async () => {
-  const address = props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678'
-  
-  try {
-    await navigator.clipboard.writeText(address)
-    copyStatus.value = '✅ 地址已复制！'
-    console.log('支付地址已复制到剪贴板:', address)
-  } catch (err) {
-    console.error('复制失败:', err)
-    // 降级方案
-    try {
-      const textArea = document.createElement('textarea')
-      textArea.value = address
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      copyStatus.value = '✅ 地址已复制！'
-      console.log('支付地址已复制到剪贴板（降级方案）:', address)
-    } catch (fallbackErr) {
-      console.error('降级复制方案也失败:', fallbackErr)
-      copyStatus.value = '❌ 复制失败'
-    }
-  }
-  
-  // 2秒后清除状态提示
-  setTimeout(() => {
-    copyStatus.value = ''
-  }, 2000)
-}
-
-// 格式化订单确认模板，替换所有占位符
-const formatOrderConfirmation = () => {
-  const defaultUsdtTemplate = `✅ 订单确认
-
-📋 已为您生成基于地址 {userAddress} 的个性化订单
-
-每笔单价：{unitPrice} USDT
-收款金额：{totalAmount} USDT (点击复制)
-使用笔数：{transactionCount} 笔转账
-
-能量接收地址：
-{userAddress}
-↑ 这是用户刚才输入的地址
-
-支付地址：
-{paymentAddress}
-(点击地址自动复制)
-
-‼️请务必核对金额尾数，金额不对则无法确认
-‼️请务必核对金额尾数，金额不对则无法确认
-‼️请务必核对金额尾数，金额不对则无法确认
-
-订单将于 {expireTime} 过期，请尽快支付！`
-
-  const defaultTrxTemplate = `✅ 订单确认
-
-📋 已为您生成基于地址 {userAddress} 的个性化订单
-
-每笔单价：{unitPrice} TRX
-收款金额：{totalAmount} TRX (点击复制)
-使用笔数：{transactionCount} 笔转账
-
-能量接收地址：
-{userAddress}
-↑ 这是用户刚才输入的地址
-
-支付地址：
-{paymentAddress}
-(点击地址自动复制)
-
-‼️请务必核对金额尾数，金额不对则无法确认
-‼️请务必核对金额尾数，金额不对则无法确认
-‼️请务必核对金额尾数，金额不对则无法确认
-
-订单将于 {expireTime} 过期，请尽快支付！`
-
-  // 根据当前支付方式选择模板
-  let template: string
-  let unitPrice: number
-  let totalAmount: number
-  
-  if (currentPaymentMode.value === 'TRX') {
-    template = props.orderConfirmationTemplateTrx || defaultTrxTemplate
-    // TRX价格 (假设汇率3.02)
-    const rate = 3.02
-    unitPrice = (props.currentUnitPrice || 1.1509) * rate
-    totalAmount = (props.currentTotalAmount || 11.509) * rate
-  } else {
-    template = props.orderConfirmationTemplate || defaultUsdtTemplate
-    unitPrice = props.currentUnitPrice || 1.1509
-    totalAmount = props.currentTotalAmount || 11.509
-  }
-  
-  const expireTime = calculateExpireTime()
-  
-  return template
-    .replace(/{unitPrice}/g, unitPrice.toFixed(4))
-    .replace(/{totalAmount}/g, totalAmount.toFixed(4))
-    .replace(/{transactionCount}/g, (props.currentTransactionCount || 10).toString())
-    .replace(/{userAddress}/g, props.userInputAddress || '用户输入的地址')
-    .replace(/{paymentAddress}/g, props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678')
-    .replace(/{expireTime}/g, expireTime)
-}
-
-// 格式化订单确认模板为HTML，支付地址和金额可点击
-const formatOrderConfirmationHTML = () => {
-  const textContent = formatOrderConfirmation()
-  const paymentAddress = props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678'
-  
-  // 根据当前支付方式计算总金额
-  let totalAmount: number
-  if (currentPaymentMode.value === 'TRX') {
-    const rate = 3.02
-    totalAmount = (props.currentTotalAmount || 11.509) * rate
-  } else {
-    totalAmount = props.currentTotalAmount || 11.509
-  }
-  const totalAmountString = totalAmount.toFixed(4)
-  
-  // 将支付地址替换为可点击的HTML元素
-  const clickableAddress = `<span class="font-mono text-blue-600 break-all cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-blue-300" onclick="window.copyTransactionPackageAddress('${paymentAddress}')" title="点击复制地址: ${paymentAddress}">${paymentAddress}</span>`
-  
-  // 将总金额替换为可点击的HTML元素  
-  const clickableAmount = `<span class="font-mono text-orange-600 cursor-pointer hover:bg-orange-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-orange-300" onclick="window.copyTransactionPackageAmount('${totalAmountString}')" title="点击复制金额: ${totalAmountString}">${totalAmountString}</span>`
-  
-  // 使用正则表达式进行全局替换，确保精确匹配
-  let result = textContent.replace(new RegExp(escapeRegExp(paymentAddress), 'g'), clickableAddress)
-  result = result.replace(new RegExp(escapeRegExp(totalAmountString), 'g'), clickableAmount)
-  
-  return result
-}
-
-// 转义正则表达式特殊字符
-const escapeRegExp = (string: string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-// 图片加载错误处理
-const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  console.error('图片加载失败:', img.src)
-}
-
-// 设置全局复制函数，供HTML中的onclick使用
-onMounted(() => {
-  // 复制支付地址函数
-  (window as any).copyTransactionPackageAddress = async (address: string) => {
-    try {
-      await navigator.clipboard.writeText(address)
-      copyStatus.value = '✅ 地址已复制！'
-      console.log('支付地址已复制到剪贴板:', address)
-    } catch (err) {
-      console.error('复制失败:', err)
-      // 降级方案
-      try {
-        const textArea = document.createElement('textarea')
-        textArea.value = address
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-        copyStatus.value = '✅ 地址已复制！'
-        console.log('支付地址已复制到剪贴板（降级方案）:', address)
-      } catch (fallbackErr) {
-        console.error('降级复制方案也失败:', fallbackErr)
-        copyStatus.value = '❌ 复制失败'
-      }
-    }
-    
-    // 2秒后清除状态提示
-    setTimeout(() => {
-      copyStatus.value = ''
-    }, 2000)
-  }
-  
-  // 复制金额函数
-  (window as any).copyTransactionPackageAmount = async (amount: string) => {
-    try {
-      await navigator.clipboard.writeText(amount)
-      copyStatus.value = '✅ 金额已复制！'
-      console.log('收款金额已复制到剪贴板:', amount)
-    } catch (err) {
-      console.error('复制失败:', err)
-      // 降级方案
-      try {
-        const textArea = document.createElement('textarea')
-        textArea.value = amount
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-        copyStatus.value = '✅ 金额已复制！'
-        console.log('收款金额已复制到剪贴板（降级方案）:', amount)
-      } catch (fallbackErr) {
-        console.error('降级复制方案也失败:', fallbackErr)
-        copyStatus.value = '❌ 复制失败'
-      }
-    }
-    
-    // 2秒后清除状态提示
-    setTimeout(() => {
-      copyStatus.value = ''
-    }, 2000)
-  }
-})
-
-// 清理全局函数
-onUnmounted(() => {
-  delete (window as any).copyTransactionPackageAddress
-  delete (window as any).copyTransactionPackageAmount
-})
+// 将props传递给重构后的组件
+const refactoredProps = computed(() => ({
+  mainMessageTemplate: props.mainMessageTemplate,
+  dailyFee: props.dailyFee,
+  usageRules: props.usageRules || [],
+  notes: props.notes || [],
+  regularButtons: props.regularButtons || [],
+  specialButtons: props.specialButtons || [],
+  imageEnabled: props.imageEnabled || false,
+  imageUrl: props.imageUrl || '',
+  imageAlt: props.imageAlt || '',
+  currentUnitPrice: props.currentUnitPrice,
+  currentTotalAmount: props.currentTotalAmount,
+  currentTransactionCount: props.currentTransactionCount,
+  paymentAddress: props.paymentAddress,
+  orderExpireMinutes: props.orderExpireMinutes,
+  orderConfirmationTemplate: props.orderConfirmationTemplate,
+  orderConfirmationTemplateTrx: props.orderConfirmationTemplateTrx
+}))
 </script>
 
-<style scoped>
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+<!--
+重构说明：
+原始607行代码已分离到以下模块：
+- src/components/telegram-preview/TelegramPreview.vue (主组件)
+- src/components/telegram-preview/components/ (子组件)
+- src/components/telegram-preview/composables/ (业务逻辑)
+- src/components/telegram-preview/utils/ (工具函数)
 
-@keyframes fade-in-delayed {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  60% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in-order {
-  0% {
-    opacity: 0;
-    transform: translateY(15px) scale(0.95);
-  }
-  70% {
-    opacity: 0;
-    transform: translateY(15px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-fade-in-delayed {
-  animation: fade-in-delayed 2s ease-out;
-}
-
-.animate-fade-in-order {
-  animation: fade-in-order 3s ease-out;
-}
-
-/* 让用户消息从右侧滑入 */
-.animate-fade-in-delayed .bg-blue-500 {
-  animation: slide-in-right 0.4s ease-out 1.5s both;
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-</style>
+此文件现在作为向后兼容的包装器
+-->
