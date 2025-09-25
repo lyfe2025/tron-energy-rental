@@ -23,6 +23,7 @@ export interface ProcessorDependencies {
   logger: Logger;
   bot?: TelegramBot;
   botId?: string;
+  stateManager?: any; // StateManager
 }
 
 // 消息处理结果

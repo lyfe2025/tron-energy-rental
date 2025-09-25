@@ -48,7 +48,10 @@
           :paymentAddress="paymentAddress"
           :orderExpireMinutes="orderExpireMinutes"
           :orderConfirmationTemplate="orderConfirmationTemplate"
+          :orderConfirmationTemplateTrx="orderConfirmationTemplateTrx"
           :userInputAddress="userInputAddress"
+          :inlineKeyboardEnabled="inlineKeyboardEnabled"
+          :keyboardButtonsPerRow="keyboardButtonsPerRow"
         />
 
       <!-- 右侧：简化配置 -->
@@ -85,10 +88,19 @@
           :paymentAddress="paymentAddress"
           :orderExpireMinutes="orderExpireMinutes"
           :orderConfirmationTemplate="orderConfirmationTemplate"
+          :orderConfirmationTemplateTrx="orderConfirmationTemplateTrx"
+          :usdtToTrxRate="usdtToTrxRate"
+          :inlineKeyboardEnabled="inlineKeyboardEnabled"
+          :keyboardButtonsPerRow="keyboardButtonsPerRow"
           :applyOrderTemplate="applyOrderTemplate"
+          :applyOrderTemplateTrx="applyOrderTemplateTrx"
           @update:paymentAddress="updatePaymentAddress"
           @update:orderExpireMinutes="updateOrderExpireMinutes"
           @update:orderConfirmationTemplate="updateOrderConfirmationTemplate"
+          @update:orderConfirmationTemplateTrx="updateOrderConfirmationTemplateTrx"
+          @update:usdtToTrxRate="updateUsdtToTrxRate"
+          @update:inlineKeyboardEnabled="updateInlineKeyboardEnabled"
+          @update:keyboardButtonsPerRow="updateKeyboardButtonsPerRow"
         />
         
         <!-- 保存按钮 -->
@@ -173,10 +185,19 @@ const {
   paymentAddress,
   orderExpireMinutes,
   orderConfirmationTemplate,
+  orderConfirmationTemplateTrx,
+  usdtToTrxRate,
+  inlineKeyboardEnabled,
+  keyboardButtonsPerRow,
   updatePaymentAddress,
   updateOrderExpireMinutes,
   updateOrderConfirmationTemplate,
-  applyOrderTemplate
+  updateOrderConfirmationTemplateTrx,
+  updateUsdtToTrxRate,
+  updateInlineKeyboardEnabled,
+  updateKeyboardButtonsPerRow,
+  applyOrderTemplate,
+  applyOrderTemplateTrx
 } = usePackageConfig(props)
 
 // 自定义保存函数，整合两个composable的保存逻辑

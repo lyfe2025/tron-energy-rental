@@ -4,11 +4,13 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { orderService } from '../../../order.ts';
 import { UserService } from '../../../user.ts';
+import { StateManager } from '../../core/StateManager.ts';
 
 export interface CallbackHandlerDependencies {
   bot: TelegramBot;
   userService: UserService;
   orderService: typeof orderService;
+  stateManager?: StateManager;
 }
 
 export interface CallbackConfig {

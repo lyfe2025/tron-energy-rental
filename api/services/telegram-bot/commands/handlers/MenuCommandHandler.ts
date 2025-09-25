@@ -69,7 +69,7 @@ export class MenuCommandHandler {
       // 获取机器人配置
       const botConfig = await this.getBotConfig();
       
-      let menuMessage = '📱 TRON能量租赁主菜单\n\n请选择您需要的服务：';
+      let menuMessage = '请选择您需要的服务：';
       
       // 构建键盘配置
       const messageOptions = MessageFormatter.buildKeyboardFromConfig(botConfig || {});
@@ -96,7 +96,7 @@ export class MenuCommandHandler {
       // 获取机器人配置
       const botConfig = await this.getBotConfig();
       
-      let menuMessage = '📱 TRON能量租赁主菜单\n\n请选择您需要的服务：';
+      let menuMessage = '请选择您需要的服务：';
       
       // 构建键盘配置
       const messageOptions = MessageFormatter.buildKeyboardFromConfig(botConfig || {});

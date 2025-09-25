@@ -12,6 +12,34 @@
           ➕ 添加按钮
         </button>
       </div>
+
+      <!-- 汇率配置 -->
+      <div class="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">💱</span>
+          <h4 class="text-sm font-medium text-gray-700">汇率配置</h4>
+          <span class="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full">实时换算</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="text-sm text-gray-600">USDT → TRX 汇率：</label>
+          <div class="flex items-center gap-1">
+            <span class="text-sm text-gray-600">1 USDT =</span>
+            <input
+              :value="usdtToTrxRate"
+              @input="(e) => $emit('update:usdtToTrxRate', Number((e.target as HTMLInputElement).value))"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="3.02"
+              class="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            />
+            <span class="text-sm text-gray-600">TRX</span>
+          </div>
+          <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+            修改汇率将自动更新所有套餐的TRX价格
+          </div>
+        </div>
+      </div>
       
       <!-- 按钮列表 -->
       <div class="max-h-96 overflow-y-auto">
@@ -53,7 +81,7 @@
             
             <!-- 每笔单价配置 -->
             <div class="mb-3">
-              <label class="block text-xs font-medium text-gray-600 mb-1">每笔单价</label>
+              <label class="block text-xs font-medium text-gray-600 mb-1">每笔单价 (USDT)</label>
               <div class="flex items-center gap-2">
                 <input
                   v-model.number="button.unitPrice"
@@ -68,16 +96,27 @@
                 />
                 <span class="text-sm text-gray-500">USDT</span>
               </div>
+              <!-- TRX价格显示 -->
+              <div class="mt-1 text-xs text-blue-600">
+                ≈ {{ (button.trxUnitPrice || 0).toFixed(4) }} TRX ({{ usdtToTrxRate }}x)
+              </div>
               <!-- 验证提示 -->
               <div v-if="isNaN(button.unitPrice) || button.unitPrice <= 0" class="text-xs text-red-600 mt-1">
                 请输入有效的单价 (大于0的数字)
               </div>
             </div>
             
-            <!-- 总价显示 -->
-            <div class="mb-3 p-2 bg-green-50 border border-green-200 rounded-md">
-              <div class="text-xs text-green-700 font-medium">
-                套餐总价: <span class="text-green-800 font-bold">{{ calculateTotalPrice(button.count, button.unitPrice) }} USDT</span>
+            <!-- 双货币总价显示 -->
+            <div class="mb-3 space-y-1">
+              <div class="p-2 bg-green-50 border border-green-200 rounded-md">
+                <div class="text-xs text-green-700 font-medium">
+                  💰 USDT: <span class="text-green-800 font-bold">{{ calculateTotalPrice(button.count, button.unitPrice) }}</span>
+                </div>
+              </div>
+              <div class="p-2 bg-orange-50 border border-orange-200 rounded-md">
+                <div class="text-xs text-orange-700 font-medium">
+                  🪙 TRX: <span class="text-orange-800 font-bold">{{ (button.trxPrice || 0).toFixed(2) }}</span>
+                </div>
               </div>
             </div>
             
@@ -183,7 +222,7 @@
             <!-- 订单确认文案模板配置 -->
             <div>
               <div class="flex items-center justify-between mb-2">
-                <label class="block text-sm font-medium text-gray-700">订单确认文案模板</label>
+                <label class="block text-sm font-medium text-gray-700">订单确认文案模板 (USDT版本)</label>
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-gray-500">快速模板:</span>
                   <button
@@ -228,7 +267,7 @@
               />
               
               <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p class="text-sm text-blue-800 font-medium mb-1">📝 支持的占位符：</p>
+                <p class="text-sm text-blue-800 font-medium mb-1">🔄 智能占位符（自动替换USDT价格）：</p>
                 <div class="grid grid-cols-2 gap-2 text-xs text-blue-700">
                   <div><code class="bg-blue-100 px-1 rounded">{unitPrice}</code> - 每笔单价</div>
                   <div><code class="bg-blue-100 px-1 rounded">{totalAmount}</code> - 收款金额</div>
@@ -238,7 +277,7 @@
                   <div><code class="bg-blue-100 px-1 rounded">{expireTime}</code> - 过期时间</div>
                 </div>
                 <p class="text-xs text-blue-600 mt-2">
-                  💡 系统会自动将占位符替换为实际数据，支持多行文本和自由排版
+                  💡 USDT模板价格从按钮配置中的USDT价格获取，支持多行文本和自由排版
                 </p>
               </div>
               
@@ -252,6 +291,102 @@
                   <div><span class="font-medium text-purple-700">专业版：</span>正式规范，适合企业</div>
                   <div><span class="font-medium text-pink-700">亲和版：</span>温馨友好，用户体验佳</div>
                 </div>
+              </div>
+            </div>
+
+            <!-- TRX版订单确认文案模板配置 -->
+            <div class="mt-6">
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700">订单确认文案模板 (TRX版本)</label>
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="text-gray-500">TRX快速模板:</span>
+                  <button
+                    @click="applyOrderTemplateTrx('basic')"
+                    class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
+                  >
+                    基础版
+                  </button>
+                  <button
+                    @click="applyOrderTemplateTrx('detailed')"
+                    class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors"
+                  >
+                    详细版
+                  </button>
+                  <button
+                    @click="applyOrderTemplateTrx('simple')"
+                    class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded hover:bg-yellow-200 transition-colors"
+                  >
+                    简洁版
+                  </button>
+                </div>
+              </div>
+              
+              <textarea
+                :value="orderConfirmationTemplateTrx"
+                @input="(e) => $emit('update:orderConfirmationTemplateTrx', (e.target as HTMLTextAreaElement).value)"
+                placeholder="请输入TRX版订单确认的完整文案模板..."
+                rows="15"
+                class="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 resize-vertical font-mono text-sm"
+              />
+              
+              <div class="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p class="text-sm text-orange-800 font-medium mb-1">🔄 智能占位符（自动替换TRX价格）：</p>
+                <div class="grid grid-cols-2 gap-2 text-xs text-orange-700">
+                  <div><code class="bg-orange-100 px-1 rounded">{unitPrice}</code> - 每笔单价</div>
+                  <div><code class="bg-orange-100 px-1 rounded">{totalAmount}</code> - 收款金额</div>
+                  <div><code class="bg-orange-100 px-1 rounded">{transactionCount}</code> - 使用笔数</div>
+                  <div><code class="bg-orange-100 px-1 rounded">{userAddress}</code> - 用户输入地址</div>
+                  <div><code class="bg-orange-100 px-1 rounded">{paymentAddress}</code> - 支付地址</div>
+                  <div><code class="bg-orange-100 px-1 rounded">{expireTime}</code> - 过期时间</div>
+                </div>
+                <p class="text-xs text-orange-600 mt-2">
+                  💡 TRX模板价格从按钮配置中的预计算TRX价格获取，无需在模板中考虑汇率
+                </p>
+              </div>
+            </div>
+            
+            <!-- 内嵌键盘配置 -->
+            <div class="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">⌨️</span>
+                  <h5 class="text-sm font-medium text-gray-700">内嵌键盘配置</h5>
+                </div>
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    :checked="inlineKeyboardEnabled"
+                    @change="(e) => $emit('update:inlineKeyboardEnabled', (e.target as HTMLInputElement).checked)"
+                    type="checkbox"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span class="ml-2 text-xs text-gray-700">启用内嵌键盘</span>
+                </label>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3" v-show="inlineKeyboardEnabled">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1">每行按钮数</label>
+                  <select
+                    :value="keyboardButtonsPerRow"
+                    @change="(e) => $emit('update:keyboardButtonsPerRow', Number((e.target as HTMLSelectElement).value))"
+                    class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="1">1个/行</option>
+                    <option value="2">2个/行</option>
+                    <option value="3">3个/行</option>
+                  </select>
+                </div>
+                
+                <div class="flex items-end">
+                  <div class="text-xs text-gray-600 bg-white px-2 py-1 rounded border">
+                    🔄 切换TRX支付 / ❌ 取消订单
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-3 p-2 bg-white border border-blue-200 rounded text-xs text-gray-600" v-show="inlineKeyboardEnabled">
+                <span class="font-medium">⌨️ 内嵌键盘功能：</span>
+                用户确认订单后可切换支付方式或取消订单
               </div>
             </div>
       </div>
@@ -274,7 +409,12 @@ interface Props {
   paymentAddress: string
   orderExpireMinutes: number
   orderConfirmationTemplate: string
+  orderConfirmationTemplateTrx: string
+  usdtToTrxRate: number
+  inlineKeyboardEnabled: boolean
+  keyboardButtonsPerRow: number
   applyOrderTemplate: (templateType: string) => void
+  applyOrderTemplateTrx: (templateType: string) => void
 }
 
 const props = defineProps<Props>()
@@ -283,6 +423,10 @@ defineEmits<{
   'update:paymentAddress': [value: string]
   'update:orderExpireMinutes': [value: number]
   'update:orderConfirmationTemplate': [value: string]
+  'update:orderConfirmationTemplateTrx': [value: string]
+  'update:usdtToTrxRate': [value: number]
+  'update:inlineKeyboardEnabled': [value: boolean]
+  'update:keyboardButtonsPerRow': [value: number]
 }>()
 
 // 安全计算总价，防止NaN

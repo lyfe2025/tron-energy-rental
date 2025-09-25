@@ -66,7 +66,7 @@ export class PriceConfigMessageBuilder {
             inlineKeyboard = inlineKeyboardConfig.buttons;
           } else {
             // 是按钮对象的数组，需要根据 buttons_per_row 配置分组
-            inlineKeyboard = this.groupButtonsIntoRows(inlineKeyboardConfig.buttons, inlineKeyboardConfig.buttons_per_row || 2);
+            inlineKeyboard = this.groupButtonsIntoRows(inlineKeyboardConfig.buttons, inlineKeyboardConfig.buttons_per_row || 3);
           }
         } else {
           // 不是数组，跳过
@@ -155,9 +155,9 @@ export class PriceConfigMessageBuilder {
     
     // 下单地址（支持点击复制）
     if (config.payment_address) {
-      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址自动复制）';
+      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址可自动复制到剪贴板）';
       message += `${addressLabel}\n`;
-      // 使用 Telegram 的 monospace 格式让地址可以长按复制
+      // 使用 Telegram 的 monospace 格式让地址可以点击复制
       message += `\`${config.payment_address}\`\n\n`;
     }
     

@@ -39,8 +39,8 @@ export function useMainMessageConfig(config: TrxExchangeConfig | null) {
 💳 支付地址：{paymentAddress}`)
 
   // 配置项
-  const usdtToTrxRate = ref(6.5)
-  const trxToUsdtRate = ref(0.153)
+  const usdtToTrxRate = ref(3.02)
+  const trxToUsdtRate = ref(0.33)
   const minAmount = ref(1.0)
   const maxAmount = ref(10000)
   const paymentAddress = ref('')
@@ -48,8 +48,8 @@ export function useMainMessageConfig(config: TrxExchangeConfig | null) {
   // 初始化配置
   const initializeFromConfig = () => {
     if (config?.config) {
-      usdtToTrxRate.value = config.config.usdt_to_trx_rate || 6.5
-      trxToUsdtRate.value = config.config.trx_to_usdt_rate || 0.153
+      usdtToTrxRate.value = config.config.usdt_to_trx_rate || 3.02
+      trxToUsdtRate.value = config.config.trx_to_usdt_rate || 0.33
       minAmount.value = config.config.min_amount || 1.0
       maxAmount.value = config.config.max_amount || 10000
       paymentAddress.value = config.config.payment_address || ''
@@ -109,7 +109,7 @@ export function useMainMessageConfig(config: TrxExchangeConfig | null) {
 • 建议小额测试后再大额兑换
 
 💳 支付地址：{paymentAddress}
-（点击地址可自动复制）`
+（点击地址可自动复制到剪贴板）`
         break
         
       case 'detailed':
@@ -261,7 +261,7 @@ TRX→USDT汇率：{trxToUsdtRate}
 • 超出限额的会退回给您 🔄
 
 💳 支付地址：{paymentAddress}
-（点击就能复制地址啦 📋）
+（点击地址可自动复制到剪贴板 📋）
 
 有任何问题都可以找我们哦~ 😘`
         break

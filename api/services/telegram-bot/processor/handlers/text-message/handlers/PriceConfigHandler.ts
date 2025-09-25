@@ -5,8 +5,8 @@
 import { query } from '../../../../../../config/database.ts';
 import { WebhookURLService } from '../../../../utils/WebhookURLService.ts';
 import type {
-  PriceConfig,
-  ProcessorDependencies
+    PriceConfig,
+    ProcessorDependencies
 } from '../types/index.ts';
 
 export class PriceConfigHandler {
@@ -192,7 +192,7 @@ export class PriceConfigHandler {
       const placeholder = `{${key}}`;
       let replacementValue = value?.toString() || '0';
       
-      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以长按复制
+      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以点击复制
       if (key === 'paymentAddress' && replacementValue && replacementValue !== '0') {
         replacementValue = `\`${replacementValue}\``;
       }

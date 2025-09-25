@@ -46,7 +46,7 @@
             <!-- 内嵌键盘（显示在消息下方） -->
             <div class="mt-2 max-w-xs">
               <div class="space-y-1">
-                <!-- 使用网格布局显示按钮，匹配配置界面的布局 -->
+                <!-- 使用网格布局显示按钮，匹配配置界面的布局（每行3个按钮） -->
                 <div class="grid grid-cols-3 gap-1">
                   <template v-for="button in regularButtons" :key="button.id">
                     <button
@@ -131,6 +131,42 @@
                 </span>
               </div>
             </div>
+            
+            <!-- 订单确认的内嵌键盘（如果启用且显示订单确认） -->
+            <div v-if="inlineKeyboardEnabled && showOrderReply" class="mt-2 max-w-xs">
+              <div class="space-y-1">
+                <!-- 根据配置的每行按钮数来决定显示方式 -->
+                <div v-if="keyboardButtonsPerRow === 1" class="space-y-1">
+                  <button
+                    @click="switchPaymentMode"
+                    class="w-full bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
+                    🔄 切换 {{ currentPaymentMode === 'USDT' ? 'TRX' : 'USDT' }} 支付
+                  </button>
+                  <button
+                    @click="cancelOrder"
+                    class="w-full bg-red-50 border border-red-200 text-red-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
+                  >
+                    ❌ 取消订单
+                  </button>
+                </div>
+                <div v-else class="grid grid-cols-2 gap-1">
+                  <button
+                    @click="switchPaymentMode"
+                    class="bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
+                    🔄 切换 {{ currentPaymentMode === 'USDT' ? 'TRX' : 'USDT' }} 支付
+                  </button>
+                  <button
+                    @click="cancelOrder"
+                    class="bg-red-50 border border-red-200 text-red-800 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
+                  >
+                    ❌ 取消订单
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             <div class="text-xs text-gray-400 mt-1">{{ currentTime }}</div>
           </div>
         </div>
@@ -140,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Button } from '../composables/usePackageConfig'
 
 interface Props {
@@ -169,7 +205,11 @@ interface Props {
   paymentAddress?: string
   orderExpireMinutes?: number
   orderConfirmationTemplate?: string
+  orderConfirmationTemplateTrx?: string
   userInputAddress?: string
+  // 内嵌键盘配置
+  inlineKeyboardEnabled?: boolean
+  keyboardButtonsPerRow?: number
 }
 
 const props = defineProps<Props>()
@@ -255,6 +295,29 @@ const calculateExpireTime = () => {
 // 复制状态管理
 const copyStatus = ref('')
 
+// 支付方式状态管理
+const currentPaymentMode = ref<'USDT' | 'TRX'>('USDT')
+
+// 切换支付方式
+const switchPaymentMode = () => {
+  currentPaymentMode.value = currentPaymentMode.value === 'USDT' ? 'TRX' : 'USDT'
+  console.log('切换支付方式到:', currentPaymentMode.value)
+}
+
+// 取消订单
+const cancelOrder = () => {
+  console.log('取消订单')
+  // 可以在这里添加取消订单的逻辑
+}
+
+// 监听showOrderReply变化，重置支付方式
+watch(() => props.showOrderReply, (newValue) => {
+  if (!newValue) {
+    // 当订单确认消失时，重置支付方式为USDT
+    currentPaymentMode.value = 'USDT'
+  }
+})
+
 // 复制支付地址
 const copyPaymentAddress = async () => {
   const address = props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678'
@@ -289,7 +352,7 @@ const copyPaymentAddress = async () => {
 
 // 格式化订单确认模板，替换所有占位符
 const formatOrderConfirmation = () => {
-  const defaultTemplate = `✅ 订单确认
+  const defaultUsdtTemplate = `✅ 订单确认
 
 📋 已为您生成基于地址 {userAddress} 的个性化订单
 
@@ -311,12 +374,50 @@ const formatOrderConfirmation = () => {
 
 订单将于 {expireTime} 过期，请尽快支付！`
 
-  const template = props.orderConfirmationTemplate || defaultTemplate
+  const defaultTrxTemplate = `✅ 订单确认
+
+📋 已为您生成基于地址 {userAddress} 的个性化订单
+
+每笔单价：{unitPrice} TRX
+收款金额：{totalAmount} TRX (点击复制)
+使用笔数：{transactionCount} 笔转账
+
+能量接收地址：
+{userAddress}
+↑ 这是用户刚才输入的地址
+
+支付地址：
+{paymentAddress}
+(点击地址自动复制)
+
+‼️请务必核对金额尾数，金额不对则无法确认
+‼️请务必核对金额尾数，金额不对则无法确认
+‼️请务必核对金额尾数，金额不对则无法确认
+
+订单将于 {expireTime} 过期，请尽快支付！`
+
+  // 根据当前支付方式选择模板
+  let template: string
+  let unitPrice: number
+  let totalAmount: number
+  
+  if (currentPaymentMode.value === 'TRX') {
+    template = props.orderConfirmationTemplateTrx || defaultTrxTemplate
+    // TRX价格 (假设汇率3.02)
+    const rate = 3.02
+    unitPrice = (props.currentUnitPrice || 1.1509) * rate
+    totalAmount = (props.currentTotalAmount || 11.509) * rate
+  } else {
+    template = props.orderConfirmationTemplate || defaultUsdtTemplate
+    unitPrice = props.currentUnitPrice || 1.1509
+    totalAmount = props.currentTotalAmount || 11.509
+  }
+  
   const expireTime = calculateExpireTime()
   
   return template
-    .replace(/{unitPrice}/g, (props.currentUnitPrice || 1.1509).toString())
-    .replace(/{totalAmount}/g, (props.currentTotalAmount || 11.509).toFixed(4))
+    .replace(/{unitPrice}/g, unitPrice.toFixed(4))
+    .replace(/{totalAmount}/g, totalAmount.toFixed(4))
     .replace(/{transactionCount}/g, (props.currentTransactionCount || 10).toString())
     .replace(/{userAddress}/g, props.userInputAddress || '用户输入的地址')
     .replace(/{paymentAddress}/g, props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678')
@@ -327,17 +428,26 @@ const formatOrderConfirmation = () => {
 const formatOrderConfirmationHTML = () => {
   const textContent = formatOrderConfirmation()
   const paymentAddress = props.paymentAddress || 'TWdcgk9NEsV1nt5yPrNfSYktbA12345678'
-  const totalAmount = (props.currentTotalAmount || 11.509).toFixed(4)
+  
+  // 根据当前支付方式计算总金额
+  let totalAmount: number
+  if (currentPaymentMode.value === 'TRX') {
+    const rate = 3.02
+    totalAmount = (props.currentTotalAmount || 11.509) * rate
+  } else {
+    totalAmount = props.currentTotalAmount || 11.509
+  }
+  const totalAmountString = totalAmount.toFixed(4)
   
   // 将支付地址替换为可点击的HTML元素
   const clickableAddress = `<span class="font-mono text-blue-600 break-all cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-blue-300" onclick="window.copyTransactionPackageAddress('${paymentAddress}')" title="点击复制地址: ${paymentAddress}">${paymentAddress}</span>`
   
   // 将总金额替换为可点击的HTML元素  
-  const clickableAmount = `<span class="font-mono text-orange-600 cursor-pointer hover:bg-orange-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-orange-300" onclick="window.copyTransactionPackageAmount('${totalAmount}')" title="点击复制金额: ${totalAmount}">${totalAmount}</span>`
+  const clickableAmount = `<span class="font-mono text-orange-600 cursor-pointer hover:bg-orange-50 px-1 py-0.5 rounded transition-colors border-b border-dashed border-orange-300" onclick="window.copyTransactionPackageAmount('${totalAmountString}')" title="点击复制金额: ${totalAmountString}">${totalAmountString}</span>`
   
   // 使用正则表达式进行全局替换，确保精确匹配
   let result = textContent.replace(new RegExp(escapeRegExp(paymentAddress), 'g'), clickableAddress)
-  result = result.replace(new RegExp(escapeRegExp(totalAmount), 'g'), clickableAmount)
+  result = result.replace(new RegExp(escapeRegExp(totalAmountString), 'g'), clickableAmount)
   
   return result
 }

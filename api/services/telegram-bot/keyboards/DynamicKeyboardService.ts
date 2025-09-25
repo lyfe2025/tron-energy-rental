@@ -139,6 +139,10 @@ export class DynamicKeyboardService {
 
       // 检查是否有自定义的内嵌键盘配置
       if (config.inline_keyboard_config?.enabled) {
+        // TRX闪兑不使用内嵌键盘
+        if (modeType === 'trx_exchange') {
+          return { inline_keyboard: [] };
+        }
         return this.generateCustomInlineKeyboard(config.inline_keyboard_config, modeType);
       }
 
@@ -149,7 +153,8 @@ export class DynamicKeyboardService {
         case 'transaction_package':
           return this.generateTransactionPackageKeyboard(config.config);
         case 'trx_exchange':
-          return this.generateTrxExchangeKeyboard(config.config);
+          // TRX闪兑不使用内嵌键盘，返回空键盘
+          return { inline_keyboard: [] };
         default:
           return this.getFallbackKeyboard();
       }
@@ -327,15 +332,23 @@ export class DynamicKeyboardService {
 
       // 从配置中的buttons数组生成按钮
       if (keyboardConfig.buttons && Array.isArray(keyboardConfig.buttons)) {
-        keyboardConfig.buttons.forEach((buttonConfig: any) => {
-          const button: TelegramBot.InlineKeyboardButton = {
-            text: buttonConfig.text,
-            callback_data: buttonConfig.callback_data
-          };
+        const buttonsPerRow = keyboardConfig.buttons_per_row || 3;
+        
+        // 按照配置的每行按钮数进行布局
+        for (let i = 0; i < keyboardConfig.buttons.length; i += buttonsPerRow) {
+          const row: TelegramBot.InlineKeyboardButton[] = [];
           
-          // 每个按钮占一行，如果需要多列布局，可以在配置中添加行分组
-          keyboardRows.push([button]);
-        });
+          for (let j = 0; j < buttonsPerRow && i + j < keyboardConfig.buttons.length; j++) {
+            const buttonConfig = keyboardConfig.buttons[i + j];
+            const button: TelegramBot.InlineKeyboardButton = {
+              text: buttonConfig.text,
+              callback_data: buttonConfig.callback_data
+            };
+            row.push(button);
+          }
+          
+          keyboardRows.push(row);
+        }
       }
 
       // 添加通用的返回按钮
@@ -375,6 +388,13 @@ export class DynamicKeyboardService {
 
       // 检查是否有自定义的内嵌键盘配置
       if (config.inline_keyboard_config?.enabled) {
+        // TRX闪兑不使用内嵌键盘
+        if (modeType === 'trx_exchange') {
+          return {
+            text: config.inline_keyboard_config.title || '🔄 TRX闪兑服务',
+            reply_markup: { inline_keyboard: [] }
+          };
+        }
         return this.generateCustomInlineKeyboardMessage(config.inline_keyboard_config, modeType);
       }
 
@@ -425,9 +445,9 @@ export class DynamicKeyboardService {
 
       // 从配置中的buttons数组生成按钮
       if (keyboardConfig.buttons && Array.isArray(keyboardConfig.buttons)) {
-        // 可以根据需要调整按钮布局，比如每行放2个按钮
-        const buttonsPerRow = keyboardConfig.buttons_per_row || 1;
+        const buttonsPerRow = keyboardConfig.buttons_per_row || 3;
         
+        // 按照配置的每行按钮数进行布局
         for (let i = 0; i < keyboardConfig.buttons.length; i += buttonsPerRow) {
           const row: TelegramBot.InlineKeyboardButton[] = [];
           

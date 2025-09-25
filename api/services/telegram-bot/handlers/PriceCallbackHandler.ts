@@ -273,9 +273,9 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
     
     // 下单地址（支持点击复制）
     if (config.payment_address) {
-      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址自动复制）';
+      const addressLabel = displayTexts.address_label || '💰 下单地址：（点击地址可自动复制到剪贴板）';
       message += `${addressLabel}\n`;
-      // 使用 Telegram 的 monospace 格式让地址可以长按复制
+      // 使用 Telegram 的 monospace 格式让地址可以点击复制
       message += `\`${config.payment_address}\`\n\n`;
     }
     
@@ -336,7 +336,7 @@ export class PriceCallbackHandler extends BaseCallbackHandler {
       const placeholder = `{${key}}`;
       let replacementValue = value?.toString() || '0';
       
-      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以长按复制
+      // 特殊处理支付地址 - 在Telegram中使用monospace格式让用户可以点击复制
       if (key === 'paymentAddress' && replacementValue && replacementValue !== '0') {
         replacementValue = `\`${replacementValue}\``;
       }

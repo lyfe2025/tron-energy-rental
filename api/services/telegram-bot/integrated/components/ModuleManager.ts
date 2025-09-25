@@ -5,6 +5,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { CallbackHandler } from '../../callbacks/CallbackHandler.ts';
 import { CommandHandler } from '../../commands/CommandHandler.ts';
+import { StateManager } from '../../core/StateManager.ts';
 import { PriceConfigMessageHandler } from '../../handlers/PriceConfigMessageHandler.ts';
 import { KeyboardBuilder } from '../../keyboards/KeyboardBuilder.ts';
 import { BotAPIHandler } from '../../modules/BotAPIHandler.ts';
@@ -28,10 +29,18 @@ export class ModuleManager {
   private bot: TelegramBot;
   private config: BotConfig;
   private initializationOrder: string[] = [];
+  private stateManager: StateManager;
 
   constructor(bot: TelegramBot, config: BotConfig) {
     this.bot = bot;
     this.config = config;
+    
+    // 初始化StateManager
+    this.stateManager = new StateManager({
+      logBotActivity: async (level: 'info' | 'warn' | 'error' | 'debug', action: string, message: string, metadata?: any) => {
+        console.log(`[StateManager][${level.toUpperCase()}] ${action}: ${message}`, metadata || '');
+      }
+    });
   }
 
   /**
@@ -104,18 +113,21 @@ export class ModuleManager {
         }
       );
 
-      const callbackHandler = await this.createModule('callbackHandler', CallbackHandler, 
-        ['botLogger', 'botConfigManager', 'keyboardBuilder'], {
-          bot: this.bot,
-          config: this.config,
-          logger: botLogger,
-          configManager: botConfigManager,
-          keyboardBuilder: keyboardBuilder
-        }
-      );
+      // 直接创建callbackHandler，传递StateManager
+      const callbackHandler = new CallbackHandler(this.bot, this.stateManager);
+      
+      this.modules.set('callbackHandler', {
+        name: 'callbackHandler',
+        instance: callbackHandler,
+        dependencies: ['botLogger', 'botConfigManager', 'keyboardBuilder'],
+        initialized: false,
+        health: 'unknown'
+      });
+
+      console.log(`✅ 模块创建成功: callbackHandler`);
 
       // 创建价格配置消息处理器
-      const priceConfigMessageHandler = new PriceConfigMessageHandler(this.bot, this.config.botId!);
+      const priceConfigMessageHandler = new PriceConfigMessageHandler(this.bot, this.config.botId!, this.stateManager);
       
       this.modules.set('priceConfigMessageHandler', {
         name: 'priceConfigMessageHandler',

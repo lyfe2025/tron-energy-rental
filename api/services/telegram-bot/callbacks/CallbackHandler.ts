@@ -5,6 +5,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { orderService } from '../../order.ts';
 import { UserService } from '../../user.ts';
+import { StateManager } from '../core/StateManager.ts';
 import { EnergyCallbackHandler } from './handlers/EnergyCallbackHandler.ts';
 import { MenuCallbackHandler } from './handlers/MenuCallbackHandler.ts';
 import { OrderCallbackHandler } from './handlers/OrderCallbackHandler.ts';
@@ -20,6 +21,7 @@ export class CallbackHandler {
   private bot: TelegramBot;
   private userService: UserService;
   private orderService: typeof orderService;
+  private stateManager: StateManager;
 
   // 分离的处理器
   private orderHandler: OrderCallbackHandler;
@@ -27,7 +29,7 @@ export class CallbackHandler {
   private menuHandler: MenuCallbackHandler;
   private priceHandler: PriceCallbackHandler;
 
-  constructor(params: CallbackHandlerConstructorParams | TelegramBot) {
+  constructor(params: CallbackHandlerConstructorParams | TelegramBot, stateManager?: StateManager) {
     // Handle both old style (direct bot) and new style (params object)
     if (params && typeof params === 'object' && 'bot' in params) {
       this.bot = params.bot;
@@ -37,12 +39,20 @@ export class CallbackHandler {
     
     this.userService = new UserService();
     this.orderService = orderService;
+    
+    // 使用传入的StateManager或创建新的
+    this.stateManager = stateManager || new StateManager({
+      logBotActivity: async (level: 'info' | 'warn' | 'error' | 'debug', action: string, message: string, metadata?: any) => {
+        console.log(`[CallbackHandler][${level.toUpperCase()}] ${action}: ${message}`, metadata || '');
+      }
+    });
 
     // 创建依赖对象
     const dependencies: CallbackHandlerDependencies = {
       bot: this.bot,
       userService: this.userService,
-      orderService: this.orderService
+      orderService: this.orderService,
+      stateManager: this.stateManager
     };
 
     // 初始化分离的处理器
@@ -193,7 +203,21 @@ export class CallbackHandler {
     else if (data.startsWith('cancel_order_')) {
       const orderId = CallbackValidator.extractIdFromCallbackData(data, 'cancel_order_');
       if (orderId) {
-        await this.orderHandler.handleOrderCancellation(chatId, orderId);
+        await this.orderHandler.handleOrderCancellation(chatId, orderId, callbackQuery.message?.message_id);
+      }
+    }
+    // 切换货币支付方式回调
+    else if (data.startsWith('switch_currency_trx_')) {
+      const orderInfo = this.parseOrderCallbackData(data, 'switch_currency_trx_');
+      if (orderInfo) {
+        await this.orderHandler.handleCurrencySwitch(chatId, orderInfo, callbackQuery.message?.message_id);
+      }
+    }
+    // 切换回USDT支付回调
+    else if (data.startsWith('switch_currency_usdt_')) {
+      const orderInfo = this.parseOrderCallbackData(data, 'switch_currency_usdt_');
+      if (orderInfo) {
+        await this.orderHandler.handleCurrencySwitchBack(chatId, orderInfo, callbackQuery.message?.message_id);
       }
     }
     // 委托状态回调
@@ -219,6 +243,34 @@ export class CallbackHandler {
     else {
       // 未知回调，记录日志但不报错
       console.warn(`Unknown callback data: ${data}`);
+    }
+  }
+
+  /**
+   * 解析订单回调数据
+   */
+  private parseOrderCallbackData(callbackData: string, prefix: string): any {
+    try {
+      // 格式: prefix_orderId_userId_transactionCount
+      // 例如: switch_currency_trx_12345_67890_10
+      const parts = callbackData.replace(prefix, '').split('_');
+      console.log('🔍 解析回调数据:', { callbackData, prefix, parts });
+      
+      if (parts.length >= 3) {
+        const result = {
+          orderId: parts[0],
+          userId: parts[1], 
+          transactionCount: parts[2]
+        };
+        console.log('✅ 解析成功:', result);
+        return result;
+      }
+      
+      console.warn('❌ 回调数据格式不正确:', { parts, length: parts.length });
+      return null;
+    } catch (error) {
+      console.error('解析订单回调数据失败:', error);
+      return null;
     }
   }
 

@@ -3,6 +3,7 @@
  * 现在是一个轻量级适配器，委托给新的模块化架构
  */
 import TelegramBot from 'node-telegram-bot-api';
+import { StateManager } from '../core/StateManager.ts';
 import { UpdateRouter } from './UpdateRouter.ts';
 import type {
     MessageProcessResult,
@@ -12,6 +13,7 @@ import type {
 export class TelegramBotProcessor {
   private updateRouter: UpdateRouter;
   private dependencies: ProcessorDependencies;
+  private stateManager: StateManager;
 
   constructor(
     commandHandler: any,
@@ -27,6 +29,9 @@ export class TelegramBotProcessor {
     bot?: TelegramBot,
     botId?: string
   ) {
+    // 初始化状态管理器
+    this.stateManager = new StateManager(logger);
+
     // 构建依赖对象
     this.dependencies = {
       commandHandler,
@@ -35,7 +40,8 @@ export class TelegramBotProcessor {
       api,
       logger,
       bot,
-      botId
+      botId,
+      stateManager: this.stateManager
     };
 
     // 初始化路由器
