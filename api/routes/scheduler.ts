@@ -44,7 +44,7 @@ router.post('/trigger/:taskName',
   authenticateToken,
   [
     param('taskName')
-      .isIn(['expired-delegations', 'payment-timeouts', 'refresh-pools', 'cleanup-expired'])
+      .isIn(['expired-delegations', 'payment-timeouts', 'expired-unpaid-orders', 'refresh-pools', 'cleanup-expired'])
       .withMessage('Invalid task name')
   ],
   handleValidationErrors,
@@ -153,6 +153,31 @@ router.post('/refresh-pools',
 );
 
 /**
+ * 自动取消逾期未支付订单
+ * POST /api/scheduler/cancel-expired-orders
+ */
+router.post('/cancel-expired-orders',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const success = await schedulerService.triggerTask('expired-unpaid-orders');
+      
+      res.json({
+        success,
+        message: success ? 'Expired unpaid orders cancelled successfully' : 'Failed to cancel expired unpaid orders'
+      });
+    } catch (error) {
+      console.error('Cancel expired orders error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to cancel expired orders'
+      });
+    }
+  }
+);
+
+/**
  * 清理过期数据
  * POST /api/scheduler/cleanup-expired
  */
@@ -189,7 +214,7 @@ router.get('/health',
       const totalTasks = tasks.length;
       
       // 检查关键任务是否运行
-      const criticalTasks = ['expired-delegations', 'payment-timeouts'];
+      const criticalTasks = ['expired-delegations', 'payment-timeouts', 'expired-unpaid-orders'];
       const criticalTasksRunning = tasks
         .filter(t => criticalTasks.includes(t.name) && t.running)
         .length;

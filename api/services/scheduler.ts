@@ -26,6 +26,11 @@ export class SchedulerService {
       await this.processPaymentTimeouts();
     });
     
+    // 每5分钟检查一次逾期未支付订单并自动取消
+    this.scheduleTask('expired-unpaid-orders', '*/5 * * * *', async () => {
+      await this.cancelExpiredUnpaidOrders();
+    });
+    
     // 每小时刷新能量池状态
     this.scheduleTask('refresh-pools', '0 * * * *', async () => {
       await this.refreshEnergyPools();
@@ -162,6 +167,85 @@ export class SchedulerService {
   }
   
   /**
+   * 自动取消逾期未支付订单
+   */
+  private async cancelExpiredUnpaidOrders(): Promise<void> {
+    try {
+      console.log('🔍 [自动取消] 检查逾期未支付订单...');
+      
+      // 引入数据库查询
+      const { query } = await import('../database/index');
+      
+      // 查询所有逾期且未支付的订单
+      const expiredOrdersResult = await query(`
+        SELECT 
+          id, 
+          order_number,
+          order_type,
+          payment_status,
+          status,
+          expires_at,
+          created_at,
+          recipient_address,
+          target_address,
+          telegram_id,
+          username
+        FROM orders 
+        WHERE expires_at IS NOT NULL
+          AND expires_at <= NOW()
+          AND payment_status != 'paid'
+          AND status NOT IN ('cancelled', 'expired', 'completed', 'manually_completed')
+        ORDER BY expires_at ASC
+      `);
+      
+      const expiredOrders = expiredOrdersResult.rows;
+      
+      if (!expiredOrders || expiredOrders.length === 0) {
+        console.log('✅ [自动取消] 没有找到逾期未支付订单');
+        return;
+      }
+      
+      console.log(`🚨 [自动取消] 发现 ${expiredOrders.length} 个逾期未支付订单`);
+      
+      let cancelled = 0;
+      let failed = 0;
+      
+      // 批量取消逾期订单
+      for (const order of expiredOrders) {
+        try {
+          console.log(`🔥 [自动取消] 正在取消订单: ${order.order_number || order.id}`);
+          console.log(`   - 订单类型: ${order.order_type}`);
+          console.log(`   - 过期时间: ${order.expires_at}`);
+          console.log(`   - 支付状态: ${order.payment_status}`);
+          console.log(`   - 订单状态: ${order.status}`);
+          
+          // 更新订单状态为已过期
+          await query(`
+            UPDATE orders 
+            SET 
+              status = 'expired',
+              error_message = '订单已过期，自动取消',
+              updated_at = NOW()
+            WHERE id = $1
+          `, [order.id]);
+          
+          cancelled++;
+          console.log(`✅ [自动取消] 成功取消订单: ${order.order_number || order.id}`);
+          
+        } catch (error) {
+          console.error(`❌ [自动取消] 取消订单失败 ${order.order_number || order.id}:`, error);
+          failed++;
+        }
+      }
+      
+      console.log(`🎯 [自动取消] 处理完成: ${cancelled} 个成功取消, ${failed} 个失败`);
+      
+    } catch (error) {
+      console.error('❌ [自动取消] 处理逾期订单时发生错误:', error);
+    }
+  }
+  
+  /**
    * 刷新能量池状态
    */
   private async refreshEnergyPools(): Promise<void> {
@@ -235,6 +319,9 @@ export class SchedulerService {
           break;
         case 'payment-timeouts':
           await this.processPaymentTimeouts();
+          break;
+        case 'expired-unpaid-orders':
+          await this.cancelExpiredUnpaidOrders();
           break;
         case 'refresh-pools':
           await this.refreshEnergyPools();

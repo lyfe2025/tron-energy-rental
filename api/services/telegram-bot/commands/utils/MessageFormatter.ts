@@ -133,6 +133,25 @@ export class MessageFormatter {
   }
 
   /**
+   * 获取订单类型对应的文本和表情符号
+   */
+  static getOrderTypeText(orderType: string): string {
+    if (!orderType) return '常规订单';
+    
+    const texts: Record<string, string> = {
+      'energy_flash': '⚡ 能量闪租',
+      'transaction_package': '📦 笔数套餐',
+      'trx_exchange': '💱 TRX闪兑',
+      // 保留旧的类型兼容
+      'REGULAR': '📋 常规订单',
+      'FLASH_RENT': '⚡ 闪租订单',
+      'BULK': '📦 批量订单',
+    };
+    
+    return texts[orderType] || '📋 未知类型';
+  }
+
+  /**
    * 创建默认欢迎消息
    */
   static createDefaultWelcomeMessage(): string {

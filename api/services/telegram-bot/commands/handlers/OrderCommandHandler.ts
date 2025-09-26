@@ -130,8 +130,10 @@ export class OrderCommandHandler {
     orders.forEach((order, index) => {
       const statusEmoji = MessageFormatter.getOrderStatusEmoji(order.status);
       const statusText = this.getOrderStatusText(order.status);
+      const orderTypeText = MessageFormatter.getOrderTypeText(order.order_type);
       
       ordersMessage += `${index + 1}️⃣ 订单 #${order.order_number}\n` +
+        `🏷️ 类型: ${orderTypeText}\n` +
         `⚡ 能量: ${MessageFormatter.formatNumber(order.energy_amount)} Energy\n` +
         `💰 金额: ${order.price} ${order.payment_currency || 'USDT'}\n` +
         `${statusEmoji} 状态: ${statusText}\n` +
@@ -244,9 +246,11 @@ export class OrderCommandHandler {
   private async sendOrderDetail(chatId: number, order: any): Promise<void> {
     const statusEmoji = MessageFormatter.getOrderStatusEmoji(order.status);
     const statusText = this.getOrderStatusText(order.status);
+    const orderTypeText = MessageFormatter.getOrderTypeText(order.order_type);
 
     const detailMessage = `📋 订单详情 #${order.order_number}
 
+🏷️ **类型**: ${orderTypeText}
 ${statusEmoji} **状态**: ${statusText}
 ⚡ **能量数量**: ${MessageFormatter.formatNumber(order.energy_amount)} Energy
 💰 **支付金额**: ${order.price} ${order.payment_currency || 'USDT'}

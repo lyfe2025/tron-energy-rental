@@ -177,17 +177,41 @@
             <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
               <div class="space-y-1">
                 <div><span class="font-medium">创建:</span> {{ formatDateTime(order.created_at) }}</div>
-                <div v-if="order.expires_at" class="text-orange-600">
+                
+                <!-- 根据订单类型和状态显示相关时间信息 -->
+                <!-- 未支付订单显示过期时间 -->
+                <div v-if="order.expires_at && order.payment_status !== 'paid'" class="text-orange-600">
                   <span class="font-medium">过期:</span> {{ formatDateTime(order.expires_at) }}
                 </div>
+                
+                <!-- 笔数套餐显示激活时间 -->
+                <div v-if="order.order_type === 'transaction_package' && order.payment_status === 'paid'" class="text-green-600">
+                  <span class="font-medium">激活:</span> {{ formatDateTime(order.updated_at) }}
+                </div>
+                
+                <!-- 能量闪租显示租期信息 -->
+                <div v-if="order.order_type === 'energy_flash' && order.flash_rent_duration && order.delegation_started_at" class="text-purple-600">
+                  <span class="font-medium">租期:</span> {{ Math.round(order.flash_rent_duration / 60 * 10) / 10 }}小时
+                </div>
+                
+                <!-- 处理时间 -->
                 <div v-if="order.processing_started_at" class="text-blue-600">
                   <span class="font-medium">处理:</span> {{ formatDateTime(order.processing_started_at) }}
                 </div>
+                
+                <!-- 委托时间 -->
                 <div v-if="order.delegation_started_at" class="text-purple-600">
                   <span class="font-medium">委托:</span> {{ formatDateTime(order.delegation_started_at) }}
                 </div>
+                
+                <!-- 完成时间 -->
                 <div v-if="order.completed_at" class="text-green-600">
                   <span class="font-medium">完成:</span> {{ formatDateTime(order.completed_at) }}
+                </div>
+                
+                <!-- 能量闪租的到期时间计算 -->
+                <div v-if="order.order_type === 'energy_flash' && order.delegation_started_at && order.flash_rent_duration && !['failed', 'cancelled', 'expired'].includes(order.status)" class="text-amber-600">
+                  <span class="font-medium">到期:</span> {{ formatDateTime(new Date(new Date(order.delegation_started_at).getTime() + order.flash_rent_duration * 60 * 1000).toISOString()) }}
                 </div>
               </div>
             </td>
@@ -276,12 +300,12 @@
 
 <script setup lang="ts">
 import {
-    CreditCard,
-    Edit,
-    Eye,
-    Loader2,
-    ShoppingCart,
-    Zap
+  CreditCard,
+  Edit,
+  Eye,
+  Loader2,
+  ShoppingCart,
+  Zap
 } from 'lucide-vue-next'
 
 // 导入分离的模块
@@ -290,22 +314,22 @@ import { onMounted, ref, watch } from 'vue'
 import type { OrderListEmits, OrderListProps } from '../composables/useOrderList'
 import { useOrderList } from '../composables/useOrderList'
 import {
-    calculateOrderCount,
-    formatAddress,
-    formatDateTime,
-    formatEnergy,
-    formatPrice,
-    viewTransaction
+  calculateOrderCount,
+  formatAddress,
+  formatDateTime,
+  formatEnergy,
+  formatPrice,
+  viewTransaction
 } from '../utils/orderFormatters'
 import {
-    canUpdateStatus,
-    getDelegationStatusColor,
-    getDelegationStatusText,
-    getOrderTypeText,
-    getPaymentStatusColor,
-    getPaymentStatusText,
-    getStatusColor,
-    getStatusText
+  canUpdateStatus,
+  getDelegationStatusColor,
+  getDelegationStatusText,
+  getOrderTypeText,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getStatusColor,
+  getStatusText
 } from '../utils/orderStatus'
 
 // 使用类型定义
