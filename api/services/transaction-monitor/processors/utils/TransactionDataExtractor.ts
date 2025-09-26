@@ -114,11 +114,28 @@ export class TransactionDataExtractor {
     orderNumber: string,
     networkName: string
   ): any {
+    // 🔧 修复：提取token信息以确保USDT订单正确标识
+    let tokenInfo: any = undefined;
+    if (rawTx?.token_info && rawTx?.transaction_id) {
+      // TRC20交易 - 提取token信息
+      tokenInfo = rawTx.token_info.symbol; // 'USDT'
+      
+      orderLogger.info(`📦 [${txId.substring(0, 8)}...] 🔧 修复：检测到TRC20交易，设置token信息`, {
+        txId: txId.substring(0, 12) + '...',
+        tokenSymbol: tokenInfo,
+        contractAddress: rawTx.token_info.address?.substring(0, 12) + '...',
+        amount: extractedData.amount,
+        networkName,
+        fix: 'USDT支付货币标识修复'
+      });
+    }
+
     return {
       txID: txId,
       from: extractedData.fromAddress,
       to: extractedData.toAddress,
       amount: extractedData.amount,
+      token: tokenInfo, // 🔧 修复：添加token字段 - USDT交易将是'USDT'，TRX交易将是undefined
       timestamp: rawTx.raw_data?.timestamp || Date.now(),
       confirmed: false,
       _isInitialCreation: true,

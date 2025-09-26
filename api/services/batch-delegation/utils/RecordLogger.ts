@@ -25,18 +25,21 @@ export class RecordLogger {
     try {
       const insertQuery = `
         INSERT INTO energy_usage_logs (
-          order_id, user_address, energy_before, energy_after, 
-          energy_consumed, transaction_hash, usage_time, detection_time
-        ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          order_id, user_address, energy_amount, energy_before, energy_after, 
+          energy_consumed, transaction_hash, usage_time, detection_time,
+          detection_method
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $8)
       `
 
       await this.dbService.query(insertQuery, [
         orderId,
         userAddress,
+        energyConsumed,  // 🔧 修复：添加必需的energy_amount字段
         0, // energy_before - 需要从区块链查询实际值
         0, // energy_after - 需要从区块链查询实际值
         energyConsumed,
-        transactionHash || delegationTxHash
+        transactionHash || delegationTxHash,
+        'api_polling' // detection_method
       ])
 
       logger.debug(`能量使用日志记录成功`, {
