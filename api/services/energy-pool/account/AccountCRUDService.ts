@@ -21,7 +21,7 @@ export class AccountCRUDService {
         0.001 as cost_per_energy
       FROM energy_pools ep
       WHERE ep.status = $1
-      ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
+      ORDER BY ep.priority DESC, ep.created_at ASC, ep.id ASC
     `;
     const result = await query(sql, ['active']);
     return result.rows;
@@ -36,7 +36,7 @@ export class AccountCRUDService {
         ep.*,
         0.001 as cost_per_energy
       FROM energy_pools ep
-      ORDER BY ep.priority ASC, ep.created_at ASC, ep.id ASC
+      ORDER BY ep.priority DESC, ep.created_at ASC, ep.id ASC
     `;
     const result = await query(sql, []);
     return result.rows;

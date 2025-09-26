@@ -64,12 +64,23 @@ export class EnergyPoolService {
       return null;
     }
 
-    // 按成本效率排序，选择最优账户
+    // 🔧 修复：按优先级排序选择账户（优先级高的优先，数值越大优先级越高）
     const sortedAccounts = activeAccounts.sort((a, b) => {
-      return a.cost_per_energy - b.cost_per_energy;
+      // 主要按优先级排序（降序：高优先级在前）
+      const priorityA = a.priority || 0;
+      const priorityB = b.priority || 0;
+      
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA; // 降序：高优先级在前
+      }
+      
+      // 如果优先级相同，则按成本效率排序（成本低的优先）
+      const costA = a.cost_per_energy || 0;
+      const costB = b.cost_per_energy || 0;
+      return costA - costB;
     });
 
-    // 返回成本最低的账户
+    // 返回优先级最高的账户
     return sortedAccounts[0];
   }
 

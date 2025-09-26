@@ -217,9 +217,14 @@ export class TransactionParser {
     tronWebInstance: any
   ): Promise<Transaction | null> {
     try {
-      // 检查合约数据
+      // 检测是否为TRC20交易（有token_info字段表示是TRC20）
+      if (rawTx.token_info && rawTx.transaction_id) {
+        return this.parseTrc20Transaction(rawTx);
+      }
+      
+      // 检查TRX交易的合约数据
       if (!rawTx?.raw_data?.contract?.[0]) {
-        const txId = rawTx?.txID || 'unknown';
+        const txId = rawTx?.txID || rawTx?.transaction_id || 'unknown';
         const shortTxId = txId.substring(0, 8) + '...';
         orderLogger.warn(`📦 [${shortTxId}]    ⚠️ 交易解析失败: 缺少合约数据 - 详细警告信息`, {
           txId: txId,
@@ -354,6 +359,47 @@ export class TransactionParser {
         }
       });
       this.logger.error('解析交易详情失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 解析TRC20代币交易
+   */
+  private parseTrc20Transaction(rawTx: any): Transaction | null {
+    try {
+      const txId = rawTx.transaction_id;
+      const fromAddress = rawTx.from;
+      const toAddress = rawTx.to;
+      const amount = parseFloat(rawTx.value) / Math.pow(10, rawTx.token_info.decimals);
+      
+      orderLogger.info(`   3.1 解析TRC20交易`, {
+        txId: txId,
+        tokenSymbol: rawTx.token_info.symbol,
+        contractAddress: rawTx.token_info.address,
+        amount: amount,
+        decimals: rawTx.token_info.decimals
+      });
+      
+      return {
+        txID: txId,
+        from: fromAddress,
+        to: toAddress,
+        amount: amount,
+        token: rawTx.token_info.symbol,
+        contractAddress: rawTx.token_info.address,
+        blockTimestamp: rawTx.block_timestamp,
+        type: 'trc20'
+      };
+    } catch (error: any) {
+      const txId = rawTx?.transaction_id || 'unknown';
+      const shortTxId = txId.substring(0, 8) + '...';
+      orderLogger.error(`📦 [${shortTxId}] TRC20交易解析失败`, {
+        txId: txId,
+        error: error.message,
+        rawTxKeys: Object.keys(rawTx || {}),
+        tokenInfo: rawTx?.token_info
+      });
       return null;
     }
   }

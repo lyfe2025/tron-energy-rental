@@ -11,8 +11,8 @@ import { MenuCallbackHandler } from './handlers/MenuCallbackHandler.ts';
 import { OrderCallbackHandler } from './handlers/OrderCallbackHandler.ts';
 import { PriceCallbackHandler } from './handlers/PriceCallbackHandler.ts';
 import type {
-  CallbackHandlerConstructorParams,
-  CallbackHandlerDependencies
+    CallbackHandlerConstructorParams,
+    CallbackHandlerDependencies
 } from './types/callback.types.ts';
 import { CallbackValidator } from './utils/CallbackValidator.ts';
 import { ResponseFormatter } from './utils/ResponseFormatter.ts';
@@ -152,6 +152,12 @@ export class CallbackHandler {
       case 'exchange_history':
         await this.priceHandler.handleExchangeHistory(chatId, telegramId);
         break;
+      case 'bind_tron_address':
+        await this.menuHandler.handleBindTronAddress(chatId, telegramId);
+        break;
+      case 'unbind_tron_address':
+        await this.menuHandler.handleUnbindTronAddress(chatId, telegramId);
+        break;
       default:
         await this.handleDynamicCallbacks(chatId, data, callbackQuery);
         break;
@@ -201,9 +207,20 @@ export class CallbackHandler {
     }
     // 取消订单回调
     else if (data.startsWith('cancel_order_')) {
-      const orderId = CallbackValidator.extractIdFromCallbackData(data, 'cancel_order_');
-      if (orderId) {
-        await this.orderHandler.handleOrderCancellation(chatId, orderId, callbackQuery.message?.message_id);
+      // 检查是否是复合格式（包含userId和transactionCount）
+      const parts = data.replace('cancel_order_', '').split('_');
+      if (parts.length >= 3) {
+        // 复合格式：cancel_order_orderId_userId_transactionCount
+        const orderInfo = this.parseOrderCallbackData(data, 'cancel_order_');
+        if (orderInfo) {
+          await this.orderHandler.handleOrderCancellation(chatId, orderInfo.orderId, callbackQuery.message?.message_id);
+        }
+      } else {
+        // 简单格式：cancel_order_orderId (保持向后兼容)
+        const orderId = CallbackValidator.extractIdFromCallbackData(data, 'cancel_order_');
+        if (orderId) {
+          await this.orderHandler.handleOrderCancellation(chatId, orderId, callbackQuery.message?.message_id);
+        }
       }
     }
     // 切换货币支付方式回调
@@ -239,6 +256,13 @@ export class CallbackHandler {
         await this.priceHandler.handleExchangeHistory(chatId, telegramId);
       }
       // 可以添加更多兑换相关的处理
+    }
+    // 确认解绑TRON地址回调
+    else if (data.startsWith('confirm_unbind_tron_')) {
+      const userTelegramId = CallbackValidator.extractIdFromCallbackData(data, 'confirm_unbind_tron_');
+      if (userTelegramId) {
+        await this.menuHandler.handleConfirmUnbindTronAddress(chatId, parseInt(userTelegramId));
+      }
     }
     else {
       // 未知回调，记录日志但不报错

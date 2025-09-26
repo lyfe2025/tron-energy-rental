@@ -5,14 +5,16 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { StateManager } from '../../../core/StateManager.ts';
 import { AddressValidator } from '../validators/AddressValidator.ts';
-import { OrderConfirmationProcessor } from './OrderConfirmationProcessor.ts';
+import { OrderConfirmationProcessor } from './OrderConfirmationProcessor';
 
 export class AddressInputProcessor {
   private bot: TelegramBot;
+  private botId: string;
   private stateManager?: StateManager;
 
-  constructor(bot: TelegramBot, stateManager?: StateManager) {
+  constructor(bot: TelegramBot, botId: string, stateManager?: StateManager) {
     this.bot = bot;
+    this.botId = botId;
     this.stateManager = stateManager;
   }
 
@@ -36,7 +38,7 @@ export class AddressInputProcessor {
       }
 
       // 地址验证通过，生成订单确认信息
-      const orderProcessor = new OrderConfirmationProcessor(this.bot);
+      const orderProcessor = new OrderConfirmationProcessor(this.bot, this.botId);
       await orderProcessor.generateOrderConfirmation(message, address, userSession);
       
       // 保存地址信息到临时状态，用于货币切换

@@ -47,25 +47,25 @@ router.get('/orders/:orderId/energy-usage',
       
       let sqlQuery = `
         SELECT 
-          id, order_id, user_address, energy_before, energy_after, 
-          energy_consumed, transaction_hash, usage_time, detection_time,
-          created_at, updated_at
+          id, order_id, user_address, energy_amount as energy_consumed, 
+          transaction_hash, usage_timestamp as usage_time, detection_method,
+          created_at, block_number
         FROM energy_usage_logs 
         WHERE order_id = $1
       `;
       const params: any[] = [req.params.orderId];
       
       if (startTime) {
-        sqlQuery += ` AND usage_time >= $${params.length + 1}`;
+        sqlQuery += ` AND usage_timestamp >= $${params.length + 1}`;
         params.push(startTime);
       }
       
       if (endTime) {
-        sqlQuery += ` AND usage_time <= $${params.length + 1}`;
+        sqlQuery += ` AND usage_timestamp <= $${params.length + 1}`;
         params.push(endTime);
       }
       
-      sqlQuery += ` ORDER BY usage_time DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      sqlQuery += ` ORDER BY usage_timestamp DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
       params.push(limit, offset);
       
       const result = await dbQuery(sqlQuery, params);
@@ -75,12 +75,12 @@ router.get('/orders/:orderId/energy-usage',
       const countParams: any[] = [req.params.orderId];
       
       if (startTime) {
-        countQuery += ` AND usage_time >= $${countParams.length + 1}`;
+        countQuery += ` AND usage_timestamp >= $${countParams.length + 1}`;
         countParams.push(startTime);
       }
       
       if (endTime) {
-        countQuery += ` AND usage_time <= $${countParams.length + 1}`;
+        countQuery += ` AND usage_timestamp <= $${countParams.length + 1}`;
         countParams.push(endTime);
       }
       
@@ -119,7 +119,7 @@ router.get('/users/:userId/energy-usage/stats',
   authenticateToken,
   [
     param('userId')
-      .isInt({ min: 1 })
+      .isUUID()
       .withMessage('Valid user ID is required'),
     query('startTime')
       .optional()
@@ -134,18 +134,18 @@ router.get('/users/:userId/energy-usage/stats',
   async (req, res) => {
     try {
       const { query: dbQuery } = await import('../../database/index');
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const startTime = req.query.startTime as string;
       const endTime = req.query.endTime as string;
       
       let sqlQuery = `
         SELECT 
           COUNT(*) as total_usage_count,
-          COALESCE(SUM(eul.energy_consumed), 0) as total_energy_consumed,
-          COALESCE(AVG(eul.energy_consumed), 0) as avg_energy_per_usage,
+          COALESCE(SUM(eul.energy_amount), 0) as total_energy_consumed,
+          COALESCE(AVG(eul.energy_amount), 0) as avg_energy_per_usage,
           COUNT(DISTINCT eul.order_id) as orders_with_usage,
-          MIN(eul.usage_time) as first_usage_time,
-          MAX(eul.usage_time) as last_usage_time
+          MIN(eul.usage_timestamp) as first_usage_time,
+          MAX(eul.usage_timestamp) as last_usage_time
         FROM energy_usage_logs eul
         INNER JOIN orders o ON eul.order_id = o.id
         WHERE o.user_id = $1 AND o.order_type = 'transaction_package'
@@ -153,12 +153,12 @@ router.get('/users/:userId/energy-usage/stats',
       const params: any[] = [userId];
       
       if (startTime) {
-        sqlQuery += ` AND eul.usage_time >= $${params.length + 1}`;
+        sqlQuery += ` AND eul.usage_timestamp >= $${params.length + 1}`;
         params.push(startTime);
       }
       
       if (endTime) {
-        sqlQuery += ` AND eul.usage_time <= $${params.length + 1}`;
+        sqlQuery += ` AND eul.usage_timestamp <= $${params.length + 1}`;
         params.push(endTime);
       }
       

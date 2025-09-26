@@ -6,10 +6,10 @@
 import { query } from '../../../database/index';
 import { orderLogger } from '../../../utils/logger';
 import type {
-  EnergyConfig,
-  FlashRentConfig,
-  FlashRentTransaction,
-  OrderCalculation
+    EnergyConfig,
+    FlashRentConfig,
+    FlashRentTransaction,
+    OrderCalculation
 } from './types';
 
 export class FlashRentOrderCreator {
@@ -44,10 +44,10 @@ export class FlashRentOrderCreator {
         `INSERT INTO orders (
           order_number, user_id, network_id, order_type, target_address,
           energy_amount, price, payment_trx_amount, calculated_units,
-          payment_status, status, tron_tx_hash, 
+          payment_status, status, tron_tx_hash, payment_currency,
           source_address, flash_rent_duration, error_message, processing_started_at,
           processing_details, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
         [
           orderNumber,
           tempUserId,
@@ -61,6 +61,7 @@ export class FlashRentOrderCreator {
           'paid', // 支付状态：已支付（能检测到交易说明已付款）
           'pending', // 订单状态：待处理
           txID,
+          'TRX', // payment_currency: 能量闪租默认使用TRX支付
           fromAddress, // source_address: 支付来源地址
           flashRentDuration, // flash_rent_duration: 闪租时长（分钟）
           null, // 初始创建时无错误信息
@@ -144,10 +145,10 @@ export class FlashRentOrderCreator {
         `INSERT INTO orders (
           order_number, user_id, network_id, order_type, target_address,
           energy_amount, price, payment_trx_amount, calculated_units,
-          payment_status, status, tron_tx_hash, 
+          payment_status, status, tron_tx_hash, payment_currency,
           source_address, flash_rent_duration, error_message, processing_started_at,
           processing_details, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
         [
           orderNumber,
           tempUserId,
@@ -161,6 +162,7 @@ export class FlashRentOrderCreator {
           'paid', // 用户已支付
           'failed', // 订单状态为失败
           txID,
+          'TRX', // payment_currency: 能量闪租默认使用TRX支付
           fromAddress, // source_address: 支付来源地址
           null, // flash_rent_duration: 失败订单没有时长
           `Processing failed: ${error.message}`, // error_message: 详细错误信息

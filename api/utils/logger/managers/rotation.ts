@@ -3,6 +3,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { getLogDir } from '../core/project-root';
 import { cleanupAppLogs, cleanupOldLogs } from '../utils/cleanup';
 
 // 日志轮转管理器
@@ -48,7 +49,8 @@ export class LogRotationManager {
   // 执行清理任务
   private async performCleanup(): Promise<void> {
     try {
-      const logsDir = path.join(process.cwd(), 'logs');
+      // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+      const logsDir = getLogDir('');
       
       if (!fs.existsSync(logsDir)) {
         return;
@@ -74,7 +76,8 @@ export class LogRotationManager {
   
   // 获取日志统计信息
   getLogStats(): {totalSize: number, fileCount: number, oldestLog: Date | null, newestLog: Date | null} {
-    const logsDir = path.join(process.cwd(), 'logs');
+    // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+    const logsDir = getLogDir('');
     let totalSize = 0;
     let fileCount = 0;
     let oldestLog: Date | null = null;

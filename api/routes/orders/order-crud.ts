@@ -3,15 +3,7 @@ import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../../middleware/auth';
 import { handleValidationErrors } from '../../middleware/validation';
 import { orderService } from '../../services/order';
-
-interface CreateOrderRequest {
-  userId: number;
-  priceConfigId: number;  // 替换packageId为priceConfigId，关联price_configs表
-  energyAmount: number;
-  durationHours: number;
-  priceTrx: number;
-  recipientAddress: string;
-}
+import type { CreateOrderRequest } from '../../services/order/types';
 
 const router: Router = Router();
 
@@ -49,8 +41,8 @@ router.post('/',
         priceConfigId: req.body.priceConfigId || req.body.packageId, // 兼容旧的packageId字段
         energyAmount: req.body.energyAmount,
         durationHours: req.body.durationHours,
-        priceTrx: req.body.priceTrx,
-        recipientAddress: req.body.recipientAddress
+        price: req.body.price || req.body.priceTrx,
+        targetAddress: req.body.targetAddress || req.body.recipientAddress
       };
 
       const order = await orderService.createOrder(orderRequest);
@@ -242,7 +234,7 @@ router.get('/user/:userId',
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const orders = await orderService.getUserOrders(userId, limit, offset);
+      const orders = await orderService.getUserOrders(userId.toString(), limit, offset);
 
       res.json({
         success: true,

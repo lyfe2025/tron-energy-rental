@@ -3,24 +3,25 @@
  */
 
 export interface CreateOrderRequest {
-  userId: number;
+  userId: string;  // UUID类型
   priceConfigId: number;  // 替换packageId为priceConfigId，关联price_configs表
   energyAmount: number;
   durationHours: number;
-  priceTrx: number;
-  recipientAddress: string;
+  price: number;  // 订单价格（TRX）
+  targetAddress: string;  // 目标地址
 }
 
 export interface Order {
-  id: number;
+  id: string;  // UUID类型
   order_number: string;
-  user_id: number;
+  user_id: string;  // UUID类型
   price_config_id?: number;  // 替换package_id为price_config_id，关联price_configs表
   energy_amount: number;
   duration_hours?: number;   // 可选，因为闪租订单可能不需要
-  price_trx: number;
-  recipient_address: string;
+  price: number;  // 订单价格（TRX）
+  target_address: string;  // 目标地址
   status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'manually_completed' | 'failed' | 'cancelled' | 'expired' | 'pending_delegation';
+  payment_status?: 'unpaid' | 'paid' | 'refunded'; // 支付状态，与数据库约束一致
   payment_address?: string;
   payment_amount?: number;
   payment_tx_hash?: string;
@@ -50,6 +51,7 @@ export interface Order {
   last_energy_usage_time?: Date; // 最后能量使用时间
   next_delegation_time?: Date;   // 下次代理时间
   daily_fee_last_check?: Date;   // 占费最后检查时间
+  payment_currency: 'USDT' | 'TRX'; // 支付货币类型（必填）
 }
 
 export interface OrderStats {

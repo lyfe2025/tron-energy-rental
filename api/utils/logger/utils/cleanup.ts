@@ -3,11 +3,12 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { getLogDir } from '../core/project-root';
 // 避免循环引用，不导入 systemLogger
 
 // 日志清理工具
 export async function cleanupOldLogs(botId: string, daysToKeep: number = 30): Promise<void> {
-  const logDir = path.join(process.cwd(), 'logs', 'bots', botId.toString());
+  const logDir = getLogDir(`bots/${botId}`);
   
   if (!fs.existsSync(logDir)) {
     return;
@@ -31,7 +32,7 @@ export async function cleanupOldLogs(botId: string, daysToKeep: number = 30): Pr
 
 // 清理应用日志
 export async function cleanupAppLogs(): Promise<void> {
-  const logsDir = path.join(process.cwd(), 'logs');
+  const logsDir = getLogDir('');
   const files = fs.readdirSync(logsDir).filter(file => file.startsWith('app-') && file.endsWith('.log'));
   
   const cutoffDate = new Date();

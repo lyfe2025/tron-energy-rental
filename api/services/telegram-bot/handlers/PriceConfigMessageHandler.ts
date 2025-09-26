@@ -7,6 +7,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { query } from '../../../config/database.ts';
+import { TransactionPackageOrderService } from '../../order/TransactionPackageOrderService.ts';
 import { StateManager } from '../core/StateManager.ts';
 import { WebhookURLService } from '../utils/WebhookURLService.ts';
 
@@ -17,11 +18,13 @@ export class PriceConfigMessageHandler {
   private bot: TelegramBot;
   private botId: string;
   private stateManager?: StateManager;
+  private transactionPackageOrderService: TransactionPackageOrderService;
 
   constructor(bot: TelegramBot, botId: string, stateManager?: StateManager) {
     this.bot = bot;
     this.botId = botId;
     this.stateManager = stateManager;
+    this.transactionPackageOrderService = new TransactionPackageOrderService();
   }
 
   /**
@@ -51,8 +54,12 @@ export class PriceConfigMessageHandler {
         sessionData: userSession?.contextData
       });
 
-      if (userSession && userSession.currentState === 'waiting_address_input') {
+      if (userSession && (userSession.currentState === 'waiting_address_input' || userSession.currentState === 'waiting_tron_address')) {
         console.log('🏠 开始处理地址输入 (PriceConfigMessageHandler):', text);
+        if (userSession.currentState === 'waiting_tron_address') {
+          // 将TRON地址绑定的处理委托给CommandHandler
+          return false; // 让CommandHandler处理
+        }
         return await this.handleAddressInput(message, text, userSession);
       }
     }
@@ -436,15 +443,17 @@ export class PriceConfigMessageHandler {
   private async generateOrderConfirmation(message: any, address: string, userSession: any): Promise<void> {
     try {
       const contextData = userSession.contextData;
+      let realOrderNumber: string | null = null; // 用于存储真正的订单号
+      
       console.log('📋 生成订单确认信息 (PriceConfigMessageHandler):', {
         orderType: contextData.orderType,
         transactionCount: contextData.transactionCount,
         address: address.substring(0, 10) + '...'
       });
 
-      // 从数据库获取订单确认模板
+      // 从数据库获取订单确认模板和配置ID
       const configResult = await query(
-        'SELECT config FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
+        'SELECT id, config FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
         [contextData.orderType]
       );
 
@@ -475,6 +484,93 @@ export class PriceConfigMessageHandler {
       if (contextData.orderType === 'transaction_package') {
         // 笔数套餐确认信息
         confirmationText = this.formatTransactionPackageConfirmation(config, contextData, address, confirmationTemplate);
+        
+        // 🎯 重要：在确认信息生成的同时创建笔数套餐订单
+        console.log('📝 [笔数套餐] 创建订单中...');
+        try {
+          // 从packages数组中找到对应笔数的套餐价格
+          const transactionCount = parseInt(contextData.transactionCount);
+          const selectedPackage = config.packages?.find((pkg: any) => pkg.transaction_count === transactionCount);
+          
+          if (!selectedPackage) {
+            throw new Error(`未找到 ${transactionCount} 笔的套餐配置`);
+          }
+
+          // 🎯 与确认信息逻辑保持一致：优先使用TRX，然后才是USDT
+          const trxTemplate = config?.order_config?.confirmation_template_trx;
+          let paymentCurrency: string;
+          let totalPrice: number;
+          let unitPrice: number;
+          
+          if (trxTemplate) {
+            // 使用TRX价格和货币
+            paymentCurrency = 'TRX';
+            if (selectedPackage.trx_unit_price && selectedPackage.trx_price) {
+              unitPrice = selectedPackage.trx_unit_price;
+              totalPrice = selectedPackage.trx_price;
+            } else {
+              // 回退到汇率计算
+              const rate = 6.5; // 默认汇率
+              unitPrice = selectedPackage.unit_price * rate;
+              totalPrice = selectedPackage.price * rate;
+            }
+            console.log('📝 [笔数套餐] 使用TRX价格创建订单:', { unitPrice, totalPrice });
+          } else {
+            // 使用USDT价格和货币
+            paymentCurrency = 'USDT';
+            totalPrice = selectedPackage.price || 0;
+            unitPrice = selectedPackage.unit_price || 0;
+            console.log('📝 [笔数套餐] 使用USDT价格创建订单:', { unitPrice, totalPrice });
+          }
+
+          console.log('📦 [笔数套餐] 找到套餐配置:', {
+            name: selectedPackage.name,
+            paymentCurrency: paymentCurrency,
+            price: totalPrice,
+            unitPrice: unitPrice,
+            transactionCount: selectedPackage.transaction_count
+          });
+
+          const orderRequest = {
+            userId: message.from?.id?.toString() || '0',
+            priceConfigId: parseInt(configResult.rows[0].id || '0'),
+            price: totalPrice,
+            targetAddress: address,
+            transactionCount: transactionCount,
+            networkId: contextData.networkId, // 移除默认值，让服务内部处理
+            paymentCurrency: paymentCurrency as 'USDT' | 'TRX', // 传递支付货币类型
+            botId: this.botId // 添加机器人ID
+          };
+
+          console.log('📝 [笔数套餐] 订单请求参数:', {
+            userId: orderRequest.userId,
+            priceConfigId: orderRequest.priceConfigId,
+            price: orderRequest.price,
+            targetAddress: orderRequest.targetAddress,
+            transactionCount: orderRequest.transactionCount,
+            networkId: orderRequest.networkId
+          });
+
+          const createdOrder = await this.transactionPackageOrderService.createTransactionPackageOrder(orderRequest);
+          
+          console.log('✅ [笔数套餐] 订单创建成功:', {
+            orderNumber: createdOrder.order_number,
+            orderId: createdOrder.id,
+            userId: message.from?.id,
+            transactionCount: contextData.transactionCount,
+            totalPrice: totalPrice
+          });
+
+          // 🔧 重要：使用真正的订单号来生成回调数据
+          realOrderNumber = createdOrder.order_number;
+          
+        } catch (createError) {
+          console.error('❌ [笔数套餐] 订单创建异常:', createError);
+          console.error('❌ [笔数套餐] 错误详情:', {
+            message: createError.message,
+            stack: createError.stack
+          });
+        }
       } else {
         // 其他订单类型的确认信息
         confirmationText = confirmationTemplate || '✅ 订单确认信息';
@@ -484,14 +580,17 @@ export class PriceConfigMessageHandler {
       const messageOptions: any = { parse_mode: 'Markdown' };
       
       if (config?.order_config?.inline_keyboard?.enabled) {
-        // 补充contextData中的用户信息
+        // 补充contextData中的用户信息，包含真正的订单号
         const extendedContextData = {
           ...contextData,
           userId: message.from?.id,
-          chatId: message.chat.id
+          chatId: message.chat.id,
+          realOrderNumber: realOrderNumber // 传递真正的订单号
         };
         
-        const keyboard = this.buildConfirmationInlineKeyboard(config.order_config.inline_keyboard, extendedContextData);
+        // 🎯 检查当前使用的模板类型，调整键盘按钮
+        const usingTrxTemplate = !!(config?.order_config?.confirmation_template_trx);
+        const keyboard = this.buildConfirmationInlineKeyboard(config.order_config.inline_keyboard, extendedContextData, usingTrxTemplate);
         if (keyboard && keyboard.length > 0) {
           messageOptions.reply_markup = {
             inline_keyboard: keyboard
@@ -515,9 +614,26 @@ export class PriceConfigMessageHandler {
    * 格式化笔数套餐确认信息
    */
   private formatTransactionPackageConfirmation(config: any, contextData: any, address: string, confirmationTemplate?: string): string {
-    // 直接使用传入的确认模板
-    if (!confirmationTemplate) {
-      console.error('❌ 数据库中未配置订单确认模板');
+    // 🎯 优先使用TRX模板，如果没有配置则回退到USDT模板
+    const trxTemplate = config?.order_config?.confirmation_template_trx;
+    const usdtTemplate = confirmationTemplate || config?.order_config?.confirmation_template;
+    
+    // 默认使用TRX模板，如果没有则使用USDT模板
+    let template: string;
+    let paymentCurrency: string;
+    
+    if (trxTemplate) {
+      template = trxTemplate;
+      paymentCurrency = 'TRX';
+      console.log('📝 使用TRX确认模板 (默认)');
+    } else {
+      template = usdtTemplate;
+      paymentCurrency = 'USDT';
+      console.log('📝 使用USDT确认模板 (回退)');
+    }
+    
+    if (!template) {
+      console.error('❌ 数据库中未配置订单确认模板', { paymentCurrency });
       return '❌ 订单确认信息配置缺失，请联系管理员。';
     }
 
@@ -530,25 +646,47 @@ export class PriceConfigMessageHandler {
       return '❌ 套餐配置错误，请重新选择。';
     }
 
+    // 🎯 根据选择的模板计算价格
+    let unitPrice: string;
+    let totalPrice: string;
+    
+    if (paymentCurrency === 'TRX') {
+      // 使用TRX价格
+      if (selectedPackage.trx_unit_price && selectedPackage.trx_price) {
+        unitPrice = selectedPackage.trx_unit_price.toFixed(4);
+        totalPrice = selectedPackage.trx_price.toFixed(2);
+      } else {
+        // 回退到汇率计算
+        const rate = 6.5; // 默认汇率
+        unitPrice = (selectedPackage.unit_price * rate).toFixed(4);
+        totalPrice = (selectedPackage.price * rate).toFixed(2);
+      }
+      console.log('📋 使用TRX价格:', { unitPrice, totalPrice });
+    } else {
+      // 使用USDT价格
+      unitPrice = selectedPackage.unit_price?.toString() || '0';
+      totalPrice = selectedPackage.price?.toString() || '0';
+      console.log('📋 使用USDT价格:', { unitPrice, totalPrice });
+    }
+
     console.log('📦 找到的套餐信息:', {
       name: selectedPackage.name,
-      price: selectedPackage.price,
-      unitPrice: selectedPackage.unit_price,
+      paymentCurrency: paymentCurrency,
+      unitPrice: unitPrice,
+      totalPrice: totalPrice,
       transactionCount: selectedPackage.transaction_count
     });
-
-    let template = confirmationTemplate;
 
     // 替换基础占位符
     template = template.replace(/{transactionCount}/g, contextData.transactionCount || '');
     template = template.replace(/{address}/g, address || '');
     template = template.replace(/{userAddress}/g, address || '');
     
-    // 替换价格相关占位符
-    template = template.replace(/{unitPrice}/g, selectedPackage.unit_price?.toString() || '0');
-    template = template.replace(/{price}/g, selectedPackage.price?.toString() || '0');
+    // 替换价格相关占位符（使用对应货币的价格）
+    template = template.replace(/{unitPrice}/g, unitPrice);
+    template = template.replace(/{price}/g, totalPrice);
     // 添加monospace格式让金额可以在Telegram中点击复制
-    template = template.replace(/{totalAmount}/g, `\`${selectedPackage.price?.toString() || '0'}\``);
+    template = template.replace(/{totalAmount}/g, `\`${totalPrice}\``);
 
     // 替换支付地址（添加monospace格式）
     const paymentAddress = config.order_config?.payment_address;
@@ -575,7 +713,7 @@ export class PriceConfigMessageHandler {
   /**
    * 构建订单确认内嵌键盘
    */
-  private buildConfirmationInlineKeyboard(keyboardConfig: any, contextData: any): any[] {
+  private buildConfirmationInlineKeyboard(keyboardConfig: any, contextData: any, usingTrxTemplate: boolean = false): any[] {
     if (!keyboardConfig?.buttons || !Array.isArray(keyboardConfig.buttons)) {
       return [];
     }
@@ -587,10 +725,41 @@ export class PriceConfigMessageHandler {
       const row: any[] = [];
       
       for (let j = 0; j < buttonsPerRow && (i + j) < keyboardConfig.buttons.length; j++) {
-        const buttonConfig = keyboardConfig.buttons[i + j];
+        let buttonConfig = keyboardConfig.buttons[i + j];
         
-        // 构建callback_data，添加用户和订单信息
-        const callbackData = this.buildCallbackData(buttonConfig.callback_data, contextData);
+        // 🎯 如果当前显示的是TRX版本，调整按钮文本和回调数据
+        if (usingTrxTemplate && buttonConfig.callback_data === 'switch_currency_trx') {
+          buttonConfig = {
+            ...buttonConfig,
+            text: '💵 切换 USDT 支付',
+            callback_data: 'switch_currency_usdt'
+          };
+          console.log('📋 调整按钮:', { original: 'switch_currency_trx', adjusted: 'switch_currency_usdt' });
+        }
+        
+        // 构建callback_data，优先使用真正的订单号
+        let callbackData: string;
+        if (contextData.realOrderNumber) {
+          // 使用真正的订单号生成回调数据
+          callbackData = this.buildCallbackDataWithOrderNumber(
+            buttonConfig.callback_data,
+            contextData.realOrderNumber,
+            contextData.userId?.toString() || '',
+            contextData.transactionCount?.toString() || ''
+          );
+          console.log('🔧 使用真正的订单号生成回调数据:', { 
+            buttonType: buttonConfig.callback_data,
+            orderNumber: contextData.realOrderNumber,
+            callbackData 
+          });
+        } else {
+          // 向后兼容：使用旧的临时标识符
+          callbackData = this.buildCallbackData(buttonConfig.callback_data, contextData);
+          console.log('⚠️ 使用临时标识符生成回调数据:', { 
+            buttonType: buttonConfig.callback_data,
+            callbackData 
+          });
+        }
         
         row.push({
           text: buttonConfig.text,
@@ -605,7 +774,14 @@ export class PriceConfigMessageHandler {
   }
 
   /**
-   * 构建回调数据
+   * 构建回调数据（使用真正的订单号）
+   */
+  private buildCallbackDataWithOrderNumber(baseCallback: string, orderNumber: string, userId: string, transactionCount: string): string {
+    return `${baseCallback}_${orderNumber}_${userId}_${transactionCount}`;
+  }
+
+  /**
+   * 构建回调数据（向后兼容的旧版本，当没有真正订单号时使用）
    */
   private buildCallbackData(baseCallback: string, contextData: any): string {
     const timestamp = Date.now();

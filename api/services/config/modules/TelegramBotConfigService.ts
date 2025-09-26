@@ -43,6 +43,7 @@ export class TelegramBotConfigService {
         webhookSecret: row.webhook_secret,
         maxConnections: row.max_connections || 40,
         isActive: row.is_active,
+        networkId: row.network_id,  // 🔧 添加缺失的 networkId 字段
         networkConfig: row.network_config,
         webhookConfig: row.webhook_config,
         messageTemplates: row.message_templates,
@@ -92,6 +93,7 @@ export class TelegramBotConfigService {
         webhookSecret: row.webhook_secret,
         maxConnections: row.max_connections || 40,
         isActive: row.is_active,
+        networkId: row.network_id,  // 🔧 添加缺失的 networkId 字段
         networkConfig: row.network_config,
         webhookConfig: row.webhook_config,
         messageTemplates: row.message_templates,

@@ -20,9 +20,6 @@ CHECK (status::text = ANY (ARRAY[
   'manually_completed'::character varying::text
 ]));
 
--- 添加注释说明新状态的含义
-COMMENT ON COLUMN orders.status IS '订单状态：pending(待处理), processing(处理中), completed(自动完成), manually_completed(手动补单完成), failed(失败), cancelled(已取消), refunded(已退款), pending_delegation(等待委托)';
-
 -- 创建索引以优化按状态查询的性能（如果不存在的话）
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 

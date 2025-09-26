@@ -92,4 +92,44 @@ export class TronGridApiClient {
       isValid: this.networkProvider.isConfigValid()
     };
   }
+
+  /**
+   * 获取账户的TRC20代币交易记录
+   */
+  async getAccountTrc20Transactions(address: string, limit: number = 100): Promise<any> {
+    try {
+      const url = `/v1/accounts/${address}/transactions/trc20?limit=${limit}`;
+      const response = await this.makeRequest(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[TronGridApiClient] TRC20 API响应错误: ${response.status} ${response.statusText}`, errorText);
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          data: []
+        };
+      }
+      
+      const data = await response.json();
+      
+      return {
+        success: true,
+        data: data.data || []
+      };
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      console.error(`[TronGridApiClient] 获取TRC20交易失败:`, {
+        error: errorMessage,
+        stack: error?.stack,
+        address,
+        limit
+      });
+      return {
+        success: false,
+        error: errorMessage,
+        data: []
+      };
+    }
+  }
 }

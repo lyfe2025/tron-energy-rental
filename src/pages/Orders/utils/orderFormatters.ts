@@ -41,29 +41,74 @@ interface OrderForPrice {
   payment_trx_amount?: string | number
   price_trx?: number
   price?: number | string
+  payment_currency?: 'USDT' | 'TRX'
+}
+
+/**
+ * 智能确定小数位数
+ * @param value 数值
+ * @param currency 货币类型
+ * @returns 合适的小数位数
+ */
+const getOptimalDecimalPlaces = (value: number, currency?: string): number => {
+  // 对于USDT，支持更高精度显示
+  if (currency === 'USDT') {
+    // 如果是整数，显示2位小数
+    if (value % 1 === 0) return 2
+    
+    // 如果有小数部分，自动选择合适的精度
+    const str = value.toString()
+    const decimalPart = str.split('.')[1]
+    if (!decimalPart) return 2
+    
+    // 移除末尾的0，获取有效小数位数
+    const trimmed = decimalPart.replace(/0+$/, '')
+    return Math.min(Math.max(trimmed.length, 2), 6) // 最少2位，最多6位
+  }
+  
+  // 对于TRX和其他货币，支持更灵活的精度显示
+  // 如果数值有3位或更多有效小数位，则显示3位小数
+  if (value % 1 !== 0) {
+    const str = value.toString()
+    const decimalPart = str.split('.')[1]
+    if (decimalPart && decimalPart.length >= 3) {
+      const trimmed = decimalPart.replace(/0+$/, '')
+      if (trimmed.length >= 3) {
+        return Math.min(trimmed.length, 6) // 最多6位小数
+      }
+    }
+  }
+  
+  // 默认2位小数
+  return 2
 }
 
 export const formatPrice = (order: OrderForPrice): string => {
+  const currency = order.payment_currency || 'TRX'
+  
   // 优先使用实际支付金额
   if (order.payment_trx_amount) {
     const amount = typeof order.payment_trx_amount === 'string' 
       ? parseFloat(order.payment_trx_amount) 
       : order.payment_trx_amount
     if (!isNaN(amount) && amount > 0) {
-      return amount.toFixed(2)
+      const decimals = getOptimalDecimalPlaces(amount, currency)
+      return amount.toFixed(decimals)
     }
   }
   
   // 其次使用price_trx
   if (order.price_trx && order.price_trx > 0) {
-    return order.price_trx.toFixed(2)
+    const decimals = getOptimalDecimalPlaces(order.price_trx, currency)
+    return order.price_trx.toFixed(decimals)
   }
   
   // 最后使用price
   if (order.price) {
     const price = typeof order.price === 'string' ? parseFloat(order.price) : order.price
     if (!isNaN(price) && price > 0) {
-      return price.toFixed(2)
+      const decimals = getOptimalDecimalPlaces(price, currency)
+      return price.toFixed(decimals)
     }
   }
   
@@ -158,27 +203,35 @@ interface OrderForAmount {
   price?: number
   payment_trx_amount?: string | number
   payment_amount?: number
+  payment_currency?: 'USDT' | 'TRX'
 }
 
 export const getOrderAmount = (order: OrderForAmount): string => {
+  const currency = order.payment_currency || 'TRX'
+  
   // 按优先级顺序获取价格：payment_trx_amount > price_trx > payment_amount > price
   if (order.payment_trx_amount) {
     const amount = typeof order.payment_trx_amount === 'string' 
       ? parseFloat(order.payment_trx_amount) 
       : order.payment_trx_amount
-    return amount.toFixed(2)
+    const decimals = getOptimalDecimalPlaces(amount, currency)
+    return amount.toFixed(decimals)
   }
   
   if (order.price_trx) {
-    return order.price_trx.toFixed(2)
+    const decimals = getOptimalDecimalPlaces(order.price_trx, currency)
+    return order.price_trx.toFixed(decimals)
   }
   
   if (order.payment_amount) {
-    return order.payment_amount.toFixed(2)
+    const decimals = getOptimalDecimalPlaces(order.payment_amount, currency)
+    return order.payment_amount.toFixed(decimals)
   }
   
   if (order.price) {
-    return parseFloat(order.price.toString()).toFixed(2)
+    const price = parseFloat(order.price.toString())
+    const decimals = getOptimalDecimalPlaces(price, currency)
+    return price.toFixed(decimals)
   }
   
   return '0.00'

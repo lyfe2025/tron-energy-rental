@@ -69,8 +69,8 @@ export class StatusManager {
       }
 
       const order = result.rows[0]
-      const config = await this.priceConfigService.getTransactionPackageConfig()
-      const energyPerTransaction = config?.single_transaction_energy || 65000
+      // 从订单计算单笔能量（基于后台配置）
+      const energyPerTransaction = Math.floor(order.energy_amount / order.transaction_count)
 
       // 检查是否可以进行代理
       const canDelegate = await this.canDelegateNow(order)

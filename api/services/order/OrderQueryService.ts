@@ -9,7 +9,7 @@ export class OrderQueryService {
   /**
    * 获取订单详情
    */
-  async getOrderById(orderId: number): Promise<Order | null> {
+  async getOrderById(orderId: string): Promise<Order | null> {
     try {
       const result = await query(
         `SELECT 
@@ -36,7 +36,7 @@ export class OrderQueryService {
    * 获取用户订单列表
    */
   async getUserOrders(
-    userId: number, 
+    userId: string,  // UUID类型
     limit: number = 20, 
     offset: number = 0
   ): Promise<Order[]> {
@@ -97,7 +97,7 @@ export class OrderQueryService {
    */
   async searchOrders(
     searchQuery: {
-      userId?: number;
+      userId?: string;  // UUID类型
       status?: Order['status'];
       recipientAddress?: string;
       txHash?: string;

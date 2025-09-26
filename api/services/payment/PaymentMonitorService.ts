@@ -149,7 +149,7 @@ export class PaymentMonitorService {
 
       // 更新订单状态
       const orderService = await getOrderService();
-      await orderService.handlePaymentConfirmed(parseInt(orderId), txid, amount);
+      await orderService.handlePaymentConfirmed(orderId, txid, amount);
       
       console.log(`Payment confirmed for order ${orderId}: ${txid}`);
     } catch (error) {
@@ -190,7 +190,7 @@ export class PaymentMonitorService {
 
       // 获取订单信息
       const orderService = await getOrderService();
-      const order = await orderService.getOrderById(parseInt(orderId));
+      const order = await orderService.getOrderById(orderId);
       if (!order) {
         console.error('Order not found:', orderId);
         return false;
@@ -200,7 +200,7 @@ export class PaymentMonitorService {
       this.stopPaymentMonitoring(orderId);
       
       // 确认支付
-      await this.handlePaymentConfirmed(orderId, txid, order.price_trx);
+      await this.handlePaymentConfirmed(orderId, txid, order.price);
       
       return true;
     } catch (error) {

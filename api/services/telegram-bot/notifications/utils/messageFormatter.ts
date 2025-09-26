@@ -66,10 +66,15 @@ export function formatTransactionHash(hash: string, showLength: number = 8): str
 export function formatOrderStatus(status: string): string {
   const statusMap: { [key: string]: string } = {
     'pending': '待处理',
+    'paid': '已支付',
     'processing': '处理中',
+    'active': '已支付活跃',
     'completed': '已完成',
+    'manually_completed': '手动补单完成',
     'failed': '失败',
     'cancelled': '已取消',
+    'expired': '已过期',
+    'pending_delegation': '等待委托',
     'refunded': '已退款'
   };
   

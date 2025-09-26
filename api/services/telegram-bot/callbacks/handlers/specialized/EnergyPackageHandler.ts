@@ -106,11 +106,11 @@ export class EnergyPackageHandler {
 
       // 创建订单
       const orderData: CreateOrderRequest = {
-        userId: parseInt(user.id),
+        userId: user.id,
         priceConfigId: parseInt(packageInfo.id),
         energyAmount: packageInfo.energy,
-        priceTrx: packageInfo.price,
-        recipientAddress: user.tron_address!,
+        price: packageInfo.price,
+        targetAddress: user.tron_address!,
         durationHours: packageInfo.duration
       };
 

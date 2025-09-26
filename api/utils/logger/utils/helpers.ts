@@ -3,12 +3,13 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { getLogDir } from '../core/project-root';
 import type { LogMetadata } from '../core/types';
 import { LOG_CATEGORIES } from '../core/types';
 
 // 获取机器人日志文件列表
 export function getBotLogFiles(botId: string): Array<{name: string, path: string, size: number, mtime: Date}> {
-  const logDir = path.join(process.cwd(), 'logs', 'bots', botId.toString());
+  const logDir = getLogDir(`bots/${botId}`);
   
   if (!fs.existsSync(logDir)) {
     return [];

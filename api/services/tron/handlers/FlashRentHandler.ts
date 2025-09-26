@@ -60,7 +60,15 @@ export class FlashRentHandler {
       await this.tronService.setPoolAccountPrivateKey(selectedAccount.id);
 
       try {
-        // 3. 执行能量代理
+        // 3. 代理前最终验证可代理余额
+        console.log(`🔍 [代理前验证] 对选中账户进行最终余额验证: ${selectedAccount.address}`);
+        const finalDelegateBalance = await this.checkAvailableEnergy(selectedAccount.address, networkId);
+        
+        if (finalDelegateBalance < totalEnergy) {
+          throw new Error(`能量池可用余额不足: ${selectedAccount.address} 可代理${finalDelegateBalance}能量，需要${totalEnergy}能量`);
+        }
+
+        // 4. 执行能量代理
           // 🔧 正确的能量到TRX换算逻辑（参考能量池管理-质押管理-代理资源实现）
           // 公式：能量数量 → TRX数量 → SUN单位
           const energyPerTrx = 76.2; // 系统固定比例：76.2 ENERGY per TRX
@@ -117,7 +125,7 @@ export class FlashRentHandler {
         return delegationResult.txid!;
 
       } finally {
-        // 4. 恢复默认私钥
+        // 5. 恢复默认私钥
         console.log(`🔄 [闪租代理] 恢复默认私钥`);
         await this.tronService.restoreDefaultPrivateKey();
       }
@@ -130,6 +138,12 @@ export class FlashRentHandler {
         网络ID: networkId,
         错误栈: error.stack
       });
+      
+      // 提供更友好的错误信息
+      if (error.message.includes('能量池可用余额不足')) {
+        throw new Error(`能量池可用余额不足\n${error.message}\n\n建议处理方式：\n• 能量池账户需要有足够的质押TRX余额\n• 请检查并补充能量池资源\n• 或等待其他订单释放能量后重试`);
+      }
+      
       throw error;
     }
   }
@@ -142,10 +156,7 @@ export class FlashRentHandler {
     networkId: string
   ): Promise<any> {
     try {
-      console.log(`🔍 [能量池选择] 开始选择能量池账户`, {
-        需要能量: requiredEnergy,
-        网络ID: networkId
-      });
+      console.log(`🔍 [能量池选择] 查找合适能量池 (需要: ${requiredEnergy} 能量)`);
 
       // 按优先级查询能量池账户
       // 注意：total_energy, available_energy 字段已移除，现在从TRON网络实时获取
@@ -178,11 +189,7 @@ export class FlashRentHandler {
         // 立即获取该账户的实时TRON数据
         try {
           const realTimeEnergy = await this.checkAvailableEnergy(account.tron_address, networkId);
-          console.log(`    📊 实时TRON数据:`, {
-            实时可用能量: realTimeEnergy,
-            数据源: 'TRON官方API',
-            备注: '数据库中已不存储能量字段'
-          });
+          console.log(`    📊 实时TRON数据: { '实时可用能量': ${realTimeEnergy}, '数据源': 'TRON官方API', '备注': '数据库中已不存储能量字段' }`);
         } catch (error) {
           console.warn(`    ⚠️ 获取实时数据失败: ${error.message}`);
         }
@@ -199,13 +206,13 @@ export class FlashRentHandler {
           const realTimeAvailableEnergy = await this.checkAvailableEnergy(account.tron_address, networkId);
           
           console.log(`📊 [能量池选择] 账户 ${account.tron_address} 最终选择检查:`, {
-            账户名称: account.name || '未命名',
-            地址: account.tron_address,
-            需要能量: requiredEnergy,
-            实时可用能量: realTimeAvailableEnergy,
-            是否足够: realTimeAvailableEnergy >= requiredEnergy ? '✅ 足够' : '❌ 不足',
-            差额: realTimeAvailableEnergy - requiredEnergy,
-            检查模式: '最终决策检查（仅使用实时数据）'
+            '账户名称': account.name || '未命名',
+            '地址': account.tron_address,
+            '需要能量': requiredEnergy,
+            '实时可用能量': realTimeAvailableEnergy,
+            '是否足够': realTimeAvailableEnergy >= requiredEnergy ? '✅ 足够' : '❌ 不足',
+            '差额': realTimeAvailableEnergy - requiredEnergy,
+            '检查模式': '最终决策检查（仅使用实时数据）'
           });
           
           if (realTimeAvailableEnergy >= requiredEnergy) {
@@ -255,8 +262,8 @@ export class FlashRentHandler {
   private async checkAvailableEnergy(address: string, networkId: string): Promise<number> {
     try {
       console.log(`🔍 [能量检查] 开始检查账户能量: ${address}`, {
-        网络ID: networkId,
-        检查模式: '按网络配置获取实时数据'
+        '网络ID': networkId,
+        '检查模式': '按网络配置获取实时数据'
       });
       
       // 1. 获取网络配置
@@ -320,17 +327,17 @@ export class FlashRentHandler {
       const availableDelegateTrx = availableDelegateBalance / 1000000; // 转为TRX
 
       console.log(`📊 [能量检查] 账户 ${address} 在网络 ${network.name} 的能量详情:`, {
-        账户地址: address,
-        网络信息: {
+        '账户地址': address,
+        '网络信息': {
           ID: network.id,
-          名称: network.name,
-          类型: network.network_type,
+          '名称': network.name,
+          '类型': network.network_type,
           RPC: network.rpc_url
         },
-        总能量限制: totalEnergyLimit,
-        已使用能量: usedEnergy,
-        可用能量: finalAvailableEnergy,
-        能量使用率: totalEnergyLimit > 0 ? `${((usedEnergy / totalEnergyLimit) * 100).toFixed(1)}%` : '0%',
+        '总能量限制': totalEnergyLimit,
+        '已使用能量': usedEnergy,
+        '可用能量': finalAvailableEnergy,
+        '能量使用率': totalEnergyLimit > 0 ? `${((usedEnergy / totalEnergyLimit) * 100).toFixed(1)}%` : '0%',
         '🔑 代理余额分析': {
           '总质押TRX': (totalStaked / 1000000).toFixed(6),
           '已代理TRX': (delegatedEnergyOut / 1000000).toFixed(6),
@@ -338,13 +345,13 @@ export class FlashRentHandler {
           '可代理SUN': availableDelegateBalance,
           '说明': '可代理余额 = 总质押 - 已代理'
         },
-        资源详情: {
+        '资源详情': {
           '🔋 能量': energyInfo,
           '📶 带宽': resourceData.bandwidth || {}
         }
       });
 
-      // 🔧 重要：返回可代理余额对应的能量（而不是账户可用能量）
+      // 🔧 关键修复：返回可代理余额对应的能量（而不是账户可用能量）
       // 因为TRON代理检查的是FreezeEnergyV2余额，不是可用能量
       const energyPerTrx = 76.2; // 能量换算比例
       const maxDelegatableEnergy = Math.floor(availableDelegateTrx * energyPerTrx);
@@ -353,12 +360,13 @@ export class FlashRentHandler {
         '可代理TRX余额': availableDelegateTrx.toFixed(6),
         '对应最大可代理能量': maxDelegatableEnergy,
         '当前可用能量': finalAvailableEnergy,
-        '实际可代理能量': Math.min(finalAvailableEnergy, maxDelegatableEnergy),
+        '🔧 修复': '现在返回可代理余额限制，不是可用能量',
         '限制因素': maxDelegatableEnergy < finalAvailableEnergy ? '代理余额不足' : '能量余额充足'
       });
 
-      // 返回实际可代理的能量（取可用能量和可代理能量的最小值）
-      return Math.min(finalAvailableEnergy, maxDelegatableEnergy);
+      // 🔧 修复：直接返回可代理余额对应的能量，这才是真正能代理的数量
+      // 不再取最小值，因为代理操作检查的是FreezeEnergyV2余额，不是可用能量
+      return maxDelegatableEnergy;
     } catch (error) {
       console.error(`❌ [能量检查] 检查地址 ${address} 可用能量失败:`, {
         错误消息: error.message,

@@ -20,6 +20,36 @@
       </div>
       
       <div v-if="selectedOrder" class="space-y-4">
+        <!-- 选项卡导航 (仅在笔数套餐订单时显示) -->
+        <div v-if="selectedOrder.order_type === 'transaction_package'" class="border-b border-gray-200">
+          <nav class="-mb-px flex space-x-8">
+            <button
+              @click="activeTab = 'details'"
+              :class="[
+                'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
+                activeTab === 'details'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              订单详情
+            </button>
+            <button
+              @click="activeTab = 'energy_usage'"
+              :class="[
+                'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
+                activeTab === 'energy_usage'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              能量使用记录
+            </button>
+          </nav>
+        </div>
+
+        <!-- 订单详情内容 -->
+        <div v-show="activeTab === 'details'">
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">订单ID</label>
@@ -144,7 +174,51 @@
         
         <div v-if="selectedOrder.error_message">
           <label class="block text-sm font-medium text-gray-700">错误信息</label>
-          <p class="mt-1 text-sm text-red-600 bg-red-50 p-2 rounded">{{ selectedOrder.error_message }}</p>
+          <div class="mt-1 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+              <div class="text-xl">{{ getErrorIcon(formatErrorInfo(selectedOrder.error_message).type) }}</div>
+              <div class="flex-1">
+                <h4 class="text-sm font-medium text-red-800 mb-1">
+                  {{ formatErrorInfo(selectedOrder.error_message).title }}
+                </h4>
+                <p class="text-sm text-red-700 mb-2">
+                  {{ formatErrorInfo(selectedOrder.error_message).description }}
+                </p>
+                <div v-if="formatErrorInfo(selectedOrder.error_message).suggestions?.length" class="space-y-1">
+                  <p class="text-xs font-medium text-red-800">建议处理方式：</p>
+                  <ul class="text-xs text-red-600 space-y-1">
+                    <li 
+                      v-for="(suggestion, index) in formatErrorInfo(selectedOrder.error_message).suggestions" 
+                      :key="index"
+                      class="flex items-start"
+                    >
+                      <span class="inline-block w-3 text-red-400 mr-1">•</span>
+                      <span>{{ suggestion }}</span>
+                    </li>
+                  </ul>
+                </div>
+                <!-- 显示原始错误信息（可折叠） -->
+                <details class="mt-3">
+                  <summary class="text-xs text-red-600 cursor-pointer hover:text-red-700 select-none">
+                    查看技术详情
+                  </summary>
+                  <div class="mt-2 p-2 bg-red-100 rounded text-xs text-red-800 font-mono break-all">
+                    {{ selectedOrder.error_message }}
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <!-- 能量使用记录内容 -->
+        <div v-show="activeTab === 'energy_usage'" class="mt-4">
+          <EnergyUsageRecords 
+            v-if="selectedOrder.order_type === 'transaction_package'"
+            :order-id="selectedOrder.id.toString()"
+            :order="selectedOrder"
+          />
         </div>
       </div>
     </div>
@@ -295,14 +369,16 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import {
-    Copy,
-    ExternalLink,
-    Loader2,
-    X
+  Copy,
+  ExternalLink,
+  Loader2,
+  X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
+import { formatOrderError, getErrorIcon } from '../utils/errorFormatter'
 import { formatNumber, formatPrice } from '../utils/orderFormatters'
+import EnergyUsageRecords from './EnergyUsageRecords.vue'
 
 interface Props {
   showDetailsModal: boolean
@@ -327,6 +403,9 @@ const { success, error } = useToast()
 const newStatus = ref('')
 const txHash = ref('')
 const errorMessage = ref('')
+
+// 选项卡状态
+const activeTab = ref('details')
 
 // 复制状态跟踪
 const copyStates = ref<Record<string, 'idle' | 'copying' | 'success'>>({})
@@ -374,6 +453,18 @@ const formatDateTime = (dateString: string) => {
 
 const viewTransaction = (txHash: string) => {
   window.open(`https://tronscan.org/#/transaction/${txHash}`, '_blank')
+}
+
+// 格式化错误信息
+const formatErrorInfo = (errorMessage: string) => {
+  const orderInfo = props.selectedOrder ? {
+    energy_pool_account_used: props.selectedOrder.energy_pool_account_used,
+    target_address: props.selectedOrder.target_address || props.selectedOrder.recipient_address,
+    recipient_address: props.selectedOrder.recipient_address,
+    energy_amount: props.selectedOrder.energy_amount
+  } : undefined;
+  
+  return formatOrderError(errorMessage, orderInfo)
 }
 
 // 复制到剪贴板功能

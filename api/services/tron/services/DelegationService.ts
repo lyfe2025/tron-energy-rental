@@ -156,16 +156,51 @@ export class DelegationService {
           netUsed: result.net_used
         };
       } else {
+        console.error('❌ [DelegationService] TronWeb交易广播失败:', {
+          result,
+          params: {
+            ownerAddress,
+            receiverAddress,
+            balance,
+            resource,
+            lock,
+            lockPeriod
+          },
+          transaction,
+          signedTransaction,
+          timestamp: new Date().toISOString(),
+          failureDetails: {
+            resultResult: result.result,
+            resultMessage: result.message,
+            resultCode: result.code,
+            resultTxid: result.txid,
+            fullResult: JSON.stringify(result, null, 2)
+          }
+        });
+        
         return {
           success: false,
-          error: result.message || 'Transaction failed'
+          error: `TronWeb broadcast failed: ${result.message || result.code || 'Transaction failed'}`
         };
       }
-    } catch (error) {
-      console.error('Failed to delegate resource:', error);
+    } catch (error: any) {
+      console.error('❌ [DelegationService] 能量代理失败:', {
+        error: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        params: params,
+        timestamp: new Date().toISOString(),
+        detailedError: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: error.code,
+          cause: (error as any).cause
+        }
+      });
       return {
         success: false,
-        error: error.message
+        error: `DelegationService error: ${error.message}`
       };
     }
   }
@@ -230,11 +265,24 @@ export class DelegationService {
           error: result.message || 'Transaction failed'
         };
       }
-    } catch (error) {
-      console.error('Failed to undelegate resource:', error);
+    } catch (error: any) {
+      console.error('❌ [DelegationService] 取消能量代理失败:', {
+        error: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        params: params,
+        timestamp: new Date().toISOString(),
+        detailedError: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: error.code,
+          cause: (error as any).cause
+        }
+      });
       return {
         success: false,
-        error: error.message
+        error: `DelegationService undelegate error: ${error.message}`
       };
     }
   }

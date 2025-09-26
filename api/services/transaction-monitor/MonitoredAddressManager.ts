@@ -21,37 +21,74 @@ export class MonitoredAddressManager {
    */
   async loadMonitoredAddresses(): Promise<void> {
     try {
+      this.logger.info('📋 开始加载监听地址配置...');
+      
       // 清空现有地址
       this.monitoredAddresses.clear();
+      this.logger.debug('🧹 已清空现有监听地址');
 
-      // 从数据库获取所有激活的能量闪租配置（同时要求网络也激活）
+      // 从数据库获取所有激活的配置（包括能量闪租和笔数套餐，同时要求网络也激活）
       const query = `
         SELECT 
-          pc.config->>'payment_address' as payment_address,
+          CASE 
+            WHEN pc.mode_type = 'energy_flash' THEN pc.config->>'payment_address'
+            WHEN pc.mode_type = 'transaction_package' THEN pc.config->'order_config'->>'payment_address'
+            ELSE NULL
+          END as payment_address,
           pc.network_id,
+          pc.mode_type,
           tn.name as network_name,
           tn.rpc_url,
           tn.api_key,
-          tn.config
+          tn.config,
+          pc.is_active as config_active,
+          tn.is_active as network_active
         FROM price_configs pc
         JOIN tron_networks tn ON pc.network_id = tn.id
-        WHERE pc.mode_type = 'energy_flash' 
+        WHERE pc.mode_type IN ('energy_flash', 'transaction_package') 
           AND pc.is_active = true
           AND tn.is_active = true
-          AND pc.config->>'payment_address' IS NOT NULL
+          AND (
+            (pc.mode_type = 'energy_flash' AND pc.config->>'payment_address' IS NOT NULL)
+            OR 
+            (pc.mode_type = 'transaction_package' AND pc.config->'order_config'->>'payment_address' IS NOT NULL)
+          )
       `;
 
+      this.logger.debug('🔍 执行数据库查询获取监听地址配置...');
       const result = await this.databaseService.query(query);
+      this.logger.info(`📊 数据库查询完成，找到 ${result.rows.length} 条配置记录`);
+
+      if (result.rows.length === 0) {
+        this.logger.warn('⚠️ 数据库中没有找到任何激活的监听地址配置');
+        this.logger.info('💡 请检查 price_configs 表中是否有激活的配置，以及对应的网络是否激活');
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
 
       for (const row of result.rows) {
         const address = row.payment_address;
         const networkId = row.network_id;
+        const modeType = row.mode_type;
         const networkName = row.network_name;
         const rpcUrl = row.rpc_url;
         const apiKey = row.api_key;
+        const typeLabel = modeType === 'energy_flash' ? '能量闪租' : '笔数套餐';
+
+        this.logger.debug(`🔧 处理配置: [${networkName}] [${typeLabel}] ${address}`, {
+          networkId,
+          modeType,
+          configActive: row.config_active,
+          networkActive: row.network_active,
+          hasRpcUrl: !!rpcUrl,
+          hasApiKey: !!apiKey
+        });
 
         if (!address || !networkId) {
-          this.logger.warn(`跳过无效配置: address=${address}, networkId=${networkId}`);
+          this.logger.warn(`⚠️ 跳过无效配置: address=${address}, networkId=${networkId}, mode_type=${modeType}`);
+          failCount++;
           continue;
         }
 
@@ -61,19 +98,41 @@ export class MonitoredAddressManager {
             networkId,
             networkName,
             rpcUrl,
-            apiKey
+            apiKey,
+            modeType
           });
 
           if (monitoredAddress) {
-            this.monitoredAddresses.set(`${networkId}_${address}`, monitoredAddress);
-            this.logger.info(`🌐 [${networkName}] 添加监听地址: ${address}`);
+            // 使用唯一键存储，避免同一地址被重复添加
+            const key = `${networkId}_${address}_${modeType}`;
+            this.monitoredAddresses.set(key, monitoredAddress);
+            this.logger.info(`✅ [${networkName}] [${typeLabel}] 成功添加监听地址: ${address}`);
+            successCount++;
+          } else {
+            this.logger.warn(`⚠️ [${networkName}] [${typeLabel}] 创建监听地址对象失败: ${address}`);
+            failCount++;
           }
         } catch (error) {
-          this.logger.error(`❌ [${networkName}] 创建监听地址失败:`, error);
+          this.logger.error(`❌ [${networkName}] [${typeLabel}] 创建监听地址失败: ${address}`, {
+            error: error.message,
+            address,
+            networkId,
+            modeType
+          });
+          failCount++;
+        }
+      }
+
+      this.logger.info(`🎉 监听地址加载完成: ${successCount} 成功, ${failCount} 失败`);
+      if (successCount > 0) {
+        this.logger.info(`📡 当前监听地址列表:`);
+        for (const [key, addr] of this.monitoredAddresses.entries()) {
+          const typeLabel = addr.modeType === 'energy_flash' ? '能量闪租' : '笔数套餐';
+          this.logger.info(`  - [${addr.networkName}] [${typeLabel}] ${addr.address}`);
         }
       }
     } catch (error) {
-      this.logger.error('加载监听地址失败:', error);
+      this.logger.error('❌ 加载监听地址失败:', error);
       throw error;
     }
   }
@@ -87,9 +146,10 @@ export class MonitoredAddressManager {
     networkName: string;
     rpcUrl: string;
     apiKey: string;
+    modeType?: string;
   }): Promise<MonitoredAddress | null> {
     try {
-      const { address, networkId, networkName, rpcUrl, apiKey } = config;
+      const { address, networkId, networkName, rpcUrl, apiKey, modeType } = config;
 
       // 创建对应网络的TronWeb实例
       const tronWebInstance = new TronWeb.TronWeb({
@@ -122,6 +182,7 @@ export class MonitoredAddressManager {
         address,
         networkId,
         networkName,
+        modeType,
         tronWebInstance,
         tronGridProvider
       };

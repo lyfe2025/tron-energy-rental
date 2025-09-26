@@ -43,7 +43,7 @@ export class OrderCommandHandler {
         return;
       }
 
-      const orders = await this.orderService.getUserOrders(parseInt(user.id), 5); // 获取最近5个订单
+      const orders = await this.orderService.getUserOrders(user.id, 5); // 获取最近5个订单
       
       if (!orders || orders.length === 0) {
         await this.sendEmptyOrdersMessage(chatId);
@@ -80,7 +80,7 @@ export class OrderCommandHandler {
         return;
       }
 
-      const orders = await this.orderService.getUserOrders(parseInt(user.id), 5);
+      const orders = await this.orderService.getUserOrders(user.id, 5);
       
       if (!orders || orders.length === 0) {
         await this.sendEmptyOrdersMessage(chatId);
@@ -131,14 +131,14 @@ export class OrderCommandHandler {
       const statusEmoji = MessageFormatter.getOrderStatusEmoji(order.status);
       const statusText = this.getOrderStatusText(order.status);
       
-      ordersMessage += `${index + 1}️⃣ 订单 #${order.id}\n` +
+      ordersMessage += `${index + 1}️⃣ 订单 #${order.order_number}\n` +
         `⚡ 能量: ${MessageFormatter.formatNumber(order.energy_amount)} Energy\n` +
-        `💰 金额: ${order.price_trx} TRX\n` +
+        `💰 金额: ${order.price} ${order.payment_currency || 'USDT'}\n` +
         `${statusEmoji} 状态: ${statusText}\n` +
         `📅 时间: ${MessageFormatter.formatDate(order.created_at)}\n`;
       
-      if (order.recipient_address) {
-        ordersMessage += `📍 地址: ${this.formatAddress(order.recipient_address)}\n`;
+      if (order.target_address) {
+        ordersMessage += `📍 地址: ${this.formatAddress(order.target_address)}\n`;
       }
       
       ordersMessage += '\n';
@@ -179,14 +179,20 @@ export class OrderCommandHandler {
         return '已支付';
       case 'processing':
         return '处理中';
+      case 'active':
+        return '已支付活跃';
       case 'completed':
         return '已完成';
+      case 'manually_completed':
+        return '手动补单完成';
       case 'failed':
         return '失败';
       case 'cancelled':
         return '已取消';
       case 'expired':
         return '已过期';
+      case 'pending_delegation':
+        return '等待委托';
       default:
         return '未知状态';
     }
@@ -212,7 +218,7 @@ export class OrderCommandHandler {
     }
 
     try {
-      const order = await this.orderService.getOrderById(parseInt(orderId));
+      const order = await this.orderService.getOrderById(orderId);
       if (!order) {
         await MessageFormatter.safeSendMessage(this.bot, chatId, '❌ 订单不存在');
         return;
@@ -220,7 +226,7 @@ export class OrderCommandHandler {
 
       // 验证订单是否属于当前用户
       const user = await UserService.getUserByTelegramId(telegramId!);
-      if (!user || parseInt(user.id) !== order.user_id) {
+      if (!user || user.id !== order.user_id) {
         await MessageFormatter.safeSendMessage(this.bot, chatId, '❌ 无权查看此订单');
         return;
       }
@@ -239,12 +245,12 @@ export class OrderCommandHandler {
     const statusEmoji = MessageFormatter.getOrderStatusEmoji(order.status);
     const statusText = this.getOrderStatusText(order.status);
 
-    const detailMessage = `📋 订单详情 #${order.id}
+    const detailMessage = `📋 订单详情 #${order.order_number}
 
 ${statusEmoji} **状态**: ${statusText}
 ⚡ **能量数量**: ${MessageFormatter.formatNumber(order.energy_amount)} Energy
-💰 **支付金额**: ${order.price_trx} TRX
-📍 **接收地址**: \`${order.recipient_address}\`
+💰 **支付金额**: ${order.price} ${order.payment_currency || 'USDT'}
+📍 **接收地址**: \`${order.target_address}\`
 ⏰ **代理时长**: ${order.duration_hours}小时
 📅 **创建时间**: ${MessageFormatter.formatDate(order.created_at)}
 ${order.updated_at ? `🔄 **更新时间**: ${MessageFormatter.formatDate(order.updated_at)}` : ''}

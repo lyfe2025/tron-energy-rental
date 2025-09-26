@@ -17,6 +17,7 @@ export interface PriceConfig {
   image_alt?: string
   enable_image: boolean
   is_active: boolean
+  network_id: string // 所属网络ID
   created_by: string
   created_at: Date
   updated_at: Date
@@ -109,6 +110,24 @@ export class PriceConfigService {
       return result.rows[0] || null
     } catch (error) {
       logger.error('Get config by mode error:', error)
+      throw error
+    }
+  }
+
+  // 根据ID获取配置
+  async getConfigById(configId: string): Promise<PriceConfig | null> {
+    try {
+      const query = `
+        SELECT id, mode_type, name, description, config, inline_keyboard_config, 
+               image_url, image_alt, enable_image, network_id,
+               is_active, created_by, created_at, updated_at
+        FROM price_configs
+        WHERE id = $1
+      `
+      const result = await pool.query(query, [configId])
+      return result.rows[0] || null
+    } catch (error) {
+      logger.error('Get config by id error:', error)
       throw error
     }
   }

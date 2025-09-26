@@ -7,6 +7,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { authenticateToken } from '../../middleware/auth.ts';
 import { LogRotationManager, structuredLogger } from '../../utils/logger.ts';
+import { getProjectPath } from '../../utils/logger/core/project-root';
 
 const router: Router = express.Router();
 
@@ -22,7 +23,9 @@ const LOG_FILE_TYPES = {
 router.get('/files', authenticateToken, async (req, res) => {
   try {
     const { category, botId, limit = 20 } = req.query;
-    const logsDir = path.join(process.cwd(), 'logs');
+    // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+    // 从当前文件位置计算项目根目录: api/routes/system/logs.ts -> ../../
+    const logsDir = getProjectPath('logs');
     
     let targetDir = logsDir;
     if (botId && category === 'bot') {
@@ -118,13 +121,16 @@ router.get('/content/:filename', authenticateToken, async (req, res) => {
     // 确定文件路径
     let filePath: string;
     if (botId) {
-      filePath = path.join(process.cwd(), 'logs', 'bots', botId as string, filename);
+      // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+      filePath = getProjectPath(path.join('logs', 'bots', botId as string, filename));
     } else {
-      filePath = path.join(process.cwd(), 'logs', filename);
+      filePath = getProjectPath(path.join('logs', filename));
     }
 
     // 安全检查：确保文件在日志目录内
-    const logsDir = path.join(process.cwd(), 'logs');
+    // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+    // 从当前文件位置计算项目根目录: api/routes/system/logs.ts -> ../../
+    const logsDir = getProjectPath('logs');
     const resolvedPath = path.resolve(filePath);
     if (!resolvedPath.startsWith(path.resolve(logsDir))) {
       return res.status(403).json({
@@ -238,7 +244,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const stats = rotationManager.getLogStats();
 
     // 获取各类型日志文件数量
-    const logsDir = path.join(process.cwd(), 'logs');
+    // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+    // 从当前文件位置计算项目根目录: api/routes/system/logs.ts -> ../../
+    const logsDir = getProjectPath('logs');
     const typeStats: Record<string, { count: number; size: number }> = {};
 
     for (const [type, config] of Object.entries(LOG_FILE_TYPES)) {
@@ -335,7 +343,9 @@ router.post('/cleanup', authenticateToken, async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    const logsDir = path.join(process.cwd(), 'logs');
+    // 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+    // 从当前文件位置计算项目根目录: api/routes/system/logs.ts -> ../../
+    const logsDir = getProjectPath('logs');
     const filesToClean = [];
     let totalSizeToClean = 0;
 

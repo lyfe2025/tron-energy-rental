@@ -6,11 +6,12 @@ import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { ensureDirectory } from '../core/config';
 import { orderFormat } from '../core/formatters';
+import { getLogDir } from '../core/project-root';
 import { LOG_LEVELS } from '../core/types';
 
 // 📦 创建订单处理专用的日志记录器
 export function createOrderLogger(): winston.Logger {
-  const logDir = path.join(process.cwd(), 'logs', 'business', 'orders');
+  const logDir = getLogDir('business/orders');
   
   // 确保日志目录存在
   ensureDirectory(logDir);

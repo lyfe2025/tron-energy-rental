@@ -29,7 +29,7 @@ export class TransactionPackageHandler {
       // 从数据库获取笔数套餐配置
       const { query } = await import('../../../../../config/database.ts');
       const configResult = await query(
-        'SELECT id, config, inline_keyboard_config FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
+        'SELECT id, config, inline_keyboard_config, network_id FROM price_configs WHERE mode_type = $1 AND is_active = true ORDER BY id DESC LIMIT 1',
         ['transaction_package']
       );
 
@@ -40,6 +40,7 @@ export class TransactionPackageHandler {
 
       const config = configResult.rows[0].config;
       const keyboardConfig = configResult.rows[0].inline_keyboard_config;
+      const networkId = configResult.rows[0].network_id; // 获取网络ID
 
       // 设置用户状态：等待地址输入
       console.log('📝 设置用户状态:', {
@@ -55,7 +56,8 @@ export class TransactionPackageHandler {
           transactionCount: transactionCount,
           configId: configResult.rows[0].id,
           config: config,
-          keyboardConfig: keyboardConfig
+          keyboardConfig: keyboardConfig,
+          networkId: networkId // 添加网络ID到contextData
         });
         
         // 验证状态是否设置成功

@@ -10,11 +10,11 @@ import { UserStatsService } from './user/UserStatsService.ts';
 
 // 导出所有类型定义
 export type {
-  User, UserCreateData, UserSearchParams, UserUpdateData
+    User, UserCreateData, UserSearchParams, UserUpdateData
 } from './user/UserService.ts';
 
 export type {
-  UserStats
+    UserStats
 } from './user/UserStatsService.ts';
 
 /**
@@ -92,6 +92,21 @@ export class UserService {
    */
   static async deductUserBalance(id: string, amount: number) {
     return BaseUserService.deductUserBalance(id, amount);
+  }
+
+  /**
+   * 更新用户TRON地址
+   */
+  static async updateTronAddress(telegramId: number, tronAddress: string | null) {
+    // 先获取用户ID
+    const user = await BaseUserService.getUserByTelegramId(telegramId);
+    if (!user) {
+      return false;
+    }
+    
+    // 更新TRON地址
+    const updatedUser = await BaseUserService.updateUser(user.id, { tron_address: tronAddress });
+    return !!updatedUser;
   }
 
   /**
@@ -380,7 +395,7 @@ export class UserService {
 
 // 导出分离的服务类供高级用法使用
 export {
-  BaseUserService,
-  UserStatsService
+    BaseUserService,
+    UserStatsService
 };
 

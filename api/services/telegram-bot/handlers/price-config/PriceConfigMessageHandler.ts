@@ -32,7 +32,7 @@ export class PriceConfigMessageHandler {
     this.bot = bot;
     this.botId = botId;
     this.stateManager = stateManager;
-    this.addressInputProcessor = new AddressInputProcessor(bot, stateManager);
+    this.addressInputProcessor = new AddressInputProcessor(bot, botId, stateManager);
   }
 
   /**

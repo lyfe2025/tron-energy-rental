@@ -61,7 +61,7 @@ export interface Order {
   duration_hours: number
   price_trx: number
   recipient_address: string
-  status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'failed' | 'cancelled' | 'expired'
+  status: 'pending' | 'paid' | 'processing' | 'active' | 'completed' | 'manually_completed' | 'failed' | 'cancelled' | 'expired' | 'pending_delegation'
   order_type?: 'energy_flash' | 'transaction_package' | 'trx_exchange'  // 订单类型
   payment_address?: string
   payment_amount?: number

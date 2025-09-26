@@ -24,7 +24,7 @@ export class OrderLifecycleService {
       }
 
       // 验证支付金额
-      if (amount < order.price_trx) {
+      if (amount < order.price) {
         throw new Error('Insufficient payment amount');
       }
 
@@ -61,7 +61,7 @@ export class OrderLifecycleService {
       // 执行能量委托
       const delegation = await energyDelegationService.executeDelegation({
         orderId: order.id,
-        recipientAddress: order.recipient_address,
+        recipientAddress: order.target_address,
         energyAmount: order.energy_amount,
         durationHours: order.duration_hours
       });
@@ -139,11 +139,30 @@ export class OrderLifecycleService {
   }
 
   /**
-   * 取消订单
+   * 取消订单 - 支持订单号和订单ID
    */
-  async cancelOrder(orderId: number, reason?: string): Promise<Order> {
+  async cancelOrder(orderIdentifier: string | number, reason?: string): Promise<Order> {
     try {
-      const order = await this.getOrderById(orderId);
+      let order: Order | null = null;
+      
+      // 根据标识符类型判断查找方式
+      if (typeof orderIdentifier === 'string') {
+        // 字符串类型：可能是订单号(order_number)或UUID
+        if (orderIdentifier.startsWith('TP') && orderIdentifier.length > 15) {
+          // 订单号格式：TP + 时间戳 + 随机码
+          console.log('🔍 通过订单号查找订单:', orderIdentifier);
+          order = await this.getOrderByNumber(orderIdentifier);
+        } else {
+          // UUID格式
+          console.log('🔍 通过UUID查找订单:', orderIdentifier);
+          order = await this.getOrderByUUID(orderIdentifier);
+        }
+      } else {
+        // 数字类型：旧版本兼容，通过数字ID查找
+        console.log('🔍 通过数字ID查找订单:', orderIdentifier);
+        order = await this.getOrderById(orderIdentifier);
+      }
+      
       if (!order) {
         throw new Error('Order not found');
       }
@@ -158,7 +177,8 @@ export class OrderLifecycleService {
         await paymentService.stopMonitoring(order.payment_address);
       }
 
-      return await this.updateOrderStatus(orderId, 'cancelled');
+      // 使用订单的真实UUID更新状态
+      return await this.updateOrderStatus(order.id, 'cancelled');
     } catch (error) {
       console.error('Cancel order error:', error);
       throw error;
@@ -226,14 +246,33 @@ export class OrderLifecycleService {
     }
   }
 
+  private async getOrderByNumber(orderNumber: string): Promise<Order | null> {
+    try {
+      const result = await query(
+        'SELECT * FROM orders WHERE order_number = $1',
+        [orderNumber]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Get order by number error:', error);
+      return null;
+    }
+  }
+
   private async updateOrderStatus(
-    orderId: number, 
+    orderId: string | number, 
     status: Order['status'], 
     additionalData?: Partial<Order>
   ): Promise<Order> {
     try {
       // 获取当前订单状态用于日志对比
-      const currentOrder = await this.getOrderById(orderId);
+      let currentOrder: Order | null = null;
+      if (typeof orderId === 'number') {
+        currentOrder = await this.getOrderById(orderId);
+      } else {
+        currentOrder = await this.getOrderByUUID(orderId);
+      }
       const previousStatus = currentOrder?.status || 'unknown';
 
       orderLogger.info(`订单状态更新开始`, {

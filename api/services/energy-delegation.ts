@@ -31,7 +31,7 @@ export class EnergyDelegationService {
       console.log('Starting energy delegation:', request);
       
       // 1. 验证订单状态
-      const orderId = typeof request.orderId === 'string' ? parseInt(request.orderId) : request.orderId;
+      const orderId = typeof request.orderId === 'number' ? request.orderId.toString() : request.orderId;
       const order = await orderService.getOrderById(orderId);
       if (!order || order.status !== 'paid') {
         return {
@@ -80,7 +80,7 @@ export class EnergyDelegationService {
       // 注意：实际的能量状态现在从 TRON 网络实时获取
         
       // 6. 更新订单状态
-      await orderService.updateOrderStatus(orderId, 'processing');
+      await orderService.updateOrderStatus(parseInt(orderId), 'processing');
       
       // 7. 启动代理监控
       this.startDelegationMonitoring(delegationId, request.durationHours);

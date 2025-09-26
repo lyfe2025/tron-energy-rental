@@ -2,11 +2,11 @@
  * Logger 基础配置
  */
 import fs from 'fs';
-import path from 'path';
+import { getLogDir } from './project-root';
 
 // 确保日志目录存在
 export function ensureLogDirectory(botId: string): string {
-  const logDir = path.join(process.cwd(), 'logs', 'bots', botId.toString());
+  const logDir = getLogDir(`bots/${botId}`);
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
   }

@@ -105,13 +105,22 @@ export class ModuleManager {
         }
       );
 
-      // 6. 创建处理器模块
-      const commandHandler = await this.createModule('commandHandler', CommandHandler, 
-        ['botLogger', 'botConfigManager', 'keyboardBuilder'], {
-          bot: this.bot,
-          botId: this.config.botId
-        }
-      );
+      // 6. 创建处理器模块 - 直接创建以传递StateManager
+      const commandHandler = new CommandHandler({
+        bot: this.bot,
+        botId: this.config.botId,
+        stateManager: this.stateManager
+      });
+      
+      this.modules.set('commandHandler', {
+        name: 'commandHandler',
+        instance: commandHandler,
+        dependencies: ['botLogger', 'botConfigManager', 'keyboardBuilder'],
+        initialized: false,
+        health: 'unknown'
+      });
+
+      console.log(`✅ 模块创建成功: commandHandler (with StateManager)`);
 
       // 直接创建callbackHandler，传递StateManager
       const callbackHandler = new CallbackHandler(this.bot, this.stateManager);

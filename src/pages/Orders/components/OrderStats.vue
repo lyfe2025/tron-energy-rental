@@ -20,11 +20,11 @@
 
 <script setup lang="ts">
 import {
-  CheckCheck,
-  CheckCircle,
-  Clock,
-  RefreshCw,
-  XCircle
+    CheckCheck,
+    CheckCircle,
+    Clock,
+    RefreshCw,
+    XCircle
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Order } from '../types/order.types';

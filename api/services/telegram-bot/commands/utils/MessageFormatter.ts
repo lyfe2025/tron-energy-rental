@@ -113,12 +113,20 @@ export class MessageFormatter {
         return '💳';
       case 'processing':
         return '🔄';
+      case 'active':
+        return '🟢';
       case 'completed':
+        return '✅';
+      case 'manually_completed':
         return '✅';
       case 'failed':
         return '❌';
       case 'cancelled':
         return '🚫';
+      case 'expired':
+        return '⏰';
+      case 'pending_delegation':
+        return '⏸️';
       default:
         return '❓';
     }

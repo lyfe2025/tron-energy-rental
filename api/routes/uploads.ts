@@ -3,11 +3,13 @@ import fs from 'fs'
 import multer from 'multer'
 import path from 'path'
 import { authenticateToken, requireRole } from '../middleware/auth'
+import { getProjectPath } from '../utils/logger/core/project-root'
 
 const router: Router = Router()
 
 // 确保上传目录存在
-const uploadDir = path.join(process.cwd(), 'public/uploads/price-configs')
+// 使用项目根目录的绝对路径，避免工作目录变化导致的路径问题
+const uploadDir = getProjectPath('public/uploads/price-configs')
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true })
 }

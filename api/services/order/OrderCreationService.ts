@@ -13,7 +13,7 @@ export class OrderCreationService {
   async createOrder(request: CreateOrderRequest): Promise<Order> {
     try {
       // 验证用户地址格式
-      if (!this.isValidTronAddress(request.recipientAddress)) {
+      if (!this.isValidTronAddress(request.targetAddress)) {
         throw new Error('Invalid TRON address format');
       }
 
@@ -37,7 +37,7 @@ export class OrderCreationService {
       const result = await query(
         `INSERT INTO orders (
           user_id, price_config_id, energy_amount, duration_hours, 
-          price_trx, recipient_address, status, expires_at
+          price, target_address, status, expires_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *`,
         [
@@ -45,8 +45,8 @@ export class OrderCreationService {
           request.priceConfigId,
           request.energyAmount,
           request.durationHours,
-          request.priceTrx,
-          request.recipientAddress,
+          request.price,
+          request.targetAddress,
           'pending',
           expiresAt
         ]
@@ -112,7 +112,7 @@ export class OrderCreationService {
   validateCreateOrderRequest(request: CreateOrderRequest): string[] {
     const errors: string[] = [];
 
-    if (!request.userId || request.userId <= 0) {
+    if (!request.userId) {
       errors.push('Invalid user ID');
     }
 
@@ -128,11 +128,11 @@ export class OrderCreationService {
       errors.push('Duration must be greater than 0');
     }
 
-    if (!request.priceTrx || request.priceTrx <= 0) {
+    if (!request.price || request.price <= 0) {
       errors.push('Price must be greater than 0');
     }
 
-    if (!request.recipientAddress || !this.isValidTronAddress(request.recipientAddress)) {
+    if (!request.targetAddress || !this.isValidTronAddress(request.targetAddress)) {
       errors.push('Invalid TRON recipient address');
     }
 

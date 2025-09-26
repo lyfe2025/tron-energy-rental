@@ -6,11 +6,11 @@
 import { orderCreationService } from '../order/OrderCreationService.ts';
 import { orderLifecycleService } from '../order/OrderLifecycleService.ts';
 import { orderQueryService } from '../order/OrderQueryService.ts';
+import type { CreateTransactionPackageOrderRequest, TransactionPackageOrderDetails } from '../order/TransactionPackageOrderService';
+import { TransactionPackageOrderService } from '../order/TransactionPackageOrderService';
 import type { CreateOrderRequest, Order, OrderStats } from '../order/types.ts';
 import { FlashRentOrderService } from './FlashRentOrderService';
 import type { FlashRentOrderParams } from './types';
-import { TransactionPackageOrderService } from '../order/TransactionPackageOrderService';
-import type { CreateTransactionPackageOrderRequest, TransactionPackageOrderDetails } from '../order/TransactionPackageOrderService';
 
 // 重新导出类型，保持向后兼容
 export type { CreateOrderRequest, Order, OrderStats };
@@ -42,11 +42,11 @@ class OrderService {
   }
 
   // ==================== 原有订单查询相关方法 ====================
-  async getOrderById(orderId: number): Promise<Order | null> {
+  async getOrderById(orderId: string): Promise<Order | null> {
     return orderQueryService.getOrderById(orderId);
   }
 
-  async getUserOrders(userId: number, limit: number = 20, offset: number = 0): Promise<Order[]> {
+  async getUserOrders(userId: string, limit: number = 20, offset: number = 0): Promise<Order[]> {
     return orderQueryService.getUserOrders(userId, limit, offset);
   }
 
@@ -67,7 +67,12 @@ class OrderService {
     limit: number = 20,
     offset: number = 0
   ): Promise<{ orders: Order[]; total: number }> {
-    return orderQueryService.searchOrders(searchQuery, limit, offset);
+    // 转换userId类型为string
+    const normalizedQuery = {
+      ...searchQuery,
+      userId: searchQuery.userId ? searchQuery.userId.toString() : undefined
+    };
+    return orderQueryService.searchOrders(normalizedQuery, limit, offset);
   }
 
   async getOrderStats(days: number = 30): Promise<OrderStats> {
@@ -83,20 +88,20 @@ class OrderService {
   }
 
   // ==================== 原有订单生命周期管理方法 ====================
-  async handlePaymentConfirmed(orderId: number, txHash: string, amount: number): Promise<void> {
-    return orderLifecycleService.handlePaymentConfirmed(orderId, txHash, amount);
+  async handlePaymentConfirmed(orderId: string, txHash: string, amount: number): Promise<void> {
+    return orderLifecycleService.handlePaymentConfirmed(parseInt(orderId), txHash, amount);
   }
 
-  async processEnergyDelegation(orderId: number): Promise<void> {
-    return orderLifecycleService.processEnergyDelegation(orderId);
+  async processEnergyDelegation(orderId: string): Promise<void> {
+    return orderLifecycleService.processEnergyDelegation(parseInt(orderId));
   }
 
-  async cancelOrder(orderId: number, reason?: string): Promise<Order> {
+  async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     return orderLifecycleService.cancelOrder(orderId, reason);
   }
 
-  async handleOrderExpired(orderId: number): Promise<void> {
-    return orderLifecycleService.handleOrderExpired(orderId);
+  async handleOrderExpired(orderId: string): Promise<void> {
+    return orderLifecycleService.handleOrderExpired(parseInt(orderId));
   }
 
   async processExpiredOrders(): Promise<number> {

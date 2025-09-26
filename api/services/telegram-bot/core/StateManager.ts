@@ -142,14 +142,33 @@ export class StateManager {
    * 更新用户状态
    */
   setUserState(userId: number, state: string, contextData?: Record<string, any>): void {
-    const session = this.userSessions.get(userId);
-    if (session) {
-      session.currentState = state;
-      session.lastActivity = new Date();
-      if (contextData) {
-        session.contextData = { ...session.contextData, ...contextData };
-      }
+    let session = this.userSessions.get(userId);
+    
+    // 如果session不存在，创建一个新的
+    if (!session) {
+      session = {
+        userId,
+        chatId: userId, // 默认使用userId作为chatId，后面可以通过updateUserSession更新
+        currentState: 'idle',
+        lastActivity: new Date(),
+        contextData: {}
+      };
+      this.userSessions.set(userId, session);
+      console.log('🆕 创建新的用户会话:', { userId, state });
     }
+    
+    // 更新状态
+    session.currentState = state;
+    session.lastActivity = new Date();
+    if (contextData) {
+      session.contextData = { ...session.contextData, ...contextData };
+    }
+    
+    console.log('✅ 用户状态已更新:', { 
+      userId, 
+      state, 
+      contextData: session.contextData 
+    });
   }
 
   /**

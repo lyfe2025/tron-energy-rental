@@ -57,6 +57,55 @@ export class TronGridProvider {
   }
 
   /**
+   * 获取账户的TRC20代币交易记录
+   */
+  async getAccountTrc20Transactions(
+    address: string, 
+    limit: number = 20
+  ): Promise<ServiceResponse<any[]>> {
+    // 验证参数
+    const validation = this.validator.validateSearchParams({ address, limit });
+    if (!validation.isValid) {
+      return this.errorHandler.handleException(
+        new Error(validation.errors.join(', ')),
+        '获取账户TRC20交易记录',
+        []
+      );
+    }
+
+    try {
+      // 直接调用ApiClient，因为它已经返回了ServiceResponse格式
+      const result = await this.apiClient.getAccountTrc20Transactions(address, limit);
+      
+      if (result.success) {
+        let transactions = result.data || [];
+        
+        // 确保transactions是数组
+        if (!Array.isArray(transactions)) {
+          transactions = [];
+        }
+        
+        return {
+          success: true,
+          data: transactions
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || '获取TRC20交易失败',
+          data: []
+        };
+      }
+    } catch (error: any) {
+      return this.errorHandler.handleException(
+        error,
+        '获取账户TRC20交易记录',
+        []
+      );
+    }
+  }
+
+  /**
    * 获取账户的所有交易记录
    */
   async getAccountTransactions(

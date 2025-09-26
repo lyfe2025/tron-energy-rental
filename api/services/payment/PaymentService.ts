@@ -2,17 +2,20 @@ import { FlashRentPaymentService } from './FlashRentPaymentService';
 import { PaymentMonitorService } from './PaymentMonitorService';
 import { PaymentRiskService } from './PaymentRiskService';
 import { PaymentStatsService } from './PaymentStatsService';
+import { TransactionPackagePaymentService } from './TransactionPackagePaymentService';
 import type { PaymentStatistics, PaymentStatusResult, RiskAssessment } from './types';
 
 export class PaymentService {
   private monitorService: PaymentMonitorService;
   private flashRentService: FlashRentPaymentService;
+  private transactionPackageService: TransactionPackagePaymentService;
   private riskService: PaymentRiskService;
   private statsService: PaymentStatsService;
 
   constructor() {
     this.monitorService = new PaymentMonitorService();
     this.flashRentService = new FlashRentPaymentService();
+    this.transactionPackageService = new TransactionPackagePaymentService();
     this.riskService = new PaymentRiskService();
     this.statsService = new PaymentStatsService();
   }
@@ -55,6 +58,14 @@ export class PaymentService {
 
   async handleFlashRentPayment(transaction: any, networkId: string): Promise<void> {
     return await this.flashRentService.handleFlashRentPayment(transaction, networkId);
+  }
+
+  // ===============================
+  // 笔数套餐支付相关方法（委托给 TransactionPackagePaymentService）
+  // ===============================
+
+  async handleTransactionPackagePayment(transaction: any, networkId: string): Promise<void> {
+    return await this.transactionPackageService.handleTransactionPackagePayment(transaction, networkId);
   }
 
   // ===============================

@@ -15,6 +15,7 @@ export interface CommandHandlerDependencies {
 export interface CommandHandlerConstructorParams {
   bot: TelegramBot;
   botId?: string;
+  stateManager?: any;
 }
 
 export interface BotConfig {

@@ -28,6 +28,7 @@ export interface Order {
   payment_address?: string
   payment_amount?: number
   payment_tx_hash?: string
+  payment_currency?: 'USDT' | 'TRX'  // 支付货币类型
   tron_tx_hash?: string  // 兼容字段
   delegation_tx_hash?: string
   delegate_tx_hash?: string  // 兼容字段

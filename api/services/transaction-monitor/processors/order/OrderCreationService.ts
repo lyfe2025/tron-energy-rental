@@ -26,7 +26,7 @@ export class OrderCreationService {
     networkId: string,
     networkName: string
   ): Promise<string> {
-    const txId = rawTx.txID;
+    const txId = rawTx.txID || rawTx.transaction_id;
     const shortTxId = txId.substring(0, 8) + '...';
     
     orderLogger.info(`📦 [${shortTxId}]    📝 创建初始订单记录`, {
@@ -38,10 +38,19 @@ export class OrderCreationService {
     // 提取交易基本信息
     const extractedData = TransactionDataExtractor.extractTransactionData(rawTx, txId, networkName);
     
-    // 生成订单号
-    const orderNumber = TransactionDataExtractor.generateOrderNumber();
+    // 根据收款地址确定订单类型（支持TRC20和TRX交易）
+    const orderTypeInfo = await this.determineOrderTypeByAddress(extractedData.toAddress);
+    
+    if (!orderTypeInfo) {
+      throw new Error(`无法确定订单类型，收款地址: ${extractedData.toAddress}`);
+    }
 
-    // 调用PaymentService，传递标记表示这是初始创建
+    const { orderType, modeType } = orderTypeInfo;
+    
+    // 生成对应类型的订单号
+    const orderNumber = this.generateOrderNumberByType(modeType);
+
+    // 调用PaymentService，根据订单类型选择处理方法
     const initialTransaction = TransactionDataExtractor.createInitialTransaction(
       extractedData,
       txId,
@@ -50,19 +59,53 @@ export class OrderCreationService {
       networkName
     );
 
-    await this.paymentService.handleFlashRentPayment(initialTransaction, networkId);
-
-    orderLogger.info(`📦 [${shortTxId}]    ✅ 初始订单记录创建完成`, {
-      txId: txId,
-      networkName,
-      orderNumber,
-      fromAddress: extractedData.fromAddress,
-      toAddress: extractedData.toAddress,
-      amount: `${extractedData.amount} TRX`
-    });
-
-    // 立即进行真正的订单计算和处理
-    await this.processFlashRentOrder(txId, extractedData, networkId, networkName, orderNumber, shortTxId);
+    if (modeType === 'transaction_package') {
+      orderLogger.info(`📦 [${shortTxId}]    💎 开始确认笔数套餐支付`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        orderType,
+        step: 'transaction_package_payment_confirmation',
+        description: '查找并确认Telegram Bot创建的待支付订单'
+      });
+      
+      await this.paymentService.handleTransactionPackagePayment(initialTransaction, networkId);
+      
+      orderLogger.info(`📦 [${shortTxId}]    ✅ 笔数套餐支付确认完成`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        orderType,
+        fromAddress: extractedData.fromAddress,
+        toAddress: extractedData.toAddress,
+        amount: `${extractedData.amount} ${initialTransaction.token || 'TRX'}`,
+        paymentAddress: extractedData.toAddress,
+        completedFlow: 'Telegram订单创建 → 用户支付 → 支付确认 → 订单激活 → 能量代理 → 监听启动',
+        description: '支付确认流程全部完成，订单已激活并开始监听'
+      });
+    } else {
+      orderLogger.info(`📦 [${shortTxId}]    ⚡ 开始处理能量闪租订单`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        orderType,
+        step: 'flash_rent_processing'
+      });
+      
+      await this.paymentService.handleFlashRentPayment(initialTransaction, networkId);
+      orderLogger.info(`📦 [${shortTxId}]    ✅ 初始能量闪租订单记录创建完成`, {
+        txId: txId,
+        networkName,
+        orderNumber,
+        orderType,
+        fromAddress: extractedData.fromAddress,
+        toAddress: extractedData.toAddress,
+        amount: `${extractedData.amount} TRX`
+      });
+      
+      // 立即进行真正的订单计算和处理（仅闪租需要）
+      await this.processFlashRentOrder(txId, extractedData, networkId, networkName, orderNumber, shortTxId);
+    }
 
     return orderNumber;
   }
@@ -170,6 +213,52 @@ export class OrderCreationService {
         note: '基础订单已经创建成功，但闪租处理失败'
       });
       // 不抛出错误，因为基础订单已经创建成功
+    }
+  }
+
+  /**
+   * 根据收款地址确定订单类型
+   */
+  private async determineOrderTypeByAddress(toAddress: string): Promise<{ orderType: string; modeType: string } | null> {
+    try {
+      const { query } = await import('../../../../database/index');
+      
+      // 查询支付地址对应的订单类型
+      const result = await query(
+        `SELECT mode_type, name FROM price_configs 
+         WHERE (
+           (mode_type = 'energy_flash' AND config->>'payment_address' = $1)
+           OR 
+           (mode_type = 'transaction_package' AND config->'order_config'->>'payment_address' = $1)
+         ) AND is_active = true`,
+        [toAddress]
+      );
+
+      if (result.rows.length > 0) {
+        const config = result.rows[0];
+        const modeType = config.mode_type;
+        const orderType = modeType === 'transaction_package' ? '笔数套餐' : '能量闪租';
+        return { orderType, modeType };
+      }
+
+      return null;
+    } catch (error) {
+      orderLogger.error('确定订单类型失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 根据订单类型生成订单号
+   */
+  private generateOrderNumberByType(modeType: string): string {
+    const timestamp = Date.now().toString();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    if (modeType === 'transaction_package') {
+      return `TP${timestamp}${random}`;
+    } else {
+      return `FL${timestamp}${random}`;
     }
   }
 }

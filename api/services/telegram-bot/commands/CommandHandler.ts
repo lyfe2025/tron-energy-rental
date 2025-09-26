@@ -20,6 +20,7 @@ export class CommandHandler {
   private userService: UserService;
   private orderService: typeof orderService;
   private botId?: string;
+  private stateManager?: any;
 
   // 分离的处理器
   private startHandler: StartCommandHandler;
@@ -33,8 +34,14 @@ export class CommandHandler {
     if (params && typeof params === 'object' && 'bot' in params) {
       this.bot = params.bot;
       this.botId = params.botId;
+      this.stateManager = params.stateManager;
+      console.log('✅ CommandHandler创建 - StateManager状态:', { 
+        hasStateManager: !!this.stateManager,
+        botId: this.botId 
+      });
     } else {
       this.bot = params as TelegramBot;
+      console.log('⚠️ CommandHandler使用旧式构造函数，没有StateManager');
     }
     
     this.userService = new UserService();
@@ -149,6 +156,18 @@ export class CommandHandler {
           await this.menuHandler.handleRefreshMenuButton(message);
           return true;
         default:
+          // 检查用户状态是否为等待输入TRON地址
+          if (this.stateManager && telegramId) {
+            const userSession = this.stateManager.getUserSession(telegramId);
+            if (userSession?.currentState === 'waiting_tron_address') {
+              // 处理TRON地址输入
+              const menuHandler = await this.getMenuCallbackHandler();
+              if (menuHandler) {
+                await menuHandler.handleTronAddressInput(chatId, telegramId, text);
+                return true;
+              }
+            }
+          }
           return false; // 不是已知的回复键盘按钮
       }
     } catch (error) {
@@ -198,7 +217,37 @@ export class CommandHandler {
         return false;
       }
     } else {
-      // 处理回复键盘消息
+      // 首先检查用户状态是否为等待输入状态
+      const chatId = message.chat.id;
+      const telegramId = message.from?.id;
+      const text = message.text.trim();
+
+      if (this.stateManager && telegramId) {
+        const userSession = this.stateManager.getUserSession(telegramId);
+        console.log('🔍 检查用户状态 (CommandHandler):', { 
+          userId: telegramId, 
+          text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
+          hasSession: !!userSession,
+          currentState: userSession?.currentState 
+        });
+
+        if (userSession?.currentState === 'waiting_tron_address') {
+          // 处理TRON地址输入
+          try {
+            const menuHandler = await this.getMenuCallbackHandler();
+            if (menuHandler) {
+              await menuHandler.handleTronAddressInput(chatId, telegramId, text);
+              return true;
+            }
+          } catch (error) {
+            console.error('处理TRON地址输入失败:', error);
+            await this.bot.sendMessage(chatId, '❌ 处理地址输入时发生错误，请重试。');
+            return true;
+          }
+        }
+      }
+
+      // 如果不是等待输入状态，则处理回复键盘消息
       return await this.handleReplyKeyboardMessage(message);
     }
   }
@@ -291,6 +340,25 @@ export class CommandHandler {
       order: this.orderHandler,
       stats: this.statsHandler
     };
+  }
+
+  /**
+   * 获取MenuCallbackHandler实例
+   */
+  private async getMenuCallbackHandler(): Promise<any> {
+    try {
+      const { MenuCallbackHandler } = await import('../callbacks/handlers/MenuCallbackHandler.ts');
+      const dependencies = {
+        bot: this.bot,
+        userService: this.userService,
+        orderService: this.orderService,
+        stateManager: this.stateManager
+      };
+      return new MenuCallbackHandler(dependencies);
+    } catch (error) {
+      console.error('获取MenuCallbackHandler失败:', error);
+      return null;
+    }
   }
 
   /**

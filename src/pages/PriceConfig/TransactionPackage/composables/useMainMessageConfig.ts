@@ -5,11 +5,11 @@ export function useMainMessageConfig(props: ConfigCardProps) {
   // 主消息模板（整合所有文案配置）
   const mainMessageTemplate = ref(`🔥 TRON能量笔数套餐 🔥（永久有效）
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 使用说明：
 • 套餐购买后永久有效，无时间限制
-• 24小时内未使用完毕，系统将扣除 {dailyFee} 笔占用费
+• 24小时内如无使用，扣 {dailyFee} 笔占用费
 • 转账成功后立即到账，服务永久有效
 • 支持所有TRON网络TRC20代币转账
 • 一次购买，多次使用，余额不清零
@@ -80,11 +80,11 @@ export function useMainMessageConfig(props: ConfigCardProps) {
       case 'basic':
         mainMessageTemplate.value = `🔥 TRON能量笔数套餐 🔥（永久有效）
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 使用说明：
 • 套餐购买后永久有效，无时间限制
-• 24小时内未使用完毕，系统将扣除 {dailyFee} 笔占用费
+• 24小时内如无使用，扣 {dailyFee} 笔占用费
 • 转账成功后立即到账，服务永久有效
 • 支持所有TRON网络TRC20代币转账
 • 一次购买，多次使用，余额不清零
@@ -99,12 +99,12 @@ export function useMainMessageConfig(props: ConfigCardProps) {
       case 'detailed':
         mainMessageTemplate.value = `💎 TRON能量转账套餐（精品版）💎
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 📋 使用说明：
 ━━━━━━━━━━━━━━━━━━━━
 • 套餐购买后永久有效，无时间限制
-• 24小时内未使用完毕，系统将扣除 {dailyFee} 笔占用费
+• 24小时内如无使用，扣 {dailyFee} 笔占用费
 • 转账成功后立即到账，服务永久有效
 • 支持所有TRON网络TRC20代币转账
 • 一次购买，多次使用，余额不清零
@@ -124,11 +124,11 @@ export function useMainMessageConfig(props: ConfigCardProps) {
       case 'simple':
         mainMessageTemplate.value = `⚡ TRX能量套餐
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 说明：
 • 服务永久有效，无时间限制
-• 24小时内未使用扣 {dailyFee} 笔占用费
+• 24小时内如无使用，扣 {dailyFee} 笔占用费
 • 立即到账，永久有效
 • 支持TRC20转账
 
@@ -141,10 +141,10 @@ export function useMainMessageConfig(props: ConfigCardProps) {
       case 'professional':
         mainMessageTemplate.value = `🏢 TRON能量转账服务（企业级）
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 📊 服务条款：
-• 计费规则：24小时内未使用完毕，系统将扣除 {dailyFee} 笔占用费
+• 计费规则：24小时内如无使用，扣 {dailyFee} 笔占用费
 • 生效时间：转账成功后立即到账，服务永久有效
 • 适用范围：支持所有TRON网络TRC20代币转账操作
 • 使用策略：一次购买，多次使用，余额不清零
@@ -161,11 +161,11 @@ export function useMainMessageConfig(props: ConfigCardProps) {
       case 'friendly':
         mainMessageTemplate.value = `🎉 TRON能量转账小助手 🎉
 
-（24小时内未使用，则扣{dailyFee}笔占用费）
+（24小时内如无使用，扣{dailyFee}笔占用费）
 
 💡 温馨提示：
 • 服务购买后永久有效，没有时间限制 🎊
-• 24小时内没用完会扣 {dailyFee} 笔占用费哦
+• 24小时内如无使用，扣 {dailyFee} 笔占用费哦
 • 转账成功马上到账，永久有效 ⏰
 • 支持所有TRC20代币转账 💰
 • 一次购买可以多次使用，余额不会清零 🔄

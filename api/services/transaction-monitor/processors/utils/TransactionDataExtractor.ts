@@ -12,7 +12,7 @@ export interface ExtractedTransactionData {
 
 export class TransactionDataExtractor {
   /**
-   * 从原始交易中提取基本信息
+   * 从原始交易中提取基本信息（支持TRX和TRC20交易）
    */
   static extractTransactionData(rawTx: any, txId: string, networkName: string): ExtractedTransactionData {
     const shortTxId = txId.substring(0, 8) + '...';
@@ -23,11 +23,36 @@ export class TransactionDataExtractor {
     let amount = 0;
 
     try {
-      if (rawTx?.raw_data?.contract?.[0]?.parameter?.value) {
+      // 检测TRC20交易结构
+      if (rawTx?.token_info && rawTx?.transaction_id) {
+        // TRC20 USDT交易
+        fromAddress = rawTx.from || 'unknown';
+        toAddress = rawTx.to || 'unknown';
+        const decimals = rawTx.token_info.decimals || 6;
+        amount = parseFloat(rawTx.value || '0') / Math.pow(10, decimals);
+        
+        orderLogger.info(`📦 [${shortTxId}]    🔍 检测到TRC20交易`, {
+          txId: txId,
+          networkName,
+          tokenSymbol: rawTx.token_info.symbol,
+          contractAddress: rawTx.token_info.address,
+          amount: amount,
+          decimals: decimals
+        });
+      } 
+      // 检测TRX交易结构
+      else if (rawTx?.raw_data?.contract?.[0]?.parameter?.value) {
         const parameter = rawTx.raw_data.contract[0].parameter.value;
         fromAddress = parameter.owner_address || 'unknown';
         toAddress = parameter.to_address || 'unknown';
         amount = (parameter.amount || 0) / 1000000; // 转换为TRX
+        
+        orderLogger.info(`📦 [${shortTxId}]    🔍 检测到TRX交易`, {
+          txId: txId,
+          networkName,
+          contractType: rawTx.raw_data.contract[0].type,
+          amount: `${amount} TRX`
+        });
       }
     } catch (extractError: any) {
       orderLogger.warn(`📦 [${shortTxId}]    ⚠️ 提取交易信息失败，使用默认值 - 详细警告信息`, {
@@ -39,6 +64,13 @@ export class TransactionDataExtractor {
         warningCode: extractError.code,
         processStep: '提取交易基本信息时发生异常',
         extractionAttempt: {
+          // TRC20 交易结构检查
+          hasTrc20Structure: !!(rawTx?.token_info && rawTx?.transaction_id),
+          trc20TokenSymbol: rawTx?.token_info?.symbol,
+          trc20From: rawTx?.from,
+          trc20To: rawTx?.to,
+          trc20Value: rawTx?.value,
+          // TRX 交易结构检查
           hasRawData: !!rawTx?.raw_data,
           hasContract: !!rawTx?.raw_data?.contract,
           contractArray: Array.isArray(rawTx?.raw_data?.contract),
@@ -63,7 +95,8 @@ export class TransactionDataExtractor {
   }
 
   /**
-   * 生成订单号
+   * 生成订单号（默认为闪租订单号）
+   * @deprecated 请使用 OrderCreationService.generateOrderNumberByType()
    */
   static generateOrderNumber(): string {
     const timestamp = Date.now().toString();

@@ -173,7 +173,11 @@ export class BotUtils {
         return '💳';
       case 'processing':
         return '🔄';
+      case 'active':
+        return '🟢';
       case 'completed':
+        return '✅';
+      case 'manually_completed':
         return '✅';
       case 'failed':
         return '❌';
@@ -197,14 +201,20 @@ export class BotUtils {
         return '已支付';
       case 'processing':
         return '处理中';
+      case 'active':
+        return '已支付活跃';
       case 'completed':
         return '已完成';
+      case 'manually_completed':
+        return '手动补单完成';
       case 'failed':
         return '失败';
       case 'cancelled':
         return '已取消';
       case 'expired':
         return '已过期';
+      case 'pending_delegation':
+        return '等待委托';
       default:
         return '未知状态';
     }

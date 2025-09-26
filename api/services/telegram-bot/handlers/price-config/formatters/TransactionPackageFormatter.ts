@@ -37,11 +37,23 @@ export class TransactionPackageFormatter {
    * 格式化笔数套餐确认信息
    */
   static formatTransactionPackageConfirmation(config: any, contextData: any, address: string, confirmationTemplate?: string): string {
-    // 直接使用传入的确认模板
-    if (!confirmationTemplate) {
+    // 🎯 优先使用TRX模板，如果没有配置则使用默认模板
+    const trxTemplate = config?.order_config?.confirmation_template_trx;
+    const defaultTemplate = confirmationTemplate;
+    
+    // 选择使用TRX模板或默认模板
+    const selectedTemplate = trxTemplate || defaultTemplate;
+    
+    if (!selectedTemplate) {
       console.error('❌ 数据库中未配置订单确认模板');
       return '❌ 订单确认信息配置缺失，请联系管理员。';
     }
+    
+    console.log('📋 使用的模板类型:', {
+      hasTrxTemplate: !!trxTemplate,
+      hasDefaultTemplate: !!defaultTemplate,
+      usingTrxTemplate: !!trxTemplate
+    });
 
     // 从套餐配置中找到对应的套餐信息
     const transactionCount = parseInt(contextData.transactionCount);
@@ -59,18 +71,41 @@ export class TransactionPackageFormatter {
       transactionCount: selectedPackage.transaction_count
     });
 
-    let template = confirmationTemplate;
+    let template = selectedTemplate;
 
     // 替换基础占位符
     template = template.replace(/{transactionCount}/g, contextData.transactionCount || '');
     template = template.replace(/{address}/g, address || '');
     template = template.replace(/{userAddress}/g, address || '');
     
+    // 🎯 根据使用的模板类型选择价格数据
+    let unitPrice: string;
+    let totalPrice: string;
+    
+    if (trxTemplate) {
+      // 使用TRX模板时，优先使用TRX价格
+      if (selectedPackage.trx_unit_price && selectedPackage.trx_price) {
+        unitPrice = selectedPackage.trx_unit_price.toFixed(4);
+        totalPrice = selectedPackage.trx_price.toFixed(2);
+      } else {
+        // 回退到汇率计算
+        const rate = 6.5; // 默认汇率
+        unitPrice = (selectedPackage.unit_price * rate).toFixed(4);
+        totalPrice = (selectedPackage.price * rate).toFixed(2);
+      }
+      console.log('📋 使用TRX价格:', { unitPrice, totalPrice });
+    } else {
+      // 使用默认模板时，使用USDT价格
+      unitPrice = selectedPackage.unit_price?.toString() || '0';
+      totalPrice = selectedPackage.price?.toString() || '0';
+      console.log('📋 使用USDT价格:', { unitPrice, totalPrice });
+    }
+    
     // 替换价格相关占位符
-    template = template.replace(/{unitPrice}/g, selectedPackage.unit_price?.toString() || '0');
-    template = template.replace(/{price}/g, selectedPackage.price?.toString() || '0');
+    template = template.replace(/{unitPrice}/g, unitPrice);
+    template = template.replace(/{price}/g, totalPrice);
     // 添加monospace格式让金额可以在Telegram中点击复制
-    template = template.replace(/{totalAmount}/g, `\`${selectedPackage.price?.toString() || '0'}\``);
+    template = template.replace(/{totalAmount}/g, `\`${totalPrice}\``);
 
     // 替换支付地址（添加monospace格式）
     const paymentAddress = config.order_config?.payment_address;

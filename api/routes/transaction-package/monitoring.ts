@@ -248,6 +248,139 @@ router.get('/energy-monitor/stats',
 );
 
 /**
+ * 获取交易监听状态
+ * GET /api/transaction-package/monitoring/status
+ */
+router.get('/status',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { getTransactionMonitorInstance } = await import('../../utils/transaction-monitor-singleton');
+      const transactionMonitor = getTransactionMonitorInstance();
+      
+      if (!transactionMonitor) {
+        return res.status(500).json({
+          success: false,
+          error: 'Transaction monitor service not initialized',
+          message: 'Transaction monitor service is not available'
+        });
+      }
+      
+      const status = transactionMonitor.getStatus();
+      
+      res.json({
+        success: true,
+        data: status,
+        message: 'Transaction monitor status retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Get transaction monitor status error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to get transaction monitor status'
+      });
+    }
+  }
+);
+
+/**
+ * 手动触发交易检测
+ * POST /api/transaction-package/monitoring/trigger-detection
+ */
+router.post('/trigger-detection',
+  authenticateToken,
+  [
+    body('address')
+      .optional()
+      .isLength({ min: 34, max: 34 })
+      .withMessage('Address must be 34 characters long if provided'),
+    body('txHash')
+      .optional()
+      .isLength({ min: 64, max: 64 })
+      .withMessage('Transaction hash must be 64 characters long if provided')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { getTransactionMonitorInstance } = await import('../../utils/transaction-monitor-singleton');
+      const transactionMonitor = getTransactionMonitorInstance();
+      
+      if (!transactionMonitor) {
+        return res.status(500).json({
+          success: false,
+          error: 'Transaction monitor service not initialized',
+          message: 'Transaction monitor service is not available'
+        });
+      }
+
+      // 强制执行一次交易轮询
+      await (transactionMonitor as any).pollTransactions();
+      
+      res.json({
+        success: true,
+        data: { 
+          triggered: true,
+          timestamp: new Date(),
+          note: 'Manual transaction detection triggered successfully'
+        },
+        message: 'Transaction detection triggered successfully'
+      });
+    } catch (error) {
+      console.error('Trigger transaction detection error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to trigger transaction detection'
+      });
+    }
+  }
+);
+
+/**
+ * 重新启动交易监听服务
+ * POST /api/transaction-package/monitoring/restart
+ */
+router.post('/restart',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { getTransactionMonitorInstance } = await import('../../utils/transaction-monitor-singleton');
+      const transactionMonitor = getTransactionMonitorInstance();
+      
+      if (!transactionMonitor) {
+        return res.status(500).json({
+          success: false,
+          error: 'Transaction monitor service not initialized',
+          message: 'Transaction monitor service is not available'
+        });
+      }
+
+      // 停止并重新启动监听服务
+      await transactionMonitor.stopMonitoring();
+      await transactionMonitor.startMonitoring();
+      
+      res.json({
+        success: true,
+        data: { 
+          restarted: true,
+          timestamp: new Date(),
+          status: transactionMonitor.getStatus()
+        },
+        message: 'Transaction monitor service restarted successfully'
+      });
+    } catch (error) {
+      console.error('Restart transaction monitor error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to restart transaction monitor service'
+      });
+    }
+  }
+);
+
+/**
  * 获取监控日志
  * GET /api/transaction-package/energy-monitor/logs
  */

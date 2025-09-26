@@ -59,6 +59,7 @@
                   <span class="font-medium">时长:</span>
                   <span v-if="order.flash_rent_duration">{{ Math.round(order.flash_rent_duration / 60 * 10) / 10 }}小时</span>
                   <span v-else-if="order.duration_hours">{{ order.duration_hours }}小时</span>
+                  <span v-else-if="order.order_type === 'transaction_package'" class="text-green-600">永久</span>
                   <span v-else class="text-orange-500">未设置</span>
                 </div>
                 <div v-if="order.payment_tx_hash" class="text-xs text-gray-400 font-mono" :title="order.payment_tx_hash">
@@ -105,13 +106,13 @@
             <td class="px-3 py-3 whitespace-nowrap">
               <div class="space-y-1">
                 <div class="text-sm font-medium text-gray-900">
-                  {{ formatPrice(order) }} TRX
+                  {{ formatPrice(order) }} {{ order.payment_currency || 'TRX' }}
                 </div>
                 <div class="text-xs text-indigo-600">
                   <span class="font-medium">笔数:</span> {{ calculateOrderCount(order, flashRentConfig) }}
                 </div>
                 <div v-if="order.commission_amount" class="text-xs text-green-600">
-                  <span class="font-medium">佣金:</span> {{ order.commission_amount }} TRX
+                  <span class="font-medium">佣金:</span> {{ order.commission_amount }} {{ order.payment_currency || 'TRX' }}
                 </div>
               </div>
             </td>
@@ -275,12 +276,12 @@
 
 <script setup lang="ts">
 import {
-  CreditCard,
-  Edit,
-  Eye,
-  Loader2,
-  ShoppingCart,
-  Zap
+    CreditCard,
+    Edit,
+    Eye,
+    Loader2,
+    ShoppingCart,
+    Zap
 } from 'lucide-vue-next'
 
 // 导入分离的模块
@@ -289,22 +290,22 @@ import { onMounted, ref, watch } from 'vue'
 import type { OrderListEmits, OrderListProps } from '../composables/useOrderList'
 import { useOrderList } from '../composables/useOrderList'
 import {
-  calculateOrderCount,
-  formatAddress,
-  formatDateTime,
-  formatEnergy,
-  formatPrice,
-  viewTransaction
+    calculateOrderCount,
+    formatAddress,
+    formatDateTime,
+    formatEnergy,
+    formatPrice,
+    viewTransaction
 } from '../utils/orderFormatters'
 import {
-  canUpdateStatus,
-  getDelegationStatusColor,
-  getDelegationStatusText,
-  getOrderTypeText,
-  getPaymentStatusColor,
-  getPaymentStatusText,
-  getStatusColor,
-  getStatusText
+    canUpdateStatus,
+    getDelegationStatusColor,
+    getDelegationStatusText,
+    getOrderTypeText,
+    getPaymentStatusColor,
+    getPaymentStatusText,
+    getStatusColor,
+    getStatusText
 } from '../utils/orderStatus'
 
 // 使用类型定义

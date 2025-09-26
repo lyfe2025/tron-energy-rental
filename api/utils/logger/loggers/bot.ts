@@ -2,6 +2,7 @@
  * 机器人专用日志记录器
  */
 import path from 'path';
+import { fileURLToPath } from 'url';
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { ensureLogDirectory } from '../core/config';
