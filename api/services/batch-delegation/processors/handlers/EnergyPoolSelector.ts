@@ -23,7 +23,7 @@ export class EnergyPoolSelector {
     networkId: string
   ): Promise<EnergyPoolAccount | null> {
     try {
-      logger.info(`🔍 [智能选择] 查找可代理余额充足的能量池账户`, {
+      logger.info(`🔍 [能量池] 选择账户`, {
         需要能量: requiredEnergy,
         网络ID: networkId
       });
@@ -43,29 +43,22 @@ export class EnergyPoolSelector {
         return null;
       }
 
-      logger.info(`📋 [智能选择] 找到 ${result.rows.length} 个活跃能量池，开始检查可代理余额`);
+      logger.info(`📋 [能量池] 检查 ${result.rows.length} 个活跃账户`);
 
       // 依次检查每个账户的实际可代理余额
       for (const account of result.rows) {
-        logger.info(`🔍 [智能选择] 检查账户: ${account.name || '未命名'} (${account.tron_address})`);
-        
         try {
           const delegatableEnergy = await this.checkDelegatableEnergy(
             account.tron_address, 
             networkId
           );
           
-          logger.info(`📊 [智能选择] 账户代理能力检查结果`, {
-            '账户名称': account.name || '未命名',
-            '地址': account.tron_address,
-            '需要能量': requiredEnergy,
-            '可代理能量': delegatableEnergy,
-            '是否足够': delegatableEnergy >= requiredEnergy ? '✅ 足够' : '❌ 不足',
-            '差额': delegatableEnergy - requiredEnergy
-          });
-          
           if (delegatableEnergy >= requiredEnergy) {
-            logger.info(`✅ [智能选择] 选中具有足够可代理余额的账户: ${account.name || '未命名'}`);
+            logger.info(`✅ [能量池] 选中账户: ${account.name || '未命名'}`, {
+              '可代理能量': delegatableEnergy,
+              '需要能量': requiredEnergy,
+              '剩余': delegatableEnergy - requiredEnergy
+            });
             
             return {
               ...account,
@@ -73,12 +66,6 @@ export class EnergyPoolSelector {
               private_key: account.private_key_encrypted,
               delegatable_energy: delegatableEnergy
             };
-          } else {
-            logger.warn(`⚠️ [智能选择] 账户可代理余额不足`, {
-              需要: requiredEnergy,
-              可代理: delegatableEnergy,
-              缺少: requiredEnergy - delegatableEnergy
-            });
           }
         } catch (error: any) {
           logger.error(`❌ [智能选择] 检查账户 ${account.tron_address} 可代理余额失败`, {
@@ -89,9 +76,9 @@ export class EnergyPoolSelector {
         }
       }
 
-      logger.error(`❌ [智能选择] 所有能量池账户的可代理余额都不足`, {
+      logger.error(`❌ [能量池] 所有账户余额不足`, {
         需要能量: requiredEnergy,
-        检查了账户数: result.rows.length
+        检查账户数: result.rows.length
       });
       return null;
     } catch (error: any) {
@@ -159,16 +146,11 @@ export class EnergyPoolSelector {
       const availableDelegateBalance = Math.max(0, directEnergyStaked - delegatedEnergyOut);
       const availableDelegateTrx = availableDelegateBalance / 1000000;
 
-      logger.info(`🎯 [可代理余额] 账户 ${address} 代理能力分析`, {
-        '🔥 核心修复': '净可用能量=可代理能量',
-        '净可用能量(官方数据)': availableEnergy,
-        '错误计算值': Math.floor(availableDelegateTrx * 76.2),
-        '能量质押SUN': directEnergyStaked,
-        '已代理SUN': delegatedEnergyOut,
-        '可代理余额SUN': availableDelegateBalance,
-        '可代理TRX余额': availableDelegateTrx.toFixed(6),
-        '✅ 最终返回': availableEnergy,
-        '说明': '直接使用TRON官方的净可用能量数据'
+      logger.info(`✅ [能量池] 账户代理能力`, {
+        '账户': `${address.substring(0, 8)}...`,
+        '净可用能量': availableEnergy,
+        '质押TRX': availableDelegateTrx.toFixed(2),
+        网络ID: networkId
       });
 
       // 🔥 核心修复：直接返回净可用能量，这才是真正可以代理的！

@@ -33,7 +33,6 @@ export class AccountService {
 
   // 获取账户资源信息
   async getAccountResources(address: string): Promise<ServiceResponse<ResourceData>> {
-    console.log('🚨 [AccountService] getAccountResources 被调用了！地址:', address);
     try {
       const startTime = Date.now();
       
@@ -50,24 +49,10 @@ export class AccountService {
         // 尝试获取委托详情（需要指定委托的目标地址，但我们先获取基础信息）
         // 注意：getDelegatedResourceV2 需要指定 fromAddress 和 toAddress
         // 这里我们先使用现有的方法，未来可以根据需要添加特定的委托查询
-        console.log('🔍 [AccountService] 当前使用基础API获取委托信息');
       } catch (delegateError) {
         console.warn('⚠️ [AccountService] getDelegatedResourceV2 调用失败，使用基础API:', delegateError.message);
       }
       
-      console.log('🔍 [AccountService] TRON API 详细数据:', {
-        address,
-        timestamp: new Date().toISOString(),
-        apiResponseTime: Date.now() - startTime + 'ms',
-        rawData: {
-          freeNetLimit: resources.freeNetLimit,
-          freeNetUsed: resources.freeNetUsed,
-          NetLimit: resources.NetLimit,
-          NetUsed: resources.NetUsed,
-          EnergyLimit: resources.EnergyLimit,
-          EnergyUsed: resources.EnergyUsed
-        }
-      });
       
       // 根据TRON官方文档正确计算带宽信息
       const freeNetLimit = resources.freeNetLimit || 600; // TRON每日免费带宽
@@ -107,14 +92,6 @@ export class AccountService {
       const delegatedEnergyIn = parseInt(accountResource.acquired_delegated_frozenV2_balance_for_energy) || 0; // 从别人获得的TRX（用于能量）
       const delegatedBandwidthIn = parseInt(accountResource.acquired_delegated_frozenV2_balance_for_bandwidth) || 0; // 从别人获得的TRX（用于带宽）
 
-      console.log('🔍 [AccountService] TRON API 账户原始数据:', {
-        address,
-        'delegated_frozenV2_balance_for_bandwidth': accountInfo.delegated_frozenV2_balance_for_bandwidth,
-        'delegated_frozenV2_balance_for_bandwidth_type': typeof accountInfo.delegated_frozenV2_balance_for_bandwidth,
-        'delegatedBandwidthOut_parsed': parseInt(accountInfo.delegated_frozenV2_balance_for_bandwidth) || 0,
-        'TotalNetWeight': resources.TotalNetWeight,
-        'TotalNetLimit': resources.TotalNetLimit
-      });
 
       // ✅ 修正：TRON API的EnergyLimit是净可用能量，需要计算真正的质押获得能量
       const netAvailableEnergy = resources.EnergyLimit || 0;
@@ -143,32 +120,6 @@ export class AccountService {
       const delegatedBandwidthOutValue = totalNetWeight > 0 ? 
         Math.floor((delegatedBandwidthOut / totalNetWeight) * totalNetLimit) : 0;
         
-      console.log('🚨 [AccountService] 强制测试 - 如果看到这个日志，说明AccountService正在运行');
-
-      console.log('🔍 [AccountService] 质押信息获取:', {
-        address,
-        '直接质押': {
-          directEnergyStaked_SUN: directEnergyStaked,
-          directBandwidthStaked_SUN: directBandwidthStaked,
-          directEnergyStaked_TRX: directEnergyStaked / 1000000,
-          directBandwidthStaked_TRX: directBandwidthStaked / 1000000
-        },
-        '代理质押_SUN': {
-          delegatedEnergyOut,
-          delegatedBandwidthOut,
-          delegatedEnergyIn, 
-          delegatedBandwidthIn
-        },
-        '网络参数': {
-          totalNetWeight,
-          totalNetLimit
-        },
-        '计算后代理带宽': {
-          delegatedBandwidthOutValue,
-          delegatedBandwidthInValue,
-          '计算公式': `(${delegatedBandwidthOut} / ${totalNetWeight}) * ${totalNetLimit} = ${delegatedBandwidthOutValue}`
-        }
-      });
       
       // ✅ 修正：质押获得的带宽 = 净可用质押带宽 + 代理给他人的带宽（简化值）
       // TRON API的NetLimit是净可用带宽，需要加上代理给他人的部分才是真正的“质押获得”

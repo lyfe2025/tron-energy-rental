@@ -30,35 +30,28 @@ export class DelegationExecutor {
     transactionHash?: string
   ): Promise<DelegationResult> {
     try {
-      logger.info(`🚀 [DelegationExecutor] 开始执行代理操作`, {
+      logger.info(`🚀 [代理执行] 开始执行`, {
         orderId,
-        energyAccount: energyAccount.tron_address,
+        能量池: `${energyAccount.tron_address.substring(0, 8)}...`,
         需要能量: energyPerTransaction,
-        用户地址: userAddress,
-        调试标记: 'executeDelegation_entry'
+        用户: `${userAddress.substring(0, 8)}...`
       });
 
       // 1. 构建代理参数
-      logger.info(`📋 [DelegationExecutor] 步骤1: 构建代理参数`, { orderId });
       const delegationParams = this.buildDelegationParams(
         order,
         energyPerTransaction,
         energyAccount,
         userAddress
       )
-      logger.info(`✅ [DelegationExecutor] 步骤1: 代理参数构建完成`, { orderId });
 
-      // 2. 记录使用的能量池账户到订单中
-      logger.info(`📋 [DelegationExecutor] 步骤2: 记录能量池账户`, { orderId });
+      // 2. 记录使用的能量池账户
       await this.recordEnergyPoolUsage(orderId, energyAccount)
-      logger.info(`✅ [DelegationExecutor] 步骤2: 能量池账户记录完成`, { orderId });
 
-      // 3. 🔧 网络一致性修复：使用订单指定网络的TronService实例
-      logger.info(`🔍 [代理前验证] 设置私钥前验证余额: ${energyAccount.tron_address}`, {
-        orderId,
-        需要能量: energyPerTransaction,
+      // 3. 使用订单指定网络进行验证
+      logger.info(`🔍 [余额验证] 使用订单网络验证`, {
         网络ID: order.network_id,
-        修复标记: '确保使用订单指定的网络'
+        需要能量: energyPerTransaction
       });
       
       // 🔥 关键修复：创建网络专用的TronService实例，与EnergyPoolSelector保持一致
@@ -90,11 +83,6 @@ export class DelegationExecutor {
           eventServer: network.rpc_url
         });
         
-        logger.info(`✅ [代理前验证] 创建网络专用TronService`, {
-          网络名称: network.name,
-          网络RPC: network.rpc_url,
-          网络ID: order.network_id
-        });
       } catch (error) {
         logger.error('❌ [代理前验证] 创建网络TronService失败:', error);
         return {
@@ -107,9 +95,8 @@ export class DelegationExecutor {
       const resourceResult = await networkTronService.getAccountResources(energyAccount.tron_address);
       
       if (!resourceResult.success) {
-        logger.error(`❌ [代理前验证] 获取账户资源失败`, {
-          orderId,
-          账户地址: energyAccount.tron_address,
+        logger.error(`❌ [余额验证] 查询失败`, {
+          账户: `${energyAccount.tron_address.substring(0, 8)}...`,
           错误: resourceResult.error
         });
         return {
@@ -133,25 +120,18 @@ export class DelegationExecutor {
       const availableDelegateTrx = availableDelegateBalance / 1000000;
       const oldCalculation = Math.floor(availableDelegateTrx * 76.2);
       
-      logger.info(`🎯 [代理前验证] 余额验证详情`, {
-        orderId,
-        账户地址: energyAccount.tron_address,
-        '🔥 核心修复': '与EnergyPoolSelector保持一致',
-        '净可用能量(正确)': finalDelegatableEnergy,
-        '错误计算值': oldCalculation,
-        '直接能量质押TRX': (directEnergyStaked / 1000000).toFixed(6),
-        '已代理能量TRX': (delegatedEnergyOut / 1000000).toFixed(6),
-        '需要能量': energyPerTransaction,
-        '✅ 验证结果': finalDelegatableEnergy >= energyPerTransaction ? '充足' : '不足'
+      logger.info(`✅ [余额验证] 验证结果`, {
+        净可用能量: finalDelegatableEnergy,
+        需要能量: energyPerTransaction,
+        状态: finalDelegatableEnergy >= energyPerTransaction ? '✅ 充足' : '❌ 不足'
       });
       
       if (finalDelegatableEnergy < energyPerTransaction) {
-        logger.error(`❌ [代理前验证] 能量池余额不足`, {
-          orderId,
-          账户地址: energyAccount.tron_address,
-          可代理能量: finalDelegatableEnergy,
-          需要能量: energyPerTransaction,
-          缺少能量: energyPerTransaction - finalDelegatableEnergy
+        logger.error(`❌ [余额验证] 能量池余额不足`, {
+          账户: `${energyAccount.tron_address.substring(0, 8)}...`,
+          可用: finalDelegatableEnergy,
+          需要: energyPerTransaction,
+          缺少: energyPerTransaction - finalDelegatableEnergy
         });
         
         return {
@@ -160,21 +140,8 @@ export class DelegationExecutor {
         };
       }
       
-      logger.info(`✅ [代理前验证] 余额验证通过，开始设置私钥`, {
-        orderId,
-        账户地址: energyAccount.tron_address,
-        可代理能量: finalDelegatableEnergy,
-        需要能量: energyPerTransaction,
-        剩余能量: finalDelegatableEnergy - energyPerTransaction
-      });
 
-      // 4. 🔧 网络一致性修复：直接设置能量池私钥到网络专用实例
-      logger.info(`🔑 [代理执行] 为网络专用实例设置能量池私钥`, {
-        orderId,
-        网络ID: order.network_id,
-        能量池ID: energyAccount.id,
-        能量池地址: energyAccount.tron_address
-      });
+      // 4. 设置能量池私钥
       
       // 获取能量池私钥并设置到网络专用实例
       try {
@@ -196,11 +163,6 @@ export class DelegationExecutor {
         // 设置私钥到网络专用TronWeb实例
         networkTronService.tronWeb.setPrivateKey(privateKey);
         
-        logger.info(`✅ [代理执行] 网络专用实例私钥设置成功`, {
-          能量池ID: energyAccount.id,
-          能量池地址: energyAccount.tron_address,
-          网络ID: order.network_id
-        });
       } catch (keyError) {
         logger.error(`❌ [代理执行] 设置私钥失败`, {
           错误: keyError.message,
@@ -214,23 +176,14 @@ export class DelegationExecutor {
 
       let delegationResult: any
       try {
-        // 5. 🔧 网络一致性修复：使用网络专用实例执行代理
-        logger.info(`🚀 [代理执行] 使用网络专用实例开始执行能量代理`, {
-          orderId,
-          网络ID: order.network_id,
-          delegationParams,
-          energyAccount: energyAccount.tron_address,
-          修复标记: '确保使用相同网络实例'
+        // 5. 执行能量代理
+        logger.info(`🚀 [代理执行] 开始执行`, {
+          代理: `${delegationParams.balance / 1000000} TRX`,
+          从: `${delegationParams.ownerAddress.substring(0, 8)}...`,
+          到: `${delegationParams.receiverAddress.substring(0, 8)}...`
         })
         
         delegationResult = await networkTronService.delegateResource(delegationParams)
-        
-        logger.info(`能量代理执行完成`, {
-          orderId,
-          success: delegationResult?.success,
-          txid: delegationResult?.txid,
-          error: delegationResult?.error
-        })
 
         if (!delegationResult?.success) {
           // 🔧 增强错误诊断：详细分析失败原因

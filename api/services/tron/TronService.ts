@@ -49,19 +49,7 @@ export class TronService {
   }
 
   async getAccountResources(address: string): Promise<ServiceResponse<ResourceData>> {
-    console.log('🔍 [TronService] 调用 getAccountResources:', { address });
-    const result = await this.accountService.getAccountResources(address);
-    console.log('🔍 [TronService] getAccountResources 返回:', { 
-      success: result.success,
-      '能量信息': {
-        delegatedEnergyOut: result.data?.energy?.delegatedOut,
-        directEnergyStaked_SUN: result.data?.energy?.directStaked,
-        totalStaked: result.data?.energy?.totalStaked,
-        '🔧 修复': '使用正确的字段名称映射'
-      },
-      '📊 能量代理状态': result.data?.energy ? '✅ 有能量数据' : '❌ 无能量数据'
-    });
-    return result;
+    return await this.accountService.getAccountResources(address);
   }
 
   async getAccountInfo(address: string): Promise<ServiceResponse<AccountData>> {
