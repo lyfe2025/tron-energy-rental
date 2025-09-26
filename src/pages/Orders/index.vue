@@ -166,7 +166,7 @@ watch(currentNetworkId, async (newNetworkId) => {
   if (newNetworkId && initializeWithNetworkId) {
     await initializeWithNetworkId(newNetworkId)
   }
-}, { immediate: false })
+}, { immediate: true })
 
 // 初始化
 onMounted(async () => {
@@ -179,10 +179,9 @@ onMounted(async () => {
       setCurrentNetworkId(routeNetworkId.value)
     }
     
-    // 如果有当前网络，初始化订单数据
-    if (currentNetworkId.value && initializeWithNetworkId) {
-      await initializeWithNetworkId(currentNetworkId.value)
-    }
+    // 注意：由于 watch 现在设置了 immediate: true，
+    // 当 setCurrentNetworkId 设置网络ID后，watch 会自动触发数据加载
+    // 所以这里不需要手动调用 initializeWithNetworkId 避免重复加载
   } catch (err: any) {
     console.error('❌ [Orders] 页面初始化失败:', err)
     error(`页面初始化失败: ${err.message}`)

@@ -148,31 +148,32 @@ export class EnergyPoolSelector {
       const resourceData = resourceResult.data;
       const energyInfo = resourceData.energy || {};
       
-      // 获取能量相关数据
+      // 🔥 重大修复：净可用能量就是可以代理出去的能量！
       const totalEnergyLimit = energyInfo.limit || 0;
       const usedEnergy = energyInfo.used || 0;
       const availableEnergy = Math.max(0, totalEnergyLimit - usedEnergy);
       
-      // 🔧 关键：计算可代理余额（FreezeEnergyV2 balance）
+      // 获取质押信息（用于调试显示）
       const delegatedEnergyOut = energyInfo.delegatedOut || 0;
-      const totalStaked = energyInfo.totalStaked || 0;
-      const availableDelegateBalance = Math.max(0, totalStaked - delegatedEnergyOut);
+      const directEnergyStaked = energyInfo.directEnergyStaked_SUN || 0;
+      const availableDelegateBalance = Math.max(0, directEnergyStaked - delegatedEnergyOut);
       const availableDelegateTrx = availableDelegateBalance / 1000000;
 
-      // 转换为能量单位
-      const energyPerTrx = 76.2;
-      const maxDelegatableEnergy = Math.floor(availableDelegateTrx * energyPerTrx);
-      
       logger.info(`🎯 [可代理余额] 账户 ${address} 代理能力分析`, {
+        '🔥 核心修复': '净可用能量=可代理能量',
+        '净可用能量(官方数据)': availableEnergy,
+        '错误计算值': Math.floor(availableDelegateTrx * 76.2),
+        '能量质押SUN': directEnergyStaked,
+        '已代理SUN': delegatedEnergyOut,
+        '可代理余额SUN': availableDelegateBalance,
         '可代理TRX余额': availableDelegateTrx.toFixed(6),
-        '对应最大可代理能量': maxDelegatableEnergy,
-        '当前可用能量': availableEnergy,
-        '实际可代理能量': Math.min(availableEnergy, maxDelegatableEnergy)
+        '✅ 最终返回': availableEnergy,
+        '说明': '直接使用TRON官方的净可用能量数据'
       });
 
-      // 🔧 修复：返回可代理余额对应的能量，这才是真正能代理的数量
-      // 代理操作检查的是FreezeEnergyV2余额，不是可用能量
-      return maxDelegatableEnergy;
+      // 🔥 核心修复：直接返回净可用能量，这才是真正可以代理的！
+      // 用户确认：净可用能量就是可以代理出去的能量
+      return availableEnergy;
     } catch (error: any) {
       logger.error(`❌ [可代理余额] 检查地址 ${address} 可代理余额失败`, {
         错误: error.message,

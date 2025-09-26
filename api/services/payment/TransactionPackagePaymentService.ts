@@ -195,7 +195,10 @@ export class TransactionPackagePaymentService {
         } : null,
         description: '更新订单状态为已支付并激活'
       });
+      
+      logger.info(`🔧 [调试] 即将调用 activateTransactionPackageOrder`, { orderId, txHash: shortTxId });
       await this.activateTransactionPackageOrder(orderId, txHash, paymentCurrency);
+      logger.info(`✅ [调试] activateTransactionPackageOrder 完成`, { orderId });
 
       // 3. 执行首次能量代理
       logger.info(`💎 [笔数套餐] 步骤3: 开始首次能量代理`, {
@@ -204,7 +207,10 @@ export class TransactionPackagePaymentService {
         txId: shortTxId,
         step: '3_first_delegation'
       });
+      
+      logger.info(`🔧 [调试] 即将调用 performFirstEnergyDelegation`, { orderId, userAddress });
       await this.performFirstEnergyDelegation(orderId, userAddress);
+      logger.info(`✅ [调试] performFirstEnergyDelegation 完成`, { orderId });
 
       // 4. 启动能量使用监听
       logger.info(`💎 [笔数套餐] 步骤4: 开始启动监听服务`, {
@@ -265,7 +271,8 @@ export class TransactionPackagePaymentService {
         orderId,
         txHash: txHash.substring(0, 8) + '...',
         actualPaymentCurrency,
-        step: '2_database_update'
+        step: '2_database_update',
+        调试标记: 'activateTransactionPackageOrder_entry'
       });
       
       // 如果实际支付货币与订单预期不同，则更新支付货币字段
@@ -290,7 +297,10 @@ export class TransactionPackagePaymentService {
          WHERE id = $2`;
       
       const params = actualPaymentCurrency ? [txHash, orderId, actualPaymentCurrency] : [txHash, orderId];
+      
+      logger.info(`🔧 [调试] 即将执行数据库更新`, { orderId, updateFields: updateFields.substring(0, 50) + '...', params });
       await query(updateFields, params);
+      logger.info(`🔧 [调试] 数据库更新完成`, { orderId });
 
       logger.info(`✅ [笔数套餐] 步骤2: 订单激活成功`, {
         orderId,
@@ -299,7 +309,8 @@ export class TransactionPackagePaymentService {
         paymentStatus: 'paid',
         paymentCurrencyUpdated: !!actualPaymentCurrency,
         actualPaymentCurrency,
-        step: '2_activation_success'
+        step: '2_activation_success',
+        调试标记: 'activateTransactionPackageOrder_success'
       });
     } catch (error: any) {
       logger.error(`❌ [笔数套餐] 步骤2: 订单激活失败`, {
@@ -316,6 +327,9 @@ export class TransactionPackagePaymentService {
    * 执行首次能量代理
    */
   private async performFirstEnergyDelegation(orderId: string, userAddress: string): Promise<void> {
+    console.log('🚨🚨🚨 [强制调试] performFirstEnergyDelegation 被调用了！', { orderId, userAddress });
+    logger.error('🚨🚨🚨 [强制调试] performFirstEnergyDelegation 被调用了！', { orderId, userAddress });
+    
     try {
       logger.info(`⚡ [笔数套餐] 步骤3: 调用批量代理服务`, {
         orderId,
@@ -341,6 +355,9 @@ export class TransactionPackagePaymentService {
         throw new Error(`首次能量代理失败: ${result.message}`);
       }
     } catch (error: any) {
+      console.log('🚨🚨🚨 [强制调试] performFirstEnergyDelegation 异常！', { orderId, error: error.message });
+      logger.error('🚨🚨🚨 [强制调试] performFirstEnergyDelegation 异常！', { orderId, error: error.message });
+      
       logger.error(`❌ [笔数套餐] 步骤3: 首次能量代理失败`, {
         orderId,
         userAddress: userAddress ? `${userAddress.substring(0, 8)}...` : '[无效地址]',

@@ -183,26 +183,37 @@ export class AccountService {
       // 注意：代理给他人的资源不能被当前账户使用
       const actualAvailableBandwidth = Math.max(0, theoreticalTotalBandwidth - totalUsedBandwidth - delegatedBandwidthOutSimplified);
       
-      // 数据差异监控和警告
-      console.log('📊 [AccountService] 带宽计算结果:', {
+      // 🔥 重点：能量计算结果 - 用于能量代理
+      console.log('⚡ [AccountService] 能量计算结果 (代理核心):', {
         address,
-        '原始数据': {
-          stakedNetLimit,
-          delegatedBandwidthOutValue,
-          delegatedBandwidthOutSimplified,
-          delegatedBandwidthInValue
+        '🎯 能量质押数据 (SUN)': {
+          directEnergyStaked_SUN: directEnergyStaked,
+          delegatedEnergyOut_SUN: delegatedEnergyOut,
+          '可代理余额_SUN': Math.max(0, directEnergyStaked - delegatedEnergyOut)
         },
+        '💰 能量质押数据 (TRX)': {
+          directEnergyStaked_TRX: (directEnergyStaked / 1000000).toFixed(6),
+          delegatedEnergyOut_TRX: (delegatedEnergyOut / 1000000).toFixed(6),
+          '可代理余额_TRX': Math.max(0, (directEnergyStaked - delegatedEnergyOut) / 1000000).toFixed(6)
+        },
+        '⚡ 能量使用情况': {
+          '净可用能量': netAvailableEnergy,
+          '已使用能量': usedEnergy,
+          '实际可用能量': actualAvailableEnergy,
+          '理论总能量': theoreticalTotalEnergy
+        },
+        '📊 代理能力': `可代理 ${Math.floor(Math.max(0, directEnergyStaked - delegatedEnergyOut) / 1000000 * 76.2)} 能量`,
+        calculationNote: '🔧 能量代理检查: 直接质押 - 已代理 = 可代理余额'
+      });
+      
+      // 带宽计算结果（简化）
+      console.log('📶 [AccountService] 带宽计算结果 (参考):', {
+        address,
         '计算结果': {
-          '质押获得带宽(修正后)': stakingOnlyBandwidth,
-          '理论总带宽': theoreticalTotalBandwidth,
+          '质押获得带宽': stakingOnlyBandwidth,
           '实际可用带宽': actualAvailableBandwidth
         },
-        '使用情况': {
-          freeNetUsed,
-          stakedNetUsed,
-          totalUsedBandwidth
-        },
-        calculationNote: '质押获得 = NetLimit + 代理给他人简化值，如与区块浏览器有差异，通常在±20个单位内属正常现象'
+        '使用情况': { freeNetUsed, stakedNetUsed, totalUsedBandwidth }
       });
       
       return {

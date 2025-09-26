@@ -363,33 +363,14 @@ export class TransactionCounter {
     newCount: number,
     reason: string
   ): Promise<void> {
-    try {
-      const insertQuery = `
-        INSERT INTO system_logs (level, message, metadata, created_at)
-        VALUES ('info', 'Transaction count updated', $1, CURRENT_TIMESTAMP)
-      `
-
-      const metadata = {
-        orderId,
-        previousCount,
-        newCount,
-        reason,
-        action: 'transaction_count_update'
-      }
-
-      await this.dbService.query(insertQuery, [JSON.stringify(metadata)])
-
-      logger.debug(`交易笔数更新日志记录成功`, metadata)
-    } catch (error) {
-      logger.error(`记录交易笔数更新日志失败`, {
-        orderId,
-        previousCount,
-        newCount,
-        reason,
-        error: error instanceof Error ? error.message : error
-      })
-      // 不抛出异常，避免影响主流程
-    }
+    // 只记录到文件日志，交易笔数更新已在orders表中跟踪
+    logger.debug(`交易笔数更新日志记录`, {
+      orderId,
+      previousCount,
+      newCount,
+      reason,
+      action: 'transaction_count_update'
+    })
   }
 
   /**

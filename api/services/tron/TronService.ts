@@ -53,8 +53,13 @@ export class TronService {
     const result = await this.accountService.getAccountResources(address);
     console.log('🔍 [TronService] getAccountResources 返回:', { 
       success: result.success,
-      delegatedOut: result.data?.bandwidth?.delegatedOut,
-      delegationBandwidthOut: result.data?.delegation?.bandwidthOut 
+      '能量信息': {
+        delegatedEnergyOut: result.data?.energy?.delegatedOut,
+        directEnergyStaked_SUN: result.data?.energy?.directStaked,
+        totalStaked: result.data?.energy?.totalStaked,
+        '🔧 修复': '使用正确的字段名称映射'
+      },
+      '📊 能量代理状态': result.data?.energy ? '✅ 有能量数据' : '❌ 无能量数据'
     });
     return result;
   }
@@ -78,6 +83,52 @@ export class TronService {
 
   // ===== 委托相关方法 =====
   async delegateResource(params: DelegateResourceParams): Promise<TransactionResult> {
+    // 🔧 关键修复：在所有代理操作前验证可代理余额，防止FreezeEnergyV2余额不足错误
+    if (params.resource === 'ENERGY') {
+      console.log(`🔍 [TronService] 代理前余额验证: ${params.ownerAddress}`, {
+        请求代理: `${params.balance} SUN`,
+        '请求代理TRX': (params.balance / 1000000).toFixed(6),
+        接收地址: params.receiverAddress
+      });
+      
+      // 获取账户实际可代理余额
+      const resourceResult = await this.getAccountResources(params.ownerAddress);
+      if (resourceResult.success && resourceResult.data.energy) {
+        const energyInfo = resourceResult.data.energy;
+        const delegatedOut = energyInfo.delegatedOut || 0;
+        const totalStaked = energyInfo.totalStaked || 0;
+        
+        // 计算可代理余额（与能量闪兑使用相同逻辑）
+        const availableDelegateBalance = Math.max(0, totalStaked - delegatedOut); // SUN单位
+        
+        if (params.balance > availableDelegateBalance) {
+          const deficit = params.balance - availableDelegateBalance;
+          console.error(`❌ [TronService] 代理余额验证失败`, {
+            账户地址: params.ownerAddress,
+            '总质押TRX': (totalStaked / 1000000).toFixed(6),
+            '已代理TRX': (delegatedOut / 1000000).toFixed(6), 
+            '可代理TRX': (availableDelegateBalance / 1000000).toFixed(6),
+            '请求代理TRX': (params.balance / 1000000).toFixed(6),
+            '缺少TRX': (deficit / 1000000).toFixed(6),
+            '验证结果': '❌ 余额不足'
+          });
+          
+          return {
+            success: false,
+            error: `代理余额不足: 账户 ${params.ownerAddress} 可代理 ${(availableDelegateBalance / 1000000).toFixed(6)} TRX，请求代理 ${(params.balance / 1000000).toFixed(6)} TRX，缺少 ${(deficit / 1000000).toFixed(6)} TRX`
+          };
+        }
+        
+        console.log(`✅ [TronService] 代理余额验证通过`, {
+          账户地址: params.ownerAddress,
+          '可代理TRX': (availableDelegateBalance / 1000000).toFixed(6),
+          '请求代理TRX': (params.balance / 1000000).toFixed(6),
+          '剩余TRX': ((availableDelegateBalance - params.balance) / 1000000).toFixed(6),
+          '验证结果': '✅ 余额充足'
+        });
+      }
+    }
+    
     return await this.delegationService.delegateResource(params);
   }
 

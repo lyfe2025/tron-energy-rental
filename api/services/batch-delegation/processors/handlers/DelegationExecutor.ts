@@ -30,31 +30,120 @@ export class DelegationExecutor {
     transactionHash?: string
   ): Promise<DelegationResult> {
     try {
+      logger.info(`🚀 [DelegationExecutor] 开始执行代理操作`, {
+        orderId,
+        energyAccount: energyAccount.tron_address,
+        需要能量: energyPerTransaction,
+        用户地址: userAddress,
+        调试标记: 'executeDelegation_entry'
+      });
+
       // 1. 构建代理参数
+      logger.info(`📋 [DelegationExecutor] 步骤1: 构建代理参数`, { orderId });
       const delegationParams = this.buildDelegationParams(
         order,
         energyPerTransaction,
         energyAccount,
         userAddress
       )
+      logger.info(`✅ [DelegationExecutor] 步骤1: 代理参数构建完成`, { orderId });
 
       // 2. 记录使用的能量池账户到订单中
+      logger.info(`📋 [DelegationExecutor] 步骤2: 记录能量池账户`, { orderId });
       await this.recordEnergyPoolUsage(orderId, energyAccount)
+      logger.info(`✅ [DelegationExecutor] 步骤2: 能量池账户记录完成`, { orderId });
 
-      // 3. 设置能量池账户私钥
-      await this.setupEnergyPoolAccount(orderId, energyAccount)
-
-      // 4. 代理前最终验证可代理余额
-      logger.info(`🔍 [代理前验证] 对选中账户进行最终余额验证: ${energyAccount.tron_address}`, {
+      // 3. 🔧 网络一致性修复：使用订单指定网络的TronService实例
+      logger.info(`🔍 [代理前验证] 设置私钥前验证余额: ${energyAccount.tron_address}`, {
         orderId,
         需要能量: energyPerTransaction,
-        网络ID: order.network_id
+        网络ID: order.network_id,
+        修复标记: '确保使用订单指定的网络'
       });
       
-      const finalDelegatableEnergy = await this.checkAccountDelegatableEnergy(
-        energyAccount.tron_address, 
-        order.network_id
-      );
+      // 🔥 关键修复：创建网络专用的TronService实例，与EnergyPoolSelector保持一致
+      let networkTronService;
+      try {
+        // 获取网络配置
+        const networkResult = await query(`
+          SELECT id, name, rpc_url, network_type, is_active 
+          FROM tron_networks 
+          WHERE id = $1 AND is_active = true
+        `, [order.network_id]);
+        
+        if (networkResult.rows.length === 0) {
+          logger.error(`❌ [代理前验证] 网络不存在或未激活: ${order.network_id}`);
+          return {
+            success: false,
+            message: `网络配置错误: ${order.network_id}`
+          };
+        }
+        
+        const network = networkResult.rows[0];
+        
+        // 创建网络专用的TronService实例
+        const { TronService } = await import('../../../tron/TronService');
+        networkTronService = new TronService({
+          fullHost: network.rpc_url,
+          privateKey: undefined,
+          solidityNode: network.rpc_url,
+          eventServer: network.rpc_url
+        });
+        
+        logger.info(`✅ [代理前验证] 创建网络专用TronService`, {
+          网络名称: network.name,
+          网络RPC: network.rpc_url,
+          网络ID: order.network_id
+        });
+      } catch (error) {
+        logger.error('❌ [代理前验证] 创建网络TronService失败:', error);
+        return {
+          success: false,
+          message: `网络配置失败: ${error.message}`
+        };
+      }
+      
+      // 使用网络专用实例查询（确保网络一致性）
+      const resourceResult = await networkTronService.getAccountResources(energyAccount.tron_address);
+      
+      if (!resourceResult.success) {
+        logger.error(`❌ [代理前验证] 获取账户资源失败`, {
+          orderId,
+          账户地址: energyAccount.tron_address,
+          错误: resourceResult.error
+        });
+        return {
+          success: false,
+          message: `获取账户资源失败: ${resourceResult.error}`
+        };
+      }
+      
+      // 🔥 核心修复：与EnergyPoolSelector保持一致，使用净可用能量
+      const energyInfo = resourceResult.data.energy || {};
+      
+      // 获取净可用能量（这就是真正可代理的！）
+      const totalEnergyLimit = energyInfo.limit || 0;
+      const usedEnergy = energyInfo.used || 0;
+      const finalDelegatableEnergy = Math.max(0, totalEnergyLimit - usedEnergy);
+      
+      // 获取质押信息（用于调试显示）
+      const delegatedEnergyOut = (energyInfo as any)?.delegatedEnergyOut || 0;
+      const directEnergyStaked = (energyInfo as any)?.directEnergyStaked_SUN || 0;
+      const availableDelegateBalance = Math.max(0, directEnergyStaked - delegatedEnergyOut);
+      const availableDelegateTrx = availableDelegateBalance / 1000000;
+      const oldCalculation = Math.floor(availableDelegateTrx * 76.2);
+      
+      logger.info(`🎯 [代理前验证] 余额验证详情`, {
+        orderId,
+        账户地址: energyAccount.tron_address,
+        '🔥 核心修复': '与EnergyPoolSelector保持一致',
+        '净可用能量(正确)': finalDelegatableEnergy,
+        '错误计算值': oldCalculation,
+        '直接能量质押TRX': (directEnergyStaked / 1000000).toFixed(6),
+        '已代理能量TRX': (delegatedEnergyOut / 1000000).toFixed(6),
+        '需要能量': energyPerTransaction,
+        '✅ 验证结果': finalDelegatableEnergy >= energyPerTransaction ? '充足' : '不足'
+      });
       
       if (finalDelegatableEnergy < energyPerTransaction) {
         logger.error(`❌ [代理前验证] 能量池余额不足`, {
@@ -71,7 +160,7 @@ export class DelegationExecutor {
         };
       }
       
-      logger.info(`✅ [代理前验证] 余额验证通过`, {
+      logger.info(`✅ [代理前验证] 余额验证通过，开始设置私钥`, {
         orderId,
         账户地址: energyAccount.tron_address,
         可代理能量: finalDelegatableEnergy,
@@ -79,16 +168,62 @@ export class DelegationExecutor {
         剩余能量: finalDelegatableEnergy - energyPerTransaction
       });
 
+      // 4. 🔧 网络一致性修复：直接设置能量池私钥到网络专用实例
+      logger.info(`🔑 [代理执行] 为网络专用实例设置能量池私钥`, {
+        orderId,
+        网络ID: order.network_id,
+        能量池ID: energyAccount.id,
+        能量池地址: energyAccount.tron_address
+      });
+      
+      // 获取能量池私钥并设置到网络专用实例
+      try {
+        const privateKeyResult = await query(
+          'SELECT private_key_encrypted FROM energy_pools WHERE id = $1',
+          [energyAccount.id]
+        );
+        
+        if (privateKeyResult.rows.length === 0) {
+          throw new Error(`能量池账户不存在: ${energyAccount.id}`);
+        }
+        
+        const privateKey = privateKeyResult.rows[0].private_key_encrypted;
+        
+        if (!privateKey || privateKey.length !== 64) {
+          throw new Error(`能量池账户私钥格式无效: ${energyAccount.id}`);
+        }
+        
+        // 设置私钥到网络专用TronWeb实例
+        networkTronService.tronWeb.setPrivateKey(privateKey);
+        
+        logger.info(`✅ [代理执行] 网络专用实例私钥设置成功`, {
+          能量池ID: energyAccount.id,
+          能量池地址: energyAccount.tron_address,
+          网络ID: order.network_id
+        });
+      } catch (keyError) {
+        logger.error(`❌ [代理执行] 设置私钥失败`, {
+          错误: keyError.message,
+          能量池ID: energyAccount.id
+        });
+        return {
+          success: false,
+          message: `设置能量池私钥失败: ${keyError.message}`
+        };
+      }
+
       let delegationResult: any
       try {
-        // 5. 执行能量代理
-        logger.info(`开始执行能量代理`, {
+        // 5. 🔧 网络一致性修复：使用网络专用实例执行代理
+        logger.info(`🚀 [代理执行] 使用网络专用实例开始执行能量代理`, {
           orderId,
+          网络ID: order.network_id,
           delegationParams,
-          energyAccount: energyAccount.tron_address
+          energyAccount: energyAccount.tron_address,
+          修复标记: '确保使用相同网络实例'
         })
         
-        delegationResult = await this.tronService.delegateResource(delegationParams)
+        delegationResult = await networkTronService.delegateResource(delegationParams)
         
         logger.info(`能量代理执行完成`, {
           orderId,
@@ -98,10 +233,101 @@ export class DelegationExecutor {
         })
 
         if (!delegationResult?.success) {
+          // 🔧 增强错误诊断：详细分析失败原因
+          logger.error(`🚨 [代理失败诊断] 开始详细分析失败原因`, {
+            orderId,
+            原始错误: delegationResult?.error,
+            能量池地址: energyAccount.tron_address
+          });
+          
+          let detailedErrorMessage = '';
+          let diagnostics = {};
+          
+          try {
+            // 检查错误类型和消息
+            const errorMsg = delegationResult?.error || '';
+            const isResourceError = errorMsg.includes('resource insufficient') || errorMsg.includes('BANDWITH_ERROR');
+            
+            if (isResourceError) {
+              // 获取能量池账户的详细资源状态
+              logger.info(`🔍 [代理失败诊断] 获取能量池账户详细资源状态`, { 账户: energyAccount.tron_address });
+              
+              const accountResources = await networkTronService.getAccountResources(energyAccount.tron_address);
+              const accountInfo = await networkTronService.getAccount(energyAccount.tron_address);
+              
+              if (accountResources.success && accountInfo.success) {
+                const trxBalance = accountInfo.data.balance || 0;
+                const trxBalanceReadable = (trxBalance / 1000000).toFixed(6);
+                const bandwidthInfo = accountResources.data.bandwidth || {};
+                const energyInfo = accountResources.data.energy || {};
+                
+                // 计算各种资源状态
+                const availableBandwidth = bandwidthInfo.available || 0;
+                const availableEnergy = energyInfo.available || 0;
+                const delegationFeeEstimate = 1.1; // TRX，代理交易预估手续费
+                
+                diagnostics = {
+                  账户余额: {
+                    'TRX余额': trxBalanceReadable,
+                    '最低需要TRX': delegationFeeEstimate + ' (预估交易费)',
+                    'TRX是否充足': trxBalance >= (delegationFeeEstimate * 1000000) ? '✅ 充足' : '❌ 不足'
+                  },
+                  带宽资源: {
+                    '可用带宽': availableBandwidth,
+                    '预估需要带宽': '250-350 (代理交易)',
+                    '带宽是否充足': availableBandwidth >= 250 ? '✅ 充足' : '❌ 不足'
+                  },
+                  能量资源: {
+                    '可用能量': availableEnergy,
+                    '需要代理能量': energyPerTransaction,
+                    '能量是否充足': availableEnergy >= energyPerTransaction ? '✅ 充足' : '❌ 不足'
+                  }
+                };
+                
+                // 分析具体失败原因
+                const issues = [];
+                if (trxBalance < (delegationFeeEstimate * 1000000)) {
+                  issues.push(`TRX余额不足 (当前: ${trxBalanceReadable} TRX，需要: ${delegationFeeEstimate} TRX)`);
+                }
+                if (availableBandwidth < 250) {
+                  issues.push(`带宽资源不足 (当前: ${availableBandwidth}，需要: 250+)`);
+                }
+                if (availableEnergy < energyPerTransaction) {
+                  issues.push(`能量余额不足 (当前: ${availableEnergy}，需要: ${energyPerTransaction})`);
+                }
+                
+                if (issues.length > 0) {
+                  detailedErrorMessage = `能量池账户资源不足: ${issues.join('; ')}`;
+                } else {
+                  detailedErrorMessage = `代理交易失败，但资源检查显示充足，可能是网络问题或其他原因`;
+                }
+                
+                logger.error(`📊 [代理失败诊断] 资源状态详情`, {
+                  orderId,
+                  能量池地址: energyAccount.tron_address,
+                  诊断结果: diagnostics,
+                  问题列表: issues,
+                  建议处理方式: issues.length > 0 ? '请为能量池账户充值相应资源' : '请检查网络状态或重试'
+                });
+              }
+            } else {
+              detailedErrorMessage = `代理交易失败: ${delegationResult?.error}`;
+            }
+          } catch (diagnosisError) {
+            logger.warn(`⚠️ [代理失败诊断] 诊断过程出错: ${diagnosisError.message}`);
+            detailedErrorMessage = `Energy delegation failed: ${delegationResult?.error || 'Unknown delegation error'}`;
+          }
+          
           return {
             success: false,
-            message: `Energy delegation failed: ${delegationResult?.error || 'Unknown delegation error'}`,
-            details: delegationResult
+            message: detailedErrorMessage || `Energy delegation failed: ${delegationResult?.error || 'Unknown delegation error'}`,
+            details: {
+              原始错误: delegationResult,
+              诊断信息: diagnostics,
+              建议处理: detailedErrorMessage.includes('TRX余额不足') ? '请为能量池账户转入TRX' : 
+                       detailedErrorMessage.includes('带宽资源不足') ? '请为能量池账户质押TRX获取带宽' :
+                       detailedErrorMessage.includes('能量余额不足') ? '请为能量池账户质押TRX获取能量' : '请检查网络状态'
+            }
           }
         }
 
@@ -282,94 +508,7 @@ export class DelegationExecutor {
     }
   }
 
-  /**
-   * 设置能量池账户私钥
-   */
-  private async setupEnergyPoolAccount(orderId: string, energyAccount: EnergyPoolAccount): Promise<void> {
-    logger.info(`设置能量池账户私钥进行代理`, {
-      orderId,
-      energyAccountId: energyAccount.id,
-      energyAccountAddress: energyAccount.tron_address
-    })
-    
-    // 🔧 关键修复：设置正确的能量池账户私钥
-    await this.tronService.setPoolAccountPrivateKey(energyAccount.id)
-  }
+  // setupEnergyPoolAccount方法已移除
+  // 现在直接在executeDelegation中使用网络专用实例设置私钥
 
-  /**
-   * 检查账户可代理能量（与FlashRentHandler使用相同逻辑）
-   */
-  private async checkAccountDelegatableEnergy(address: string, networkId: string): Promise<number> {
-    try {
-      // 1. 获取网络配置
-      const networkResult = await query(`
-        SELECT id, name, rpc_url, network_type, is_active 
-        FROM tron_networks 
-        WHERE id = $1 AND is_active = true
-      `, [networkId]);
-      
-      if (networkResult.rows.length === 0) {
-        logger.error(`❌ [可代理余额检查] 网络不存在或未激活: ${networkId}`);
-        return 0;
-      }
-      
-      const network = networkResult.rows[0];
-      
-      // 2. 创建网络专用的TronService实例
-      let networkTronService;
-      try {
-        const { TronService } = await import('../../../tron/TronService');
-        networkTronService = new TronService({
-          fullHost: network.rpc_url,
-          privateKey: undefined,
-          solidityNode: network.rpc_url,
-          eventServer: network.rpc_url
-        });
-      } catch (error) {
-        logger.error('❌ [可代理余额检查] 创建TronService失败:', error);
-        return 0;
-      }
-      
-      // 3. 获取账户资源信息
-      const resourceResult = await networkTronService.getAccountResources(address);
-      
-      if (!resourceResult.success) {
-        logger.error(`❌ [可代理余额检查] 获取账户资源失败: ${address}`, {
-          错误: resourceResult.error,
-          网络ID: networkId
-        });
-        return 0;
-      }
-
-      const resourceData = resourceResult.data;
-      const energyInfo = resourceData.energy || {};
-      
-      // 🔧 关键：计算可代理余额（FreezeEnergyV2 balance）
-      const delegatedEnergyOut = energyInfo.delegatedOut || 0;
-      const totalStaked = energyInfo.totalStaked || 0;
-      const availableDelegateBalance = Math.max(0, totalStaked - delegatedEnergyOut);
-      const availableDelegateTrx = availableDelegateBalance / 1000000;
-
-      // 转换为能量单位
-      const energyPerTrx = 76.2;
-      const maxDelegatableEnergy = Math.floor(availableDelegateTrx * energyPerTrx);
-      
-      logger.info(`🎯 [可代理余额检查] 账户 ${address} 代理能力分析`, {
-        '可代理TRX余额': availableDelegateTrx.toFixed(6),
-        '对应最大可代理能量': maxDelegatableEnergy,
-        '总质押TRX': (totalStaked / 1000000).toFixed(6),
-        '已代理TRX': (delegatedEnergyOut / 1000000).toFixed(6),
-        '🔧 修复': '现在返回可代理余额限制，不是可用能量'
-      });
-
-      // 🔧 修复：直接返回可代理余额对应的能量，这才是真正能代理的数量
-      return maxDelegatableEnergy;
-    } catch (error: any) {
-      logger.error(`❌ [可代理余额检查] 检查地址 ${address} 可代理余额失败`, {
-        错误: error.message,
-        网络ID: networkId
-      });
-      return 0;
-    }
-  }
 }

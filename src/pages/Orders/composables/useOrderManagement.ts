@@ -3,11 +3,11 @@ import { ordersAPI, type OrderQueryParams as APIOrderQueryParams } from '@/servi
 import { debounce } from 'lodash-es'
 import { computed, onMounted, reactive, ref } from 'vue'
 import type {
-  Order,
-  OrderFilters,
-  OrderManagementState,
-  OrderQueryParams,
-  OrderStatusUpdateData
+    Order,
+    OrderFilters,
+    OrderManagementState,
+    OrderQueryParams,
+    OrderStatusUpdateData
 } from '../types/order.types'
 
 export function useOrderManagement() {
@@ -300,8 +300,10 @@ export function useOrderManagement() {
 
   // 初始化
   onMounted(() => {
-    // 只有在没有网络ID的情况下才自动加载
+    // 注意：现在数据加载由 watch 监听器处理，这里只处理无网络ID的兜底情况
+    // 当有网络ID时，由调用 initializeWithNetworkId 来加载数据
     if (!currentNetworkId.value) {
+      console.log('🔍 [useOrderManagement] 没有网络ID，加载默认订单数据')
       fetchOrders()
     }
   })
