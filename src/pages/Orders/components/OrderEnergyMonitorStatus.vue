@@ -1,7 +1,19 @@
 <template>
   <div class="bg-white rounded-lg border p-4">
     <div class="flex items-center justify-between mb-4">
-      <h4 class="text-lg font-semibold text-gray-900">订单监控状态</h4>
+      <div class="flex items-center space-x-2">
+        <h4 class="text-lg font-semibold text-gray-900">订单监控状态</h4>
+        <!-- 帮助按钮 -->
+        <button
+          @click="showHelp = !showHelp"
+          class="p-1 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+          title="查看监控说明"
+        >
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
       <div class="flex items-center space-x-2">
         <div class="flex items-center">
           <div 
@@ -21,6 +33,45 @@
         >
           {{ loading ? '刷新中...' : '刷新' }}
         </button>
+      </div>
+    </div>
+
+    <!-- 帮助说明 -->
+    <div v-if="showHelp" class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex items-start space-x-3">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="flex-1 text-sm text-blue-700">
+          <h5 class="font-semibold mb-2">智能能量监控说明</h5>
+          <ul class="space-y-1.5 text-blue-600">
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <span><strong>检查间隔：</strong>每 10 秒自动检查一次用户地址的能量使用情况</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <span><strong>精确检测：</strong>只跟踪我们代理的能量是否被使用，不受其他来源能量影响</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <span><strong>触发条件：</strong>当我们代理的能量被使用80%以上，或地址总能量低于1000 SUN时</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <span><strong>安全间隔：</strong>代理后等待5分钟才开始检查，避免误触发</span>
+            </li>
+            <li class="flex items-start">
+              <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              <span><strong>自动完成：</strong>所有笔数用完后，订单自动标记为完成状态</span>
+            </li>
+          </ul>
+          <div class="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-800">
+            <strong>💡 提示：</strong>系统会在日志中详细记录每次检查和代理的过程，确保透明可追溯。
+          </div>
+        </div>
       </div>
     </div>
 
@@ -150,6 +201,7 @@ const { success: showSuccess, error: showError } = useToast()
 const loading = ref(false)
 const checkingOrder = ref(false)
 const orderMonitorInfo = ref<any>(null)
+const showHelp = ref(false)
 
 // 计算属性
 const isMonitoring = computed(() => {

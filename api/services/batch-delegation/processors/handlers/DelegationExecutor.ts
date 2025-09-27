@@ -284,20 +284,34 @@ export class DelegationExecutor {
           }
         }
 
-        // 5. 记录能量使用日志（代理成功）
+        // 5. 获取代理后的能量状态并记录
         if (delegationResult?.txid) {
-          await this.recordLogger.recordEnergyUsage(
+          // 获取代理后用户的能量状态
+          let energyAfterDelegation = 0
+          try {
+            const accountInfo = await this.tronService.getAccountInfo(userAddress)
+            energyAfterDelegation = accountInfo.data?.energy || 0
+          } catch (error) {
+            logger.warn('获取代理后能量状态失败', { userAddress, error })
+          }
+
+          await this.recordLogger.recordEnergyUsageWithDetails(
             orderId,
             userAddress,
             energyPerTransaction,
-            delegationResult.txid
+            delegationResult.txid,
+            energyBeforeDelegation,  // 代理前能量
+            energyAfterDelegation    // 代理后能量
           )
-          logger.info(`📝 [笔数套餐] 能量使用记录已保存`, {
+          
+          logger.info(`📝 [笔数套餐] 详细能量使用记录已保存`, {
             orderId,
             userAddress: userAddress.substring(0, 15) + '...',
-            energyAmount: energyPerTransaction,
+            energyDelegated: energyPerTransaction,
+            energyBefore: energyBeforeDelegation,
+            energyAfter: energyAfterDelegation,
             delegationTxHash: delegationResult.txid.substring(0, 12) + '...',
-            说明: '首次代理成功，已记录到energy_usage_logs表'
+            说明: '代理成功，已记录详细能量状态到energy_usage_logs表'
           })
         }
 

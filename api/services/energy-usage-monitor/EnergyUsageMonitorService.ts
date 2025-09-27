@@ -186,6 +186,11 @@ export class EnergyUsageMonitorService extends EventEmitter {
 
       logger.info('手动触发能量检查', { orderId, userAddress: order.userAddress })
       
+      // 确保手动检查总是更新最后检查时间
+      this.orderMonitor.updateOrder(orderId, {
+        lastEnergyUsageTime: new Date()
+      })
+      
       // 简化的检查逻辑
       const result = await this.checkOrderEnergyUsage(order)
       
@@ -200,6 +205,16 @@ export class EnergyUsageMonitorService extends EventEmitter {
         orderId,
         error: error instanceof Error ? error.message : error
       })
+      
+      // 即使出错也要更新最后检查时间
+      try {
+        this.orderMonitor.updateOrder(orderId, {
+          lastEnergyUsageTime: new Date()
+        })
+      } catch (updateError) {
+        logger.debug('更新最后检查时间失败', { orderId, updateError })
+      }
+      
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error'
@@ -264,31 +279,65 @@ export class EnergyUsageMonitorService extends EventEmitter {
         return { energyUsageDetected: false, delegationTriggered: false }
       }
 
-      const lastEnergy = this.lastEnergyStates.get(order.userAddress) || currentEnergy
-      const energyChange = lastEnergy - currentEnergy
+      // 获取我们上次代理的能量信息
+      const ourLastDelegation = await this.getLastDelegationInfo(order.orderId)
+      if (!ourLastDelegation) {
+        logger.debug('未找到上次代理信息，跳过检查', {
+          orderId: order.orderId
+        })
+        return { energyUsageDetected: false, delegationTriggered: false }
+      }
 
-      // 更灵活的能量使用检测逻辑
-      const energyUsageDetected = energyChange > this.config.energyThreshold || 
-                                   (lastEnergy > 0 && currentEnergy <= 1000) // 能量几乎用完
+      // 计算时间间隔 - 至少等待5分钟后再检查
+      const timeSinceLastDelegation = Date.now() - ourLastDelegation.delegationTime.getTime()
+      const minWaitTime = 5 * 60 * 1000 // 5分钟
+      
+      if (timeSinceLastDelegation < minWaitTime) {
+        logger.debug('代理时间间隔不足，等待更多时间', {
+          orderId: order.orderId,
+          timeSinceLastDelegation: Math.round(timeSinceLastDelegation / 1000),
+          minWaitTime: Math.round(minWaitTime / 1000)
+        })
+        return { energyUsageDetected: false, delegationTriggered: false }
+      }
 
+      // 更精确的能量检测逻辑：检查是否我们代理的能量被大量使用
+      const expectedEnergyAfterDelegation = ourLastDelegation.energyBeforeDelegation + ourLastDelegation.energyDelegated
+      const energyFromOurDelegation = Math.max(0, currentEnergy - ourLastDelegation.energyBeforeDelegation)
+      const ourEnergyConsumed = Math.max(0, ourLastDelegation.energyDelegated - energyFromOurDelegation)
+      
+      // 判断我们代理的能量是否被大量消耗（至少80%）
+      const ourEnergyUsageRatio = ourEnergyConsumed / ourLastDelegation.energyDelegated
+      const energyUsageDetected = ourEnergyUsageRatio >= 0.8 || currentEnergy <= 1000
+
+      // 更新状态记录
       this.lastEnergyStates.set(order.userAddress, currentEnergy)
 
-      logger.debug('能量使用检测', {
+      logger.debug('精确能量使用检测', {
         orderId: order.orderId,
         userAddress: order.userAddress.substring(0, 10) + '...',
-        lastEnergy,
         currentEnergy,
-        energyChange,
+        ourLastDelegation: {
+          energyBeforeDelegation: ourLastDelegation.energyBeforeDelegation,
+          energyDelegated: ourLastDelegation.energyDelegated,
+          delegationTime: ourLastDelegation.delegationTime
+        },
+        expectedEnergyAfterDelegation,
+        energyFromOurDelegation,
+        ourEnergyConsumed,
+        ourEnergyUsageRatio: Math.round(ourEnergyUsageRatio * 100) + '%',
         energyUsageDetected,
         remainingTransactions: order.remainingTransactions
       })
 
       if (energyUsageDetected && order.remainingTransactions > 0) {
         try {
-          logger.info('检测到能量使用，触发下一笔代理', {
+          logger.info('检测到我们代理的能量被使用，触发下一笔代理', {
             orderId: order.orderId,
             userAddress: order.userAddress.substring(0, 10) + '...',
-            energyChange,
+            ourEnergyUsageRatio: Math.round(ourEnergyUsageRatio * 100) + '%',
+            ourEnergyConsumed,
+            energyDelegated: ourLastDelegation.energyDelegated,
             remainingTransactions: order.remainingTransactions
           })
 
@@ -345,6 +394,11 @@ export class EnergyUsageMonitorService extends EventEmitter {
         }
       }
 
+      // 无论是否触发代理，都更新最后检查时间
+      this.orderMonitor.updateOrder(order.orderId, {
+        lastEnergyUsageTime: new Date()
+      })
+
       return { energyUsageDetected, delegationTriggered: false }
     } catch (error) {
       logger.error('检查订单能量使用异常', {
@@ -361,6 +415,92 @@ export class EnergyUsageMonitorService extends EventEmitter {
       return accountInfo.data?.energy || 0
     } catch (error) {
       logger.error('获取账户能量失败', { address, error })
+      return null
+    }
+  }
+
+  /**
+   * 获取上次代理信息
+   */
+  private async getLastDelegationInfo(orderId: string): Promise<{
+    energyDelegated: number
+    energyBeforeDelegation: number
+    delegationTime: Date
+  } | null> {
+    try {
+      const { DatabaseService } = await import('../../database/DatabaseService')
+      const dbService = DatabaseService.getInstance()
+
+      // 查询最近一次代理记录
+      const query = `
+        SELECT 
+          o.used_transactions,
+          o.last_energy_usage_time,
+          pc.config
+        FROM orders o
+        LEFT JOIN price_configs pc ON o.price_config_id = pc.id
+        WHERE o.id = $1 
+          AND o.order_type = 'transaction_package'
+        ORDER BY o.updated_at DESC
+        LIMIT 1
+      `
+
+      const result = await dbService.query(query, [orderId])
+      
+      if (result.rows.length === 0 || !result.rows[0].last_energy_usage_time) {
+        return null
+      }
+
+      const orderData = result.rows[0]
+      const config = orderData.config || {}
+      
+      // 从配置中获取每笔能量数量（默认65000）
+      const energyPerTransaction = config.energy_per_transaction || 65000
+      
+      // 查询最近的代理跟踪记录
+      const energyLogQuery = `
+        SELECT energy_before, energy_after, energy_amount, created_at
+        FROM energy_usage_logs
+        WHERE order_id = $1 
+          AND detection_method = 'delegation_tracking'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `
+      
+      const energyLogResult = await dbService.query(energyLogQuery, [orderId])
+      let energyBeforeDelegation = 0
+      let actualEnergyDelegated = energyPerTransaction
+      
+      if (energyLogResult.rows.length > 0) {
+        const logRecord = energyLogResult.rows[0]
+        // 使用记录中的代理前能量状态
+        energyBeforeDelegation = logRecord.energy_before || 0
+        // 使用实际记录的代理能量数量
+        actualEnergyDelegated = logRecord.energy_amount || energyPerTransaction
+        
+        logger.debug('找到代理跟踪记录', {
+          orderId,
+          energyBefore: energyBeforeDelegation,
+          energyAfter: logRecord.energy_after,
+          energyDelegated: actualEnergyDelegated
+        })
+      } else {
+        logger.debug('未找到代理跟踪记录，使用默认值', {
+          orderId,
+          defaultEnergy: energyPerTransaction
+        })
+      }
+
+      return {
+        energyDelegated: actualEnergyDelegated,
+        energyBeforeDelegation,
+        delegationTime: new Date(orderData.last_energy_usage_time)
+      }
+    } catch (error) {
+      logger.error('获取代理信息失败', {
+        orderId,
+        error: error instanceof Error ? error.message : error
+      })
       return null
     }
   }

@@ -82,6 +82,83 @@ export class RecordLogger {
   }
 
   /**
+   * 记录详细的能量使用日志（包含代理前后能量状态）
+   */
+  async recordEnergyUsageWithDetails(
+    orderId: string,
+    userAddress: string,
+    energyDelegated: number,
+    delegationTxHash: string,
+    energyBefore: number,
+    energyAfter: number,
+    transactionHash?: string
+  ): Promise<void> {
+    try {
+      const finalTxHash = transactionHash || delegationTxHash
+      
+      // 检查是否已存在相同的记录 (同一订单+同一交易哈希)
+      const checkQuery = `
+        SELECT id FROM energy_usage_logs 
+        WHERE order_id = $1 
+        AND transaction_hash = $2 
+        LIMIT 1
+      `
+      
+      const existingRecord = await this.dbService.query(checkQuery, [orderId, finalTxHash])
+      
+      if (existingRecord.rows && existingRecord.rows.length > 0) {
+        logger.debug(`详细能量使用日志已存在，跳过重复记录`, {
+          orderId,
+          userAddress: userAddress.substring(0, 15) + '...',
+          transactionHash: finalTxHash.substring(0, 12) + '...',
+          existingRecordId: existingRecord.rows[0].id
+        })
+        return // 记录已存在，直接返回
+      }
+
+      // 插入详细的能量使用记录
+      const insertQuery = `
+        INSERT INTO energy_usage_logs (
+          order_id, user_address, energy_amount, energy_before, energy_after, 
+          energy_consumed, transaction_hash, usage_time, detection_time,
+          detection_method
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $8)
+      `
+
+      await this.dbService.query(insertQuery, [
+        orderId,
+        userAddress,
+        energyDelegated,       // energy_amount字段：我们代理的能量
+        energyBefore,          // energy_before：代理前用户能量
+        energyAfter,           // energy_after：代理后用户能量
+        0,                     // energy_consumed：暂时设为0，等用户实际使用后更新
+        finalTxHash,
+        'delegation_tracking'  // detection_method：标记为代理跟踪
+      ])
+
+      logger.debug(`详细能量使用日志记录成功`, {
+        orderId,
+        userAddress: userAddress.substring(0, 15) + '...',
+        energyDelegated,
+        energyBefore,
+        energyAfter,
+        transactionHash: finalTxHash.substring(0, 12) + '...',
+        method: 'delegation_tracking'
+      })
+    } catch (error) {
+      logger.error(`记录详细能量使用日志失败`, {
+        orderId,
+        userAddress,
+        energyDelegated,
+        energyBefore,
+        energyAfter,
+        error: error instanceof Error ? error.message : error
+      })
+      // 不抛出异常，避免影响主流程
+    }
+  }
+
+  /**
    * 记录代理执行事件 (仅记录到文件日志，订单状态已在订单表中管理)
    */
   async recordDelegationExecution(event: {

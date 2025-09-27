@@ -178,19 +178,20 @@
 import { ordersAPI, statisticsAPI } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import {
-  BarChart3,
-  Bot,
-  DollarSign,
-  FileText,
-  PieChart,
-  Plus,
-  Settings,
-  ShoppingCart,
-  TrendingDown,
-  TrendingUp,
-  Users
+    BarChart3,
+    Bot,
+    DollarSign,
+    FileText,
+    PieChart,
+    Plus,
+    Settings,
+    ShoppingCart,
+    TrendingDown,
+    TrendingUp,
+    Users
 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { getStatusColor, getStatusText } from './Orders/utils/orderStatus'
 
 // 状态管理
 const authStore = useAuthStore()
@@ -310,27 +311,7 @@ const formatTime = (dateString: string) => {
   }
 }
 
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'processing': 'bg-blue-100 text-blue-800',
-    'completed': 'bg-green-100 text-green-800',
-    'failed': 'bg-red-100 text-red-800',
-    'cancelled': 'bg-gray-100 text-gray-800'
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    'pending': '待处理',
-    'processing': '处理中',
-    'completed': '已完成',
-    'failed': '失败',
-    'cancelled': '已取消'
-  }
-  return texts[status] || status
-}
+// 状态处理函数现在从 orderStatus.ts 导入
 
 // 加载统计数据
 const loadStatistics = async () => {

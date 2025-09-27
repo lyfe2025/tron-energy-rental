@@ -397,6 +397,7 @@ import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
 import { formatOrderError, getErrorIcon } from '../utils/errorFormatter'
 import { formatNumber, formatPrice } from '../utils/orderFormatters'
+import { getStatusColor, getStatusText } from '../utils/orderStatus'
 import EnergyUsageRecords from './EnergyUsageRecords.vue'
 import OrderEnergyMonitorStatus from './OrderEnergyMonitorStatus.vue'
 
@@ -442,30 +443,7 @@ const availableStatuses = computed(() => [
   { value: 'cancelled', label: '已取消' }
 ])
 
-// 状态相关方法
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'processing': 'bg-blue-100 text-blue-800',
-    'completed': 'bg-green-100 text-green-800',
-    'manually_completed': 'bg-emerald-100 text-emerald-800',
-    'failed': 'bg-red-100 text-red-800',
-    'cancelled': 'bg-gray-100 text-gray-800'
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    'pending': '待处理',
-    'processing': '处理中',
-    'completed': '已完成',
-    'manually_completed': '已手动补单',
-    'failed': '失败',
-    'cancelled': '已取消'
-  }
-  return texts[status] || status
-}
+// 状态相关方法现在从 orderStatus.ts 导入
 
 const formatDateTime = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN')
