@@ -281,32 +281,94 @@ export class StatusManager {
   }
 
   /**
-   * 检查是否可以立即进行代理
+   * 检查是否可以立即进行代理（防重复代理）
    */
   async canDelegateNow(order: any): Promise<{
     allowed: boolean
     reason?: string
     nextAllowedTime?: Date
   }> {
-    // 如果没有设置下次代理时间，允许代理
-    if (!order.next_delegation_time) {
-      return { allowed: true }
-    }
+    try {
+      // 1. 检查订单剩余笔数
+      if (!order.remaining_transactions || order.remaining_transactions <= 0) {
+        return {
+          allowed: false,
+          reason: 'No remaining transactions available for delegation'
+        }
+      }
 
-    const now = new Date()
-    const nextDelegationTime = new Date(order.next_delegation_time)
+      // 2. 检查订单状态
+      if (order.status !== 'active' || order.payment_status !== 'paid') {
+        return {
+          allowed: false,
+          reason: 'Order is not active or not paid'
+        }
+      }
 
-    // 如果当前时间已经超过下次代理时间，允许代理
-    if (now >= nextDelegationTime) {
-      return { allowed: true }
-    }
+      // 3. 检查是否已经有正在处理的代理（防并发重复）
+      const processingCheck = await this.dbService.query(`
+        SELECT COUNT(*) as count 
+        FROM energy_usage_logs 
+        WHERE order_id = $1 
+        AND created_at > NOW() - INTERVAL '30 seconds'
+      `, [order.id])
+      
+      if (processingCheck.rows[0].count > 0) {
+        return {
+          allowed: false,
+          reason: 'Another delegation is currently being processed for this order'
+        }
+      }
 
-    // 否则需要等待
-    const waitTime = Math.ceil((nextDelegationTime.getTime() - now.getTime()) / 1000)
-    return {
-      allowed: false,
-      reason: `Must wait ${waitTime} seconds before next delegation`,
-      nextAllowedTime: nextDelegationTime
+      // 4. 首次代理特殊处理：确保只代理一笔
+      if (!order.used_transactions || order.used_transactions === 0) {
+        // 首次代理，检查是否已经有能量使用记录
+        const existingUsage = await this.dbService.query(`
+          SELECT COUNT(*) as count 
+          FROM energy_usage_logs 
+          WHERE order_id = $1
+        `, [order.id])
+        
+        if (existingUsage.rows[0].count > 0) {
+          return {
+            allowed: false,
+            reason: 'First delegation has already been completed'
+          }
+        }
+        
+        // 首次代理允许，不需要检查时间间隔
+        return { allowed: true }
+      }
+
+      // 5. 非首次代理：检查时间间隔
+      if (!order.next_delegation_time) {
+        return { allowed: true }
+      }
+
+      const now = new Date()
+      const nextDelegationTime = new Date(order.next_delegation_time)
+
+      // 如果当前时间已经超过下次代理时间，允许代理
+      if (now >= nextDelegationTime) {
+        return { allowed: true }
+      }
+
+      // 否则需要等待
+      const waitTime = Math.ceil((nextDelegationTime.getTime() - now.getTime()) / 1000)
+      return {
+        allowed: false,
+        reason: `Must wait ${waitTime} seconds before next delegation`,
+        nextAllowedTime: nextDelegationTime
+      }
+    } catch (error) {
+      logger.error('检查代理权限失败', {
+        orderId: order.id,
+        error: error instanceof Error ? error.message : error
+      })
+      return {
+        allowed: false,
+        reason: 'Internal error during delegation check'
+      }
     }
   }
 

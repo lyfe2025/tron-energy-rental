@@ -143,10 +143,95 @@ export class TransactionCounter {
   }
 
   /**
-   * 增加订单使用的交易笔数
+   * 增加订单使用的交易笔数（原子性操作，防重复）
    */
   async incrementUsedTransactions(orderId: string, increment: number = 1): Promise<TransactionCountUpdateResult> {
-    return this.updateTransactionCount(orderId, increment, 'delegation_completed')
+    try {
+      logger.info(`开始原子性增加交易笔数`, {
+        orderId,
+        increment
+      })
+
+      // 使用原子性SQL更新，防止并发问题
+      const updateQuery = `
+        UPDATE orders 
+        SET 
+          used_transactions = used_transactions + $1,
+          remaining_transactions = remaining_transactions - $1,
+          last_energy_usage_time = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2 
+          AND order_type = 'transaction_package'
+          AND remaining_transactions >= $1
+          AND (used_transactions + $1) <= transaction_count
+        RETURNING 
+          id, transaction_count, used_transactions, 
+          remaining_transactions, last_energy_usage_time
+      `
+
+      const result = await this.dbService.query(updateQuery, [increment, orderId])
+
+      if (result.rows.length === 0) {
+        // 获取当前订单状态用于错误诊断
+        const currentOrder = await this.getTransactionPackageOrder(orderId)
+        if (!currentOrder) {
+          return {
+            success: false,
+            message: 'Order not found or not a transaction package order'
+          }
+        }
+
+        return {
+          success: false,
+          message: 'Insufficient remaining transactions or concurrent update detected',
+          details: {
+            orderId,
+            currentUsed: currentOrder.used_transactions,
+            currentRemaining: currentOrder.remaining_transactions,
+            totalCount: currentOrder.transaction_count,
+            requestedIncrement: increment
+          }
+        }
+      }
+
+      const updatedOrder = result.rows[0]
+
+      // 记录更新日志
+      await this.recordTransactionCountUpdate(
+        orderId,
+        updatedOrder.used_transactions - increment,
+        updatedOrder.used_transactions,
+        'delegation_completed_atomic'
+      )
+
+      logger.info(`原子性交易笔数更新成功`, {
+        orderId,
+        previousUsed: updatedOrder.used_transactions - increment,
+        newUsed: updatedOrder.used_transactions,
+        remaining: updatedOrder.remaining_transactions
+      })
+
+      return {
+        success: true,
+        message: 'Transaction count incremented successfully',
+        orderId,
+        transactionCount: updatedOrder.transaction_count,
+        usedTransactions: updatedOrder.used_transactions,
+        remainingTransactions: updatedOrder.remaining_transactions,
+        lastEnergyUsageTime: updatedOrder.last_energy_usage_time
+      }
+    } catch (error) {
+      logger.error(`原子性增加交易笔数失败`, {
+        orderId,
+        increment,
+        error: error instanceof Error ? error.message : error
+      })
+      return {
+        success: false,
+        message: 'Internal error during atomic transaction count increment',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
   }
 
   /**

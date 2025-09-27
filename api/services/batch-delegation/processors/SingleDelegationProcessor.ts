@@ -117,6 +117,22 @@ export class SingleDelegationProcessor {
         }
       }
 
+      // 5. 获取代理锁防止并发重复代理
+      const { query } = await import('../../../database/index')
+      const lockAcquired = await query(
+        'SELECT acquire_delegation_lock($1, $2, $3) as acquired',
+        [orderId, 'api_delegation', 30]
+      )
+      
+      if (!lockAcquired.rows[0].acquired) {
+        return {
+          success: false,
+          message: 'Another delegation is currently in progress for this order'
+        }
+      }
+
+      logger.info(`🔒 [代理锁] 已获取订单代理锁`, { orderId })
+
       // 5. 获取单笔交易所需能量（从订单的energy_amount计算）
       const energyPerTransaction = Math.floor(order.energy_amount / order.transaction_count)
       
@@ -187,14 +203,7 @@ export class SingleDelegationProcessor {
         logger.warn(`能量代理成功但订单状态更新失败`, { orderId })
       }
 
-      // 10. 记录能量使用日志（第二次记录，确保完整性）
-      await this.recordLogger.recordEnergyUsage(
-        orderId,
-        userAddress,
-        energyPerTransaction,
-        delegationResult.delegationTxHash!,
-        transactionHash
-      )
+      // 10. 能量使用日志已在DelegationExecutor中记录，此处跳过避免重复
 
       // 11. 记录代理执行事件
       await this.recordLogger.recordDelegationExecution({
@@ -214,6 +223,14 @@ export class SingleDelegationProcessor {
         energyDelegated: energyPerTransaction,
         executionTime: `${executionTime}ms`
       })
+
+      // 12. 释放代理锁
+      try {
+        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, 'api_delegation'])
+        logger.info(`🔓 [代理锁] 已释放订单代理锁`, { orderId })
+      } catch (lockError) {
+        logger.warn(`释放代理锁失败`, { orderId, error: lockError })
+      }
 
       return {
         success: true,
@@ -237,6 +254,16 @@ export class SingleDelegationProcessor {
         timestamp: new Date().toISOString(),
         phase: 'single_delegation_processor_top_level'
       })
+
+      // 异常时也要释放代理锁
+      try {
+        const { query } = await import('../../../database/index')
+        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, 'api_delegation'])
+        logger.info(`🔓 [代理锁] 异常时已释放订单代理锁`, { orderId })
+      } catch (lockError) {
+        logger.warn(`异常时释放代理锁失败`, { orderId, error: lockError })
+      }
+
       return {
         success: false,
         message: `Internal error during energy delegation: ${error instanceof Error ? error.message : error}`,

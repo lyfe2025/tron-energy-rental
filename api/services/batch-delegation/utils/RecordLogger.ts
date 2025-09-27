@@ -13,7 +13,7 @@ export class RecordLogger {
   }
 
   /**
-   * 记录能量使用日志
+   * 记录能量使用日志 (防重复)
    */
   async recordEnergyUsage(
     orderId: string,
@@ -23,6 +23,28 @@ export class RecordLogger {
     transactionHash?: string
   ): Promise<void> {
     try {
+      const finalTxHash = transactionHash || delegationTxHash
+      
+      // 检查是否已存在相同的记录 (同一订单+同一交易哈希)
+      const checkQuery = `
+        SELECT id FROM energy_usage_logs 
+        WHERE order_id = $1 
+        AND transaction_hash = $2 
+        LIMIT 1
+      `
+      
+      const existingRecord = await this.dbService.query(checkQuery, [orderId, finalTxHash])
+      
+      if (existingRecord.rows && existingRecord.rows.length > 0) {
+        logger.debug(`能量使用日志已存在，跳过重复记录`, {
+          orderId,
+          userAddress: userAddress.substring(0, 15) + '...',
+          transactionHash: finalTxHash.substring(0, 12) + '...',
+          existingRecordId: existingRecord.rows[0].id
+        })
+        return // 记录已存在，直接返回
+      }
+
       const insertQuery = `
         INSERT INTO energy_usage_logs (
           order_id, user_address, energy_amount, energy_before, energy_after, 
@@ -34,11 +56,11 @@ export class RecordLogger {
       await this.dbService.query(insertQuery, [
         orderId,
         userAddress,
-        energyConsumed,  // 🔧 修复：添加必需的energy_amount字段
+        energyConsumed,  // energy_amount字段
         0, // energy_before - 需要从区块链查询实际值
         0, // energy_after - 需要从区块链查询实际值
         energyConsumed,
-        transactionHash || delegationTxHash,
+        finalTxHash,
         'api_polling' // detection_method
       ])
 
@@ -46,7 +68,7 @@ export class RecordLogger {
         orderId,
         userAddress: userAddress.substring(0, 15) + '...',
         energyConsumed,
-        transactionHash: (transactionHash || delegationTxHash).substring(0, 12) + '...'
+        transactionHash: finalTxHash.substring(0, 12) + '...'
       })
     } catch (error) {
       logger.error(`记录能量使用日志失败`, {

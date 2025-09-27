@@ -6,7 +6,7 @@
     @click="$emit('close-details')"
   >
     <div 
-      class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+      class="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto"
       @click.stop
     >
       <div class="flex justify-between items-center mb-4">
@@ -369,10 +369,10 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import {
-  Copy,
-  ExternalLink,
-  Loader2,
-  X
+    Copy,
+    ExternalLink,
+    Loader2,
+    X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'

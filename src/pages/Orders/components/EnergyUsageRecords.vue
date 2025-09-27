@@ -58,23 +58,24 @@
       </div>
 
       <div v-else>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
+        <!-- 更宽的表格布局，完整显示TRON地址 -->
+        <div class="w-full overflow-hidden">
+          <table class="w-full table-fixed divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="w-14 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   序号
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="w-32 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   使用时间
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="w-20 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   消耗能量
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="w-48 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   交易哈希
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   用户地址
                 </th>
               </tr>
@@ -85,47 +86,61 @@
                 :key="record.id || index"
                 class="hover:bg-gray-50"
               >
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-2 py-3 text-sm text-gray-900 text-center whitespace-nowrap">
                   {{ (pagination.offset || 0) + index + 1 }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ formatDateTime(record.usage_timestamp || record.created_at) }}
+                <td class="px-2 py-3 text-xs text-gray-900 whitespace-nowrap">
+                  <div>{{ formatDateTime(record.usage_timestamp || record.created_at) }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {{ formatNumber(record.energy_amount || record.energy_consumed || 0) }} Energy
+                <td class="px-2 py-3 whitespace-nowrap">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {{ formatNumber(record.energy_amount || record.energy_consumed || 0) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div v-if="record.transaction_hash" class="flex items-center space-x-2">
-                    <span class="text-sm font-mono text-gray-900">
+                <td class="px-1 py-3">
+                  <div v-if="record.transaction_hash" class="flex items-center justify-between w-full">
+                    <span class="text-xs font-mono text-gray-900 flex-1 truncate pr-1">
                       {{ truncateHash(record.transaction_hash) }}
                     </span>
-                    <button
-                      @click="copyToClipboard(record.transaction_hash)"
-                      class="p-1 text-gray-400 hover:text-gray-600"
-                      title="复制完整哈希"
-                    >
-                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                      </svg>
-                    </button>
-                    <button
-                      @click="viewTransaction(record.transaction_hash)"
-                      class="p-1 text-blue-400 hover:text-blue-600"
-                      title="在区块链浏览器中查看"
-                    >
-                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-6-12h6m0 0v6m0-6L10 18"></path>
-                      </svg>
-                    </button>
+                    <div class="flex space-x-0.5 flex-shrink-0 ml-1">
+                      <button
+                        @click="copyToClipboard(record.transaction_hash)"
+                        class="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
+                        title="复制完整哈希"
+                      >
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        @click="viewTransaction(record.transaction_hash)"
+                        class="p-1 text-blue-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                        title="在区块链浏览器中查看"
+                      >
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-6-12h6m0 0v6m0-6L10 18"></path>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <span v-else class="text-sm text-gray-400">-</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm font-mono text-gray-600">
-                    {{ truncateAddress(record.user_address) }}
-                  </span>
+                <td class="px-2 py-3">
+                  <div class="flex items-center space-x-1">
+                    <span class="text-xs font-mono text-gray-600 whitespace-nowrap">
+                      {{ record.user_address || '-' }}
+                    </span>
+                    <button
+                      v-if="record.user_address"
+                      @click="copyToClipboard(record.user_address)"
+                      class="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                      title="复制地址"
+                    >
+                      <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -195,6 +210,8 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast';
+import { viewTransaction as viewTransactionUtil } from '@/pages/Orders/utils/orderFormatters';
+import { useNetworkStore } from '@/stores/network';
 import { computed, onMounted, ref, watch } from 'vue';
 
 interface Props {
@@ -204,6 +221,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const { success: showSuccess, error: showError } = useToast()
+const networkStore = useNetworkStore()
 
 // 数据状态
 const loading = ref(false)
@@ -320,15 +338,15 @@ const formatNumber = (num: number) => {
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return '-'
   try {
-    return new Date(dateStr).toLocaleString('zh-CN', {
-      year: 'numeric',
+    const date = new Date(dateStr)
+    // 紧凑的时间格式，单行显示
+    return date.toLocaleString('zh-CN', {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
       hour12: false
-    })
+    }).replace(/\//g, '/').replace(/,/g, ' ')
   } catch {
     return dateStr
   }
@@ -336,7 +354,7 @@ const formatDateTime = (dateStr: string) => {
 
 const truncateHash = (hash: string) => {
   if (!hash) return '-'
-  return `${hash.slice(0, 8)}...${hash.slice(-8)}`
+  return `${hash.slice(0, 6)}...${hash.slice(-6)}`
 }
 
 const truncateAddress = (address: string) => {
@@ -354,8 +372,27 @@ const copyToClipboard = async (text: string) => {
 }
 
 const viewTransaction = (txHash: string) => {
-  const url = `https://tronscan.org/#/transaction/${txHash}`
-  window.open(url, '_blank')
+  // 使用订单对应的网络信息构建正确的浏览器链接
+  let orderNetwork = null
+  
+  if (props.order?.network_id) {
+    // 从网络列表中找到订单对应的网络
+    orderNetwork = networkStore.getNetworkById(props.order.network_id)
+  }
+  
+  // 如果找不到订单的网络，则使用当前选择的网络作为备选
+  const targetNetwork = orderNetwork || networkStore.currentNetwork
+  
+  if (targetNetwork) {
+    console.log('🔗 [浏览器链接] 使用网络:', {
+      networkId: targetNetwork.id,
+      networkName: targetNetwork.name,
+      networkType: targetNetwork.type,
+      source: orderNetwork ? 'order_network' : 'current_network'
+    })
+  }
+  
+  viewTransactionUtil(txHash, targetNetwork)
 }
 
 // 监听订单ID变化
@@ -366,7 +403,13 @@ watch(() => props.orderId, (newId) => {
 }, { immediate: true })
 
 // 组件挂载后加载数据
-onMounted(() => {
+onMounted(async () => {
+  // 确保网络信息已加载（用于正确构建交易哈希链接）
+  if (networkStore.networks.length === 0) {
+    await networkStore.loadNetworks()
+    console.log('🌐 [网络加载] 已加载网络列表，共', networkStore.networks.length, '个网络')
+  }
+  
   if (props.orderId) {
     loadEnergyUsageRecords()
   }
