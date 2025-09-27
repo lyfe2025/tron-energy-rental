@@ -178,7 +178,7 @@ export class StatusManager {
       if (!order) {
         return {
           success: false,
-          message: 'Order not found or not a transaction package order'
+          message: '找不到该订单或订单类型不是笔数套餐'
         }
       }
 
@@ -282,8 +282,10 @@ export class StatusManager {
 
   /**
    * 检查是否可以立即进行代理（防重复代理）
+   * @param order 订单信息
+   * @param isManualDelegation 是否为手动代理（手动代理可以绕过时间限制）
    */
-  async canDelegateNow(order: any): Promise<{
+  async canDelegateNow(order: any, isManualDelegation: boolean = false): Promise<{
     allowed: boolean
     reason?: string
     nextAllowedTime?: Date
@@ -293,7 +295,7 @@ export class StatusManager {
       if (!order.remaining_transactions || order.remaining_transactions <= 0) {
         return {
           allowed: false,
-          reason: 'No remaining transactions available for delegation'
+          reason: '订单剩余笔数不足，无法继续代理'
         }
       }
 
@@ -301,23 +303,31 @@ export class StatusManager {
       if (order.status !== 'active' || order.payment_status !== 'paid') {
         return {
           allowed: false,
-          reason: 'Order is not active or not paid'
+          reason: '订单状态异常或未完成支付，无法执行代理'
         }
       }
 
       // 3. 检查是否已经有正在处理的代理（防并发重复）
-      const processingCheck = await this.dbService.query(`
-        SELECT COUNT(*) as count 
-        FROM energy_usage_logs 
-        WHERE order_id = $1 
-        AND created_at > NOW() - INTERVAL '30 seconds'
-      `, [order.id])
-      
-      if (processingCheck.rows[0].count > 0) {
-        return {
-          allowed: false,
-          reason: 'Another delegation is currently being processed for this order'
+      // 手动代理可以绕过这个检查
+      if (!isManualDelegation) {
+        const processingCheck = await this.dbService.query(`
+          SELECT COUNT(*) as count 
+          FROM energy_usage_logs 
+          WHERE order_id = $1 
+          AND created_at > NOW() - INTERVAL '30 seconds'
+        `, [order.id])
+        
+        if (processingCheck.rows[0].count > 0) {
+          return {
+            allowed: false,
+            reason: '该订单正在处理中，请稍等片刻再试'
+          }
         }
+      } else {
+        logger.info(`🔧 [手动代理] 绕过并发检查`, {
+          orderId: order.id,
+          message: '管理员手动代理，绕过30秒并发限制'
+        })
       }
 
       // 4. 首次代理特殊处理：确保只代理一笔
@@ -332,7 +342,7 @@ export class StatusManager {
         if (existingUsage.rows[0].count > 0) {
           return {
             allowed: false,
-            reason: 'First delegation has already been completed'
+            reason: '首次代理已经完成，无需重复操作'
           }
         }
         
@@ -353,11 +363,24 @@ export class StatusManager {
         return { allowed: true }
       }
 
+      // 手动代理可以绕过时间限制
+      if (isManualDelegation) {
+        logger.info(`🔧 [手动代理] 绕过时间限制`, {
+          orderId: order.id,
+          nextDelegationTime: nextDelegationTime.toISOString(),
+          waitTime: Math.ceil((nextDelegationTime.getTime() - now.getTime()) / 1000),
+          message: '管理员手动代理，绕过时间间隔限制'
+        })
+        return { allowed: true }
+      }
+
       // 否则需要等待
       const waitTime = Math.ceil((nextDelegationTime.getTime() - now.getTime()) / 1000)
+      const waitMinutes = Math.ceil(waitTime / 60)
+      const waitTimeText = waitMinutes > 1 ? `${waitMinutes}分钟` : `${waitTime}秒`
       return {
         allowed: false,
-        reason: `Must wait ${waitTime} seconds before next delegation`,
+        reason: `请等待 ${waitTimeText} 后再进行下次代理`,
         nextAllowedTime: nextDelegationTime
       }
     } catch (error) {
@@ -367,7 +390,7 @@ export class StatusManager {
       })
       return {
         allowed: false,
-        reason: 'Internal error during delegation check'
+        reason: '系统内部错误，请稍后重试或联系客服'
       }
     }
   }

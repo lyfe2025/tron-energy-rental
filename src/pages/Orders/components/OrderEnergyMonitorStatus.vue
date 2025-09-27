@@ -175,8 +175,41 @@
 
     </div>
 
-    <!-- 未监控状态 -->
-    <div v-else-if="!loading" class="text-center py-8">
+    <!-- 订单已完成状态 -->
+    <div v-else-if="!loading && isOrderCompleted" class="text-center py-8">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+        <div class="flex items-center justify-center mb-4">
+          <svg class="h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-green-800 mb-2">🎉 订单已完成</h3>
+        <p class="text-green-700 mb-4">所有笔数已成功代理完成，无需继续监控</p>
+        
+        <!-- 完成状态统计 -->
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="bg-white p-3 rounded-lg border border-green-100">
+            <div class="text-2xl font-bold text-green-600">{{ order.used_transactions }}</div>
+            <div class="text-xs text-green-500">已完成笔数</div>
+          </div>
+          <div class="bg-white p-3 rounded-lg border border-green-100">
+            <div class="text-2xl font-bold text-green-600">{{ order.transaction_count }}</div>
+            <div class="text-xs text-green-500">总笔数</div>
+          </div>
+          <div class="bg-white p-3 rounded-lg border border-green-100">
+            <div class="text-2xl font-bold text-green-600">100%</div>
+            <div class="text-xs text-green-500">完成率</div>
+          </div>
+        </div>
+        
+        <div class="text-sm text-green-600">
+          ✨ 您可以在"能量使用记录"标签中查看详细的代理历史
+        </div>
+      </div>
+    </div>
+
+    <!-- 未监控状态（订单未完成时） -->
+    <div v-else-if="!loading && !isOrderCompleted" class="text-center py-8">
       <div class="text-gray-500 mb-4">该订单未在监控列表中</div>
       <button
         @click="startMonitoring"
@@ -222,6 +255,14 @@ const progressPercentage = computed(() => {
   const used = props.order.used_transactions || 0
   const total = props.order.transaction_count || 1
   return (used / total) * 100
+})
+
+// 判断订单是否已完成（笔数用完）
+const isOrderCompleted = computed(() => {
+  const remaining = props.order.remaining_transactions || 0
+  const used = props.order.used_transactions || 0
+  const total = props.order.transaction_count || 0
+  return remaining === 0 && used === total && total > 0
 })
 
 // 获取订单监控状态

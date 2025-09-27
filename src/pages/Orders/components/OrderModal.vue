@@ -393,7 +393,7 @@ import {
   Loader2,
   X
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Order } from '../types/order.types'
 import { formatOrderError, getErrorIcon } from '../utils/errorFormatter'
 import { formatNumber, formatPrice } from '../utils/orderFormatters'
@@ -412,6 +412,7 @@ interface Emits {
   'close-details': []
   'close-status': []
   'update-status': [data: { orderId: string; status: string; tron_tx_hash?: string; errorMessage?: string }]
+  'order-updated': [orderId: string]
 }
 
 const props = defineProps<Props>()
@@ -544,6 +545,26 @@ const handleUpdateStatus = () => {
   txHash.value = ''
   errorMessage.value = ''
 }
+
+// 监听订单更新事件
+const handleOrderUpdated = (event: CustomEvent) => {
+  const { orderId } = event.detail
+  if (props.selectedOrder && String(props.selectedOrder.id) === orderId) {
+    console.log('🔧 [OrderModal] 收到订单更新事件:', { orderId })
+    // 通知父组件刷新订单数据
+    emit('order-updated', orderId)
+  }
+}
+
+onMounted(() => {
+  // 监听全局订单更新事件
+  window.addEventListener('orderUpdated', handleOrderUpdated as EventListener)
+})
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener('orderUpdated', handleOrderUpdated as EventListener)
+})
 </script>
 
 <style scoped>

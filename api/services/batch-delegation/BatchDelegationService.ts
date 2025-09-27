@@ -99,12 +99,14 @@ export class BatchDelegationService {
   async delegateSingleTransaction(
     orderId: string,
     userAddress: string,
-    transactionHash?: string
+    transactionHash?: string,
+    isManualDelegation: boolean = false
   ): Promise<DelegationResult> {
     return await this.singleDelegationProcessor.delegateSingleTransaction(
       orderId,
       userAddress,
-      transactionHash
+      transactionHash,
+      isManualDelegation
     )
   }
 
@@ -352,12 +354,12 @@ export class BatchDelegationService {
   /**
    * 检查是否可以立即进行代理
    */
-  async canDelegateNow(order: any): Promise<{
+  async canDelegateNow(order: any, isManualDelegation: boolean = false): Promise<{
     allowed: boolean
     reason?: string
     nextAllowedTime?: Date
   }> {
-    return await this.statusManager.canDelegateNow(order)
+    return await this.statusManager.canDelegateNow(order, isManualDelegation)
   }
 
   /**

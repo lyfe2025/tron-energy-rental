@@ -174,13 +174,25 @@ export class DelegationExecutor {
         };
       }
 
+      // 5. 获取代理前用户的能量状态
+      let energyBeforeDelegation = 0
+      try {
+        const userAccountInfo = await networkTronService.getAccountInfo(userAddress)
+        energyBeforeDelegation = userAccountInfo.data?.energy || 0
+        logger.debug('获取代理前能量状态', { userAddress: userAddress.substring(0, 15) + '...', energyBefore: energyBeforeDelegation })
+      } catch (error) {
+        logger.warn('获取代理前能量状态失败', { userAddress, error })
+        energyBeforeDelegation = 0
+      }
+
       let delegationResult: any
       try {
-        // 5. 执行能量代理
+        // 6. 执行能量代理
         logger.info(`🚀 [代理执行] 开始执行`, {
           代理: `${delegationParams.balance / 1000000} TRX`,
           从: `${delegationParams.ownerAddress.substring(0, 8)}...`,
-          到: `${delegationParams.receiverAddress.substring(0, 8)}...`
+          到: `${delegationParams.receiverAddress.substring(0, 8)}...`,
+          用户代理前能量: energyBeforeDelegation
         })
         
         delegationResult = await networkTronService.delegateResource(delegationParams)
@@ -284,12 +296,12 @@ export class DelegationExecutor {
           }
         }
 
-        // 5. 获取代理后的能量状态并记录
+        // 7. 获取代理后的能量状态并记录
         if (delegationResult?.txid) {
           // 获取代理后用户的能量状态
           let energyAfterDelegation = 0
           try {
-            const accountInfo = await this.tronService.getAccountInfo(userAddress)
+            const accountInfo = await networkTronService.getAccountInfo(userAddress)
             energyAfterDelegation = accountInfo.data?.energy || 0
           } catch (error) {
             logger.warn('获取代理后能量状态失败', { userAddress, error })

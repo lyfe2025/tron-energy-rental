@@ -539,10 +539,10 @@ router.post('/manual-delegation',
       
       if (orderResult.rows.length === 0) {
         console.warn('🔧 [手动补单] 订单未找到:', { orderId });
-        return res.status(404).json({
-          success: false,
-          message: '订单未找到或不是笔数套餐订单'
-        });
+              return res.status(404).json({
+                success: false,
+                message: '找不到该订单，请检查订单号是否正确'
+              });
       }
       
       const order = orderResult.rows[0];
@@ -558,23 +558,23 @@ router.post('/manual-delegation',
       
       // 检查订单状态
       if (order.status !== 'active') {
-        return res.status(400).json({
-          success: false,
-          message: `订单状态为 ${order.status}，不允许代理操作`
-        });
+            return res.status(400).json({
+              success: false,
+              message: `订单当前状态为"${order.status}"，无法执行代理操作`
+            });
       }
       
       if (order.payment_status !== 'paid') {
         return res.status(400).json({
           success: false,
-          message: '订单未支付，无法执行代理'
+          message: '订单尚未支付，请先完成支付后再试'
         });
       }
       
       if (order.remaining_transactions <= 0) {
         return res.status(400).json({
           success: false,
-          message: '订单笔数已全部用完，无法继续代理'
+          message: '订单剩余笔数不足，无法继续代理'
         });
       }
 
@@ -587,19 +587,22 @@ router.post('/manual-delegation',
         remainingTransactions: order.remaining_transactions
       });
 
-      // 清理可能存在的过期代理锁（手动代理前的安全措施）
+      // 清理过期锁，让SingleDelegationProcessor统一管理锁
       try {
         await dbService.query('SELECT cleanup_expired_delegation_locks()');
         console.log('🔧 [手动补单] 已清理过期代理锁');
-      } catch (lockCleanupError) {
-        console.warn('🔧 [手动补单] 清理代理锁警告:', lockCleanupError);
+      } catch (lockError) {
+        console.warn('🔧 [手动补单] 清理锁警告:', lockError);
       }
 
-      // 执行代理 - 复用首次代理逻辑，确保网络和能量计算正确
+      // 执行代理 - SingleDelegationProcessor完全管理锁和业务逻辑
       console.log('🔧 [手动补单] 调用批量代理服务 (复用首次代理逻辑)');
+      
       const delegationResult = await batchDelegationService.delegateSingleTransaction(
         orderId,
-        order.target_address
+        order.target_address,
+        undefined, // transactionHash
+        true       // isManualDelegation - 手动代理，绕过时间限制
       );
       
       console.log('🔧 [手动补单] 代理结果:', {
@@ -611,6 +614,7 @@ router.post('/manual-delegation',
         remainingTransactions: delegationResult.remainingTransactions
       });
       
+      // 处理代理结果
       if (delegationResult.success) {
         console.log('🔧 [手动补单] 代理成功:', {
           orderId,
@@ -621,6 +625,8 @@ router.post('/manual-delegation',
           energyDelegated: delegationResult.energyDelegated,
           message: '✅ 手动代理成功完成'
         });
+        
+        // 锁管理由SingleDelegationProcessor统一处理，无需手动释放
         
         res.json({
           success: true,
@@ -633,13 +639,13 @@ router.post('/manual-delegation',
             remainingTransactions: delegationResult.remainingTransactions,
             totalTransactions: order.transaction_count,
             energyDelegated: delegationResult.energyDelegated || 65000,
-            message: `手动代理成功！已用 ${delegationResult.usedTransactions}/${order.transaction_count} 笔`,
+                    message: `✅ 代理成功！已完成 ${delegationResult.usedTransactions}/${order.transaction_count} 笔`,
             networkInfo: {
               networkId: order.network_id,
               delegationSuccess: true
             }
           },
-          message: '✅ 手动代理执行成功'
+          message: '✅ 代理执行成功'
         });
       } else {
         console.error('🔧 [手动补单] 代理失败:', {
@@ -649,6 +655,8 @@ router.post('/manual-delegation',
           details: delegationResult.details,
           originalError: delegationResult
         });
+        
+        // 锁管理由SingleDelegationProcessor统一处理，无需手动释放
         
         // 代理失败时的详细错误信息
         const errorDetails = {
@@ -671,16 +679,19 @@ router.post('/manual-delegation',
       }
       
     } catch (error) {
+      const orderId = req.body?.orderId;
       console.error('🔧 [手动补单] 异常:', {
-        orderId: req.body?.orderId,
+        orderId,
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined
       });
       
+      // 锁管理由SingleDelegationProcessor统一处理，包括异常时的清理
+      
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        message: '手动代理执行异常，请稍后重试'
+        message: '❌ 系统异常，请稍后重试或联系客服'
       });
     }
   }

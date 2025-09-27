@@ -77,6 +77,7 @@
       @close-details="closeDetailsModal"
       @close-status="closeStatusModal"
       @update-status="updateOrderStatus"
+      @order-updated="handleOrderUpdated"
     />
 
     <!-- 网络切换模态框 -->
@@ -96,8 +97,8 @@ import NetworkSwitcher from '@/components/NetworkSwitcher.vue'
 import { useCommonNetworkOperations } from '@/composables/useCommonNetworkOperations'
 import { useToast } from '@/composables/useToast'
 import {
-    AlertCircle,
-    RefreshCw
+  AlertCircle,
+  RefreshCw
 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -159,6 +160,13 @@ const handleRefreshOrders = async () => {
   } else {
     await refreshOrders()
   }
+}
+
+// 处理订单更新事件
+const handleOrderUpdated = async (orderId: string) => {
+  console.log('🔧 [Orders] 收到订单更新通知:', { orderId })
+  // 刷新订单列表以获取最新数据
+  await handleRefreshOrders()
 }
 
 // 监听网络ID变化

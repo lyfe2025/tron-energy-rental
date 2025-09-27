@@ -64,20 +64,29 @@ export class SingleDelegationProcessor {
 
   /**
    * 执行单笔交易的能量代理
-   * 主要业务流程入口，保持原有接口不变
+   * 主要业务流程入口，支持手动代理
+   * @param orderId 订单ID
+   * @param userAddress 用户地址
+   * @param transactionHash 交易哈希（可选）
+   * @param isManualDelegation 是否为手动代理（绕过时间限制）
    */
   async delegateSingleTransaction(
     orderId: string,
     userAddress: string,
-    transactionHash?: string
+    transactionHash?: string,
+    isManualDelegation: boolean = false
   ): Promise<DelegationResult> {
     const startTime = Date.now()
+    const lockId = isManualDelegation ? 'manual_delegation' : 'api_delegation'
     
     try {
       logger.info(`开始执行单笔交易能量代理`, {
         orderId,
         userAddress,
-        transactionHash
+        transactionHash,
+        isManualDelegation,
+        lockId,
+        mode: isManualDelegation ? '手动代理' : '自动代理'
       })
 
       // 1. 验证代理请求参数
@@ -97,7 +106,7 @@ export class SingleDelegationProcessor {
       if (!order) {
         return {
           success: false,
-          message: 'Order not found or not a transaction package order'
+          message: '找不到该订单或订单类型不是笔数套餐'
         }
       }
 
@@ -108,7 +117,7 @@ export class SingleDelegationProcessor {
       }
 
       // 4. 检查是否可以进行代理（时间间隔限制）
-      const canDelegate = await this.statusManager.canDelegateNow(order)
+      const canDelegate = await this.statusManager.canDelegateNow(order, isManualDelegation)
       if (!canDelegate.allowed) {
         return {
           success: false,
@@ -121,17 +130,21 @@ export class SingleDelegationProcessor {
       const { query } = await import('../../../database/index')
       const lockAcquired = await query(
         'SELECT acquire_delegation_lock($1, $2, $3) as acquired',
-        [orderId, 'api_delegation', 30]
+        [orderId, lockId, 30]
       )
       
       if (!lockAcquired.rows[0].acquired) {
         return {
           success: false,
-          message: 'Another delegation is currently in progress for this order'
+          message: isManualDelegation ? '手动代理正在处理中，请稍等片刻再试' : '订单正在处理中，请稍等片刻再试'
         }
       }
 
-      logger.info(`🔒 [代理锁] 已获取订单代理锁`, { orderId })
+      logger.info(`🔒 [代理锁] 已获取订单代理锁`, { 
+        orderId, 
+        lockId, 
+        mode: isManualDelegation ? '手动代理' : '自动代理' 
+      })
 
       // 5. 获取单笔交易所需能量（从订单的energy_amount计算）
       const energyPerTransaction = Math.floor(order.energy_amount / order.transaction_count)
@@ -226,10 +239,10 @@ export class SingleDelegationProcessor {
 
       // 12. 释放代理锁
       try {
-        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, 'api_delegation'])
-        logger.info(`🔓 [代理锁] 已释放订单代理锁`, { orderId })
+        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, lockId])
+        logger.info(`🔓 [代理锁] 已释放订单代理锁`, { orderId, lockId })
       } catch (lockError) {
-        logger.warn(`释放代理锁失败`, { orderId, error: lockError })
+        logger.warn(`释放代理锁失败`, { orderId, lockId, error: lockError })
       }
 
       return {
@@ -258,10 +271,10 @@ export class SingleDelegationProcessor {
       // 异常时也要释放代理锁
       try {
         const { query } = await import('../../../database/index')
-        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, 'api_delegation'])
-        logger.info(`🔓 [代理锁] 异常时已释放订单代理锁`, { orderId })
+        await query('SELECT release_delegation_lock($1, $2) as released', [orderId, lockId])
+        logger.info(`🔓 [代理锁] 异常时已释放订单代理锁`, { orderId, lockId })
       } catch (lockError) {
-        logger.warn(`异常时释放代理锁失败`, { orderId, error: lockError })
+        logger.warn(`异常时释放代理锁失败`, { orderId, lockId, error: lockError })
       }
 
       return {
