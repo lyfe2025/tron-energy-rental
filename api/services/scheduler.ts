@@ -1,355 +1,521 @@
 import * as cron from 'node-cron';
-// import { query } from '../database/index'; // 已移除数据库查询功能
-import { energyDelegationService } from './energy-delegation';
-import { energyPoolService } from './energy-pool';
+import { logger } from '../utils/logger';
+import { taskRegistry } from './scheduler/TaskRegistry';
+import { getAllTaskHandlers } from './scheduler/handlers';
+import type { ITaskHandler, TaskConfig } from './scheduler/interfaces/ITaskHandler';
 
 /**
  * 定时任务调度服务
- * 负责处理各种定时任务，如委托到期、支付超时等
+ * 负责动态管理和执行各种定时任务
  */
 export class SchedulerService {
   private tasks: Map<string, cron.ScheduledTask> = new Map();
+  private taskConfigs: Map<string, TaskConfig> = new Map();
   
   /**
-   * 启动所有定时任务
+   * 启动调度服务
    */
-  start(): void {
-    console.log('Starting scheduler service...');
+  async start(): Promise<void> {
+    logger.info('🚀 启动定时任务调度服务...');
     
-    // 每5分钟检查一次到期委托
-    this.scheduleTask('expired-delegations', '*/5 * * * *', async () => {
-      await this.processExpiredDelegations();
-    });
-    
-    // 每10分钟检查一次支付超时
-    this.scheduleTask('payment-timeouts', '*/10 * * * *', async () => {
-      await this.processPaymentTimeouts();
-    });
-    
-    // 每5分钟检查一次逾期未支付订单并自动取消
-    this.scheduleTask('expired-unpaid-orders', '*/5 * * * *', async () => {
-      await this.cancelExpiredUnpaidOrders();
-    });
-    
-    // 每小时刷新能量池状态
-    this.scheduleTask('refresh-pools', '0 * * * *', async () => {
-      await this.refreshEnergyPools();
-    });
-    
-    // 每天凌晨2点清理过期数据
-    this.scheduleTask('cleanup-expired', '0 2 * * *', async () => {
-      await this.cleanupExpiredData();
-    });
-    
-    console.log('Scheduler service started successfully');
+    try {
+      // 1. 注册所有内置任务处理器
+      await this.registerBuiltinHandlers();
+      
+      // 2. 从数据库加载任务配置
+      await this.loadTaskConfigs();
+      
+      // 3. 启动所有活跃任务
+      await this.startActiveTasks();
+      
+      logger.info('✅ 定时任务调度服务启动成功');
+    } catch (error) {
+      logger.error('❌ 定时任务调度服务启动失败:', error);
+      throw error;
+    }
   }
   
   /**
    * 停止所有定时任务
    */
   stop(): void {
-    console.log('Stopping scheduler service...');
+    logger.info('🛑 停止定时任务调度服务...');
     
     for (const [name, task] of this.tasks) {
-      task.stop();
-      console.log(`Stopped task: ${name}`);
+      try {
+        task.stop();
+        logger.info(`✅ 已停止任务: ${name}`);
+      } catch (error) {
+        logger.error(`❌ 停止任务失败 ${name}:`, error);
+      }
     }
     
     this.tasks.clear();
-    console.log('Scheduler service stopped');
+    this.taskConfigs.clear();
+    logger.info('🔚 定时任务调度服务已停止');
   }
   
   /**
+   * 注册所有内置任务处理器
+   */
+  private async registerBuiltinHandlers(): Promise<void> {
+    try {
+      logger.info('📋 注册内置任务处理器...');
+      
+      const handlers = getAllTaskHandlers();
+      taskRegistry.registerBatch(handlers);
+      
+      logger.info(`✅ 成功注册 ${handlers.length} 个内置任务处理器`);
+    } catch (error) {
+      logger.error('❌ 注册内置任务处理器失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从数据库加载任务配置
+   */
+  private async loadTaskConfigs(): Promise<void> {
+    try {
+      logger.info('📊 从数据库加载任务配置...');
+      
+      const { query } = await import('../database/index');
+      const result = await query(`
+        SELECT 
+          id,
+          name,
+          cron_expression,
+          command,
+          description,
+          is_active,
+          created_at,
+          updated_at,
+          next_run,
+          last_run
+        FROM scheduled_tasks
+        ORDER BY name
+      `);
+
+      this.taskConfigs.clear();
+      
+      for (const row of result.rows) {
+        const config: TaskConfig = {
+          id: row.id,
+          name: row.name,
+          cron_expression: row.cron_expression,
+          command: row.command,
+          description: row.description,
+          is_active: row.is_active,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          next_run: row.next_run,
+          last_run: row.last_run
+        };
+        
+        this.taskConfigs.set(config.name, config);
+      }
+
+      logger.info(`✅ 加载了 ${result.rows.length} 个任务配置`);
+    } catch (error) {
+      logger.error('❌ 加载任务配置失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 启动所有活跃任务
+   */
+  private async startActiveTasks(): Promise<void> {
+    try {
+      logger.info('⚡ 启动活跃任务...');
+      
+      let startedCount = 0;
+      let skippedCount = 0;
+
+      for (const [taskName, config] of this.taskConfigs) {
+        if (!config.is_active) {
+          logger.debug(`⏭️  跳过非活跃任务: ${taskName}`);
+          skippedCount++;
+          continue;
+        }
+
+        const handler = taskRegistry.get(taskName);
+        if (!handler) {
+          logger.warn(`⚠️  找不到任务处理器: ${taskName}`);
+          skippedCount++;
+          continue;
+        }
+
+        await this.scheduleTask(taskName, config.cron_expression, handler);
+        startedCount++;
+      }
+
+      logger.info(`✅ 启动完成: ${startedCount} 个任务已启动, ${skippedCount} 个任务被跳过`);
+    } catch (error) {
+      logger.error('❌ 启动活跃任务失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 调度单个任务
    */
-  private scheduleTask(name: string, cronExpression: string, handler: () => Promise<void>): void {
+  private async scheduleTask(taskName: string, cronExpression: string, handler: ITaskHandler): Promise<void> {
     try {
+      // 验证cron表达式
+      if (!cron.validate(cronExpression)) {
+        throw new Error(`无效的cron表达式: ${cronExpression}`);
+      }
+
       const task = cron.schedule(cronExpression, async () => {
-        try {
-          console.log(`Executing scheduled task: ${name}`);
-          await handler();
-          console.log(`Completed scheduled task: ${name}`);
-        } catch (error) {
-          console.error(`Error in scheduled task ${name}:`, error);
-        }
+        await this.executeTask(taskName, handler);
       }, {
         timezone: 'Asia/Shanghai'
       });
       
-      this.tasks.set(name, task);
-      console.log(`Scheduled task: ${name} with cron: ${cronExpression}`);
+      this.tasks.set(taskName, task);
+      
+      // 启动任务
+      task.start();
+      
+      logger.info(`📅 任务已调度: ${taskName} (${cronExpression})`);
     } catch (error) {
-      console.error(`Failed to schedule task ${name}:`, error);
+      logger.error(`❌ 调度任务失败 ${taskName}:`, error);
+      throw error;
     }
   }
-  
+
   /**
-   * 处理到期委托
+   * 执行单个任务
    */
-  private async processExpiredDelegations(): Promise<void> {
-    try {
-      console.log('Processing expired delegations...');
-      
-      // 获取到期委托（现在从TRON网络实时检查，不再依赖数据库）
-      console.log('🔍 检查到期委托 - 从TRON网络实时获取委托状态');
-      
-      // TODO: 实现定时任务中的到期委托业务处理逻辑
-      // 注意：基础委托记录查询已通过 tronService.getDelegateTransactionHistory() 实现
-      // 这里需要实现的是定时任务层面的到期委托自动处理逻辑
-      const result = { rows: await this.getExpiredDelegationsFromTron() };
-      
-      // 错误通过异常处理，这里不需要检查 result.error
-      
-      const expiredDelegations = result.rows;
-      if (!expiredDelegations || expiredDelegations.length === 0) {
-        console.log('No expired delegations found');
-        return;
-      }
-      
-      console.log(`Found ${expiredDelegations.length} expired delegations`);
-      
-      // 批量处理到期委托
-      let processed = 0;
-      let failed = 0;
-      
-      for (const delegation of expiredDelegations) {
-        try {
-          await energyDelegationService.handleDelegationExpiry(delegation.id);
-          processed++;
-        } catch (error) {
-          console.error(`Failed to process delegation ${delegation.id}:`, error);
-          failed++;
-        }
-      }
-      
-      console.log(`Processed expired delegations: ${processed} success, ${failed} failed`);
-    } catch (error) {
-      console.error('Error processing expired delegations:', error);
-    }
-  }
-  
-  /**
-   * 从TRON网络获取到期的委托记录（用于定时任务处理）
-   * @private
-   * 
-   * 重要说明：
-   * - 基础的委托记录查询已通过 tronService.getDelegateTransactionHistory() 实现
-   * - 此方法专门用于定时任务中的到期委托自动处理逻辑
-   */
-  private async getExpiredDelegationsFromTron(): Promise<any[]> {
-    // TODO: 实现定时任务中的到期委托自动处理（非基础记录查询）
-    // 基础委托记录查询功能已存在于 tronService.getDelegateTransactionHistory()
-    // 这里需要实现：
-    // 1. 查询所有需要定时处理的DelegateResourceContract交易
-    // 2. 检查委托的业务锁定期是否已过期
-    // 3. 返回需要自动处理的到期委托列表
-    console.log('🔗 正在从TRON网络检查到期委托业务状态...');
+  private async executeTask(taskName: string, handler: ITaskHandler): Promise<void> {
+    const startTime = new Date();
     
-    return []; // 暂时返回空数组，等待具体实现
-  }
-  
-  /**
-   * @deprecated 支付超时处理已改为实时监控，相关数据库表已删除
-   * 处理支付超时
-   */
-  private async processPaymentTimeouts(): Promise<void> {
     try {
-      console.log('Processing payment timeouts...');
-      console.log('🔍 支付超时监控已改为实时处理，不再依赖数据库表');
+      logger.info(`🚀 开始执行任务: ${taskName}`);
       
-      // 现在应该通过支付服务直接检查超时
-      // 不再依赖数据库中的监控记录
-      console.log('Payment timeout processing completed (real-time mode)');
+      // 记录任务开始执行
+      const logId = await this.logTaskStart(taskName);
+      
+      // 执行任务
+      const result = await handler.execute();
+      
+      // 记录任务执行结果
+      await this.logTaskComplete(logId, result);
+      
+      // 更新任务最后执行时间
+      await this.updateTaskLastRun(taskName);
+      
+      if (result.success) {
+        logger.info(`✅ 任务执行成功: ${taskName} - ${result.output}`);
+      } else {
+        logger.error(`❌ 任务执行失败: ${taskName} - ${result.error}`);
+      }
       
     } catch (error) {
-      console.error('Error processing payment timeouts:', error);
+      logger.error(`💥 任务执行异常: ${taskName}`, error);
+      
+      // 记录异常
+      try {
+        const logId = await this.logTaskStart(taskName);
+        await this.logTaskError(logId, error);
+      } catch (logError) {
+        logger.error('记录任务执行异常失败:', logError);
+      }
     }
   }
-  
+
   /**
-   * 自动取消逾期未支付订单
+   * 记录任务开始执行
    */
-  private async cancelExpiredUnpaidOrders(): Promise<void> {
+  private async logTaskStart(taskName: string): Promise<string> {
     try {
-      console.log('🔍 [自动取消] 检查逾期未支付订单...');
+      const { query } = await import('../database/index');
+      const config = this.taskConfigs.get(taskName);
       
-      // 引入数据库查询
+      if (!config) {
+        throw new Error(`找不到任务配置: ${taskName}`);
+      }
+
+      const result = await query(`
+        INSERT INTO task_execution_logs (task_id, status, started_at, created_at)
+        VALUES ($1, 'running', NOW(), NOW())
+        RETURNING id
+      `, [config.id]);
+
+      return result.rows[0].id;
+    } catch (error) {
+      logger.error(`记录任务开始执行失败 ${taskName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 记录任务执行完成
+   */
+  private async logTaskComplete(logId: string, result: any): Promise<void> {
+    try {
       const { query } = await import('../database/index');
       
-      // 查询所有逾期且未支付的订单
-      const expiredOrdersResult = await query(`
-        SELECT 
-          id, 
-          order_number,
-          order_type,
-          payment_status,
-          status,
-          expires_at,
-          created_at,
-          recipient_address,
-          target_address,
-          telegram_id,
-          username
-        FROM orders 
-        WHERE expires_at IS NOT NULL
-          AND expires_at <= NOW()
-          AND payment_status != 'paid'
-          AND status NOT IN ('cancelled', 'expired', 'completed', 'manually_completed')
-        ORDER BY expires_at ASC
-      `);
+      await query(`
+        UPDATE task_execution_logs
+        SET 
+          status = $1,
+          finished_at = NOW(),
+          output = $2,
+          error_message = $3
+        WHERE id = $4
+      `, [
+        result.success ? 'success' : 'failed',
+        result.output,
+        result.error || null,
+        logId
+      ]);
+    } catch (error) {
+      logger.error(`记录任务执行完成失败 ${logId}:`, error);
+    }
+  }
+
+  /**
+   * 记录任务执行错误
+   */
+  private async logTaskError(logId: string, error: any): Promise<void> {
+    try {
+      const { query } = await import('../database/index');
       
-      const expiredOrders = expiredOrdersResult.rows;
+      await query(`
+        UPDATE task_execution_logs
+        SET 
+          status = 'failed',
+          finished_at = NOW(),
+          error_message = $1
+        WHERE id = $2
+      `, [
+        error instanceof Error ? error.message : '未知错误',
+        logId
+      ]);
+    } catch (logError) {
+      logger.error(`记录任务执行错误失败 ${logId}:`, logError);
+    }
+  }
+
+  /**
+   * 更新任务最后执行时间
+   */
+  private async updateTaskLastRun(taskName: string): Promise<void> {
+    try {
+      const { query } = await import('../database/index');
+      const config = this.taskConfigs.get(taskName);
       
-      if (!expiredOrders || expiredOrders.length === 0) {
-        console.log('✅ [自动取消] 没有找到逾期未支付订单');
+      if (!config) {
         return;
       }
-      
-      console.log(`🚨 [自动取消] 发现 ${expiredOrders.length} 个逾期未支付订单`);
-      
-      let cancelled = 0;
-      let failed = 0;
-      
-      // 批量取消逾期订单
-      for (const order of expiredOrders) {
-        try {
-          console.log(`🔥 [自动取消] 正在取消订单: ${order.order_number || order.id}`);
-          console.log(`   - 订单类型: ${order.order_type}`);
-          console.log(`   - 过期时间: ${order.expires_at}`);
-          console.log(`   - 支付状态: ${order.payment_status}`);
-          console.log(`   - 订单状态: ${order.status}`);
-          
-          // 更新订单状态为已过期
-          await query(`
-            UPDATE orders 
-            SET 
-              status = 'expired',
-              error_message = '订单已过期，自动取消',
-              updated_at = NOW()
-            WHERE id = $1
-          `, [order.id]);
-          
-          cancelled++;
-          console.log(`✅ [自动取消] 成功取消订单: ${order.order_number || order.id}`);
-          
-        } catch (error) {
-          console.error(`❌ [自动取消] 取消订单失败 ${order.order_number || order.id}:`, error);
-          failed++;
-        }
-      }
-      
-      console.log(`🎯 [自动取消] 处理完成: ${cancelled} 个成功取消, ${failed} 个失败`);
-      
+
+      await query(`
+        UPDATE scheduled_tasks
+        SET last_run = NOW(), updated_at = NOW()
+        WHERE id = $1
+      `, [config.id]);
     } catch (error) {
-      console.error('❌ [自动取消] 处理逾期订单时发生错误:', error);
+      logger.error(`更新任务最后执行时间失败 ${taskName}:`, error);
     }
   }
-  
-  /**
-   * 刷新能量池状态
-   */
-  private async refreshEnergyPools(): Promise<void> {
-    try {
-      console.log('Refreshing energy pools...');
-      
-      // 获取所有活跃的能量池（这里保留energy_pools表的查询，因为它不在删除列表中）
-      console.log('🔍 energy_pools表仍然存在，保留查询功能');
-      // 暂时禁用查询以避免编译错误，实际应该使用energyPoolService来获取池列表
-      const result = { rows: [] };
-      
-      // 错误通过异常处理，这里不需要检查 result.error
-      
-      const pools = result.rows;
-      if (!pools || pools.length === 0) {
-        console.log('No active energy pools found');
-        return;
-      }
-      
-      console.log(`Refreshing ${pools.length} energy pools`);
-      
-      // 刷新每个池的状态
-      for (const pool of pools) {
-        try {
-          await energyPoolService.refreshPoolStatus();
-        } catch (error) {
-          console.error(`Failed to refresh pool ${pool.id}:`, error);
-        }
-      }
-      
-      console.log('Energy pools refresh completed');
-    } catch (error) {
-      console.error('Error refreshing energy pools:', error);
-    }
-  }
-  
-  /**
-   * 清理过期数据
-   */
-  private async cleanupExpiredData(): Promise<void> {
-    try {
-      console.log('Cleaning up expired data...');
-      
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      
-      // 原本用于清理已删除表的记录，现在这些表已不存在
-      console.log('🔍 已删除表的清理操作已跳过：');
-      console.log('  - payment_monitors（支付监控表已删除）'); 
-      console.log('  - energy_reservations（能量预留表已删除）');
-      console.log('  - delegation_monitors（委托监控表已删除）');
-      
-      console.log('Cleaned up expired delegation monitors');
-      
-      console.log('Data cleanup completed');
-    } catch (error) {
-      console.error('Error cleaning up expired data:', error);
-    }
-  }
-  
+
   /**
    * 手动触发任务
    */
   async triggerTask(taskName: string): Promise<boolean> {
     try {
-      console.log(`Manually triggering task: ${taskName}`);
+      logger.info(`🔧 手动触发任务: ${taskName}`);
       
-      switch (taskName) {
-        case 'expired-delegations':
-          await this.processExpiredDelegations();
-          break;
-        case 'payment-timeouts':
-          await this.processPaymentTimeouts();
-          break;
-        case 'expired-unpaid-orders':
-          await this.cancelExpiredUnpaidOrders();
-          break;
-        case 'refresh-pools':
-          await this.refreshEnergyPools();
-          break;
-        case 'cleanup-expired':
-          await this.cleanupExpiredData();
-          break;
-        default:
-          console.error(`Unknown task: ${taskName}`);
-          return false;
+      // 检查任务是否存在于注册器中
+      const handler = taskRegistry.get(taskName);
+      if (!handler) {
+        logger.error(`❌ 找不到任务处理器: ${taskName}`);
+        return false;
       }
+
+      // 执行任务
+      await this.executeTask(taskName, handler);
       
-      console.log(`Task ${taskName} completed successfully`);
+      logger.info(`✅ 任务手动执行完成: ${taskName}`);
       return true;
     } catch (error) {
-      console.error(`Error triggering task ${taskName}:`, error);
+      logger.error(`❌ 手动触发任务失败 ${taskName}:`, error);
       return false;
     }
   }
-  
+
   /**
    * 获取任务状态
    */
   getTaskStatus(): { name: string; running: boolean }[] {
-    return Array.from(this.tasks.entries()).map(([name, task]) => ({
-      name,
-      running: task.getStatus() === 'scheduled'
-    }));
+    return Array.from(this.tasks.entries()).map(([name, task]) => {
+      // 检查任务是否仍然存在于调度器中且未被销毁
+      try {
+        // 如果任务能正常访问其状态，说明还在运行
+        const status = (task as any).getStatus ? (task as any).getStatus() : 'active';
+        return {
+          name,
+          running: true // 如果任务在tasks Map中，说明它正在运行
+        };
+      } catch (error) {
+        return {
+          name,
+          running: false
+        };
+      }
+    });
+  }
+
+  /**
+   * 获取已注册的任务处理器列表
+   */
+  getRegisteredHandlers(): ITaskHandler[] {
+    return taskRegistry.getAllHandlers();
+  }
+
+  /**
+   * 获取任务配置
+   */
+  getTaskConfig(taskName: string): TaskConfig | undefined {
+    return this.taskConfigs.get(taskName);
+  }
+
+  /**
+   * 获取所有任务配置
+   */
+  getAllTaskConfigs(): TaskConfig[] {
+    return Array.from(this.taskConfigs.values());
+  }
+
+  /**
+   * 重新加载任务配置（从数据库）
+   */
+  async reloadTaskConfigs(): Promise<void> {
+    logger.info('🔄 重新加载任务配置...');
+    await this.loadTaskConfigs();
+    logger.info('✅ 任务配置重新加载完成');
+  }
+
+  /**
+   * 启动单个任务
+   */
+  async startTask(taskName: string): Promise<boolean> {
+    try {
+      const config = this.taskConfigs.get(taskName);
+      if (!config) {
+        logger.error(`❌ 找不到任务配置: ${taskName}`);
+        return false;
+      }
+
+      const handler = taskRegistry.get(taskName);
+      if (!handler) {
+        logger.error(`❌ 找不到任务处理器: ${taskName}`);
+        return false;
+      }
+
+      if (this.tasks.has(taskName)) {
+        logger.warn(`⚠️  任务已在运行: ${taskName}`);
+        return true;
+      }
+
+      await this.scheduleTask(taskName, config.cron_expression, handler);
+      logger.info(`✅ 启动任务成功: ${taskName}`);
+      return true;
+    } catch (error) {
+      logger.error(`❌ 启动任务失败 ${taskName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 停止单个任务
+   */
+  async stopTask(taskName: string): Promise<boolean> {
+    try {
+      const task = this.tasks.get(taskName);
+      if (!task) {
+        logger.warn(`⚠️  任务未在运行: ${taskName}`);
+        return true;
+      }
+
+      task.stop();
+      this.tasks.delete(taskName);
+      logger.info(`✅ 停止任务成功: ${taskName}`);
+      return true;
+    } catch (error) {
+      logger.error(`❌ 停止任务失败 ${taskName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 重启单个任务
+   */
+  async restartTask(taskName: string): Promise<boolean> {
+    try {
+      logger.info(`🔄 重启任务: ${taskName}`);
+      
+      await this.stopTask(taskName);
+      await this.startTask(taskName);
+      
+      logger.info(`✅ 重启任务成功: ${taskName}`);
+      return true;
+    } catch (error) {
+      logger.error(`❌ 重启任务失败 ${taskName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 检查系统健康状态
+   */
+  getHealthStatus(): {
+    healthy: boolean;
+    totalTasks: number;
+    runningTasks: number;
+    criticalTasks: number;
+    criticalTasksRunning: number;
+    issues: string[];
+  } {
+    const allTasks = this.getTaskStatus();
+    const criticalHandlers = taskRegistry.getCriticalTasks();
+    const criticalTaskNames = criticalHandlers.map(h => h.name);
+    
+    const totalTasks = allTasks.length;
+    const runningTasks = allTasks.filter(t => t.running).length;
+    const criticalTasks = criticalTaskNames.length;
+    const criticalTasksRunning = allTasks
+      .filter(t => criticalTaskNames.includes(t.name) && t.running)
+      .length;
+
+    const issues: string[] = [];
+    
+    // 检查关键任务是否都在运行
+    for (const taskName of criticalTaskNames) {
+      const taskStatus = allTasks.find(t => t.name === taskName);
+      if (!taskStatus || !taskStatus.running) {
+        issues.push(`关键任务未运行: ${taskName}`);
+      }
+    }
+
+    // 检查任务注册器状态
+    const registryStats = taskRegistry.getStats();
+    if (registryStats.total === 0) {
+      issues.push('没有注册任何任务处理器');
+    }
+
+    const healthy = issues.length === 0 && criticalTasksRunning === criticalTasks;
+
+    return {
+      healthy,
+      totalTasks,
+      runningTasks,
+      criticalTasks,
+      criticalTasksRunning,
+      issues
+    };
   }
 }
 
@@ -358,17 +524,21 @@ export const schedulerService = new SchedulerService();
 
 // 在应用启动时自动启动调度器
 if (process.env.NODE_ENV !== 'test') {
-  schedulerService.start();
+  // 异步启动调度器
+  schedulerService.start().catch(error => {
+    logger.error('❌ 定时任务调度器启动失败:', error);
+    process.exit(1);
+  });
   
   // 优雅关闭
   process.on('SIGINT', () => {
-    console.log('Received SIGINT, stopping scheduler...');
+    logger.info('📡 收到 SIGINT 信号，正在停止调度器...');
     schedulerService.stop();
     process.exit(0);
   });
   
   process.on('SIGTERM', () => {
-    console.log('Received SIGTERM, stopping scheduler...');
+    logger.info('📡 收到 SIGTERM 信号，正在停止调度器...');
     schedulerService.stop();
     process.exit(0);
   });

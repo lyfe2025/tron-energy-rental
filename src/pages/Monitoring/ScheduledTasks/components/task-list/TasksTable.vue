@@ -120,6 +120,15 @@
                   <FileText class="h-4 w-4" />
                 </button>
                 
+                <!-- 编辑任务 -->
+                <button
+                  @click="$emit('edit-task', task)"
+                  class="text-orange-600 hover:text-orange-900"
+                  title="编辑任务"
+                >
+                  <Edit class="h-4 w-4" />
+                </button>
+                
                 <!-- 查看详情 -->
                 <button
                   @click="$emit('view-details', task)"
@@ -148,7 +157,7 @@
 
 <script setup lang="ts">
 import type { ScheduledTask } from '@/api/monitoring'
-import { Eye, FileText, Pause, Play, PlayCircle, RefreshCw, Trash2 } from 'lucide-vue-next'
+import { Edit, Eye, FileText, Pause, Play, PlayCircle, RefreshCw, Trash2 } from 'lucide-vue-next'
 
 interface Props {
   tasks: ScheduledTask[]
@@ -161,6 +170,7 @@ interface Emits {
   (e: 'execute-task', taskId: string): void
   (e: 'view-logs', taskId: string): void
   (e: 'view-details', task: ScheduledTask): void
+  (e: 'edit-task', task: ScheduledTask): void
   (e: 'delete-task', task: ScheduledTask): void
 }
 

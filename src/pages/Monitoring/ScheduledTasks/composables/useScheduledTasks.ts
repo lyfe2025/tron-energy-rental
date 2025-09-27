@@ -15,6 +15,14 @@ export interface TaskForm {
   maxRetries?: number
 }
 
+export interface EditTaskForm {
+  name: string
+  description: string
+  cronExpression: string
+  command: string
+  isActive: boolean
+}
+
 export function useScheduledTasks() {
   // Toast 通知
   const { error } = useToast()
@@ -23,6 +31,7 @@ export function useScheduledTasks() {
   const loading = ref(false)
   const logsLoading = ref(false)
   const createLoading = ref(false)
+  const editLoading = ref(false)
   const deleteLoading = ref(false)
   const tasks = ref<ScheduledTask[]>([])
   const logs = ref<TaskExecutionLog[]>([])
@@ -30,9 +39,11 @@ export function useScheduledTasks() {
   const showLogs = ref(false)
   const showDetailsDialog = ref(false)
   const showCreateDialog = ref(false)
+  const showEditDialog = ref(false)
   const showDeleteDialog = ref(false)
   const currentTaskId = ref<string | null>(null)
   const taskToDelete = ref<ScheduledTask | null>(null)
+  const taskToEdit = ref<ScheduledTask | null>(null)
 
   // 定时器
   let refreshTimer: NodeJS.Timeout | null = null
@@ -219,6 +230,18 @@ export function useScheduledTasks() {
     showCreateDialog.value = false
   }
 
+  // 显示编辑任务对话框
+  const showEditTaskDialog = (task: ScheduledTask) => {
+    taskToEdit.value = task
+    showEditDialog.value = true
+  }
+
+  // 关闭编辑任务对话框
+  const closeEditDialog = () => {
+    showEditDialog.value = false
+    taskToEdit.value = null
+  }
+
   // 创建任务
   const createTask = async (form: TaskForm) => {
     try {
@@ -242,6 +265,35 @@ export function useScheduledTasks() {
       throw err
     } finally {
       createLoading.value = false
+    }
+  }
+
+  // 更新任务
+  const updateTask = async (form: EditTaskForm) => {
+    if (!taskToEdit.value) return
+
+    try {
+      editLoading.value = true
+      const response = await monitoringApi.updateTask(taskToEdit.value.id, {
+        name: form.name,
+        description: form.description,
+        cron_expression: form.cronExpression,
+        command: form.command,
+        is_active: form.isActive
+      })
+      
+      if (response.success) {
+        await fetchTasks() // 重新获取任务列表
+        closeEditDialog()
+        return response
+      } else {
+        throw new Error(response.message || '更新任务失败')
+      }
+    } catch (err) {
+      console.error('更新任务失败:', err)
+      throw err
+    } finally {
+      editLoading.value = false
     }
   }
 
@@ -311,6 +363,7 @@ export function useScheduledTasks() {
     loading,
     logsLoading,
     createLoading,
+    editLoading,
     deleteLoading,
     tasks,
     logs,
@@ -318,8 +371,10 @@ export function useScheduledTasks() {
     showLogs,
     showDetailsDialog,
     showCreateDialog,
+    showEditDialog,
     showDeleteDialog,
     taskToDelete,
+    taskToEdit,
 
     // 计算属性
     taskStats,
@@ -338,6 +393,9 @@ export function useScheduledTasks() {
     showCreateTaskDialog,
     closeCreateDialog,
     createTask,
+    showEditTaskDialog,
+    closeEditDialog,
+    updateTask,
     showDeleteTaskDialog,
     closeDeleteDialog,
     confirmDeleteTask,

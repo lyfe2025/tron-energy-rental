@@ -20,6 +20,7 @@ router.post('/online-users/force-logout', requireAdmin, monitoringController.for
 
 // 定时任务管理
 router.get('/scheduled-tasks', requireAdmin, monitoringController.getScheduledTasks);
+router.put('/scheduled-tasks/:taskId', requireAdmin, monitoringController.updateTask);
 router.post('/scheduled-tasks/:taskId/pause', requireAdmin, monitoringController.pauseTask);
 router.post('/scheduled-tasks/:taskId/resume', requireAdmin, monitoringController.resumeTask);
 router.post('/scheduled-tasks/:taskId/execute', requireAdmin, monitoringController.executeTask);

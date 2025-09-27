@@ -137,6 +137,32 @@ export class ScheduledTasksController {
   };
 
   /**
+   * 更新定时任务
+   * PUT /api/monitoring/scheduled-tasks/:taskId
+   */
+  updateTask = async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const taskData = req.body;
+      
+      const result = await this.monitoringService.updateTask(taskId, taskData);
+      
+      res.json({
+        success: true,
+        data: result,
+        message: '任务已更新'
+      });
+    } catch (error) {
+      logger.error('更新任务失败:', error);
+      res.status(500).json({
+        success: false,
+        message: '更新任务失败',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  /**
    * 删除定时任务
    * DELETE /api/monitoring/scheduled-tasks/:taskId
    */

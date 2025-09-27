@@ -306,6 +306,20 @@ export const monitoringApi = {
     })
   },
 
+  // 更新定时任务
+  updateTask: (taskId: string | number, task: {
+    name?: string
+    description?: string
+    cron_expression?: string
+    command?: string
+    is_active?: boolean
+  }) => {
+    return request<ApiResponseWrapper<ScheduledTask>>(`/api/monitoring/scheduled-tasks/${taskId}`, {
+      method: 'PUT',
+      data: task
+    })
+  },
+
   // 获取任务执行日志
   getTaskExecutionLogs: (params?: {
     taskId?: string | number

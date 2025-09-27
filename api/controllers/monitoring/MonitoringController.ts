@@ -55,6 +55,7 @@ export class MonitoringController {
   forceLogout = this.onlineUsers.forceLogout;
   
   getScheduledTasks = this.scheduledTasks.getScheduledTasks;
+  updateTask = this.scheduledTasks.updateTask;
   pauseTask = this.scheduledTasks.pauseTask;
   resumeTask = this.scheduledTasks.resumeTask;
   executeTask = this.scheduledTasks.executeTask;

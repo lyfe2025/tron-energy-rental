@@ -19,6 +19,7 @@
       @execute-task="executeTask"
       @view-logs="viewTaskLogs"
       @view-details="showTaskDetails"
+      @edit-task="showEditTaskDialog"
       @delete-task="showDeleteTaskDialog"
     />
 
@@ -49,6 +50,15 @@
       @submit="createTask"
     />
 
+    <!-- 编辑任务对话框 -->
+    <EditTaskDialog
+      :visible="showEditDialog"
+      :loading="editLoading"
+      :task="taskToEdit"
+      @close="closeEditDialog"
+      @submit="updateTask"
+    />
+
     <!-- 删除确认对话框 -->
     <ConfirmDialog
       :visible="showDeleteDialog"
@@ -74,6 +84,7 @@ import { useToast } from '@/composables/useToast'
 import TaskPageHeader from './components/TaskPageHeader.vue'
 import TaskDetailsDialog from './components/dialogs/TaskDetailsDialog.vue'
 import CreateTaskDialog from './components/task-forms/CreateTaskDialog.vue'
+import EditTaskDialog from './components/task-forms/EditTaskDialog.vue'
 import TaskLogs from './components/task-list/TaskLogs.vue'
 import TasksTable from './components/task-list/TasksTable.vue'
 import TaskStatsCards from './components/task-stats/TaskStatsCards.vue'
@@ -90,6 +101,7 @@ const {
   loading,
   logsLoading,
   createLoading,
+  editLoading,
   deleteLoading,
   tasks,
   logs,
@@ -97,8 +109,10 @@ const {
   showLogs,
   showDetailsDialog,
   showCreateDialog,
+  showEditDialog,
   showDeleteDialog,
   taskToDelete,
+  taskToEdit,
 
   // 计算属性
   taskStats,
@@ -115,6 +129,9 @@ const {
   showCreateTaskDialog,
   closeCreateDialog,
   createTask: _createTask,
+  showEditTaskDialog,
+  closeEditDialog,
+  updateTask: _updateTask,
   showDeleteTaskDialog,
   closeDeleteDialog,
   confirmDeleteTask: _confirmDeleteTask
@@ -154,6 +171,15 @@ const createTask = async (form: any) => {
     success('任务创建成功')
   } catch (error) {
     error('创建任务失败')
+  }
+}
+
+const updateTask = async (form: any) => {
+  try {
+    await _updateTask(form)
+    success('任务更新成功')
+  } catch (error) {
+    error('更新任务失败')
   }
 }
 

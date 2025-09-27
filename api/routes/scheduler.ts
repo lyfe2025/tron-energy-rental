@@ -3,6 +3,8 @@ import { param } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { handleValidationErrors } from '../middleware/validation';
 import { schedulerService } from '../services/scheduler';
+import { taskRegistry } from '../services/scheduler/TaskRegistry';
+import { logger } from '../utils/logger';
 
 const router: Router = Router();
 
@@ -44,7 +46,13 @@ router.post('/trigger/:taskName',
   authenticateToken,
   [
     param('taskName')
-      .isIn(['expired-delegations', 'payment-timeouts', 'expired-unpaid-orders', 'refresh-pools', 'cleanup-expired'])
+      .custom((value) => {
+        const registeredTaskNames = taskRegistry.getTaskNames();
+        if (!registeredTaskNames.includes(value)) {
+          throw new Error(`Invalid task name. Available tasks: ${registeredTaskNames.join(', ')}`);
+        }
+        return true;
+      })
       .withMessage('Invalid task name')
   ],
   handleValidationErrors,
@@ -57,21 +65,21 @@ router.post('/trigger/:taskName',
       if (success) {
         res.json({
           success: true,
-          message: `Task ${taskName} triggered successfully`
+          message: `任务 ${taskName} 触发成功`
         });
       } else {
         res.status(400).json({
           success: false,
           error: 'Task execution failed',
-          message: `Failed to trigger task ${taskName}`
+          message: `任务 ${taskName} 触发失败`
         });
       }
     } catch (error) {
-      console.error('Trigger task error:', error);
+      logger.error('手动触发任务失败:', error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
-        message: 'Failed to trigger task'
+        message: '触发任务时发生内部错误'
       });
     }
   }
@@ -97,31 +105,6 @@ router.post('/process-expired-delegations',
         success: false,
         error: 'Internal server error',
         message: 'Failed to process expired delegations'
-      });
-    }
-  }
-);
-
-/**
- * 批量处理支付超时
- * POST /api/scheduler/process-payment-timeouts
- */
-router.post('/process-payment-timeouts',
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const success = await schedulerService.triggerTask('payment-timeouts');
-      
-      res.json({
-        success,
-        message: success ? 'Payment timeouts processed successfully' : 'Failed to process payment timeouts'
-      });
-    } catch (error) {
-      console.error('Process payment timeouts error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-        message: 'Failed to process payment timeouts'
       });
     }
   }
@@ -209,45 +192,230 @@ router.post('/cleanup-expired',
 router.get('/health',
   async (req, res) => {
     try {
-      const tasks = schedulerService.getTaskStatus();
-      const runningTasks = tasks.filter(t => t.running).length;
-      const totalTasks = tasks.length;
+      const healthStatus = schedulerService.getHealthStatus();
       
-      // 检查关键任务是否运行
-      const criticalTasks = ['expired-delegations', 'payment-timeouts', 'expired-unpaid-orders'];
-      const criticalTasksRunning = tasks
-        .filter(t => criticalTasks.includes(t.name) && t.running)
-        .length;
-      
-      const isHealthy = criticalTasksRunning === criticalTasks.length;
-      
-      res.status(isHealthy ? 200 : 503).json({
-        success: isHealthy,
-        data: {
-          healthy: isHealthy,
-          scheduler: {
-            totalTasks,
-            runningTasks,
-            criticalTasksRunning,
-            criticalTasksTotal: criticalTasks.length
-          },
-          tasks: tasks.map(t => ({
-            name: t.name,
-            running: t.running,
-            critical: criticalTasks.includes(t.name)
-          }))
-        },
-        message: isHealthy ? 'Scheduler is healthy' : 'Scheduler has issues'
+      res.status(healthStatus.healthy ? 200 : 503).json({
+        success: healthStatus.healthy,
+        data: healthStatus,
+        message: healthStatus.healthy ? '调度器运行正常' : '调度器存在问题'
       });
     } catch (error) {
-      console.error('Health check error:', error);
+      logger.error('健康检查失败:', error);
       res.status(503).json({
         success: false,
         data: {
           healthy: false,
-          error: 'Health check failed'
+          error: '健康检查失败'
         },
-        message: 'Failed to check scheduler health'
+        message: '无法检查调度器健康状态'
+      });
+    }
+  }
+);
+
+/**
+ * 获取已注册的任务处理器列表
+ * GET /api/scheduler/handlers
+ */
+router.get('/handlers',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const handlers = schedulerService.getRegisteredHandlers();
+      
+      res.json({
+        success: true,
+        data: handlers.map(handler => ({
+          name: handler.name,
+          description: handler.description,
+          defaultCronExpression: handler.defaultCronExpression,
+          critical: handler.critical
+        })),
+        message: '获取任务处理器列表成功'
+      });
+    } catch (error) {
+      logger.error('获取任务处理器列表失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '获取任务处理器列表失败'
+      });
+    }
+  }
+);
+
+/**
+ * 获取任务配置列表
+ * GET /api/scheduler/tasks
+ */
+router.get('/tasks',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const tasks = schedulerService.getAllTaskConfigs();
+      const taskStatus = schedulerService.getTaskStatus();
+      
+      const enrichedTasks = tasks.map(task => {
+        const status = taskStatus.find(s => s.name === task.name);
+        return {
+          ...task,
+          running: status ? status.running : false
+        };
+      });
+      
+      res.json({
+        success: true,
+        data: enrichedTasks,
+        message: '获取任务配置列表成功'
+      });
+    } catch (error) {
+      logger.error('获取任务配置列表失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '获取任务配置列表失败'
+      });
+    }
+  }
+);
+
+/**
+ * 启动任务
+ * POST /api/scheduler/tasks/:taskName/start
+ */
+router.post('/tasks/:taskName/start',
+  authenticateToken,
+  [
+    param('taskName')
+      .custom((value) => {
+        const registeredTaskNames = taskRegistry.getTaskNames();
+        if (!registeredTaskNames.includes(value)) {
+          throw new Error(`Invalid task name. Available tasks: ${registeredTaskNames.join(', ')}`);
+        }
+        return true;
+      })
+      .withMessage('Invalid task name')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { taskName } = req.params;
+      
+      const success = await schedulerService.startTask(taskName);
+      
+      res.json({
+        success,
+        message: success ? `任务 ${taskName} 启动成功` : `任务 ${taskName} 启动失败`
+      });
+    } catch (error) {
+      logger.error('启动任务失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '启动任务时发生内部错误'
+      });
+    }
+  }
+);
+
+/**
+ * 停止任务
+ * POST /api/scheduler/tasks/:taskName/stop
+ */
+router.post('/tasks/:taskName/stop',
+  authenticateToken,
+  [
+    param('taskName')
+      .custom((value) => {
+        const registeredTaskNames = taskRegistry.getTaskNames();
+        if (!registeredTaskNames.includes(value)) {
+          throw new Error(`Invalid task name. Available tasks: ${registeredTaskNames.join(', ')}`);
+        }
+        return true;
+      })
+      .withMessage('Invalid task name')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { taskName } = req.params;
+      
+      const success = await schedulerService.stopTask(taskName);
+      
+      res.json({
+        success,
+        message: success ? `任务 ${taskName} 停止成功` : `任务 ${taskName} 停止失败`
+      });
+    } catch (error) {
+      logger.error('停止任务失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '停止任务时发生内部错误'
+      });
+    }
+  }
+);
+
+/**
+ * 重启任务
+ * POST /api/scheduler/tasks/:taskName/restart
+ */
+router.post('/tasks/:taskName/restart',
+  authenticateToken,
+  [
+    param('taskName')
+      .custom((value) => {
+        const registeredTaskNames = taskRegistry.getTaskNames();
+        if (!registeredTaskNames.includes(value)) {
+          throw new Error(`Invalid task name. Available tasks: ${registeredTaskNames.join(', ')}`);
+        }
+        return true;
+      })
+      .withMessage('Invalid task name')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { taskName } = req.params;
+      
+      const success = await schedulerService.restartTask(taskName);
+      
+      res.json({
+        success,
+        message: success ? `任务 ${taskName} 重启成功` : `任务 ${taskName} 重启失败`
+      });
+    } catch (error) {
+      logger.error('重启任务失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '重启任务时发生内部错误'
+      });
+    }
+  }
+);
+
+/**
+ * 重新加载任务配置
+ * POST /api/scheduler/reload
+ */
+router.post('/reload',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      await schedulerService.reloadTaskConfigs();
+      
+      res.json({
+        success: true,
+        message: '任务配置重新加载成功'
+      });
+    } catch (error) {
+      logger.error('重新加载任务配置失败:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: '重新加载任务配置失败'
       });
     }
   }
