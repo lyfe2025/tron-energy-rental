@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
     <div 
       v-for="stat in orderStats" 
       :key="stat.label"
@@ -20,11 +20,12 @@
 
 <script setup lang="ts">
 import {
-    CheckCheck,
-    CheckCircle,
-    Clock,
-    RefreshCw,
-    XCircle
+  CheckCheck,
+  CheckCircle,
+  Clock,
+  Play,
+  RefreshCw,
+  XCircle
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Order } from '../types/order.types';
@@ -58,6 +59,13 @@ const orderStats = computed(() => {
       icon: RefreshCw,
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600'
+    },
+    {
+      label: '进行中',
+      value: stats.active || 0,
+      icon: Play,
+      bgColor: 'bg-indigo-100',
+      iconColor: 'text-indigo-600'
     },
     {
       label: '已完成',

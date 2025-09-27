@@ -93,6 +93,22 @@ const server = app.listen(PORT, HOST_ADDRESS, async () => {
     console.error('❌ 交易监听服务启动失败:', error);
     console.warn('⚠️ 服务器将继续运行，但闪租功能不可用');
   }
+
+  // 启动能量使用监控服务
+  try {
+    console.log('👁️ 正在启动能量使用监控服务...');
+    const { energyMonitorInitializer } = await import('./services/energy-usage-monitor/EnergyMonitorInitializer');
+    await energyMonitorInitializer.initialize();
+    console.log('✅ 能量使用监控服务已启动');
+    
+    // 输出监控状态
+    const energyMonitorStatus = energyMonitorInitializer.getStatus();
+    console.log(`🔋 能量监控状态: ${energyMonitorStatus.isInitialized ? '已初始化' : '未初始化'}`);
+    console.log(`📊 监控的订单数: ${energyMonitorStatus.monitoringStatus.monitoredOrdersCount}`);
+  } catch (error) {
+    console.error('❌ 能量使用监控服务启动失败:', error);
+    console.warn('⚠️ 服务器将继续运行，但笔数套餐自动代理功能不可用');
+  }
 });
 
 /**
@@ -103,6 +119,17 @@ async function gracefulShutdown(signal: string) {
   console.log('🛑 开始优雅关闭服务器...');
   
   try {
+    // 停止能量使用监控服务
+    try {
+      console.log('👁️ 正在停止能量使用监控服务...');
+      const { energyMonitorInitializer } = await import('./services/energy-usage-monitor/EnergyMonitorInitializer');
+      const energyMonitorService = (await import('./services/energy-usage-monitor/EnergyUsageMonitorService')).EnergyUsageMonitorService.getInstance();
+      await energyMonitorService.stop();
+      console.log('✅ 能量使用监控服务已停止');
+    } catch (error) {
+      console.error('❌ 停止能量使用监控服务失败:', error);
+    }
+    
     // 停止交易监听服务
     console.log('⚡ 正在停止交易监听服务...');
     await transactionMonitor.stopMonitoring();

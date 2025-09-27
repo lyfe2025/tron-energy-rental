@@ -45,6 +45,17 @@
             >
               能量使用记录
             </button>
+            <button
+              @click="activeTab = 'monitoring'"
+              :class="[
+                'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
+                activeTab === 'monitoring'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              监控状态
+            </button>
           </nav>
         </div>
 
@@ -220,6 +231,14 @@
             :order="selectedOrder"
           />
         </div>
+
+        <!-- 监控状态内容 -->
+        <div v-show="activeTab === 'monitoring'" class="mt-4">
+          <OrderEnergyMonitorStatus 
+            v-if="selectedOrder.order_type === 'transaction_package'"
+            :order="selectedOrder"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -369,16 +388,17 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import {
-    Copy,
-    ExternalLink,
-    Loader2,
-    X
+  Copy,
+  ExternalLink,
+  Loader2,
+  X
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Order } from '../types/order.types'
 import { formatOrderError, getErrorIcon } from '../utils/errorFormatter'
 import { formatNumber, formatPrice } from '../utils/orderFormatters'
 import EnergyUsageRecords from './EnergyUsageRecords.vue'
+import OrderEnergyMonitorStatus from './OrderEnergyMonitorStatus.vue'
 
 interface Props {
   showDetailsModal: boolean
