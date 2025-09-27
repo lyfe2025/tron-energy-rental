@@ -87,6 +87,11 @@ check_proxy() {
         has_proxy=true
     fi
     
+    if [ ! -z "$ALL_PROXY" ]; then
+        print_warning "发现 ALL_PROXY: $ALL_PROXY"
+        has_proxy=true
+    fi
+    
     if [ "$has_proxy" = true ]; then
         print_warning "检测到代理设置，启动 ngrok 时将自动清除这些环境变量"
         echo
@@ -174,7 +179,7 @@ start_ngrok() {
     print_info "自动清除代理环境变量以避免 ERR_NGROK_9009 错误"
     
     # 使用 nohup 在后台启动 ngrok，清除代理环境变量
-    nohup env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy ngrok http $DEFAULT_PORT > /dev/null 2>&1 &
+    nohup env -u ALL_PROXY -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy ngrok http $DEFAULT_PORT > /dev/null 2>&1 &
     
     print_info "等待 ngrok 启动..."
     local max_attempts=10
@@ -262,7 +267,7 @@ restart_ngrok() {
     print_info "自动清除代理环境变量以避免 ERR_NGROK_9009 错误"
     
     # 使用 nohup 在后台启动 ngrok，清除代理环境变量
-    nohup env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy ngrok http $DEFAULT_PORT > /dev/null 2>&1 &
+    nohup env -u ALL_PROXY -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy ngrok http $DEFAULT_PORT > /dev/null 2>&1 &
     
     print_info "等待 ngrok 启动..."
     local max_attempts=10
