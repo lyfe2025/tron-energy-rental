@@ -502,4 +502,188 @@ router.get('/energy-monitor/realtime',
   }
 );
 
+/**
+ * 手动触发能量代理（补单操作）
+ * POST /api/transaction-package/manual-delegation
+ */
+router.post('/manual-delegation',
+  authenticateToken,
+  [
+    body('orderId')
+      .isUUID()
+      .withMessage('Order ID must be valid UUID')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      console.log('🔧 [手动补单] 收到请求:', { orderId, ip: req.ip });
+      
+      // 动态导入服务
+      const { BatchDelegationService } = await import('../../services/batch-delegation/BatchDelegationService');
+      const { DatabaseService } = await import('../../database/DatabaseService');
+      
+      const batchDelegationService = BatchDelegationService.getInstance();
+      const dbService = DatabaseService.getInstance();
+      
+      // 验证订单状态
+      const orderQuery = `
+        SELECT 
+          id, target_address, remaining_transactions, used_transactions, 
+          transaction_count, status, payment_status, order_type, order_number
+        FROM orders 
+        WHERE id = $1 AND order_type = 'transaction_package'
+      `;
+      
+      const orderResult = await dbService.query(orderQuery, [orderId]);
+      
+      if (orderResult.rows.length === 0) {
+        console.warn('🔧 [手动补单] 订单未找到:', { orderId });
+        return res.status(404).json({
+          success: false,
+          message: '订单未找到或不是笔数套餐订单'
+        });
+      }
+      
+      const order = orderResult.rows[0];
+      console.log('🔧 [手动补单] 订单状态:', {
+        orderId,
+        orderNumber: order.order_number,
+        status: order.status,
+        paymentStatus: order.payment_status,
+        usedTransactions: order.used_transactions,
+        remainingTransactions: order.remaining_transactions,
+        totalTransactions: order.transaction_count
+      });
+      
+      // 检查订单状态
+      if (order.status !== 'active') {
+        return res.status(400).json({
+          success: false,
+          message: `订单状态为 ${order.status}，不允许代理操作`
+        });
+      }
+      
+      if (order.payment_status !== 'paid') {
+        return res.status(400).json({
+          success: false,
+          message: '订单未支付，无法执行代理'
+        });
+      }
+      
+      if (order.remaining_transactions <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: '订单笔数已全部用完，无法继续代理'
+        });
+      }
+
+      console.log('🔧 [手动补单] 开始执行代理:', {
+        orderId,
+        orderNumber: order.order_number,
+        userAddress: order.target_address.substring(0, 15) + '...',
+        networkId: order.network_id,
+        usedTransactions: order.used_transactions,
+        remainingTransactions: order.remaining_transactions
+      });
+
+      // 清理可能存在的过期代理锁（手动代理前的安全措施）
+      try {
+        await dbService.query('SELECT cleanup_expired_delegation_locks()');
+        console.log('🔧 [手动补单] 已清理过期代理锁');
+      } catch (lockCleanupError) {
+        console.warn('🔧 [手动补单] 清理代理锁警告:', lockCleanupError);
+      }
+
+      // 执行代理 - 复用首次代理逻辑，确保网络和能量计算正确
+      console.log('🔧 [手动补单] 调用批量代理服务 (复用首次代理逻辑)');
+      const delegationResult = await batchDelegationService.delegateSingleTransaction(
+        orderId,
+        order.target_address
+      );
+      
+      console.log('🔧 [手动补单] 代理结果:', {
+        orderId,
+        success: delegationResult.success,
+        message: delegationResult.message,
+        txHash: delegationResult.delegationTxHash?.substring(0, 15) + '...',
+        usedTransactions: delegationResult.usedTransactions,
+        remainingTransactions: delegationResult.remainingTransactions
+      });
+      
+      if (delegationResult.success) {
+        console.log('🔧 [手动补单] 代理成功:', {
+          orderId,
+          orderNumber: order.order_number,
+          delegationTxHash: delegationResult.delegationTxHash?.substring(0, 20) + '...',
+          usedTransactions: delegationResult.usedTransactions,
+          remainingTransactions: delegationResult.remainingTransactions,
+          energyDelegated: delegationResult.energyDelegated,
+          message: '✅ 手动代理成功完成'
+        });
+        
+        res.json({
+          success: true,
+          data: {
+            orderId,
+            orderNumber: order.order_number,
+            userAddress: order.target_address,
+            delegationTxHash: delegationResult.delegationTxHash,
+            usedTransactions: delegationResult.usedTransactions,
+            remainingTransactions: delegationResult.remainingTransactions,
+            totalTransactions: order.transaction_count,
+            energyDelegated: delegationResult.energyDelegated || 65000,
+            message: `手动代理成功！已用 ${delegationResult.usedTransactions}/${order.transaction_count} 笔`,
+            networkInfo: {
+              networkId: order.network_id,
+              delegationSuccess: true
+            }
+          },
+          message: '✅ 手动代理执行成功'
+        });
+      } else {
+        console.error('🔧 [手动补单] 代理失败:', {
+          orderId,
+          orderNumber: order.order_number,
+          error: delegationResult.message,
+          details: delegationResult.details,
+          originalError: delegationResult
+        });
+        
+        // 代理失败时的详细错误信息
+        const errorDetails = {
+          orderId,
+          orderNumber: order.order_number,
+          userAddress: order.target_address.substring(0, 15) + '...',
+          networkId: order.network_id,
+          usedTransactions: order.used_transactions,
+          remainingTransactions: order.remaining_transactions,
+          failureReason: delegationResult.message,
+          originalDetails: delegationResult.details
+        };
+        
+        res.status(400).json({
+          success: false,
+          message: delegationResult.message || '代理执行失败',
+          details: errorDetails,
+          error: '❌ 手动代理失败，请检查能量池余额或网络状态'
+        });
+      }
+      
+    } catch (error) {
+      console.error('🔧 [手动补单] 异常:', {
+        orderId: req.body?.orderId,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: '手动代理执行异常，请稍后重试'
+      });
+    }
+  }
+);
+
 export default router;

@@ -143,6 +143,15 @@
         >
           {{ checkingOrder ? '检查中...' : '手动检查' }}
         </button>
+        <button
+          v-if="isMonitoring && order.remaining_transactions > 0"
+          @click="triggerManualDelegation"
+          :disabled="loading || delegating"
+          class="px-3 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 disabled:opacity-50"
+          title="立即为用户代理一笔能量，无需等待系统检测"
+        >
+          {{ delegating ? '代理中...' : '立即代理' }}
+        </button>
       </div>
 
       <!-- 订单进度条 -->
@@ -202,6 +211,7 @@ const loading = ref(false)
 const checkingOrder = ref(false)
 const orderMonitorInfo = ref<any>(null)
 const showHelp = ref(false)
+const delegating = ref(false)
 
 // 计算属性
 const isMonitoring = computed(() => {
@@ -407,6 +417,69 @@ const formatTime = (date: Date | null) => {
     })
   } catch {
     return '无效时间'
+  }
+}
+
+// 手动触发代理
+const triggerManualDelegation = async () => {
+  delegating.value = true
+  try {
+    const token = localStorage.getItem('admin_token')
+    console.log('🔧 [前端] 发送手动代理请求', {
+      orderId: props.order.id,
+      hasToken: !!token,
+      tokenLength: token?.length || 0
+    })
+
+    // 检查token是否有效
+    if (!token || token.length < 100) {
+      throw new Error('请重新登录：认证token无效或已过期')
+    }
+
+    const response = await fetch('/api/transaction-package/manual-delegation', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ orderId: props.order.id })
+    })
+
+    console.log('🔧 [前端] 手动代理响应状态', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('🔧 [前端] 手动代理错误详情', errorData)
+      throw new Error(errorData.message || `HTTP ${response.status}: 手动代理失败`)
+    }
+
+    const data = await response.json()
+    console.log('🔧 [前端] 手动代理成功响应', data)
+    
+    if (data.success) {
+      const result = data.data
+      showSuccess(`能量代理成功！\n交易哈希: ${result.delegationTxHash?.substring(0, 20)}...\n已用笔数: ${result.usedTransactions}/${result.totalTransactions}\n剩余笔数: ${result.remainingTransactions}`)
+      
+      // 刷新监控状态
+      setTimeout(async () => {
+        await fetchOrderMonitorStatus()
+        // 触发父组件刷新订单信息
+        window.dispatchEvent(new CustomEvent('orderUpdated', { 
+          detail: { orderId: props.order.id, updatedData: result } 
+        }))
+      }, 1000)
+    } else {
+      throw new Error(data.message || '手动代理失败')
+    }
+  } catch (error) {
+    console.error('手动代理失败:', error)
+    showError(error instanceof Error ? error.message : '手动代理失败')
+  } finally {
+    delegating.value = false
   }
 }
 
